@@ -1,8 +1,11 @@
 import { WebSocket, WebSocketServer } from 'ws';
 import { v4 as uuidv4 } from 'uuid';
-import { sessionManager } from './session-manager';
+import { sessionManagerHolder } from './session-manager';
 import { executeCodeSafe } from './code-executor';
 import { MessageType, WebSocketMessage, Student } from './types';
+
+// Use the sessionManager instance from the holder
+const sessionManager = sessionManagerHolder.instance;
 
 interface Connection {
   ws: WebSocket;
@@ -67,19 +70,19 @@ class WebSocketHandler {
 
     switch (message.type) {
       case MessageType.CREATE_SESSION:
-        this.handleCreateSession(ws, connection);
+        await this.handleCreateSession(ws, connection);
         break;
         
       case MessageType.JOIN_SESSION:
-        this.handleJoinSession(ws, connection, message.payload);
+        await this.handleJoinSession(ws, connection, message.payload);
         break;
         
       case MessageType.UPDATE_PROBLEM:
-        this.handleUpdateProblem(connection, message.payload);
+        await this.handleUpdateProblem(connection, message.payload);
         break;
         
       case MessageType.CODE_UPDATE:
-        this.handleCodeUpdate(connection, message.payload);
+        await this.handleCodeUpdate(connection, message.payload);
         break;
         
       case MessageType.EXECUTE_CODE:
@@ -91,19 +94,19 @@ class WebSocketHandler {
         break;
         
       case MessageType.REQUEST_STUDENT_CODE:
-        this.handleRequestStudentCode(ws, connection, message.payload);
+        await this.handleRequestStudentCode(ws, connection, message.payload);
         break;
         
       case MessageType.SELECT_SUBMISSION_FOR_PUBLIC:
-        this.handleSelectSubmissionForPublic(connection, message.payload);
+        await this.handleSelectSubmissionForPublic(connection, message.payload);
         break;
         
       case MessageType.JOIN_PUBLIC_VIEW:
-        this.handleJoinPublicView(ws, connection, message.payload);
+        await this.handleJoinPublicView(ws, connection, message.payload);
         break;
         
       case MessageType.PUBLIC_CODE_EDIT:
-        this.handlePublicCodeEdit(connection, message.payload);
+        await this.handlePublicCodeEdit(connection, message.payload);
         break;
         
       case MessageType.PUBLIC_EXECUTE_CODE:
@@ -115,8 +118,8 @@ class WebSocketHandler {
     }
   }
 
-  private handleCreateSession(ws: WebSocket, connection: Connection) {
-    const session = sessionManager.createSession();
+  private async handleCreateSession(ws: WebSocket, connection: Connection) {
+    const session = await sessionManager.createSession();
     connection.role = 'instructor';
     connection.sessionId = session.id;
     
@@ -129,7 +132,7 @@ class WebSocketHandler {
     });
   }
 
-  private handleJoinSession(ws: WebSocket, connection: Connection, payload: any) {
+  private async handleJoinSession(ws: WebSocket, connection: Connection, payload: any) {
     const { joinCode, studentName } = payload;
     
     // Validate inputs
@@ -148,7 +151,7 @@ class WebSocketHandler {
       return;
     }
     
-    const session = sessionManager.getSessionByJoinCode(joinCode);
+    const session = await sessionManager.getSessionByJoinCode(joinCode);
     if (!session) {
       this.sendError(ws, 'Session not found. Please check the join code.');
       return;
@@ -159,7 +162,7 @@ class WebSocketHandler {
     connection.sessionId = session.id;
     connection.studentId = studentId;
 
-    const success = sessionManager.addStudent(session.id, studentId, studentName.trim());
+    const success = await sessionManager.addStudent(session.id, studentId, studentName.trim());
     if (!success) {
       this.sendError(ws, 'Failed to join session. Please try again.');
       return;
@@ -175,10 +178,10 @@ class WebSocketHandler {
     });
 
     // Notify instructor of new student
-    this.broadcastStudentList(session.id);
+    await this.broadcastStudentList(session.id);
   }
 
-  private handleUpdateProblem(connection: Connection, payload: any) {
+  private async handleUpdateProblem(connection: Connection, payload: any) {
     if (connection.role !== 'instructor' || !connection.sessionId) {
       return;
     }
@@ -195,7 +198,7 @@ class WebSocketHandler {
       return;
     }
 
-    sessionManager.updateProblem(connection.sessionId, problemText);
+    await sessionManager.updateProblem(connection.sessionId, problemText);
 
     // Broadcast to all students
     this.broadcastToSession(connection.sessionId, {
@@ -210,16 +213,16 @@ class WebSocketHandler {
     }, 'public');
   }
 
-  private handleCodeUpdate(connection: Connection, payload: any) {
+  private async handleCodeUpdate(connection: Connection, payload: any) {
     if (connection.role !== 'student' || !connection.sessionId || !connection.studentId) {
       return;
     }
 
     const { code } = payload;
-    sessionManager.updateStudentCode(connection.sessionId, connection.studentId, code);
+    await sessionManager.updateStudentCode(connection.sessionId, connection.studentId, code);
 
     // Notify instructor
-    this.broadcastStudentList(connection.sessionId);
+    await this.broadcastStudentList(connection.sessionId);
   }
 
   private async handleExecuteCode(ws: WebSocket, connection: Connection, payload: any) {
@@ -262,7 +265,7 @@ class WebSocketHandler {
         return;
       }
       
-      const code = sessionManager.getStudentCode(connection.sessionId, studentId);
+      const code = await sessionManager.getStudentCode(connection.sessionId, studentId);
       
       if (!code) {
         this.sendError(ws, 'Student code not found or empty');
@@ -281,11 +284,11 @@ class WebSocketHandler {
     }
   }
 
-  private handleRequestStudentCode(ws: WebSocket, connection: Connection, payload: any) {
+  private async handleRequestStudentCode(ws: WebSocket, connection: Connection, payload: any) {
     if (connection.role !== 'instructor' || !connection.sessionId) return;
 
     const { studentId } = payload;
-    const code = sessionManager.getStudentCode(connection.sessionId, studentId);
+    const code = await sessionManager.getStudentCode(connection.sessionId, studentId);
     
     if (code === undefined) {
       this.sendError(ws, 'Student not found');
@@ -298,31 +301,31 @@ class WebSocketHandler {
     });
   }
 
-  private handleSelectSubmissionForPublic(connection: Connection, payload: any) {
+  private async handleSelectSubmissionForPublic(connection: Connection, payload: any) {
     if (connection.role !== 'instructor' || !connection.sessionId) return;
 
     const { studentId } = payload;
     
     if (studentId) {
       // Set featured submission
-      const success = sessionManager.setFeaturedSubmission(connection.sessionId, studentId);
+      const success = await sessionManager.setFeaturedSubmission(connection.sessionId, studentId);
       if (!success) {
         console.error('Failed to set featured submission');
         return;
       }
     } else {
       // Clear featured submission
-      sessionManager.clearFeaturedSubmission(connection.sessionId);
+      await sessionManager.clearFeaturedSubmission(connection.sessionId);
     }
 
     // Broadcast update to public views
-    this.broadcastPublicSubmissionUpdate(connection.sessionId);
+    await this.broadcastPublicSubmissionUpdate(connection.sessionId);
   }
 
-  private handleJoinPublicView(ws: WebSocket, connection: Connection, payload: any) {
+  private async handleJoinPublicView(ws: WebSocket, connection: Connection, payload: any) {
     const { sessionId } = payload;
     
-    const session = sessionManager.getSession(sessionId);
+    const session = await sessionManager.getSession(sessionId);
     if (!session) {
       this.sendError(ws, 'Session not found');
       return;
@@ -332,7 +335,7 @@ class WebSocketHandler {
     connection.sessionId = sessionId;
 
     // Send current session state
-    const featured = sessionManager.getFeaturedSubmission(sessionId);
+    const featured = await sessionManager.getFeaturedSubmission(sessionId);
     this.send(ws, {
       type: MessageType.PUBLIC_SUBMISSION_UPDATE,
       payload: {
@@ -344,11 +347,11 @@ class WebSocketHandler {
     });
   }
 
-  private handlePublicCodeEdit(connection: Connection, payload: any) {
+  private async handlePublicCodeEdit(connection: Connection, payload: any) {
     if (connection.role !== 'public' || !connection.sessionId) return;
 
     const { code } = payload;
-    sessionManager.updateFeaturedCode(connection.sessionId, code);
+    await sessionManager.updateFeaturedCode(connection.sessionId, code);
 
     // Broadcast to other public views (for sync if multiple displays)
     this.broadcastToSession(connection.sessionId, {
@@ -383,11 +386,11 @@ class WebSocketHandler {
     }
   }
 
-  private broadcastPublicSubmissionUpdate(sessionId: string) {
-    const session = sessionManager.getSession(sessionId);
+  private async broadcastPublicSubmissionUpdate(sessionId: string) {
+    const session = await sessionManager.getSession(sessionId);
     if (!session) return;
 
-    const featured = sessionManager.getFeaturedSubmission(sessionId);
+    const featured = await sessionManager.getFeaturedSubmission(sessionId);
     
     this.broadcastToSession(sessionId, {
       type: MessageType.PUBLIC_SUBMISSION_UPDATE,
@@ -400,15 +403,15 @@ class WebSocketHandler {
     }, 'public');
   }
 
-  private handleDisconnect(ws: WebSocket) {
+  private async handleDisconnect(ws: WebSocket) {
     const connection = this.connections.get(ws);
     if (!connection) return;
 
     console.log('WebSocket disconnected');
 
     if (connection.sessionId && connection.studentId) {
-      sessionManager.removeStudent(connection.sessionId, connection.studentId);
-      this.broadcastStudentList(connection.sessionId);
+      await sessionManager.removeStudent(connection.sessionId, connection.studentId);
+      await this.broadcastStudentList(connection.sessionId);
     }
 
     this.connections.delete(ws);
@@ -426,8 +429,8 @@ class WebSocketHandler {
     }
   }
 
-  private broadcastStudentList(sessionId: string) {
-    const students = sessionManager.getStudents(sessionId);
+  private async broadcastStudentList(sessionId: string) {
+    const students = await sessionManager.getStudents(sessionId);
     const studentList = students.map((s: Student) => ({
       id: s.id,
       name: s.name,

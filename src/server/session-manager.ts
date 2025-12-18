@@ -1,21 +1,49 @@
 import { v4 as uuidv4 } from 'uuid';
 import { Session, Student } from './types';
+import { IStorageRepository } from './persistence';
 
-class SessionManager {
-  private sessions: Map<string, Session> = new Map();
+export class SessionManager {
+  // In-memory index for join codes (for fast lookup)
   private sessionsByJoinCode: Map<string, string> = new Map();
 
+  constructor(private storage?: IStorageRepository) {
+    // Storage is optional for backward compatibility during migration
+  }
+
   /**
-   * Generate a unique 6-character join code
+   * Initialize session manager
+   * Loads existing sessions from storage
+   */
+  async initialize(): Promise<void> {
+    if (!this.storage) return;
+    
+    try {
+      // Load all sessions from storage
+      const sessions = await this.storage.sessions.listAllSessions();
+      
+      // Rebuild join code index
+      for (const session of sessions) {
+        this.sessionsByJoinCode.set(session.joinCode, session.id);
+      }
+      
+      console.log(`Loaded ${sessions.length} sessions from storage`);
+    } catch (error) {
+      console.error('Failed to load sessions from storage:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Generate a unique join code (6 uppercase letters/numbers)
    */
   private generateJoinCode(): string {
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Excluding confusing chars
+    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     let code = '';
     for (let i = 0; i < 6; i++) {
-      code += chars.charAt(Math.floor(Math.random() * chars.length));
+      code += characters.charAt(Math.floor(Math.random() * characters.length));
     }
     
-    // Ensure uniqueness
+    // Ensure uniqueness (very unlikely to collide, but check anyway)
     if (this.sessionsByJoinCode.has(code)) {
       return this.generateJoinCode();
     }
@@ -26,7 +54,7 @@ class SessionManager {
   /**
    * Create a new session
    */
-  createSession(): Session {
+  async createSession(): Promise<Session> {
     const sessionId = uuidv4();
     const joinCode = this.generateJoinCode();
     
@@ -39,7 +67,16 @@ class SessionManager {
       lastActivity: new Date(),
     };
     
-    this.sessions.set(sessionId, session);
+    // Persist to storage if available
+    if (this.storage) {
+      try {
+        await this.storage.sessions.createSession(session);
+      } catch (error) {
+        console.error('Failed to persist session to storage:', error);
+        throw error;
+      }
+    }
+    
     this.sessionsByJoinCode.set(joinCode, sessionId);
     
     console.log(`Created session ${sessionId} with join code ${joinCode}`);
@@ -49,37 +86,56 @@ class SessionManager {
   /**
    * Get a session by join code
    */
-  getSessionByJoinCode(joinCode: string): Session | undefined {
+  async getSessionByJoinCode(joinCode: string): Promise<Session | null> {
     const sessionId = this.sessionsByJoinCode.get(joinCode.toUpperCase());
-    if (!sessionId) return undefined;
-    return this.sessions.get(sessionId);
+    if (!sessionId) return null;
+    
+    if (this.storage) {
+      const session = await this.storage.sessions.getSession(sessionId);
+      return session;
+    }
+    
+    return null;
   }
 
   /**
    * Get a session by ID
    */
-  getSession(sessionId: string): Session | undefined {
-    return this.sessions.get(sessionId);
+  async getSession(sessionId: string): Promise<Session | null> {
+    if (this.storage) {
+      const session = await this.storage.sessions.getSession(sessionId);
+      return session;
+    }
+    
+    return null;
   }
 
   /**
    * Update problem text for a session
    */
-  updateProblem(sessionId: string, problemText: string): boolean {
-    const session = this.sessions.get(sessionId);
-    if (!session) return false;
+  async updateProblem(sessionId: string, problemText: string): Promise<boolean> {
+    if (!this.storage) return false;
     
-    session.problemText = problemText;
-    session.lastActivity = new Date();
-    console.log(`Updated problem for session ${sessionId}`);
-    return true;
+    try {
+      await this.storage.sessions.updateSession(sessionId, {
+        problemText,
+        lastActivity: new Date(),
+      });
+      console.log(`Updated problem for session ${sessionId}`);
+      return true;
+    } catch (error) {
+      console.error(`Failed to update problem for session ${sessionId}:`, error);
+      return false;
+    }
   }
 
   /**
    * Add a student to a session
    */
-  addStudent(sessionId: string, studentId: string, name: string): boolean {
-    const session = this.sessions.get(sessionId);
+  async addStudent(sessionId: string, studentId: string, name: string): Promise<boolean> {
+    if (!this.storage) return false;
+    
+    const session = await this.getSession(sessionId);
     if (!session) return false;
     
     const student: Student = {
@@ -90,31 +146,53 @@ class SessionManager {
     };
     
     session.connectedStudents.set(studentId, student);
-    session.lastActivity = new Date();
-    console.log(`Added student ${name} (${studentId}) to session ${sessionId}`);
-    return true;
+    
+    try {
+      await this.storage.sessions.updateSession(sessionId, {
+        connectedStudents: session.connectedStudents,
+        lastActivity: new Date(),
+      });
+      console.log(`Added student ${name} (${studentId}) to session ${sessionId}`);
+      return true;
+    } catch (error) {
+      console.error(`Failed to add student to session ${sessionId}:`, error);
+      return false;
+    }
   }
 
   /**
    * Remove a student from a session
    */
-  removeStudent(sessionId: string, studentId: string): boolean {
-    const session = this.sessions.get(sessionId);
+  async removeStudent(sessionId: string, studentId: string): Promise<boolean> {
+    if (!this.storage) return false;
+    
+    const session = await this.getSession(sessionId);
     if (!session) return false;
     
     const removed = session.connectedStudents.delete(studentId);
     if (removed) {
-      session.lastActivity = new Date();
-      console.log(`Removed student ${studentId} from session ${sessionId}`);
+      try {
+        await this.storage.sessions.updateSession(sessionId, {
+          connectedStudents: session.connectedStudents,
+          lastActivity: new Date(),
+        });
+        console.log(`Removed student ${studentId} from session ${sessionId}`);
+        return true;
+      } catch (error) {
+        console.error(`Failed to remove student from session ${sessionId}:`, error);
+        return false;
+      }
     }
-    return removed;
+    return false;
   }
 
   /**
    * Update student code
    */
-  updateStudentCode(sessionId: string, studentId: string, code: string): boolean {
-    const session = this.sessions.get(sessionId);
+  async updateStudentCode(sessionId: string, studentId: string, code: string): Promise<boolean> {
+    if (!this.storage) return false;
+    
+    const session = await this.getSession(sessionId);
     if (!session) return false;
     
     const student = session.connectedStudents.get(studentId);
@@ -122,15 +200,24 @@ class SessionManager {
     
     student.code = code;
     student.lastUpdate = new Date();
-    session.lastActivity = new Date();
-    return true;
+    
+    try {
+      await this.storage.sessions.updateSession(sessionId, {
+        connectedStudents: session.connectedStudents,
+        lastActivity: new Date(),
+      });
+      return true;
+    } catch (error) {
+      console.error(`Failed to update student code for session ${sessionId}:`, error);
+      return false;
+    }
   }
 
   /**
    * Get student code
    */
-  getStudentCode(sessionId: string, studentId: string): string | undefined {
-    const session = this.sessions.get(sessionId);
+  async getStudentCode(sessionId: string, studentId: string): Promise<string | undefined> {
+    const session = await this.getSession(sessionId);
     if (!session) return undefined;
     
     const student = session.connectedStudents.get(studentId);
@@ -140,8 +227,8 @@ class SessionManager {
   /**
    * Get all students in a session
    */
-  getStudents(sessionId: string): Student[] {
-    const session = this.sessions.get(sessionId);
+  async getStudents(sessionId: string): Promise<Student[]> {
+    const session = await this.getSession(sessionId);
     if (!session) return [];
     
     return Array.from(session.connectedStudents.values());
@@ -150,51 +237,71 @@ class SessionManager {
   /**
    * Set featured submission for public view
    */
-  setFeaturedSubmission(sessionId: string, studentId: string): boolean {
-    const session = this.sessions.get(sessionId);
+  async setFeaturedSubmission(sessionId: string, studentId: string): Promise<boolean> {
+    if (!this.storage) return false;
+    
+    const session = await this.getSession(sessionId);
     if (!session) return false;
     
     const student = session.connectedStudents.get(studentId);
     if (!student) return false;
     
-    session.featuredStudentId = studentId;
-    // Create a copy of the student's code for the public view
-    session.featuredCode = student.code;
-    session.lastActivity = new Date();
-    console.log(`Set featured submission for session ${sessionId}: student ${studentId}`);
-    return true;
+    try {
+      await this.storage.sessions.updateSession(sessionId, {
+        featuredStudentId: studentId,
+        featuredCode: student.code,
+        lastActivity: new Date(),
+      });
+      console.log(`Set featured submission for session ${sessionId}: student ${studentId}`);
+      return true;
+    } catch (error) {
+      console.error(`Failed to set featured submission for session ${sessionId}:`, error);
+      return false;
+    }
   }
 
   /**
    * Clear featured submission
    */
-  clearFeaturedSubmission(sessionId: string): boolean {
-    const session = this.sessions.get(sessionId);
-    if (!session) return false;
+  async clearFeaturedSubmission(sessionId: string): Promise<boolean> {
+    if (!this.storage) return false;
     
-    session.featuredStudentId = undefined;
-    session.featuredCode = undefined;
-    session.lastActivity = new Date();
-    return true;
+    try {
+      await this.storage.sessions.updateSession(sessionId, {
+        featuredStudentId: undefined,
+        featuredCode: undefined,
+        lastActivity: new Date(),
+      });
+      return true;
+    } catch (error) {
+      console.error(`Failed to clear featured submission for session ${sessionId}:`, error);
+      return false;
+    }
   }
 
   /**
    * Update featured code (from public view edits)
    */
-  updateFeaturedCode(sessionId: string, code: string): boolean {
-    const session = this.sessions.get(sessionId);
-    if (!session) return false;
+  async updateFeaturedCode(sessionId: string, code: string): Promise<boolean> {
+    if (!this.storage) return false;
     
-    session.featuredCode = code;
-    session.lastActivity = new Date();
-    return true;
+    try {
+      await this.storage.sessions.updateSession(sessionId, {
+        featuredCode: code,
+        lastActivity: new Date(),
+      });
+      return true;
+    } catch (error) {
+      console.error(`Failed to update featured code for session ${sessionId}:`, error);
+      return false;
+    }
   }
 
   /**
    * Get featured submission data
    */
-  getFeaturedSubmission(sessionId: string): { studentId?: string; code?: string } {
-    const session = this.sessions.get(sessionId);
+  async getFeaturedSubmission(sessionId: string): Promise<{ studentId?: string; code?: string }> {
+    const session = await this.getSession(sessionId);
     if (!session) return {};
     
     return {
@@ -206,46 +313,75 @@ class SessionManager {
   /**
    * Delete a session
    */
-  deleteSession(sessionId: string): boolean {
-    const session = this.sessions.get(sessionId);
+  async deleteSession(sessionId: string): Promise<boolean> {
+    if (!this.storage) return false;
+    
+    const session = await this.getSession(sessionId);
     if (!session) return false;
     
-    this.sessionsByJoinCode.delete(session.joinCode);
-    this.sessions.delete(sessionId);
-    console.log(`Deleted session ${sessionId}`);
-    return true;
+    try {
+      await this.storage.sessions.deleteSession(sessionId);
+      this.sessionsByJoinCode.delete(session.joinCode);
+      console.log(`Deleted session ${sessionId}`);
+      return true;
+    } catch (error) {
+      console.error(`Failed to delete session ${sessionId}:`, error);
+      return false;
+    }
   }
 
   /**
    * Cleanup old sessions (optional for Phase 1)
    * Remove sessions with no activity for more than 24 hours
    */
-  cleanupOldSessions(): number {
+  async cleanupOldSessions(): Promise<number> {
+    if (!this.storage) return 0;
+    
     const now = new Date();
     const maxAge = 24 * 60 * 60 * 1000; // 24 hours
     let cleaned = 0;
     
-    for (const [sessionId, session] of this.sessions.entries()) {
-      const age = now.getTime() - session.lastActivity.getTime();
-      if (age > maxAge) {
-        this.deleteSession(sessionId);
-        cleaned++;
+    try {
+      const sessions = await this.storage.sessions.listAllSessions();
+      
+      for (const session of sessions) {
+        const age = now.getTime() - session.lastActivity.getTime();
+        if (age > maxAge) {
+          await this.deleteSession(session.id);
+          cleaned++;
+        }
       }
+      
+      if (cleaned > 0) {
+        console.log(`Cleaned up ${cleaned} old sessions`);
+      }
+    } catch (error) {
+      console.error('Failed to cleanup old sessions:', error);
     }
     
-    if (cleaned > 0) {
-      console.log(`Cleaned up ${cleaned} old sessions`);
-    }
     return cleaned;
   }
 
   /**
    * Get session count
    */
-  getSessionCount(): number {
-    return this.sessions.size;
+  async getSessionCount(): Promise<number> {
+    if (!this.storage) return 0;
+    
+    try {
+      return await this.storage.sessions.countSessions();
+    } catch (error) {
+      console.error('Failed to get session count:', error);
+      return 0;
+    }
   }
 }
 
-// Singleton instance
-export const sessionManager = new SessionManager();
+// Mutable singleton instance holder
+// Will be replaced in index.ts with a properly initialized instance
+export const sessionManagerHolder = {
+  instance: new SessionManager() as SessionManager,
+};
+
+// For convenience, export the instance directly too
+export { sessionManagerHolder as sessionManager };

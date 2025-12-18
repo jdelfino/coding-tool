@@ -3,6 +3,8 @@ import { createServer } from 'http';
 import { WebSocketServer } from 'ws';
 import next from 'next';
 import { wsHandler } from './websocket-handler';
+import { createDefaultStorage } from './persistence';
+import { SessionManager, sessionManagerHolder } from './session-manager';
 
 const dev = process.env.NODE_ENV !== 'production';
 const hostname = 'localhost';
@@ -15,7 +17,18 @@ const app = next({
 });
 const handle = app.getRequestHandler();
 
-app.prepare().then(() => {
+app.prepare().then(async () => {
+  // Initialize persistence storage
+  console.log('Initializing storage backend...');
+  const storage = await createDefaultStorage();
+  
+  // Initialize session manager with storage and replace the global singleton
+  const sessionManagerInstance = new SessionManager(storage);
+  await sessionManagerInstance.initialize();
+  sessionManagerHolder.instance = sessionManagerInstance;
+  
+  console.log('Storage backend initialized successfully');
+
   const expressApp = express();
   const server = createServer(expressApp);
   
@@ -51,5 +64,18 @@ app.prepare().then(() => {
   server.listen(port, () => {
     console.log(`> Server ready on http://${hostname}:${port}`);
     console.log(`> WebSocket server ready on ws://${hostname}:${port}/ws`);
+  });
+  
+  // Cleanup on server shutdown
+  process.on('SIGINT', async () => {
+    console.log('\nShutting down server...');
+    await storage.shutdown();
+    process.exit(0);
+  });
+  
+  process.on('SIGTERM', async () => {
+    console.log('\nShutting down server...');
+    await storage.shutdown();
+    process.exit(0);
   });
 });
