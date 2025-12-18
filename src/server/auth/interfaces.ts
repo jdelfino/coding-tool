@@ -1,44 +1,33 @@
 /**
  * Interfaces for authentication and authorization services.
  * These interfaces define contracts that can be implemented by different
- * auth providers (local, Auth0, Cognito, etc.) for easy swapping.
+ * auth providers (local, OAuth, third-party services, etc.) for easy swapping.
  */
 
-import { User, UserRole, AuthToken } from './types';
+import { User, UserRole } from './types';
 
 /**
  * Authentication provider interface.
- * Implementations handle user authentication via different methods
- * (password-less email, OAuth, etc.).
+ * Implementations handle user authentication and management.
  */
 export interface IAuthProvider {
   /**
-   * Send authentication email to the user.
-   * For password-less auth, this sends a magic link or one-time code.
+   * Authenticate a user with their username.
    * 
-   * @param email - User's email address
-   * @throws {Error} If email sending fails
+   * @param username - User's username
+   * @returns User if authentication successful, null otherwise
    */
-  sendAuthEmail(email: string): Promise<void>;
-
-  /**
-   * Verify an authentication token and return the associated user.
-   * Returns null if the token is invalid or expired.
-   * 
-   * @param token - Authentication token to verify
-   * @returns User if token is valid, null otherwise
-   */
-  verifyAuthToken(token: string): Promise<User | null>;
+  authenticate(username: string): Promise<User | null>;
 
   /**
    * Create a new user account.
    * 
-   * @param email - User's email address
+   * @param username - User's username
    * @param role - User's role (instructor or student)
    * @returns The newly created user
    * @throws {Error} If user already exists or creation fails
    */
-  createUser(email: string, role: UserRole): Promise<User>;
+  createUser(username: string, role: UserRole): Promise<User>;
 
   /**
    * Get a user by their ID.
@@ -49,12 +38,12 @@ export interface IAuthProvider {
   getUser(userId: string): Promise<User | null>;
 
   /**
-   * Get a user by their email address.
+   * Get a user by their username.
    * 
-   * @param email - User's email address
+   * @param username - User's username
    * @returns User if found, null otherwise
    */
-  getUserByEmail(email: string): Promise<User | null>;
+  getUserByUsername(username: string): Promise<User | null>;
 
   /**
    * Update user information.
@@ -96,12 +85,12 @@ export interface IUserRepository {
   getUser(userId: string): Promise<User | null>;
 
   /**
-   * Get a user by their email address.
+   * Get a user by their username.
    * 
-   * @param email - User's email address
+   * @param username - User's username
    * @returns User if found, null otherwise
    */
-  getUserByEmail(email: string): Promise<User | null>;
+  getUserByUsername(username: string): Promise<User | null>;
 
   /**
    * List all users, optionally filtered by role.
@@ -171,54 +160,4 @@ export interface IRBACService {
    * @returns Array of permission strings
    */
   getRolePermissions(role: UserRole): string[];
-}
-
-/**
- * Token management interface.
- * Handles creation and validation of authentication tokens.
- */
-export interface ITokenManager {
-  /**
-   * Generate a new authentication token for an email.
-   * 
-   * @param email - Email address to associate with token
-   * @returns Token information including expiration
-   */
-  generateToken(email: string): Promise<AuthToken>;
-
-  /**
-   * Validate a token and return the associated email.
-   * 
-   * @param token - Token string to validate
-   * @returns Email if token is valid, null otherwise
-   */
-  validateToken(token: string): Promise<string | null>;
-
-  /**
-   * Revoke/invalidate a token.
-   * 
-   * @param token - Token to revoke
-   */
-  revokeToken(token: string): Promise<void>;
-}
-
-/**
- * Email service interface for sending authentication emails.
- */
-export interface IEmailService {
-  /**
-   * Send an authentication email with a magic link or code.
-   * 
-   * @param email - Recipient email address
-   * @param token - Authentication token to include in email
-   * @throws {Error} If email sending fails
-   */
-  sendAuthEmail(email: string, token: string): Promise<void>;
-
-  /**
-   * Send a welcome email to a new user.
-   * 
-   * @param user - New user to welcome
-   */
-  sendWelcomeEmail(user: User): Promise<void>;
 }

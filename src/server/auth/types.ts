@@ -37,8 +37,8 @@ export type Permission =
 export interface User {
   /** Unique identifier for the user */
   id: string;
-  /** User's email address (used for authentication) */
-  email: string;
+  /** Username for authentication */
+  username: string;
   /** User's role determining their permissions */
   role: UserRole;
   /** Optional display name for the user */
@@ -50,57 +50,33 @@ export interface User {
 }
 
 /**
- * Authentication token used for session management.
- */
-export interface AuthToken {
-  /** The token string itself */
-  token: string;
-  /** User ID this token belongs to */
-  userId: string;
-  /** When this token expires */
-  expiresAt: Date;
-}
-
-/**
  * Active authentication session for a client.
  */
 export interface AuthSession {
-  /** The auth token for this session */
-  token: string;
   /** The authenticated user */
   user: User;
-  /** When this session expires */
-  expiresAt: Date;
+  /** Session identifier */
+  sessionId: string;
+  /** When this session was created */
+  createdAt: Date;
 }
 
 /**
  * Request payload for user login.
  */
 export interface LoginRequest {
-  /** Email address to send authentication link/code to */
-  email: string;
+  /** Username for authentication */
+  username: string;
 }
 
 /**
- * Response after successful authentication request.
+ * Response after successful authentication.
  */
 export interface LoginResponse {
-  /** Success message to display to user */
-  message: string;
-  /** Whether a new account was created */
-  newAccount?: boolean;
-}
-
-/**
- * Response after token verification.
- */
-export interface VerifyTokenResponse {
   /** The authenticated user */
   user: User;
-  /** Session token for future requests */
-  token: string;
-  /** When the token expires */
-  expiresAt: Date;
+  /** Session identifier */
+  sessionId: string;
 }
 
 /**
