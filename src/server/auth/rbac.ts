@@ -1,0 +1,118 @@
+/**
+ * Role-Based Access Control (RBAC) service.
+ * Handles authorization and permission checking for users.
+ */
+
+import { User, AuthorizationError } from './types';
+import { IRBACService } from './interfaces';
+import { ROLE_PERMISSIONS } from './permissions';
+
+/**
+ * RBAC service for checking user permissions and access control.
+ * 
+ * Note: For session access checks, we need a way to query session data.
+ * This will be injected when we integrate with the session manager.
+ */
+export class RBACService implements IRBACService {
+  private sessionRepository?: any; // Will be properly typed when session persistence is implemented
+
+  constructor(sessionRepository?: any) {
+    this.sessionRepository = sessionRepository;
+  }
+
+  /**
+   * Check if a user has a specific permission.
+   */
+  hasPermission(user: User, permission: string): boolean {
+    const rolePermissions = ROLE_PERMISSIONS[user.role];
+    return rolePermissions.includes(permission as any);
+  }
+
+  /**
+   * Check if a user can access a specific coding session.
+   * Instructors can access all sessions.
+   * Students can only access sessions they're enrolled in.
+   */
+  async canAccessSession(user: User, sessionId: string): Promise<boolean> {
+    // Instructors can access any session
+    if (user.role === 'instructor') {
+      return true;
+    }
+
+    // Students can only access sessions they're in
+    // For now, we'll return true for students since we don't have session persistence yet
+    // TODO: Once session persistence is implemented, check if user is in the session
+    if (!this.sessionRepository) {
+      console.warn('[RBAC] Session repository not configured, allowing student access');
+      return true;
+    }
+
+    try {
+      const session = await this.sessionRepository.getSession(sessionId);
+      if (!session) {
+        return false;
+      }
+
+      // Check if student is in the session
+      return session.students?.some((s: any) => s.id === user.id) ?? false;
+    } catch (error) {
+      console.error('[RBAC] Error checking session access:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Check if a user can manage (modify/delete) another user.
+   * Only instructors can manage users.
+   */
+  canManageUser(actor: User, target: User): boolean {
+    // Only instructors can manage users
+    if (actor.role !== 'instructor') {
+      return false;
+    }
+
+    // Instructors can manage anyone (including other instructors)
+    return true;
+  }
+
+  /**
+   * Get all permissions for a given role.
+   */
+  getRolePermissions(role: User['role']): string[] {
+    return ROLE_PERMISSIONS[role];
+  }
+
+  /**
+   * Assert that a user has a permission, throwing if not.
+   */
+  assertPermission(user: User, permission: string): void {
+    if (!this.hasPermission(user, permission)) {
+      throw new AuthorizationError(
+        `User ${user.username} (${user.role}) lacks permission: ${permission}`
+      );
+    }
+  }
+
+  /**
+   * Assert that a user can access a session, throwing if not.
+   */
+  async assertCanAccessSession(user: User, sessionId: string): Promise<void> {
+    const canAccess = await this.canAccessSession(user, sessionId);
+    if (!canAccess) {
+      throw new AuthorizationError(
+        `User ${user.username} cannot access session: ${sessionId}`
+      );
+    }
+  }
+
+  /**
+   * Assert that a user can manage another user, throwing if not.
+   */
+  assertCanManageUser(actor: User, target: User): void {
+    if (!this.canManageUser(actor, target)) {
+      throw new AuthorizationError(
+        `User ${actor.username} (${actor.role}) cannot manage user ${target.username}`
+      );
+    }
+  }
+}
