@@ -80,20 +80,15 @@ function StudentPage() {
     return () => clearTimeout(timeout);
   }, [code, joined, studentId, sendMessage]);
 
-  const handleJoin = (joinCode: string, studentName: string) => {
-    // Validate inputs
+  const handleJoin = (joinCode: string) => {
+    // Validate join code
     if (!joinCode || joinCode.length !== 6) {
       setError('Join code must be 6 characters');
       return;
     }
-    if (!studentName || studentName.trim().length === 0) {
-      setError('Please enter your name');
-      return;
-    }
-    if (studentName.trim().length > 50) {
-      setError('Name is too long (max 50 characters)');
-      return;
-    }
+
+    // Use username from auth context
+    const studentName = user?.username || 'Student';
 
     setError(null);
     setIsJoining(true);
@@ -248,7 +243,12 @@ function StudentPage() {
           </div>
         </div>
 
-        <JoinForm onJoin={handleJoin} isJoining={isJoining} disabled={!isConnected || connectionStatus === 'failed'} />
+        <JoinForm 
+          onJoin={handleJoin} 
+          username={user?.username || 'Student'}
+          isJoining={isJoining} 
+          disabled={!isConnected || connectionStatus === 'failed'} 
+        />
       </main>
     );
   }

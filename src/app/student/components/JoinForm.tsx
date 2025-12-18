@@ -3,19 +3,19 @@
 import { useState } from 'react';
 
 interface JoinFormProps {
-  onJoin: (joinCode: string, studentName: string) => void;
+  onJoin: (joinCode: string) => void;
+  username: string;
   isJoining?: boolean;
   disabled?: boolean;
 }
 
-export default function JoinForm({ onJoin, isJoining = false, disabled = false }: JoinFormProps) {
+export default function JoinForm({ onJoin, username, isJoining = false, disabled = false }: JoinFormProps) {
   const [joinCode, setJoinCode] = useState('');
-  const [studentName, setStudentName] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (joinCode.trim() && studentName.trim()) {
-      onJoin(joinCode.trim().toUpperCase(), studentName.trim());
+    if (joinCode.trim()) {
+      onJoin(joinCode.trim().toUpperCase());
     }
   };
 
@@ -28,27 +28,17 @@ export default function JoinForm({ onJoin, isJoining = false, disabled = false }
       borderRadius: '8px'
     }}>
       <h2 style={{ marginBottom: '1.5rem' }}>Join Coding Session</h2>
+      <div style={{ 
+        marginBottom: '1.5rem',
+        padding: '0.75rem',
+        backgroundColor: '#f8f9fa',
+        borderRadius: '4px',
+        textAlign: 'center'
+      }}>
+        <div style={{ fontSize: '0.85rem', color: '#6c757d', marginBottom: '0.25rem' }}>Joining as</div>
+        <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#28a745' }}>{username}</div>
+      </div>
       <form onSubmit={handleSubmit}>
-        <div style={{ marginBottom: '1rem' }}>
-          <label style={{ display: 'block', marginBottom: '0.5rem' }}>
-            Your Name:
-          </label>
-          <input
-            type="text"
-            value={studentName}
-            onChange={(e) => setStudentName(e.target.value)}
-            placeholder="Enter your name"
-            style={{
-              width: '100%',
-              padding: '0.5rem',
-              fontSize: '1rem',
-              border: '1px solid #ccc',
-              borderRadius: '4px',
-            }}
-            required
-          />
-        </div>
-
         <div style={{ marginBottom: '1.5rem' }}>
           <label style={{ display: 'block', marginBottom: '0.5rem' }}>
             Join Code:
