@@ -9,7 +9,7 @@ import { getAuthProvider } from '@/server/auth';
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Check authentication
@@ -39,7 +39,7 @@ export async function DELETE(
       );
     }
 
-    const userId = params.id;
+    const { id: userId } = await params;
 
     // Prevent self-deletion
     if (userId === session.user.id) {
