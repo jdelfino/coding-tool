@@ -171,6 +171,12 @@ class WebSocketHandler {
       type: MessageType.PROBLEM_UPDATE,
       payload: { problemText },
     }, 'student');
+    
+    // Also broadcast to public views
+    this.broadcastToSession(connection.sessionId, {
+      type: MessageType.PROBLEM_UPDATE,
+      payload: { problemText },
+    }, 'public');
   }
 
   private handleCodeUpdate(connection: Connection, payload: any) {
