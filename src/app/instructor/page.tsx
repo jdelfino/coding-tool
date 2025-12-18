@@ -20,6 +20,8 @@ export default function InstructorPage() {
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
   const [selectedStudentCode, setSelectedStudentCode] = useState<string>('');
   const [executionResult, setExecutionResult] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [isCreatingSession, setIsCreatingSession] = useState(false);
 
   // Construct WebSocket URL - only initialize on client side
   const [wsUrl, setWsUrl] = useState('');
@@ -34,7 +36,7 @@ export default function InstructorPage() {
     }
   }, []);
   
-  const { isConnected, lastMessage, sendMessage } = useWebSocket(wsUrl);
+  const { isConnected, connectionStatus, connectionError, lastMessage, sendMessage } = useWebSocket(wsUrl);
 
   // Handle incoming WebSocket messages
   useEffect(() => {
@@ -46,6 +48,8 @@ export default function InstructorPage() {
       case 'SESSION_CREATED':
         setSessionId(lastMessage.payload.sessionId);
         setJoinCode(lastMessage.payload.joinCode);
+        setIsCreatingSession(false);
+        setError(null);
         break;
 
       case 'STUDENT_LIST_UPDATE':
@@ -61,29 +65,66 @@ export default function InstructorPage() {
         break;
 
       case 'ERROR':
-        alert('Error: ' + lastMessage.payload.error);
+        const errorMsg = lastMessage.payload.error || 'An error occurred';
+        setError(errorMsg);
+        setIsCreatingSession(false);
         break;
     }
   }, [lastMessage]);
 
   const handleCreateSession = () => {
+    if (!isConnected) {
+      setError('Not connected to server. Please wait for connection.');
+      return;
+    }
+    setError(null);
+    setIsCreatingSession(true);
     sendMessage('CREATE_SESSION', {});
+    
+    // Timeout for session creation
+    setTimeout(() => {
+      if (isCreatingSession && !sessionId) {
+        setError('Session creation timed out. Please try again.');
+        setIsCreatingSession(false);
+      }
+    }, 10000);
   };
 
   const handleUpdateProblem = (problemText: string) => {
+    if (!isConnected) {
+      setError('Not connected to server. Cannot update problem.');
+      return;
+    }
+    if (problemText.length > 10000) {
+      setError('Problem text is too long (max 10,000 characters)');
+      return;
+    }
+    setError(null);
     sendMessage('UPDATE_PROBLEM', { problemText });
   };
 
   const handleSelectStudent = (studentId: string) => {
+    if (!isConnected) {
+      setError('Not connected to server.');
+      return;
+    }
+    setError(null);
     setSelectedStudentId(studentId);
     setExecutionResult(null);
     sendMessage('REQUEST_STUDENT_CODE', { studentId });
   };
 
   const handleRunCode = () => {
-    if (selectedStudentId) {
-      sendMessage('EXECUTE_STUDENT_CODE', { studentId: selectedStudentId });
+    if (!isConnected) {
+      setError('Not connected to server. Cannot run code.');
+      return;
     }
+    if (!selectedStudentId) {
+      setError('No student selected');
+      return;
+    }
+    setError(null);
+    sendMessage('EXECUTE_STUDENT_CODE', { studentId: selectedStudentId });
   };
 
   const handleShowOnPublicView = (studentId: string) => {
@@ -103,19 +144,70 @@ export default function InstructorPage() {
     <main style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
       <h1>Instructor Dashboard</h1>
       
+      {/* Connection Status */}
       <div style={{ 
         padding: '0.5rem 1rem', 
-        backgroundColor: isConnected ? '#d4edda' : '#f8d7da',
+        backgroundColor: connectionStatus === 'connected' ? '#d4edda' : 
+                        connectionStatus === 'connecting' ? '#fff3cd' : '#f8d7da',
         borderRadius: '4px',
         marginBottom: '1rem'
       }}>
-        {isConnected ? '● Connected' : '○ Disconnected'}
+        {connectionStatus === 'connected' && '● Connected'}
+        {connectionStatus === 'connecting' && '○ Connecting...'}
+        {connectionStatus === 'disconnected' && '○ Disconnected'}
+        {connectionStatus === 'failed' && '✕ Connection Failed'}
       </div>
+
+      {/* Connection Error */}
+      {connectionError && (
+        <div style={{
+          marginBottom: '1rem',
+          padding: '0.75rem',
+          backgroundColor: '#fff3cd',
+          color: '#856404',
+          borderRadius: '4px',
+          border: '1px solid #ffeaa7'
+        }}>
+          ⚠ {connectionError}
+        </div>
+      )}
+
+      {/* Application Error */}
+      {error && (
+        <div style={{
+          marginBottom: '1rem',
+          padding: '0.75rem',
+          backgroundColor: '#f8d7da',
+          color: '#721c24',
+          borderRadius: '4px',
+          border: '1px solid #f5c6cb',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center'
+        }}>
+          <span>{error}</span>
+          <button
+            onClick={() => setError(null)}
+            style={{
+              padding: '0.25rem 0.5rem',
+              backgroundColor: 'transparent',
+              border: '1px solid #721c24',
+              borderRadius: '3px',
+              cursor: 'pointer',
+              color: '#721c24'
+            }}
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       <SessionControls 
         sessionId={sessionId}
         joinCode={joinCode}
         onCreateSession={handleCreateSession}
+        isCreating={isCreatingSession}
+        disabled={!isConnected || connectionStatus === 'failed'}
       />
 
       {sessionId && (

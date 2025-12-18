@@ -14,6 +14,8 @@ export default function StudentPage() {
   const [code, setCode] = useState('');
   const [executionResult, setExecutionResult] = useState<any>(null);
   const [isRunning, setIsRunning] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isJoining, setIsJoining] = useState(false);
 
   // Construct WebSocket URL - only initialize on client side
   const [wsUrl, setWsUrl] = useState('');
@@ -28,7 +30,7 @@ export default function StudentPage() {
     }
   }, []);
   
-  const { isConnected, lastMessage, sendMessage } = useWebSocket(wsUrl);
+  const { isConnected, connectionStatus, connectionError, lastMessage, sendMessage } = useWebSocket(wsUrl);
 
   // Handle incoming WebSocket messages
   useEffect(() => {
@@ -41,6 +43,8 @@ export default function StudentPage() {
         setJoined(true);
         setStudentId(lastMessage.payload.studentId);
         setProblemText(lastMessage.payload.problemText || '');
+        setIsJoining(false);
+        setError(null);
         break;
 
       case 'PROBLEM_UPDATE':
@@ -53,8 +57,10 @@ export default function StudentPage() {
         break;
 
       case 'ERROR':
-        alert('Error: ' + lastMessage.payload.error);
+        const errorMsg = lastMessage.payload.error || 'An error occurred';
+        setError(errorMsg);
         setIsRunning(false);
+        setIsJoining(false);
         break;
     }
   }, [lastMessage]);
@@ -71,29 +77,122 @@ export default function StudentPage() {
   }, [code, joined, studentId, sendMessage]);
 
   const handleJoin = (joinCode: string, studentName: string) => {
+    // Validate inputs
+    if (!joinCode || joinCode.length !== 6) {
+      setError('Join code must be 6 characters');
+      return;
+    }
+    if (!studentName || studentName.trim().length === 0) {
+      setError('Please enter your name');
+      return;
+    }
+    if (studentName.trim().length > 50) {
+      setError('Name is too long (max 50 characters)');
+      return;
+    }
+
+    setError(null);
+    setIsJoining(true);
     sendMessage('JOIN_SESSION', { joinCode, studentName });
+    
+    // Set timeout for join operation
+    setTimeout(() => {
+      if (isJoining && !joined) {
+        setError('Join request timed out. Please try again.');
+        setIsJoining(false);
+      }
+    }, 10000);
   };
 
   const handleRunCode = () => {
+    if (!isConnected) {
+      setError('Not connected to server. Cannot run code.');
+      return;
+    }
+    if (!code || code.trim().length === 0) {
+      setError('Please write some code before running');
+      return;
+    }
+
+    setError(null);
     setIsRunning(true);
     setExecutionResult(null);
     sendMessage('EXECUTE_CODE', { code });
+    
+    // Set timeout for execution
+    setTimeout(() => {
+      if (isRunning) {
+        setError('Code execution timed out');
+        setIsRunning(false);
+      }
+    }, 15000);
   };
 
   if (!joined) {
     return (
       <main style={{ padding: '2rem' }}>
         <h1 style={{ textAlign: 'center' }}>Live Coding Classroom</h1>
+        
+        {/* Connection Status */}
         <div style={{ 
           textAlign: 'center', 
-          marginBottom: '2rem',
+          marginBottom: '1rem',
           padding: '0.5rem',
-          backgroundColor: isConnected ? '#d4edda' : '#f8d7da',
+          backgroundColor: connectionStatus === 'connected' ? '#d4edda' : 
+                          connectionStatus === 'connecting' ? '#fff3cd' : '#f8d7da',
           borderRadius: '4px'
         }}>
-          {isConnected ? '● Connected to server' : '○ Connecting...'}
+          {connectionStatus === 'connected' && '● Connected to server'}
+          {connectionStatus === 'connecting' && '○ Connecting to server...'}
+          {connectionStatus === 'disconnected' && '○ Disconnected'}
+          {connectionStatus === 'failed' && '✕ Connection failed'}
         </div>
-        <JoinForm onJoin={handleJoin} />
+
+        {/* Connection Error */}
+        {connectionError && (
+          <div style={{
+            textAlign: 'center',
+            marginBottom: '1rem',
+            padding: '0.75rem',
+            backgroundColor: '#f8d7da',
+            color: '#721c24',
+            borderRadius: '4px',
+            border: '1px solid #f5c6cb'
+          }}>
+            {connectionError}
+          </div>
+        )}
+
+        {/* Application Error */}
+        {error && (
+          <div style={{
+            textAlign: 'center',
+            marginBottom: '1rem',
+            padding: '0.75rem',
+            backgroundColor: '#f8d7da',
+            color: '#721c24',
+            borderRadius: '4px',
+            border: '1px solid #f5c6cb'
+          }}>
+            {error}
+            <button
+              onClick={() => setError(null)}
+              style={{
+                marginLeft: '1rem',
+                padding: '0.25rem 0.5rem',
+                backgroundColor: 'transparent',
+                border: '1px solid #721c24',
+                borderRadius: '3px',
+                cursor: 'pointer',
+                color: '#721c24'
+              }}
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
+
+        <JoinForm onJoin={handleJoin} isJoining={isJoining} disabled={!isConnected || connectionStatus === 'failed'} />
       </main>
     );
   }
@@ -109,12 +208,60 @@ export default function StudentPage() {
         <h1>Live Coding Session</h1>
         <div style={{ 
           padding: '0.5rem 1rem',
-          backgroundColor: isConnected ? '#d4edda' : '#f8d7da',
+          backgroundColor: connectionStatus === 'connected' ? '#d4edda' : 
+                          connectionStatus === 'connecting' ? '#fff3cd' : '#f8d7da',
           borderRadius: '4px'
         }}>
-          {isConnected ? '● Connected' : '○ Disconnected'}
+          {connectionStatus === 'connected' && '● Connected'}
+          {connectionStatus === 'connecting' && '○ Reconnecting...'}
+          {connectionStatus === 'disconnected' && '○ Disconnected'}
+          {connectionStatus === 'failed' && '✕ Connection Lost'}
         </div>
       </div>
+
+      {/* Connection Error */}
+      {connectionError && (
+        <div style={{
+          marginBottom: '1rem',
+          padding: '0.75rem',
+          backgroundColor: '#fff3cd',
+          color: '#856404',
+          borderRadius: '4px',
+          border: '1px solid #ffeaa7'
+        }}>
+          ⚠ {connectionError}
+        </div>
+      )}
+
+      {/* Application Error */}
+      {error && (
+        <div style={{
+          marginBottom: '1rem',
+          padding: '0.75rem',
+          backgroundColor: '#f8d7da',
+          color: '#721c24',
+          borderRadius: '4px',
+          border: '1px solid #f5c6cb',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center'
+        }}>
+          <span>{error}</span>
+          <button
+            onClick={() => setError(null)}
+            style={{
+              padding: '0.25rem 0.5rem',
+              backgroundColor: 'transparent',
+              border: '1px solid #721c24',
+              borderRadius: '3px',
+              cursor: 'pointer',
+              color: '#721c24'
+            }}
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       <ProblemDisplay problemText={problemText} />
 

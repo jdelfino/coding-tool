@@ -132,9 +132,25 @@ class WebSocketHandler {
   private handleJoinSession(ws: WebSocket, connection: Connection, payload: any) {
     const { joinCode, studentName } = payload;
     
+    // Validate inputs
+    if (!joinCode || typeof joinCode !== 'string') {
+      this.sendError(ws, 'Invalid join code');
+      return;
+    }
+    
+    if (!studentName || typeof studentName !== 'string' || studentName.trim().length === 0) {
+      this.sendError(ws, 'Invalid student name');
+      return;
+    }
+    
+    if (studentName.trim().length > 50) {
+      this.sendError(ws, 'Student name is too long (max 50 characters)');
+      return;
+    }
+    
     const session = sessionManager.getSessionByJoinCode(joinCode);
     if (!session) {
-      this.sendError(ws, 'Session not found');
+      this.sendError(ws, 'Session not found. Please check the join code.');
       return;
     }
 
@@ -143,7 +159,11 @@ class WebSocketHandler {
     connection.sessionId = session.id;
     connection.studentId = studentId;
 
-    sessionManager.addStudent(session.id, studentId, studentName);
+    const success = sessionManager.addStudent(session.id, studentId, studentName.trim());
+    if (!success) {
+      this.sendError(ws, 'Failed to join session. Please try again.');
+      return;
+    }
 
     this.send(ws, {
       type: MessageType.SESSION_JOINED,
@@ -164,6 +184,17 @@ class WebSocketHandler {
     }
 
     const { problemText } = payload;
+    
+    if (typeof problemText !== 'string') {
+      console.error('Invalid problem text type');
+      return;
+    }
+    
+    if (problemText.length > 10000) {
+      console.error('Problem text too long');
+      return;
+    }
+
     sessionManager.updateProblem(connection.sessionId, problemText);
 
     // Broadcast to all students
@@ -192,34 +223,62 @@ class WebSocketHandler {
   }
 
   private async handleExecuteCode(ws: WebSocket, connection: Connection, payload: any) {
-    if (connection.role !== 'student') return;
-
-    const { code } = payload;
-    const result = await executeCodeSafe(code);
-
-    this.send(ws, {
-      type: MessageType.EXECUTION_RESULT,
-      payload: result,
-    });
-  }
-
-  private async handleExecuteStudentCode(ws: WebSocket, connection: Connection, payload: any) {
-    if (connection.role !== 'instructor' || !connection.sessionId) return;
-
-    const { studentId } = payload;
-    const code = sessionManager.getStudentCode(connection.sessionId, studentId);
-    
-    if (!code) {
-      this.sendError(ws, 'Student code not found');
+    if (connection.role !== 'student') {
+      this.sendError(ws, 'Only students can execute code');
       return;
     }
 
-    const result = await executeCodeSafe(code);
+    try {
+      const { code } = payload;
+      
+      if (!code || typeof code !== 'string') {
+        this.sendError(ws, 'Invalid code provided');
+        return;
+      }
+      
+      const result = await executeCodeSafe(code);
 
-    this.send(ws, {
-      type: MessageType.EXECUTION_RESULT,
-      payload: { ...result, studentId },
-    });
+      this.send(ws, {
+        type: MessageType.EXECUTION_RESULT,
+        payload: result,
+      });
+    } catch (error) {
+      console.error('Error executing code:', error);
+      this.sendError(ws, 'Code execution failed. Please try again.');
+    }
+  }
+
+  private async handleExecuteStudentCode(ws: WebSocket, connection: Connection, payload: any) {
+    if (connection.role !== 'instructor' || !connection.sessionId) {
+      this.sendError(ws, 'Only instructors can execute student code');
+      return;
+    }
+
+    try {
+      const { studentId } = payload;
+      
+      if (!studentId || typeof studentId !== 'string') {
+        this.sendError(ws, 'Invalid student ID');
+        return;
+      }
+      
+      const code = sessionManager.getStudentCode(connection.sessionId, studentId);
+      
+      if (!code) {
+        this.sendError(ws, 'Student code not found or empty');
+        return;
+      }
+
+      const result = await executeCodeSafe(code);
+
+      this.send(ws, {
+        type: MessageType.EXECUTION_RESULT,
+        payload: { ...result, studentId },
+      });
+    } catch (error) {
+      console.error('Error executing student code:', error);
+      this.sendError(ws, 'Failed to execute student code. Please try again.');
+    }
   }
 
   private handleRequestStudentCode(ws: WebSocket, connection: Connection, payload: any) {
@@ -299,15 +358,29 @@ class WebSocketHandler {
   }
 
   private async handlePublicExecuteCode(ws: WebSocket, connection: Connection, payload: any) {
-    if (connection.role !== 'public' || !connection.sessionId) return;
+    if (connection.role !== 'public' || !connection.sessionId) {
+      this.sendError(ws, 'Unauthorized');
+      return;
+    }
 
-    const { code } = payload;
-    const result = await executeCodeSafe(code);
+    try {
+      const { code } = payload;
+      
+      if (!code || typeof code !== 'string') {
+        this.sendError(ws, 'Invalid code provided');
+        return;
+      }
+      
+      const result = await executeCodeSafe(code);
 
-    this.send(ws, {
-      type: MessageType.EXECUTION_RESULT,
-      payload: result,
-    });
+      this.send(ws, {
+        type: MessageType.EXECUTION_RESULT,
+        payload: result,
+      });
+    } catch (error) {
+      console.error('Error executing public code:', error);
+      this.sendError(ws, 'Code execution failed. Please try again.');
+    }
   }
 
   private broadcastPublicSubmissionUpdate(sessionId: string) {

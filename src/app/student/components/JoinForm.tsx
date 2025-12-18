@@ -4,9 +4,11 @@ import { useState } from 'react';
 
 interface JoinFormProps {
   onJoin: (joinCode: string, studentName: string) => void;
+  isJoining?: boolean;
+  disabled?: boolean;
 }
 
-export default function JoinForm({ onJoin }: JoinFormProps) {
+export default function JoinForm({ onJoin, isJoining = false, disabled = false }: JoinFormProps) {
   const [joinCode, setJoinCode] = useState('');
   const [studentName, setStudentName] = useState('');
 
@@ -73,18 +75,20 @@ export default function JoinForm({ onJoin }: JoinFormProps) {
 
         <button
           type="submit"
+          disabled={disabled || isJoining}
           style={{
             width: '100%',
             padding: '0.75rem',
             fontSize: '1.1rem',
-            backgroundColor: '#0070f3',
+            backgroundColor: disabled || isJoining ? '#6c757d' : '#0070f3',
             color: 'white',
             border: 'none',
             borderRadius: '4px',
-            cursor: 'pointer',
+            cursor: disabled || isJoining ? 'not-allowed' : 'pointer',
+            opacity: disabled || isJoining ? 0.6 : 1,
           }}
         >
-          Join Session
+          {isJoining ? 'Joining...' : disabled ? 'Server Unavailable' : 'Join Session'}
         </button>
       </form>
     </div>
