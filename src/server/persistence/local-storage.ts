@@ -85,6 +85,10 @@ async function readJsonFile<T>(filePath: string, defaultValue: T): Promise<T> {
       if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(value)) {
         return new Date(value);
       }
+      // Revive Map objects (serialized as {__type: 'Map', entries: [[k,v], ...]})
+      if (value && typeof value === 'object' && value.__type === 'Map') {
+        return new Map(value.entries);
+      }
       return value;
     });
   } catch (error: any) {
@@ -102,9 +106,19 @@ async function readJsonFile<T>(filePath: string, defaultValue: T): Promise<T> {
 
 /**
  * Helper to write JSON file safely with atomic write
+ * Includes custom serialization for Map objects
  */
 async function writeJsonFile(filePath: string, data: any): Promise<void> {
-  const jsonData = JSON.stringify(data, null, 2);
+  const jsonData = JSON.stringify(data, (key, value) => {
+    // Serialize Map objects
+    if (value instanceof Map) {
+      return {
+        __type: 'Map',
+        entries: Array.from(value.entries()),
+      };
+    }
+    return value;
+  }, 2);
   await atomicWrite(filePath, jsonData);
 }
 
