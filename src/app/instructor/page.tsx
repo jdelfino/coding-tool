@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useWebSocket } from '@/hooks/useWebSocket';
+import { ProtectedRoute } from '@/components/ProtectedRoute';
 import SessionControls from './components/SessionControls';
 import SessionDashboard from './components/SessionDashboard';
 import ProblemInput from './components/ProblemInput';
@@ -23,7 +24,7 @@ interface SessionInfo {
   lastActivity: string;
 }
 
-export default function InstructorPage() {
+function InstructorPage() {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [joinCode, setJoinCode] = useState<string | null>(null);
   const [sessions, setSessions] = useState<SessionInfo[]>([]);
@@ -333,5 +334,13 @@ export default function InstructorPage() {
         </>
       )}
     </main>
+  );
+}
+
+export default function InstructorPageWrapper() {
+  return (
+    <ProtectedRoute requiredRole="instructor">
+      <InstructorPage />
+    </ProtectedRoute>
   );
 }

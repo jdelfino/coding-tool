@@ -4,7 +4,7 @@
  * auth providers (local, OAuth, third-party services, etc.) for easy swapping.
  */
 
-import { User, UserRole } from './types';
+import { User, UserRole, AuthSession } from './types';
 
 /**
  * Authentication provider interface.
@@ -61,6 +61,37 @@ export interface IAuthProvider {
    * @throws {Error} If user not found or deletion fails
    */
   deleteUser(userId: string): Promise<void>;
+
+  /**
+   * Create an auth session for a user.
+   * 
+   * @param user - User to create session for
+   * @returns New auth session
+   */
+  createSession(user: User): AuthSession;
+
+  /**
+   * Get an active session by ID.
+   * 
+   * @param sessionId - Session identifier
+   * @returns Session if found, null otherwise
+   */
+  getSession(sessionId: string): AuthSession | null;
+
+  /**
+   * Get user from a session ID.
+   * 
+   * @param sessionId - Session identifier
+   * @returns User if session is valid, null otherwise
+   */
+  getUserFromSession(sessionId: string): Promise<User | null>;
+
+  /**
+   * Destroy a session (logout).
+   * 
+   * @param sessionId - Session identifier to destroy
+   */
+  destroySession(sessionId: string): void;
 }
 
 /**

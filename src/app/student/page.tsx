@@ -2,12 +2,13 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useWebSocket } from '@/hooks/useWebSocket';
+import { ProtectedRoute } from '@/components/ProtectedRoute';
 import JoinForm from './components/JoinForm';
 import ProblemDisplay from './components/ProblemDisplay';
 import CodeEditor from './components/CodeEditor';
 import OutputPanel from './components/OutputPanel';
 
-export default function StudentPage() {
+function StudentPage() {
   const [joined, setJoined] = useState(false);
   const [studentId, setStudentId] = useState<string | null>(null);
   const [problemText, setProblemText] = useState('');
@@ -274,5 +275,13 @@ export default function StudentPage() {
 
       <OutputPanel result={executionResult} />
     </main>
+  );
+}
+
+export default function StudentPageWrapper() {
+  return (
+    <ProtectedRoute requiredRole="student">
+      <StudentPage />
+    </ProtectedRoute>
   );
 }

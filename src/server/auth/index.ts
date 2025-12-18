@@ -19,3 +19,6 @@ export * from './permissions';
 
 // Middleware
 export * from './middleware';
+
+// Instance
+export { getAuthProvider } from './instance';
