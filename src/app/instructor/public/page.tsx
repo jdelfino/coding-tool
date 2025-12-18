@@ -113,84 +113,145 @@ function PublicViewContent() {
 
   if (!sessionId) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="bg-white p-8 rounded-lg shadow-md">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">No Session</h1>
-          <p className="text-gray-600">Please provide a sessionId in the URL.</p>
+      <div style={{ 
+        minHeight: '100vh', 
+        backgroundColor: '#f9fafb', 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center' 
+      }}>
+        <div style={{ 
+          backgroundColor: 'white', 
+          padding: '2rem', 
+          border: '1px solid #ccc',
+          borderRadius: '4px' 
+        }}>
+          <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1rem' }}>No Session</h1>
+          <p style={{ color: '#666' }}>Please provide a sessionId in the URL.</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
-      <div className="max-w-7xl mx-auto">
-        {/* Header with Join Code */}
-        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Public Display</h1>
-              <p className="text-gray-600 mt-2">This view is for classroom display</p>
-            </div>
-            <div className="text-right">
-              <p className="text-sm text-gray-600 mb-1">Join Code</p>
-              <p className="text-4xl font-bold text-blue-600 font-mono">{joinCode || '------'}</p>
-            </div>
-          </div>
+    <main style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
+      <h1 style={{ marginBottom: '1.5rem' }}>Public Display</h1>
+      
+      {/* Header with Join Code */}
+      <div style={{ 
+        padding: '1.5rem', 
+        border: '1px solid #ccc', 
+        borderRadius: '4px',
+        marginBottom: '1rem',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center'
+      }}>
+        <div>
+          <p style={{ color: '#666', marginBottom: '0.5rem' }}>This view is for classroom display</p>
         </div>
-
-        {/* Problem Display */}
-        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Problem</h2>
-          {problemText ? (
-            <div className="prose max-w-none">
-              <pre className="whitespace-pre-wrap text-gray-700 font-sans">{problemText}</pre>
-            </div>
-          ) : (
-            <p className="text-gray-400 italic">No problem set yet</p>
-          )}
+        <div style={{ textAlign: 'right' }}>
+          <p style={{ fontSize: '0.875rem', color: '#666', marginBottom: '0.25rem' }}>Join Code</p>
+          <p style={{ 
+            fontSize: '2.5rem', 
+            fontWeight: 'bold', 
+            color: '#0070f3',
+            fontFamily: 'monospace'
+          }}>
+            {joinCode || '------'}
+          </p>
         </div>
+      </div>
 
-        {/* Featured Submission */}
-        {hasFeaturedSubmission ? (
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Featured Submission</h2>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div>
-                <h3 className="text-sm font-medium text-gray-700 mb-2">Code</h3>
-                <CodeEditor
-                  code={code}
-                  onChange={handleCodeChange}
-                  onRun={handleRun}
-                  isRunning={isExecuting}
-                />
-              </div>
-              <div>
-                <h3 className="text-sm font-medium text-gray-700 mb-2">Output</h3>
-                <OutputPanel result={executionResult} />
-              </div>
-            </div>
-          </div>
+      {/* Problem Display */}
+      <div style={{ 
+        padding: '1rem', 
+        border: '1px solid #ccc',
+        borderRadius: '4px',
+        marginBottom: '1rem'
+      }}>
+        <h2 style={{ marginTop: 0, marginBottom: '1rem' }}>Problem</h2>
+        {problemText ? (
+          <pre style={{ 
+            whiteSpace: 'pre-wrap', 
+            color: '#333',
+            fontFamily: 'inherit'
+          }}>
+            {problemText}
+          </pre>
         ) : (
-          <div className="bg-white rounded-lg shadow-md p-12 text-center">
-            <p className="text-gray-400 text-lg italic">
-              No submission selected for display
-            </p>
-            <p className="text-gray-500 text-sm mt-2">
-              Select a student submission from the instructor dashboard
-            </p>
-          </div>
+          <p style={{ color: '#999', fontStyle: 'italic' }}>No problem set yet</p>
         )}
       </div>
-    </div>
+
+      {/* Featured Submission */}
+      {hasFeaturedSubmission ? (
+        <div style={{ 
+          padding: '1rem', 
+          border: '1px solid #ccc',
+          borderRadius: '4px'
+        }}>
+          <h2 style={{ marginTop: 0, marginBottom: '1rem' }}>Featured Submission</h2>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+            <div>
+              <h3 style={{ 
+                fontSize: '0.875rem', 
+                fontWeight: '500',
+                color: '#666',
+                marginBottom: '0.5rem' 
+              }}>
+                Code
+              </h3>
+              <CodeEditor
+                code={code}
+                onChange={handleCodeChange}
+                onRun={handleRun}
+                isRunning={isExecuting}
+              />
+            </div>
+            <div>
+              <h3 style={{ 
+                fontSize: '0.875rem', 
+                fontWeight: '500',
+                color: '#666',
+                marginBottom: '0.5rem' 
+              }}>
+                Output
+              </h3>
+              <OutputPanel result={executionResult} />
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div style={{ 
+          padding: '3rem', 
+          border: '1px solid #ccc',
+          borderRadius: '4px',
+          textAlign: 'center'
+        }}>
+          <p style={{ color: '#999', fontSize: '1.125rem', fontStyle: 'italic', marginBottom: '0.5rem' }}>
+            No submission selected for display
+          </p>
+          <p style={{ color: '#666', fontSize: '0.875rem' }}>
+            Select a student submission from the instructor dashboard
+          </p>
+        </div>
+      )}
+    </main>
   );
 }
 
 export default function PublicInstructorView() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-xl text-gray-600">Loading...</div>
+      <div style={{ 
+        minHeight: '100vh', 
+        backgroundColor: '#f9fafb', 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center' 
+      }}>
+        <div style={{ fontSize: '1.25rem', color: '#666' }}>Loading...</div>
       </div>
     }>
       <PublicViewContent />
