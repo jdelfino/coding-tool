@@ -69,6 +69,18 @@ class WebSocketHandler {
       case MessageType.CREATE_SESSION:
         await this.handleCreateSession(ws, connection);
         break;
+
+      case MessageType.LIST_SESSIONS:
+        await this.handleListSessions(ws, connection);
+        break;
+
+      case MessageType.JOIN_EXISTING_SESSION:
+        await this.handleJoinExistingSession(ws, connection, message.payload);
+        break;
+
+      case MessageType.END_SESSION:
+        await this.handleEndSession(ws, connection, message.payload);
+        break;
         
       case MessageType.JOIN_SESSION:
         await this.handleJoinSession(ws, connection, message.payload);
@@ -127,6 +139,102 @@ class WebSocketHandler {
         joinCode: session.joinCode,
       },
     });
+  }
+
+  private async handleListSessions(ws: WebSocket, connection: Connection) {
+    try {
+      const sessions = await sessionManagerHolder.instance.listSessions();
+      
+      // Convert sessions to a serializable format (without Maps)
+      const sessionList = sessions.map(session => ({
+        id: session.id,
+        joinCode: session.joinCode,
+        problemText: session.problemText,
+        studentCount: session.connectedStudents.size,
+        createdAt: session.createdAt,
+        lastActivity: session.lastActivity,
+      }));
+
+      this.send(ws, {
+        type: MessageType.SESSION_LIST,
+        payload: { sessions: sessionList },
+      });
+    } catch (error) {
+      console.error('Error listing sessions:', error);
+      this.sendError(ws, 'Failed to list sessions');
+    }
+  }
+
+  private async handleJoinExistingSession(ws: WebSocket, connection: Connection, payload: any) {
+    const { sessionId } = payload;
+    
+    if (!sessionId || typeof sessionId !== 'string') {
+      this.sendError(ws, 'Invalid session ID');
+      return;
+    }
+
+    const session = await sessionManagerHolder.instance.getSession(sessionId);
+    if (!session) {
+      this.sendError(ws, 'Session not found');
+      return;
+    }
+
+    connection.role = 'instructor';
+    connection.sessionId = session.id;
+
+    this.send(ws, {
+      type: MessageType.SESSION_JOINED,
+      payload: {
+        sessionId: session.id,
+        joinCode: session.joinCode,
+        problemText: session.problemText,
+      },
+    });
+
+    // Send current student list
+    await this.broadcastStudentList(session.id);
+  }
+
+  private async handleEndSession(ws: WebSocket, connection: Connection, payload: any) {
+    const { sessionId } = payload;
+    
+    if (!sessionId || typeof sessionId !== 'string') {
+      this.sendError(ws, 'Invalid session ID');
+      return;
+    }
+
+    // Only allow instructor to end their own session or if they're already in it
+    if (connection.sessionId && connection.sessionId !== sessionId) {
+      this.sendError(ws, 'Cannot end a different session');
+      return;
+    }
+
+    try {
+      const deleted = await sessionManagerHolder.instance.deleteSession(sessionId);
+      
+      if (deleted) {
+        // Notify all connected clients in this session
+        this.broadcastToSession(sessionId, {
+          type: MessageType.SESSION_ENDED,
+          payload: { sessionId },
+        });
+
+        // Clear connection's session
+        if (connection.sessionId === sessionId) {
+          connection.sessionId = undefined;
+        }
+
+        this.send(ws, {
+          type: MessageType.SESSION_ENDED,
+          payload: { sessionId },
+        });
+      } else {
+        this.sendError(ws, 'Failed to end session');
+      }
+    } catch (error) {
+      console.error('Error ending session:', error);
+      this.sendError(ws, 'Failed to end session');
+    }
   }
 
   private async handleJoinSession(ws: WebSocket, connection: Connection, payload: any) {

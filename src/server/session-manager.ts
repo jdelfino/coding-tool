@@ -375,6 +375,20 @@ export class SessionManager {
       return 0;
     }
   }
+
+  /**
+   * List all sessions (for instructor dashboard)
+   */
+  async listSessions(): Promise<Session[]> {
+    if (!this.storage) return [];
+    
+    try {
+      return await this.storage.sessions.listAllSessions();
+    } catch (error) {
+      console.error('Failed to list sessions:', error);
+      return [];
+    }
+  }
 }
 
 // Mutable singleton instance holder

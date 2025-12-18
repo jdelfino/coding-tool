@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import SessionControls from './components/SessionControls';
+import SessionDashboard from './components/SessionDashboard';
 import ProblemInput from './components/ProblemInput';
 import StudentList from './components/StudentList';
 import CodeViewer from './components/CodeViewer';
@@ -13,9 +14,19 @@ interface Student {
   hasCode: boolean;
 }
 
+interface SessionInfo {
+  id: string;
+  joinCode: string;
+  problemText: string;
+  studentCount: number;
+  createdAt: string;
+  lastActivity: string;
+}
+
 export default function InstructorPage() {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [joinCode, setJoinCode] = useState<string | null>(null);
+  const [sessions, setSessions] = useState<SessionInfo[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
   const [selectedStudentCode, setSelectedStudentCode] = useState<string>('');
@@ -38,6 +49,13 @@ export default function InstructorPage() {
   
   const { isConnected, connectionStatus, connectionError, lastMessage, sendMessage } = useWebSocket(wsUrl);
 
+  // Request session list when connected
+  useEffect(() => {
+    if (isConnected && !sessionId) {
+      sendMessage('LIST_SESSIONS', {});
+    }
+  }, [isConnected, sessionId]);
+
   // Handle incoming WebSocket messages
   useEffect(() => {
     if (!lastMessage) return;
@@ -50,6 +68,32 @@ export default function InstructorPage() {
         setJoinCode(lastMessage.payload.joinCode);
         setIsCreatingSession(false);
         setError(null);
+        break;
+
+      case 'SESSION_LIST':
+        setSessions(lastMessage.payload.sessions || []);
+        break;
+
+      case 'SESSION_JOINED':
+        setSessionId(lastMessage.payload.sessionId);
+        setJoinCode(lastMessage.payload.joinCode);
+        setError(null);
+        break;
+
+      case 'SESSION_ENDED':
+        // If our current session was ended, go back to dashboard
+        if (lastMessage.payload.sessionId === sessionId) {
+          setSessionId(null);
+          setJoinCode(null);
+          setStudents([]);
+          setSelectedStudentId(null);
+          setSelectedStudentCode('');
+          // Refresh session list
+          sendMessage('LIST_SESSIONS', {});
+        } else {
+          // Another session was ended, refresh list
+          setSessions(sessions.filter(s => s.id !== lastMessage.payload.sessionId));
+        }
         break;
 
       case 'STUDENT_LIST_UPDATE':
@@ -88,6 +132,24 @@ export default function InstructorPage() {
         setIsCreatingSession(false);
       }
     }, 10000);
+  };
+
+  const handleJoinExistingSession = (sessionId: string) => {
+    if (!isConnected) {
+      setError('Not connected to server.');
+      return;
+    }
+    setError(null);
+    sendMessage('JOIN_EXISTING_SESSION', { sessionId });
+  };
+
+  const handleEndSession = (sessionId: string) => {
+    if (!isConnected) {
+      setError('Not connected to server.');
+      return;
+    }
+    setError(null);
+    sendMessage('END_SESSION', { sessionId });
   };
 
   const handleUpdateProblem = (problemText: string) => {
@@ -200,6 +262,75 @@ export default function InstructorPage() {
             ✕
           </button>
         </div>
+      )}
+
+      {!sessionId ? (
+        <SessionDashboard
+          sessions={sessions}
+          onCreateSession={handleCreateSession}
+          onJoinSession={handleJoinExistingSession}
+          onEndSession={handleEndSession}
+          isCreating={isCreatingSession}
+          disabled={!isConnected || connectionStatus === 'failed'}
+        />
+      ) : (
+        <>
+          <SessionControls 
+            sessionId={sessionId}
+            joinCode={joinCode}
+            onCreateSession={handleCreateSession}
+            isCreating={isCreatingSession}
+            disabled={!isConnected || connectionStatus === 'failed'}
+          />
+
+          <div style={{ 
+            padding: '1rem', 
+            backgroundColor: '#e7f3ff', 
+            borderRadius: '4px',
+            marginBottom: '1rem',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center'
+          }}>
+            <div>
+              <strong>Public Display View</strong>
+              <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.9rem', color: '#666' }}>
+                Open this in a separate tab/window to display on a projector
+              </p>
+            </div>
+            <button
+              onClick={handleOpenPublicView}
+              style={{
+                padding: '0.75rem 1.5rem',
+                backgroundColor: '#0070f3',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontWeight: 'bold',
+              }}
+            >
+              Open Public View
+            </button>
+          </div>
+
+          <ProblemInput onUpdateProblem={handleUpdateProblem} />
+          
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+            <StudentList 
+              students={students}
+              onSelectStudent={handleSelectStudent}
+              onShowOnPublicView={handleShowOnPublicView}
+            />
+            
+            <CodeViewer
+              code={selectedStudentCode}
+              studentName={selectedStudent?.name}
+              executionResult={executionResult}
+              onRunCode={handleRunCode}
+            />
+          </div>
+        </>
       )}
 
       <SessionControls 
