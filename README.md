@@ -151,11 +151,3 @@ See [DESIGN_NOTES.md](DESIGN_NOTES.md) for planned features:
 2. Frontend components in `src/app/[role]/components/`
 3. Shared hooks in `src/hooks/`
 4. Update types in `src/server/types.ts`
-
-## License
-
-ISC
-
-## Contributing
-
-This is an educational project. Contributions welcome via pull requests.

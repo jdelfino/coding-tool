@@ -9,9 +9,10 @@ interface Student {
 interface StudentListProps {
   students: Student[];
   onSelectStudent: (studentId: string) => void;
+  onShowOnPublicView?: (studentId: string) => void;
 }
 
-export default function StudentList({ students, onSelectStudent }: StudentListProps) {
+export default function StudentList({ students, onSelectStudent, onShowOnPublicView }: StudentListProps) {
   return (
     <div style={{ padding: '1rem', border: '1px solid #ccc', marginBottom: '1rem' }}>
       <h3>Connected Students ({students.length})</h3>
@@ -39,19 +40,37 @@ export default function StudentList({ students, onSelectStudent }: StudentListPr
                   {student.hasCode ? '✓ Has code' : '○ No code yet'}
                 </span>
               </div>
-              <button
-                onClick={() => onSelectStudent(student.id)}
-                style={{
-                  padding: '0.5rem 1rem',
-                  backgroundColor: '#0070f3',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                }}
-              >
-                View Code
-              </button>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <button
+                  onClick={() => onSelectStudent(student.id)}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    backgroundColor: '#0070f3',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                  }}
+                >
+                  View Code
+                </button>
+                {onShowOnPublicView && (
+                  <button
+                    onClick={() => onShowOnPublicView(student.id)}
+                    style={{
+                      padding: '0.5rem 1rem',
+                      backgroundColor: '#10b981',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                    }}
+                    title="Display this submission on the public view"
+                  >
+                    Show on Public View
+                  </button>
+                )}
+              </div>
             </div>
           ))}
         </div>

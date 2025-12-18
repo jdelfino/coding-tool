@@ -6,7 +6,7 @@ import { MessageType, WebSocketMessage, Student } from './types';
 
 interface Connection {
   ws: WebSocket;
-  role: 'instructor' | 'student';
+  role: 'instructor' | 'student' | 'public';
   sessionId?: string;
   studentId?: string;
   isAlive: boolean;
@@ -92,6 +92,22 @@ class WebSocketHandler {
         
       case MessageType.REQUEST_STUDENT_CODE:
         this.handleRequestStudentCode(ws, connection, message.payload);
+        break;
+        
+      case MessageType.SELECT_SUBMISSION_FOR_PUBLIC:
+        this.handleSelectSubmissionForPublic(connection, message.payload);
+        break;
+        
+      case MessageType.JOIN_PUBLIC_VIEW:
+        this.handleJoinPublicView(ws, connection, message.payload);
+        break;
+        
+      case MessageType.PUBLIC_CODE_EDIT:
+        this.handlePublicCodeEdit(connection, message.payload);
+        break;
+        
+      case MessageType.PUBLIC_EXECUTE_CODE:
+        await this.handlePublicExecuteCode(ws, connection, message.payload);
         break;
         
       default:
@@ -217,6 +233,94 @@ class WebSocketHandler {
     });
   }
 
+  private handleSelectSubmissionForPublic(connection: Connection, payload: any) {
+    if (connection.role !== 'instructor' || !connection.sessionId) return;
+
+    const { studentId } = payload;
+    
+    if (studentId) {
+      // Set featured submission
+      const success = sessionManager.setFeaturedSubmission(connection.sessionId, studentId);
+      if (!success) {
+        console.error('Failed to set featured submission');
+        return;
+      }
+    } else {
+      // Clear featured submission
+      sessionManager.clearFeaturedSubmission(connection.sessionId);
+    }
+
+    // Broadcast update to public views
+    this.broadcastPublicSubmissionUpdate(connection.sessionId);
+  }
+
+  private handleJoinPublicView(ws: WebSocket, connection: Connection, payload: any) {
+    const { sessionId } = payload;
+    
+    const session = sessionManager.getSession(sessionId);
+    if (!session) {
+      this.sendError(ws, 'Session not found');
+      return;
+    }
+
+    connection.role = 'public';
+    connection.sessionId = sessionId;
+
+    // Send current session state
+    const featured = sessionManager.getFeaturedSubmission(sessionId);
+    this.send(ws, {
+      type: MessageType.PUBLIC_SUBMISSION_UPDATE,
+      payload: {
+        joinCode: session.joinCode,
+        problemText: session.problemText,
+        code: featured.code || '',
+        hasFeaturedSubmission: !!featured.studentId,
+      },
+    });
+  }
+
+  private handlePublicCodeEdit(connection: Connection, payload: any) {
+    if (connection.role !== 'public' || !connection.sessionId) return;
+
+    const { code } = payload;
+    sessionManager.updateFeaturedCode(connection.sessionId, code);
+
+    // Broadcast to other public views (for sync if multiple displays)
+    this.broadcastToSession(connection.sessionId, {
+      type: MessageType.PUBLIC_SUBMISSION_UPDATE,
+      payload: { code },
+    }, 'public');
+  }
+
+  private async handlePublicExecuteCode(ws: WebSocket, connection: Connection, payload: any) {
+    if (connection.role !== 'public' || !connection.sessionId) return;
+
+    const { code } = payload;
+    const result = await executeCodeSafe(code);
+
+    this.send(ws, {
+      type: MessageType.EXECUTION_RESULT,
+      payload: result,
+    });
+  }
+
+  private broadcastPublicSubmissionUpdate(sessionId: string) {
+    const session = sessionManager.getSession(sessionId);
+    if (!session) return;
+
+    const featured = sessionManager.getFeaturedSubmission(sessionId);
+    
+    this.broadcastToSession(sessionId, {
+      type: MessageType.PUBLIC_SUBMISSION_UPDATE,
+      payload: {
+        joinCode: session.joinCode,
+        problemText: session.problemText,
+        code: featured.code || '',
+        hasFeaturedSubmission: !!featured.studentId,
+      },
+    }, 'public');
+  }
+
   private handleDisconnect(ws: WebSocket) {
     const connection = this.connections.get(ws);
     if (!connection) return;
@@ -234,7 +338,7 @@ class WebSocketHandler {
   private broadcastToSession(
     sessionId: string,
     message: WebSocketMessage,
-    role?: 'instructor' | 'student'
+    role?: 'instructor' | 'student' | 'public'
   ) {
     for (const [ws, conn] of this.connections.entries()) {
       if (conn.sessionId === sessionId && (!role || conn.role === role)) {

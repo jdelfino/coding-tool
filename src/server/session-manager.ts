@@ -148,6 +148,62 @@ class SessionManager {
   }
 
   /**
+   * Set featured submission for public view
+   */
+  setFeaturedSubmission(sessionId: string, studentId: string): boolean {
+    const session = this.sessions.get(sessionId);
+    if (!session) return false;
+    
+    const student = session.connectedStudents.get(studentId);
+    if (!student) return false;
+    
+    session.featuredStudentId = studentId;
+    // Create a copy of the student's code for the public view
+    session.featuredCode = student.code;
+    session.lastActivity = new Date();
+    console.log(`Set featured submission for session ${sessionId}: student ${studentId}`);
+    return true;
+  }
+
+  /**
+   * Clear featured submission
+   */
+  clearFeaturedSubmission(sessionId: string): boolean {
+    const session = this.sessions.get(sessionId);
+    if (!session) return false;
+    
+    session.featuredStudentId = undefined;
+    session.featuredCode = undefined;
+    session.lastActivity = new Date();
+    return true;
+  }
+
+  /**
+   * Update featured code (from public view edits)
+   */
+  updateFeaturedCode(sessionId: string, code: string): boolean {
+    const session = this.sessions.get(sessionId);
+    if (!session) return false;
+    
+    session.featuredCode = code;
+    session.lastActivity = new Date();
+    return true;
+  }
+
+  /**
+   * Get featured submission data
+   */
+  getFeaturedSubmission(sessionId: string): { studentId?: string; code?: string } {
+    const session = this.sessions.get(sessionId);
+    if (!session) return {};
+    
+    return {
+      studentId: session.featuredStudentId,
+      code: session.featuredCode,
+    };
+  }
+
+  /**
    * Delete a session
    */
   deleteSession(sessionId: string): boolean {

@@ -86,6 +86,17 @@ export default function InstructorPage() {
     }
   };
 
+  const handleShowOnPublicView = (studentId: string) => {
+    sendMessage('SELECT_SUBMISSION_FOR_PUBLIC', { studentId });
+  };
+
+  const handleOpenPublicView = () => {
+    if (sessionId) {
+      const publicUrl = `/instructor/public?sessionId=${sessionId}`;
+      window.open(publicUrl, '_blank');
+    }
+  };
+
   const selectedStudent = students.find(s => s.id === selectedStudentId);
 
   return (
@@ -109,12 +120,44 @@ export default function InstructorPage() {
 
       {sessionId && (
         <>
+          <div style={{ 
+            padding: '1rem', 
+            backgroundColor: '#e7f3ff', 
+            borderRadius: '4px',
+            marginBottom: '1rem',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center'
+          }}>
+            <div>
+              <strong>Public Display View</strong>
+              <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.9rem', color: '#666' }}>
+                Open this in a separate tab/window to display on a projector
+              </p>
+            </div>
+            <button
+              onClick={handleOpenPublicView}
+              style={{
+                padding: '0.75rem 1.5rem',
+                backgroundColor: '#0070f3',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontWeight: 'bold',
+              }}
+            >
+              Open Public View
+            </button>
+          </div>
+
           <ProblemInput onUpdateProblem={handleUpdateProblem} />
           
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
             <StudentList 
               students={students}
               onSelectStudent={handleSelectStudent}
+              onShowOnPublicView={handleShowOnPublicView}
             />
             
             <CodeViewer
