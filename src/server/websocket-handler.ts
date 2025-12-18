@@ -4,9 +4,6 @@ import { sessionManagerHolder } from './session-manager';
 import { executeCodeSafe } from './code-executor';
 import { MessageType, WebSocketMessage, Student } from './types';
 
-// Use the sessionManager instance from the holder
-const sessionManager = sessionManagerHolder.instance;
-
 interface Connection {
   ws: WebSocket;
   role: 'instructor' | 'student' | 'public';
@@ -119,7 +116,7 @@ class WebSocketHandler {
   }
 
   private async handleCreateSession(ws: WebSocket, connection: Connection) {
-    const session = await sessionManager.createSession();
+    const session = await sessionManagerHolder.instance.createSession();
     connection.role = 'instructor';
     connection.sessionId = session.id;
     
@@ -151,7 +148,7 @@ class WebSocketHandler {
       return;
     }
     
-    const session = await sessionManager.getSessionByJoinCode(joinCode);
+    const session = await sessionManagerHolder.instance.getSessionByJoinCode(joinCode);
     if (!session) {
       this.sendError(ws, 'Session not found. Please check the join code.');
       return;
@@ -162,7 +159,7 @@ class WebSocketHandler {
     connection.sessionId = session.id;
     connection.studentId = studentId;
 
-    const success = await sessionManager.addStudent(session.id, studentId, studentName.trim());
+    const success = await sessionManagerHolder.instance.addStudent(session.id, studentId, studentName.trim());
     if (!success) {
       this.sendError(ws, 'Failed to join session. Please try again.');
       return;
@@ -198,7 +195,7 @@ class WebSocketHandler {
       return;
     }
 
-    await sessionManager.updateProblem(connection.sessionId, problemText);
+    await sessionManagerHolder.instance.updateProblem(connection.sessionId, problemText);
 
     // Broadcast to all students
     this.broadcastToSession(connection.sessionId, {
@@ -219,7 +216,7 @@ class WebSocketHandler {
     }
 
     const { code } = payload;
-    await sessionManager.updateStudentCode(connection.sessionId, connection.studentId, code);
+    await sessionManagerHolder.instance.updateStudentCode(connection.sessionId, connection.studentId, code);
 
     // Notify instructor
     await this.broadcastStudentList(connection.sessionId);
@@ -265,7 +262,7 @@ class WebSocketHandler {
         return;
       }
       
-      const code = await sessionManager.getStudentCode(connection.sessionId, studentId);
+      const code = await sessionManagerHolder.instance.getStudentCode(connection.sessionId, studentId);
       
       if (!code) {
         this.sendError(ws, 'Student code not found or empty');
@@ -288,7 +285,7 @@ class WebSocketHandler {
     if (connection.role !== 'instructor' || !connection.sessionId) return;
 
     const { studentId } = payload;
-    const code = await sessionManager.getStudentCode(connection.sessionId, studentId);
+    const code = await sessionManagerHolder.instance.getStudentCode(connection.sessionId, studentId);
     
     if (code === undefined) {
       this.sendError(ws, 'Student not found');
@@ -308,14 +305,14 @@ class WebSocketHandler {
     
     if (studentId) {
       // Set featured submission
-      const success = await sessionManager.setFeaturedSubmission(connection.sessionId, studentId);
+      const success = await sessionManagerHolder.instance.setFeaturedSubmission(connection.sessionId, studentId);
       if (!success) {
         console.error('Failed to set featured submission');
         return;
       }
     } else {
       // Clear featured submission
-      await sessionManager.clearFeaturedSubmission(connection.sessionId);
+      await sessionManagerHolder.instance.clearFeaturedSubmission(connection.sessionId);
     }
 
     // Broadcast update to public views
@@ -325,7 +322,7 @@ class WebSocketHandler {
   private async handleJoinPublicView(ws: WebSocket, connection: Connection, payload: any) {
     const { sessionId } = payload;
     
-    const session = await sessionManager.getSession(sessionId);
+    const session = await sessionManagerHolder.instance.getSession(sessionId);
     if (!session) {
       this.sendError(ws, 'Session not found');
       return;
@@ -335,7 +332,7 @@ class WebSocketHandler {
     connection.sessionId = sessionId;
 
     // Send current session state
-    const featured = await sessionManager.getFeaturedSubmission(sessionId);
+    const featured = await sessionManagerHolder.instance.getFeaturedSubmission(sessionId);
     this.send(ws, {
       type: MessageType.PUBLIC_SUBMISSION_UPDATE,
       payload: {
@@ -351,7 +348,7 @@ class WebSocketHandler {
     if (connection.role !== 'public' || !connection.sessionId) return;
 
     const { code } = payload;
-    await sessionManager.updateFeaturedCode(connection.sessionId, code);
+    await sessionManagerHolder.instance.updateFeaturedCode(connection.sessionId, code);
 
     // Broadcast to other public views (for sync if multiple displays)
     this.broadcastToSession(connection.sessionId, {
@@ -387,10 +384,10 @@ class WebSocketHandler {
   }
 
   private async broadcastPublicSubmissionUpdate(sessionId: string) {
-    const session = await sessionManager.getSession(sessionId);
+    const session = await sessionManagerHolder.instance.getSession(sessionId);
     if (!session) return;
 
-    const featured = await sessionManager.getFeaturedSubmission(sessionId);
+    const featured = await sessionManagerHolder.instance.getFeaturedSubmission(sessionId);
     
     this.broadcastToSession(sessionId, {
       type: MessageType.PUBLIC_SUBMISSION_UPDATE,
@@ -410,7 +407,7 @@ class WebSocketHandler {
     console.log('WebSocket disconnected');
 
     if (connection.sessionId && connection.studentId) {
-      await sessionManager.removeStudent(connection.sessionId, connection.studentId);
+      await sessionManagerHolder.instance.removeStudent(connection.sessionId, connection.studentId);
       await this.broadcastStudentList(connection.sessionId);
     }
 
@@ -430,7 +427,7 @@ class WebSocketHandler {
   }
 
   private async broadcastStudentList(sessionId: string) {
-    const students = await sessionManager.getStudents(sessionId);
+    const students = await sessionManagerHolder.instance.getStudents(sessionId);
     const studentList = students.map((s: Student) => ({
       id: s.id,
       name: s.name,
