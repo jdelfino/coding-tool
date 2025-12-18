@@ -22,7 +22,7 @@ export default function InstructorPage() {
   const [executionResult, setExecutionResult] = useState<any>(null);
 
   const wsUrl = typeof window !== 'undefined' 
-    ? `ws://${window.location.hostname}:${window.location.port || '3000'}/ws`
+    ? `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws`
     : '';
   
   const { isConnected, lastMessage, sendMessage } = useWebSocket(wsUrl);

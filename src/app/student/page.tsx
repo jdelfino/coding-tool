@@ -16,7 +16,7 @@ export default function StudentPage() {
   const [isRunning, setIsRunning] = useState(false);
 
   const wsUrl = typeof window !== 'undefined' 
-    ? `ws://${window.location.hostname}:${window.location.port || '3000'}/ws`
+    ? `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws`
     : '';
   
   const { isConnected, lastMessage, sendMessage } = useWebSocket(wsUrl);
