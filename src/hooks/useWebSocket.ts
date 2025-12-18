@@ -15,12 +15,19 @@ export function useWebSocket(url: string) {
   const reconnectAttempts = useRef(0);
 
   const connect = useCallback(() => {
+    // Don't attempt connection if URL is empty (SSR or not yet initialized)
+    if (!url) {
+      console.log('WebSocket URL not yet available, skipping connection');
+      return;
+    }
+
     try {
+      console.log('Attempting WebSocket connection to:', url);
       const ws = new WebSocket(url);
       wsRef.current = ws;
 
       ws.onopen = () => {
-        console.log('WebSocket connected');
+        console.log('WebSocket connected to:', url);
         setIsConnected(true);
         reconnectAttempts.current = 0;
       };
@@ -35,7 +42,7 @@ export function useWebSocket(url: string) {
       };
 
       ws.onclose = () => {
-        console.log('WebSocket disconnected');
+        console.log('WebSocket disconnected from:', url);
         setIsConnected(false);
         
         // Attempt to reconnect with exponential backoff
@@ -49,10 +56,10 @@ export function useWebSocket(url: string) {
       };
 
       ws.onerror = (error) => {
-        console.error('WebSocket error:', error);
+        console.error('WebSocket error for URL:', url, error);
       };
     } catch (error) {
-      console.error('Error creating WebSocket:', error);
+      console.error('Error creating WebSocket for URL:', url, error);
     }
   }, [url]);
 

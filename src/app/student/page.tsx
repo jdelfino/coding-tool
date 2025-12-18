@@ -15,9 +15,18 @@ export default function StudentPage() {
   const [executionResult, setExecutionResult] = useState<any>(null);
   const [isRunning, setIsRunning] = useState(false);
 
-  const wsUrl = typeof window !== 'undefined' 
-    ? `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws`
-    : '';
+  // Construct WebSocket URL - only initialize on client side
+  const [wsUrl, setWsUrl] = useState('');
+  
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const host = window.location.host;
+      const url = `${protocol}//${host}/ws`;
+      console.log('WebSocket URL:', url);
+      setWsUrl(url);
+    }
+  }, []);
   
   const { isConnected, lastMessage, sendMessage } = useWebSocket(wsUrl);
 
