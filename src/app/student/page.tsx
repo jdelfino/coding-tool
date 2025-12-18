@@ -3,12 +3,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
+import { useAuth } from '@/contexts/AuthContext';
 import JoinForm from './components/JoinForm';
 import ProblemDisplay from './components/ProblemDisplay';
 import CodeEditor from './components/CodeEditor';
 import OutputPanel from './components/OutputPanel';
 
 function StudentPage() {
+  const { user, signOut } = useAuth();
   const [joined, setJoined] = useState(false);
   const [studentId, setStudentId] = useState<string | null>(null);
   const [problemText, setProblemText] = useState('');
@@ -17,6 +19,7 @@ function StudentPage() {
   const [isRunning, setIsRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isJoining, setIsJoining] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
 
   // Construct WebSocket URL - only initialize on client side
   const [wsUrl, setWsUrl] = useState('');
@@ -193,30 +196,130 @@ function StudentPage() {
           </div>
         )}
 
+        {/* Header with Sign Out */}
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center',
+          marginBottom: '1rem'
+        }}>
+          <h2 style={{ margin: 0 }}>Join a Session</h2>
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '1rem',
+            padding: '0.5rem 1rem',
+            backgroundColor: '#f8f9fa',
+            borderRadius: '4px',
+            border: '1px solid #dee2e6'
+          }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+              <span style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>{user?.username}</span>
+              <span style={{ 
+                fontSize: '0.75rem', 
+                color: '#28a745',
+                fontWeight: '500'
+              }}>Student</span>
+            </div>
+            <button
+              onClick={async () => {
+                setIsSigningOut(true);
+                try {
+                  await signOut();
+                } catch (error) {
+                  console.error('Sign out error:', error);
+                  setIsSigningOut(false);
+                }
+              }}
+              disabled={isSigningOut}
+              style={{
+                padding: '0.5rem 1rem',
+                backgroundColor: '#dc3545',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: isSigningOut ? 'not-allowed' : 'pointer',
+                fontSize: '0.9rem',
+                opacity: isSigningOut ? 0.6 : 1
+              }}
+            >
+              {isSigningOut ? 'Signing out...' : 'Sign Out'}
+            </button>
+          </div>
+        </div>
+
         <JoinForm onJoin={handleJoin} isJoining={isJoining} disabled={!isConnected || connectionStatus === 'failed'} />
       </main>
     );
   }
 
+  const handleSignOut = async () => {
+    setIsSigningOut(true);
+    try {
+      await signOut();
+    } catch (error) {
+      console.error('Sign out error:', error);
+      setIsSigningOut(false);
+    }
+  };
+
   return (
     <main style={{ padding: '2rem', maxWidth: '1000px', margin: '0 auto' }}>
+      {/* Header with Sign Out */}
       <div style={{ 
         display: 'flex', 
         justifyContent: 'space-between', 
         alignItems: 'center',
         marginBottom: '1rem'
       }}>
-        <h1>Live Coding Session</h1>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <h1 style={{ margin: 0 }}>Live Coding Session</h1>
+          <div style={{ 
+            padding: '0.5rem 1rem',
+            backgroundColor: connectionStatus === 'connected' ? '#d4edda' : 
+                            connectionStatus === 'connecting' ? '#fff3cd' : '#f8d7da',
+            borderRadius: '4px',
+            fontSize: '0.9rem'
+          }}>
+            {connectionStatus === 'connected' && '● Connected'}
+            {connectionStatus === 'connecting' && '○ Reconnecting...'}
+            {connectionStatus === 'disconnected' && '○ Disconnected'}
+            {connectionStatus === 'failed' && '✕ Connection Lost'}
+          </div>
+        </div>
         <div style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: '1rem',
           padding: '0.5rem 1rem',
-          backgroundColor: connectionStatus === 'connected' ? '#d4edda' : 
-                          connectionStatus === 'connecting' ? '#fff3cd' : '#f8d7da',
-          borderRadius: '4px'
+          backgroundColor: '#f8f9fa',
+          borderRadius: '4px',
+          border: '1px solid #dee2e6'
         }}>
-          {connectionStatus === 'connected' && '● Connected'}
-          {connectionStatus === 'connecting' && '○ Reconnecting...'}
-          {connectionStatus === 'disconnected' && '○ Disconnected'}
-          {connectionStatus === 'failed' && '✕ Connection Lost'}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+            <span style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>{user?.username}</span>
+            <span style={{ 
+              fontSize: '0.75rem', 
+              color: '#28a745',
+              fontWeight: '500'
+            }}>Student</span>
+          </div>
+          <button
+            onClick={handleSignOut}
+            disabled={isSigningOut}
+            style={{
+              padding: '0.5rem 1rem',
+              backgroundColor: '#dc3545',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: isSigningOut ? 'not-allowed' : 'pointer',
+              fontSize: '0.9rem',
+              opacity: isSigningOut ? 0.6 : 1
+            }}
+          >
+            {isSigningOut ? 'Signing out...' : 'Sign Out'}
+          </button>
         </div>
       </div>
 
