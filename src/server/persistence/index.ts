@@ -109,6 +109,12 @@ export async function createDefaultStorage(): Promise<IStorageRepository> {
   });
 }
 
+// Mutable singleton instance holder
+// Will be set in index.ts with a properly initialized instance
+export const storageHolder = {
+  instance: null as IStorageRepository | null,
+};
+
 // Re-export all types and interfaces for convenience
 export * from './types';
 export * from './interfaces';

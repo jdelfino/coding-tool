@@ -3,9 +3,8 @@ import { createServer } from 'http';
 import { WebSocketServer } from 'ws';
 import next from 'next';
 import { wsHandler } from './websocket-handler';
-import { createDefaultStorage } from './persistence';
+import { createDefaultStorage, storageHolder } from './persistence';
 import { SessionManager, sessionManagerHolder } from './session-manager';
-import { setStorage, initializeAuthProvider } from './auth';
 
 const dev = process.env.NODE_ENV !== 'production';
 const hostname = 'localhost';
@@ -23,8 +22,8 @@ app.prepare().then(async () => {
   console.log('Initializing storage backend...');
   const storage = await createDefaultStorage();
   
-  // Make storage available to auth provider immediately (before API routes might be called)
-  setStorage(storage);
+  // Set global storage holder (accessible by API routes)
+  storageHolder.instance = storage;
   
   // Initialize session manager with storage and replace the global singleton
   const sessionManagerInstance = new SessionManager(storage);
@@ -32,11 +31,7 @@ app.prepare().then(async () => {
   sessionManagerHolder.instance = sessionManagerInstance;
   
   console.log('Storage backend initialized successfully');
-
-  // Initialize authentication provider with persistent user storage
-  console.log('Initializing authentication provider...');
-  initializeAuthProvider(storage);
-  console.log('Authentication provider initialized successfully');
+  console.log('Authentication provider will auto-initialize on first use');
 
   const expressApp = express();
   const server = createServer(expressApp);
