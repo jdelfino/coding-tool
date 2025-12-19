@@ -246,19 +246,23 @@ export class RevisionBuffer {
   /**
    * Reset state for a student (e.g., when they rejoin with existing code)
    */
-  resetStudent(sessionId: string, studentId: string, currentCode: string): void {
+  async resetStudent(sessionId: string, studentId: string, currentCode: string): Promise<void> {
     const key = this.getKey(sessionId, studentId);
     const state = this.stateMap.get(key);
 
     if (state) {
+      // Flush any pending revisions before resetting
+      await this.flushBuffer(sessionId, studentId);
+      
       // Clear flush timer
       if (state.flushTimer) {
         clearTimeout(state.flushTimer);
         state.flushTimer = undefined;
       }
       
-      // Update baseline code
+      // Update baseline code and reset revision count
       state.previousCode = currentCode;
+      state.revisionCount = 0;
     } else {
       // Initialize with current code as baseline
       this.stateMap.set(key, {
