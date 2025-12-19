@@ -5,6 +5,7 @@ import next from 'next';
 import { wsHandler } from './websocket-handler';
 import { createDefaultStorage } from './persistence';
 import { SessionManager, sessionManagerHolder } from './session-manager';
+import { initializeAuthProvider } from './auth';
 
 const dev = process.env.NODE_ENV !== 'production';
 const hostname = 'localhost';
@@ -28,6 +29,11 @@ app.prepare().then(async () => {
   sessionManagerHolder.instance = sessionManagerInstance;
   
   console.log('Storage backend initialized successfully');
+
+  // Initialize authentication provider with persistent user storage
+  console.log('Initializing authentication provider...');
+  await initializeAuthProvider();
+  console.log('Authentication provider initialized successfully');
 
   const expressApp = express();
   const server = createServer(expressApp);

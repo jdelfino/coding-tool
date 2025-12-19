@@ -21,4 +21,4 @@ export * from './permissions';
 export * from './middleware';
 
 // Instance
-export { getAuthProvider } from './instance';
+export { getAuthProvider, initializeAuthProvider } from './instance';
