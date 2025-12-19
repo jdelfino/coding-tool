@@ -20,7 +20,6 @@ export class LocalAuthProvider implements IAuthProvider {
   private userRepository: IUserRepository;
   private activeSessions: Map<string, AuthSession> = new Map();
   private readonly sessionsFilePath: string;
-  private sessionsLoaded = false;
 
   constructor(userRepository: IUserRepository, dataDir: string = './data') {
     this.userRepository = userRepository;
@@ -29,10 +28,9 @@ export class LocalAuthProvider implements IAuthProvider {
 
   /**
    * Load sessions from disk
+   * Always reloads to ensure cross-process consistency
    */
   private async loadSessions(): Promise<void> {
-    if (this.sessionsLoaded) return;
-
     try {
       const data = await fs.readFile(this.sessionsFilePath, 'utf-8');
       const sessions = JSON.parse(data, (key, value) => {
@@ -43,8 +41,9 @@ export class LocalAuthProvider implements IAuthProvider {
         return value;
       }) as Record<string, AuthSession>;
 
+      // Clear and reload to get latest from disk
+      this.activeSessions.clear();
       for (const [sessionId, session] of Object.entries(sessions)) {
-        console.log(`[Auth] Loading session ${sessionId}:`, JSON.stringify(session, null, 2));
         this.activeSessions.set(sessionId, session);
       }
       
@@ -54,9 +53,8 @@ export class LocalAuthProvider implements IAuthProvider {
         console.error('[Auth] Error loading sessions:', error);
       }
       // File doesn't exist yet, that's okay
+      this.activeSessions.clear();
     }
-
-    this.sessionsLoaded = true;
   }
 
   /**
@@ -195,9 +193,8 @@ export class LocalAuthProvider implements IAuthProvider {
    * Get an active session by ID.
    */
   async getSession(sessionId: string): Promise<AuthSession | null> {
-    await this.loadSessions(); // Ensure sessions are loaded
+    await this.loadSessions(); // Always reload to get latest from other processes
     const session = this.activeSessions.get(sessionId) || null;
-    console.log(`[Auth] getSession(${sessionId}):`, session ? JSON.stringify(session, null, 2) : 'null');
     return session;
   }
 

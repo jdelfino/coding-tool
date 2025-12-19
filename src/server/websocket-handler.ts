@@ -32,7 +32,6 @@ class WebSocketHandler {
       let userId: string | undefined;
       try {
         const cookies = request.headers.cookie;
-        console.log('[WS Auth] Raw cookies:', cookies);
         
         if (cookies) {
           const sessionId = cookies
@@ -41,21 +40,15 @@ class WebSocketHandler {
             .find(c => c.startsWith('sessionId='))
             ?.split('=')[1];
           
-          console.log('[WS Auth] Extracted sessionId:', sessionId);
-          
           if (sessionId) {
             const authProvider = await getAuthProvider();
             const session = await authProvider.getSession(sessionId);
-            console.log('[WS Auth] Session lookup result:', session ? 'found' : 'not found');
             
-            if (session) {
-              console.log('[WS Auth] Session object:', JSON.stringify(session, null, 2));
-              if (session.user) {
-                userId = session.user.id;
-                console.log('[WS Auth] Authenticated as user:', userId, '(', session.user.username, session.user.role, ')');
-              } else {
-                console.log('[WS Auth] Session found but user property is missing!');
-              }
+            if (session && session.user) {
+              userId = session.user.id;
+              console.log('[WS Auth] Authenticated as user:', userId, '(', session.user.username, session.user.role, ')');
+            } else if (session) {
+              console.log('[WS Auth] Session found but user property is missing!');
             }
           } else {
             console.log('[WS Auth] No sessionId cookie found');
