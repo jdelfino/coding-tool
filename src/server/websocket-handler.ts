@@ -186,7 +186,7 @@ class WebSocketHandler {
         id: session.id,
         joinCode: session.joinCode,
         problemText: session.problemText,
-        studentCount: session.connectedStudents.size,
+        studentCount: session.students.size,
         createdAt: session.createdAt,
         lastActivity: session.lastActivity,
       }));
@@ -301,12 +301,14 @@ class WebSocketHandler {
     // Use authenticated user ID if available, otherwise generate a UUID
     // This ensures students can see their session history after signing out and back in
     const studentId = connection.userId || uuidv4();
+    console.log(`[JOIN_SESSION] studentName: ${studentName}, connection.userId: ${connection.userId}, studentId: ${studentId}`);
     connection.role = 'student';
     connection.sessionId = session.id;
     connection.studentId = studentId;
 
     // Check if student has existing code (rejoining)
     const existingCode = await sessionManagerHolder.instance.getStudentCode(session.id, studentId);
+    console.log(`[JOIN_SESSION] existingCode for student ${studentId}:`, existingCode ? `${existingCode.length} chars` : 'none');
 
     const success = await sessionManagerHolder.instance.addStudent(session.id, studentId, studentName.trim());
     if (!success) {

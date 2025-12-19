@@ -53,6 +53,7 @@ function StudentPage() {
     // Use username from auth context
     const studentName = user?.username || 'Student';
 
+    console.log('[JOIN] Joining session with username:', studentName, 'user:', user);
     setError(null);
     setIsJoining(true);
     sendMessage('JOIN_SESSION', { joinCode, studentName });
@@ -110,10 +111,8 @@ function StudentPage() {
         setStudentId(lastMessage.payload.studentId);
         setCurrentSessionId(lastMessage.payload.sessionId);
         setProblemText(lastMessage.payload.problemText || '');
-        // Restore existing code if rejoining
-        if (lastMessage.payload.code) {
-          setCode(lastMessage.payload.code);
-        }
+        // Restore existing code if rejoining (always set, even if empty string)
+        setCode(lastMessage.payload.code || '');
         setIsJoining(false);
         setError(null);
         setView('session');

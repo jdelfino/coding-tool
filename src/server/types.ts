@@ -12,7 +12,7 @@ export interface Session {
   id: string;
   joinCode: string;
   problemText: string;
-  connectedStudents: Map<string, Student>;
+  students: Map<string, Student>; // All students who have joined (preserves code across disconnects)
   instructorWs?: WebSocket;
   publicViewWs?: WebSocket;
   featuredStudentId?: string;

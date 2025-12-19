@@ -74,7 +74,7 @@ export class SessionManager {
       id: sessionId,
       joinCode,
       problemText: '',
-      connectedStudents: new Map(),
+      students: new Map(),
       createdAt: new Date(),
       lastActivity: new Date(),
       creatorId: creatorId || 'system',
@@ -154,7 +154,7 @@ export class SessionManager {
     if (!session) return false;
     
     // Check if student already exists (rejoining)
-    const existingStudent = session.connectedStudents.get(studentId);
+    const existingStudent = session.students.get(studentId);
     
     const student: Student = {
       id: studentId,
@@ -163,7 +163,7 @@ export class SessionManager {
       lastUpdate: new Date(),
     };
     
-    session.connectedStudents.set(studentId, student);
+    session.students.set(studentId, student);
     
     // Add to participants list if not already there
     if (!session.participants.includes(studentId)) {
@@ -172,7 +172,7 @@ export class SessionManager {
     
     try {
       await this.storage.sessions.updateSession(sessionId, {
-        connectedStudents: session.connectedStudents,
+        students: session.students,
         participants: session.participants,
         lastActivity: new Date(),
       });
@@ -185,7 +185,7 @@ export class SessionManager {
   }
 
   /**
-   * Remove a student from a session
+   * Remove a student from a session (disconnect only, preserves code)
    */
   async removeStudent(sessionId: string, studentId: string): Promise<boolean> {
     if (!this.storage) return false;
@@ -193,17 +193,21 @@ export class SessionManager {
     const session = await this.getSession(sessionId);
     if (!session) return false;
     
-    const removed = session.connectedStudents.delete(studentId);
-    if (removed) {
+    const student = session.students.get(studentId);
+    if (student) {
+      // Don't delete the student - just clear the WebSocket reference
+      // This preserves their code for when they reconnect
+      student.ws = undefined;
+      
       try {
         await this.storage.sessions.updateSession(sessionId, {
-          connectedStudents: session.connectedStudents,
+          students: session.students,
           lastActivity: new Date(),
         });
-        console.log(`Removed student ${studentId} from session ${sessionId}`);
+        console.log(`Disconnected student ${studentId} from session ${sessionId} (code preserved)`);
         return true;
       } catch (error) {
-        console.error(`Failed to remove student from session ${sessionId}:`, error);
+        console.error(`Failed to disconnect student from session ${sessionId}:`, error);
         return false;
       }
     }
@@ -219,7 +223,7 @@ export class SessionManager {
     const session = await this.getSession(sessionId);
     if (!session) return false;
     
-    const student = session.connectedStudents.get(studentId);
+    const student = session.students.get(studentId);
     if (!student) return false;
     
     student.code = code;
@@ -227,7 +231,7 @@ export class SessionManager {
     
     try {
       await this.storage.sessions.updateSession(sessionId, {
-        connectedStudents: session.connectedStudents,
+        students: session.students,
         lastActivity: new Date(),
       });
       return true;
@@ -244,7 +248,7 @@ export class SessionManager {
     const session = await this.getSession(sessionId);
     if (!session) return undefined;
     
-    const student = session.connectedStudents.get(studentId);
+    const student = session.students.get(studentId);
     return student?.code;
   }
 
@@ -255,7 +259,7 @@ export class SessionManager {
     const session = await this.getSession(sessionId);
     if (!session) return [];
     
-    return Array.from(session.connectedStudents.values());
+    return Array.from(session.students.values());
   }
 
   /**
@@ -267,7 +271,7 @@ export class SessionManager {
     const session = await this.getSession(sessionId);
     if (!session) return false;
     
-    const student = session.connectedStudents.get(studentId);
+    const student = session.students.get(studentId);
     if (!student) return false;
     
     try {
