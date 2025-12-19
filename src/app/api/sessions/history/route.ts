@@ -52,6 +52,8 @@ export async function GET(request: NextRequest) {
       participantCount: session.participants.length,
       status: session.status,
       endedAt: session.endedAt?.toISOString(),
+      sectionId: session.sectionId,
+      sectionName: session.sectionName,
     }));
 
     return NextResponse.json({ sessions: sessionData });

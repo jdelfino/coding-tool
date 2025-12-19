@@ -12,12 +12,19 @@ import {
   LocalUserRepository,
 } from './local-storage';
 import {
+  ClassRepository,
+  SectionRepository,
+  MembershipRepository,
+  JoinCodeService,
+} from '../classes';
+import {
   ISessionRepository,
   IProblemRepository,
   IRevisionRepository,
   IUserRepository,
   IStorageRepository,
 } from './interfaces';
+import type { IClassRepository, ISectionRepository, IMembershipRepository } from '../classes/interfaces';
 import { StorageConfig } from './types';
 
 /**
@@ -28,6 +35,9 @@ export class StorageBackend implements IStorageRepository {
   public readonly problems: IProblemRepository;
   public readonly revisions: IRevisionRepository;
   public readonly users: IUserRepository;
+  public readonly classes?: IClassRepository;
+  public readonly sections?: ISectionRepository;
+  public readonly memberships?: IMembershipRepository;
 
   constructor(config: StorageConfig) {
     // Create repository instances
@@ -35,6 +45,25 @@ export class StorageBackend implements IStorageRepository {
     this.problems = new LocalProblemRepository(config);
     this.revisions = new LocalRevisionRepository(config);
     this.users = new LocalUserRepository(config);
+    
+    // Initialize class/section repositories (multi-tenancy)
+    // Note: These have circular dependencies, so we create them first then wire them up
+    const baseDir = config.baseDir || './data';
+    const sectionRepo = new SectionRepository(baseDir, null as any); // Will set JoinCodeService later
+    const classRepo = new ClassRepository(baseDir);
+    const membershipRepo = new MembershipRepository(baseDir);
+    const joinCodeService = new JoinCodeService(sectionRepo, membershipRepo);
+    
+    // Set up dependencies after construction
+    membershipRepo.setRepositories(this.users, sectionRepo, classRepo);
+    sectionRepo.setMembershipRepository(membershipRepo);
+    sectionRepo.setJoinCodeService(joinCodeService); // Set the join code service
+    classRepo.setSectionRepository(sectionRepo);
+    
+    // Assign to interface properties
+    this.sections = sectionRepo;
+    this.classes = classRepo;
+    this.memberships = membershipRepo;
   }
 
   async initialize(): Promise<void> {
@@ -45,6 +74,10 @@ export class StorageBackend implements IStorageRepository {
       // Users repository has initialize but it's not in IUserRepository interface
       // We know LocalUserRepository has it, so cast to access it
       (this.users as any).initialize?.(),
+      // Initialize class/section repositories
+      (this.classes as any)?.ensureInitialized?.(),
+      (this.sections as any)?.ensureInitialized?.(),
+      (this.memberships as any)?.ensureInitialized?.(),
     ]);
   }
 

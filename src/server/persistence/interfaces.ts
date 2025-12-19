@@ -294,4 +294,13 @@ export interface IStorageRepository extends IStorageBackend {
   
   /** User data operations */
   users: IUserRepository;
+
+  /** Class data operations (multi-tenancy) */
+  classes?: import('../classes/interfaces').IClassRepository;
+
+  /** Section data operations (multi-tenancy) */
+  sections?: import('../classes/interfaces').ISectionRepository;
+
+  /** Section membership operations (multi-tenancy) */
+  memberships?: import('../classes/interfaces').IMembershipRepository;
 }

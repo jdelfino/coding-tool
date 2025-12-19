@@ -66,7 +66,7 @@ export class SessionManager {
   /**
    * Create a new session
    */
-  async createSession(creatorId?: string): Promise<Session> {
+  async createSession(creatorId?: string, sectionId?: string, sectionName?: string): Promise<Session> {
     const sessionId = uuidv4();
     const joinCode = this.generateJoinCode();
     
@@ -80,6 +80,8 @@ export class SessionManager {
       creatorId: creatorId || 'system',
       participants: [],
       status: 'active',
+      sectionId,
+      sectionName,
     };
     
     // Persist to storage if available
@@ -94,7 +96,7 @@ export class SessionManager {
     
     this.sessionsByJoinCode.set(joinCode, sessionId);
     
-    console.log(`Created session ${sessionId} with join code ${joinCode}`);
+    console.log(`Created session ${sessionId} with join code ${joinCode}${sectionId ? ` for section ${sectionId}` : ''}`);
     return session;
   }
 
@@ -376,6 +378,48 @@ export class SessionManager {
       return true;
     } catch (error) {
       console.error(`Failed to delete session ${sessionId}:`, error);
+      return false;
+    }
+  }
+
+  /**
+   * Get sessions for a specific section
+   */
+  async getSessionsBySection(sectionId: string): Promise<Session[]> {
+    const storage = await this.ensureStorage();
+    
+    try {
+      const allSessions = await storage.sessions.listAllSessions();
+      return allSessions.filter(s => s.sectionId === sectionId);
+    } catch (error) {
+      console.error(`Failed to get sessions for section ${sectionId}:`, error);
+      return [];
+    }
+  }
+
+  /**
+   * Check if a user is a member of the session's section
+   * If session has no sectionId, returns true (backwards compatibility)
+   */
+  async isSectionMember(sessionId: string, userId: string): Promise<boolean> {
+    const session = await this.getSession(sessionId);
+    if (!session) return false;
+    
+    // If session has no section, allow access (backwards compatibility)
+    if (!session.sectionId) return true;
+    
+    // Check section membership
+    const storage = await this.ensureStorage();
+    if (!storage.memberships) {
+      console.warn('Membership repository not available');
+      return false;
+    }
+    
+    try {
+      const membership = await storage.memberships.getMembership(userId, session.sectionId);
+      return membership !== null;
+    } catch (error) {
+      console.error(`Failed to check section membership for user ${userId}:`, error);
       return false;
     }
   }

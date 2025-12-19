@@ -222,6 +222,19 @@ class WebSocketHandler {
       return;
     }
 
+    // Validate section membership if session is scoped to a section
+    if (session.sectionId && connection.userId) {
+      const isMember = await sessionManagerHolder.instance.isSectionMember(sessionId, connection.userId);
+      if (!isMember) {
+        this.sendError(ws, 'You are not authorized to access this section\'s session.');
+        return;
+      }
+    } else if (session.sectionId && !connection.userId) {
+      // Session requires section membership but user is not authenticated
+      this.sendError(ws, 'You must be signed in to access this section-based session.');
+      return;
+    }
+
     connection.role = 'instructor';
     connection.sessionId = session.id;
 
@@ -307,6 +320,19 @@ class WebSocketHandler {
     const session = await sessionManagerHolder.instance.getSessionByJoinCode(joinCode);
     if (!session) {
       this.sendError(ws, 'Session not found. Please check the join code.');
+      return;
+    }
+
+    // Validate section membership if session is scoped to a section
+    if (session.sectionId && connection.userId) {
+      const isMember = await sessionManagerHolder.instance.isSectionMember(session.id, connection.userId);
+      if (!isMember) {
+        this.sendError(ws, 'You are not enrolled in this section. Please join the section first.');
+        return;
+      }
+    } else if (session.sectionId && !connection.userId) {
+      // Session requires section membership but user is not authenticated
+      this.sendError(ws, 'You must be signed in to join this section-based session.');
       return;
     }
 

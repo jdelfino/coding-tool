@@ -41,6 +41,13 @@ export class SectionRepository implements ISectionRepository {
   }
 
   /**
+   * Set the join code service for code generation
+   */
+  setJoinCodeService(joinCodeService: JoinCodeService): void {
+    this.joinCodeService = joinCodeService;
+  }
+
+  /**
    * Initialize the repository by loading data from disk
    */
   private async ensureInitialized(): Promise<void> {
