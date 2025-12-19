@@ -62,6 +62,23 @@ export default function RevisionViewer({
     return `+${minutes}m ${seconds}s`;
   };
 
+  const formatTimeSinceLastRevision = (index: number) => {
+    if (revisions.length === 0 || index >= revisions.length || index === 0) return '';
+    
+    const previous = revisions[index - 1].timestamp;
+    const current = revisions[index].timestamp;
+    const elapsed = Math.floor((current.getTime() - previous.getTime()) / 1000);
+    
+    if (elapsed < 60) {
+      return `(+${elapsed}s)`;
+    }
+    
+    const minutes = Math.floor(elapsed / 60);
+    const seconds = elapsed % 60;
+    
+    return `(+${minutes}m ${seconds}s)`;
+  };
+
   // Track changes and trigger highlight animation
   const [highlightKey, setHighlightKey] = useState(0);
   
@@ -264,6 +281,7 @@ export default function RevisionViewer({
               Revision {currentIndex + 1}/{totalRevisions} | {' '}
               {currentRevision && formatTimestamp(currentRevision.timestamp)} | {' '}
               {formatElapsedTime(currentIndex)}
+              {formatTimeSinceLastRevision(currentIndex) && ` ${formatTimeSinceLastRevision(currentIndex)}`}
             </div>
           </div>
           <button
