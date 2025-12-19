@@ -103,7 +103,7 @@ export default function RevisionViewer({
         <div
           key={`${highlightKey}-${idx}`}
           style={{
-            backgroundColor: isChanged ? '#ffd700' : 'transparent',
+            backgroundColor: isChanged ? '#3d5016' : 'transparent',
             animation: isChanged ? 'fadeOut 2s ease-out forwards' : 'none',
             transition: 'background-color 0.3s',
           }}
@@ -291,7 +291,7 @@ export default function RevisionViewer({
         }}>
           <style>{`
             @keyframes fadeOut {
-              0% { background-color: #ffd700; }
+              0% { background-color: #3d5016; }
               100% { background-color: transparent; }
             }
           `}</style>
