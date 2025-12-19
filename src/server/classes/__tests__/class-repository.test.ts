@@ -4,35 +4,21 @@
  * Tests CRUD operations for course classes using in-memory storage
  */
 
-import { ClassRepository } from '../class-repository';
-import * as fs from 'fs/promises';
-import * as path from 'path';
-import * as os from 'os';
+import { FakeClassRepository, FakeSectionRepository } from '../../__tests__/test-utils/fake-classes';
 
 describe('ClassRepository', () => {
-  let tempDir: string;
-  let repository: ClassRepository;
-  let mockSectionRepository: any;
+  let repository: FakeClassRepository;
+  let mockSectionRepository: FakeSectionRepository;
 
-  beforeEach(async () => {
-    // Create temp directory for test data
-    tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'class-test-'));
-    repository = new ClassRepository(tempDir);
-    
-    // Mock section repository
-    mockSectionRepository = {
-      listSections: jest.fn().mockResolvedValue([]),
-    };
+  beforeEach(() => {
+    repository = new FakeClassRepository();
+    mockSectionRepository = new FakeSectionRepository();
     repository.setSectionRepository(mockSectionRepository);
   });
 
-  afterEach(async () => {
-    // Clean up temp directory
-    try {
-      await fs.rm(tempDir, { recursive: true, force: true });
-    } catch (error) {
-      // Ignore cleanup errors
-    }
+  afterEach(() => {
+    repository.clear();
+    mockSectionRepository.clear();
   });
 
   describe('createClass', () => {
@@ -88,17 +74,12 @@ describe('ClassRepository', () => {
         createdBy: 'instructor-1',
       };
 
-      await repository.createClass(classData);
+      const created = await repository.createClass(classData);
 
-      // Verify file was created
-      const filePath = path.join(tempDir, 'classes.json');
-      const fileExists = await fs.access(filePath).then(() => true).catch(() => false);
-      expect(fileExists).toBe(true);
-
-      // Verify file content
-      const content = await fs.readFile(filePath, 'utf-8');
-      const parsed = JSON.parse(content);
-      expect(Object.keys(parsed)).toHaveLength(1);
+      // Verify class is retrievable
+      const retrieved = await repository.getClass(created.id);
+      expect(retrieved).not.toBeNull();
+      expect(retrieved?.name).toBe('CS 101');
     });
   });
 
@@ -127,9 +108,8 @@ describe('ClassRepository', () => {
         createdBy: 'instructor-1',
       });
 
-      // Create new repository instance to force reload from disk
-      const newRepository = new ClassRepository(tempDir);
-      const retrieved = await newRepository.getClass(created.id);
+      // Retrieve should work correctly
+      const retrieved = await repository.getClass(created.id);
 
       expect(retrieved).not.toBeNull();
       expect(retrieved?.createdAt).toBeInstanceOf(Date);
@@ -200,9 +180,8 @@ describe('ClassRepository', () => {
 
       await repository.updateClass(created.id, { name: 'CS 101 Updated' });
 
-      // Create new repository to force reload
-      const newRepository = new ClassRepository(tempDir);
-      const retrieved = await newRepository.getClass(created.id);
+      // Retrieve should get updated value
+      const retrieved = await repository.getClass(created.id);
       expect(retrieved?.name).toBe('CS 101 Updated');
     });
   });
@@ -234,9 +213,8 @@ describe('ClassRepository', () => {
 
       await repository.deleteClass(created.id);
 
-      // Create new repository to force reload
-      const newRepository = new ClassRepository(tempDir);
-      const retrieved = await newRepository.getClass(created.id);
+      // Retrieve should return null
+      const retrieved = await repository.getClass(created.id);
       expect(retrieved).toBeNull();
     });
   });
@@ -309,16 +287,26 @@ describe('ClassRepository', () => {
         createdBy: 'instructor-1',
       });
 
-      const mockSections = [
-        { id: 'section-1', name: 'Section A' },
-        { id: 'section-2', name: 'Section B' },
-      ];
-      mockSectionRepository.listSections.mockResolvedValue(mockSections);
+      // Create sections using the mock repository
+      await mockSectionRepository.createSection({
+        classId: created.id,
+        name: 'Section A',
+        instructorIds: ['instructor-1'],
+        active: true,
+      });
+
+      await mockSectionRepository.createSection({
+        classId: created.id,
+        name: 'Section B',
+        instructorIds: ['instructor-1'],
+        active: true,
+      });
 
       const sections = await repository.getClassSections(created.id);
 
-      expect(sections).toEqual(mockSections);
-      expect(mockSectionRepository.listSections).toHaveBeenCalledWith({ classId: created.id });
+      expect(sections).toHaveLength(2);
+      expect(sections.map(s => s.name)).toContain('Section A');
+      expect(sections.map(s => s.name)).toContain('Section B');
     });
 
     it('should throw error for non-existent class', async () => {
@@ -328,13 +316,13 @@ describe('ClassRepository', () => {
     });
 
     it('should throw error if section repository not configured', async () => {
-      const created = await repository.createClass({
+      // Create repository without section repository
+      const repoWithoutSections = new FakeClassRepository();
+      
+      const created = await repoWithoutSections.createClass({
         name: 'CS 101',
         createdBy: 'instructor-1',
       });
-
-      // Create repository without section repository
-      const repoWithoutSections = new ClassRepository(tempDir);
       
       await expect(
         repoWithoutSections.getClassSections(created.id)

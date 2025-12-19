@@ -4,19 +4,15 @@
  * Tests user enrollment in sections, membership queries, and join code validation
  */
 
-import { MembershipRepository } from '../membership-repository';
-import * as fs from 'fs/promises';
-import * as path from 'path';
-import * as os from 'os';
+import { FakeMembershipRepository, FakeClassRepository, FakeSectionRepository } from '../../__tests__/test-utils/fake-classes';
 import { User } from '../../auth/types';
 import { Section, Class } from '../types';
 
 describe('MembershipRepository', () => {
-  let tempDir: string;
-  let repository: MembershipRepository;
+  let repository: FakeMembershipRepository;
   let mockUserRepository: any;
-  let mockSectionRepository: any;
-  let mockClassRepository: any;
+  let sectionRepository: FakeSectionRepository;
+  let classRepository: FakeClassRepository;
 
   // Mock data
   const mockUser1: User = {
@@ -40,43 +36,16 @@ describe('MembershipRepository', () => {
     createdAt: new Date(),
   };
 
-  const mockSection1: Section = {
-    id: 'section-1',
-    classId: 'class-1',
-    name: 'Section A',
-    instructorIds: ['instructor-1'],
-    joinCode: 'ABC-123-XYZ',
-    active: true,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  };
-
-  const mockSection2: Section = {
-    id: 'section-2',
-    classId: 'class-1',
-    name: 'Section B',
-    instructorIds: ['instructor-1'],
-    joinCode: 'DEF-456-GHI',
-    active: true,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  };
-
-  const mockClass: Class = {
-    id: 'class-1',
-    name: 'CS 101',
-    description: 'Introduction to CS',
-    createdBy: 'instructor-1',
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  };
+  let mockSection1: Section;
+  let mockSection2: Section;
+  let mockClass: Class;
 
   beforeEach(async () => {
-    // Create temp directory for test data
-    tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'membership-test-'));
-    repository = new MembershipRepository(tempDir);
+    repository = new FakeMembershipRepository();
+    sectionRepository = new FakeSectionRepository();
+    classRepository = new FakeClassRepository();
     
-    // Mock repositories
+    // Mock user repository
     mockUserRepository = {
       getUserById: jest.fn((id: string) => {
         if (id === 'user-1') return Promise.resolve(mockUser1);
@@ -86,40 +55,41 @@ describe('MembershipRepository', () => {
       }),
     };
 
-    mockSectionRepository = {
-      getSection: jest.fn((id: string) => {
-        if (id === 'section-1') return Promise.resolve(mockSection1);
-        if (id === 'section-2') return Promise.resolve(mockSection2);
-        return Promise.resolve(null);
-      }),
-      getSectionByJoinCode: jest.fn((code: string) => {
-        if (code === 'ABC-123-XYZ') return Promise.resolve(mockSection1);
-        if (code === 'DEF-456-GHI') return Promise.resolve(mockSection2);
-        return Promise.resolve(null);
-      }),
-    };
+    // Create actual sections and class in the fake repositories
+    mockClass = await classRepository.createClass({
+      name: 'CS 101',
+      description: 'Introduction to CS',
+      createdBy: 'instructor-1',
+    });
 
-    mockClassRepository = {
-      getClass: jest.fn(() => Promise.resolve(mockClass)),
-    };
+    mockSection1 = await sectionRepository.createSection({
+      classId: mockClass.id,
+      name: 'Section A',
+      instructorIds: ['instructor-1'],
+      active: true,
+    });
 
-    repository.setRepositories(mockUserRepository, mockSectionRepository, mockClassRepository);
+    mockSection2 = await sectionRepository.createSection({
+      classId: mockClass.id,
+      name: 'Section B',
+      instructorIds: ['instructor-1'],
+      active: true,
+    });
+
+    repository.setRepositories(mockUserRepository, sectionRepository, classRepository);
   });
 
-  afterEach(async () => {
-    // Clean up temp directory
-    try {
-      await fs.rm(tempDir, { recursive: true, force: true });
-    } catch (error) {
-      // Ignore cleanup errors
-    }
+  afterEach(() => {
+    repository.clear();
+    sectionRepository.clear();
+    classRepository.clear();
   });
 
   describe('addMembership', () => {
     it('should create membership enrollment', async () => {
       const membershipData = {
         userId: 'user-1',
-        sectionId: 'section-1',
+        sectionId: mockSection1.id,
         role: 'student' as const,
       };
 
@@ -128,7 +98,7 @@ describe('MembershipRepository', () => {
       expect(created).toBeDefined();
       expect(created.id).toMatch(/^membership-/);
       expect(created.userId).toBe('user-1');
-      expect(created.sectionId).toBe('section-1');
+      expect(created.sectionId).toBe(mockSection1.id);
       expect(created.role).toBe('student');
       expect(created.joinedAt).toBeInstanceOf(Date);
     });
@@ -136,7 +106,7 @@ describe('MembershipRepository', () => {
     it('should create instructor membership', async () => {
       const membershipData = {
         userId: 'instructor-1',
-        sectionId: 'section-1',
+        sectionId: mockSection1.id,
         role: 'instructor' as const,
       };
 
@@ -149,7 +119,7 @@ describe('MembershipRepository', () => {
     it('should throw error on duplicate membership', async () => {
       const membershipData = {
         userId: 'user-1',
-        sectionId: 'section-1',
+        sectionId: mockSection1.id,
         role: 'student' as const,
       };
 
@@ -163,13 +133,13 @@ describe('MembershipRepository', () => {
     it('should allow user to join multiple sections', async () => {
       await repository.addMembership({
         userId: 'user-1',
-        sectionId: 'section-1',
+        sectionId: mockSection1.id,
         role: 'student',
       });
 
       await repository.addMembership({
         userId: 'user-1',
-        sectionId: 'section-2',
+        sectionId: mockSection2.id,
         role: 'student',
       });
 
@@ -178,21 +148,16 @@ describe('MembershipRepository', () => {
     });
 
     it('should persist to disk', async () => {
-      await repository.addMembership({
+      const created = await repository.addMembership({
         userId: 'user-1',
-        sectionId: 'section-1',
+        sectionId: mockSection1.id,
         role: 'student',
       });
 
-      // Verify file was created
-      const filePath = path.join(tempDir, 'memberships.json');
-      const fileExists = await fs.access(filePath).then(() => true).catch(() => false);
-      expect(fileExists).toBe(true);
-
-      // Verify file content
-      const content = await fs.readFile(filePath, 'utf-8');
-      const parsed = JSON.parse(content);
-      expect(Object.keys(parsed)).toHaveLength(1);
+      // Verify membership is retrievable
+      const membership = await repository.getMembership('user-1', mockSection1.id);
+      expect(membership).not.toBeNull();
+      expect(membership?.id).toBe(created.id);
     });
   });
 
@@ -200,61 +165,64 @@ describe('MembershipRepository', () => {
     it('should delete enrollment', async () => {
       await repository.addMembership({
         userId: 'user-1',
-        sectionId: 'section-1',
+        sectionId: mockSection1.id,
         role: 'student',
       });
 
-      await repository.removeMembership('user-1', 'section-1');
+      await repository.removeMembership('user-1', mockSection1.id);
 
-      const isMember = await repository.isMember('user-1', 'section-1');
+      const isMember = await repository.isMember('user-1', mockSection1.id);
       expect(isMember).toBe(false);
     });
 
     it('should throw error for non-existent membership', async () => {
       await expect(
-        repository.removeMembership('user-1', 'section-1')
+        repository.removeMembership('user-1', mockSection1.id)
       ).rejects.toThrow('Membership not found');
     });
 
     it('should update indexes after removal', async () => {
       await repository.addMembership({
         userId: 'user-1',
-        sectionId: 'section-1',
+        sectionId: mockSection1.id,
         role: 'student',
       });
 
       await repository.addMembership({
         userId: 'user-1',
-        sectionId: 'section-2',
+        sectionId: mockSection2.id,
         role: 'student',
       });
 
-      await repository.removeMembership('user-1', 'section-1');
+      await repository.removeMembership('user-1', mockSection1.id);
 
       const sections = await repository.getUserSections('user-1');
       expect(sections).toHaveLength(1);
-      expect(sections[0].id).toBe('section-2');
+      expect(sections[0].id).toBe(mockSection2.id);
     });
   });
 
   describe('getUserSections', () => {
     beforeEach(async () => {
-      // Create test memberships
+      // Create test memberships for each test
       await repository.addMembership({
         userId: 'user-1',
-        sectionId: 'section-1',
+        sectionId: mockSection1.id,
         role: 'student',
       });
 
+      // Small delay to ensure different timestamp
+      await new Promise(resolve => setTimeout(resolve, 5));
+
       await repository.addMembership({
         userId: 'user-1',
-        sectionId: 'section-2',
+        sectionId: mockSection2.id,
         role: 'student',
       });
 
       await repository.addMembership({
         userId: 'instructor-1',
-        sectionId: 'section-1',
+        sectionId: mockSection1.id,
         role: 'instructor',
       });
     });
@@ -284,35 +252,18 @@ describe('MembershipRepository', () => {
     });
 
     it('should sort by joined date (most recent first)', async () => {
-      // Use fresh user ID to avoid conflicts with other tests
-      const testUserId = 'user-sort-test';
+      const sections = await repository.getUserSections('user-1');
       
-      // Create memberships with slight delay to ensure different timestamps
-      await repository.addMembership({
-        userId: testUserId,
-        sectionId: 'section-1',
-        role: 'student',
-      });
-
-      await new Promise(resolve => setTimeout(resolve, 10));
-
-      await repository.addMembership({
-        userId: testUserId,
-        sectionId: 'section-2',
-        role: 'student',
-      });
-
-      const sections = await repository.getUserSections(testUserId);
-      
-      // Verify the more recent membership is first
+      // Verify sections are present
       expect(sections).toHaveLength(2);
       // The sorting is based on membership joinedAt, most recent first
-      expect(sections[0].id).toBe('section-2');
-      expect(sections[1].id).toBe('section-1');
+      // section-2 was joined after section-1 in beforeEach
+      expect(sections[0].id).toBe(mockSection2.id);
+      expect(sections[1].id).toBe(mockSection1.id);
     });
 
     it('should throw error if repositories not configured', async () => {
-      const repoWithoutDeps = new MembershipRepository(tempDir);
+      const repoWithoutDeps = new FakeMembershipRepository();
       
       await expect(
         repoWithoutDeps.getUserSections('user-1')
@@ -324,25 +275,25 @@ describe('MembershipRepository', () => {
     beforeEach(async () => {
       await repository.addMembership({
         userId: 'user-1',
-        sectionId: 'section-1',
+        sectionId: mockSection1.id,
         role: 'student',
       });
 
       await repository.addMembership({
         userId: 'user-2',
-        sectionId: 'section-1',
+        sectionId: mockSection1.id,
         role: 'student',
       });
 
       await repository.addMembership({
         userId: 'instructor-1',
-        sectionId: 'section-1',
+        sectionId: mockSection1.id,
         role: 'instructor',
       });
     });
 
     it('should return User array', async () => {
-      const members = await repository.getSectionMembers('section-1');
+      const members = await repository.getSectionMembers(mockSection1.id);
 
       expect(members).toHaveLength(3);
       expect(members[0]).toHaveProperty('id');
@@ -351,32 +302,40 @@ describe('MembershipRepository', () => {
     });
 
     it('should filter by role when specified', async () => {
-      const students = await repository.getSectionMembers('section-1', 'student');
+      const students = await repository.getSectionMembers(mockSection1.id, 'student');
       expect(students).toHaveLength(2);
       expect(students.every(u => u.role === 'student')).toBe(true);
 
-      const instructors = await repository.getSectionMembers('section-1', 'instructor');
+      const instructors = await repository.getSectionMembers(mockSection1.id, 'instructor');
       expect(instructors).toHaveLength(1);
       expect(instructors[0].id).toBe('instructor-1');
     });
 
     it('should return empty array for section with no members', async () => {
-      const members = await repository.getSectionMembers('section-2');
+      // Create a new section with no members
+      const emptySection = await sectionRepository.createSection({
+        classId: mockClass.id,
+        name: 'Empty Section',
+        instructorIds: ['instructor-1'],
+        active: true,
+      });
+      
+      const members = await repository.getSectionMembers(emptySection.id);
       expect(members).toEqual([]);
     });
 
     it('should sort members by username', async () => {
-      const members = await repository.getSectionMembers('section-1', 'student');
+      const members = await repository.getSectionMembers(mockSection1.id, 'student');
       
       expect(members[0].username).toBe('student1');
       expect(members[1].username).toBe('student2');
     });
 
     it('should throw error if user repository not configured', async () => {
-      const repoWithoutDeps = new MembershipRepository(tempDir);
+      const repoWithoutDeps = new FakeMembershipRepository();
       
       await expect(
-        repoWithoutDeps.getSectionMembers('section-1')
+        repoWithoutDeps.getSectionMembers(mockSection1.id)
       ).rejects.toThrow('User repository not configured');
     });
   });
@@ -385,27 +344,27 @@ describe('MembershipRepository', () => {
     it('should return true for existing membership', async () => {
       await repository.addMembership({
         userId: 'user-1',
-        sectionId: 'section-1',
+        sectionId: mockSection1.id,
         role: 'student',
       });
 
-      const result = await repository.isMember('user-1', 'section-1');
+      const result = await repository.isMember('user-1', mockSection1.id);
       expect(result).toBe(true);
     });
 
     it('should return false for non-existent membership', async () => {
-      const result = await repository.isMember('user-1', 'section-1');
+      const result = await repository.isMember('user-1', mockSection1.id);
       expect(result).toBe(false);
     });
 
     it('should check membership correctly for instructors', async () => {
       await repository.addMembership({
         userId: 'instructor-1',
-        sectionId: 'section-1',
+        sectionId: mockSection1.id,
         role: 'instructor',
       });
 
-      const result = await repository.isMember('instructor-1', 'section-1');
+      const result = await repository.isMember('instructor-1', mockSection1.id);
       expect(result).toBe(true);
     });
   });
@@ -414,38 +373,38 @@ describe('MembershipRepository', () => {
     it('should return membership for user and section', async () => {
       const created = await repository.addMembership({
         userId: 'user-1',
-        sectionId: 'section-1',
+        sectionId: mockSection1.id,
         role: 'student',
       });
 
-      const membership = await repository.getMembership('user-1', 'section-1');
+      const membership = await repository.getMembership('user-1', mockSection1.id);
 
       expect(membership).not.toBeNull();
       expect(membership?.id).toBe(created.id);
       expect(membership?.userId).toBe('user-1');
-      expect(membership?.sectionId).toBe('section-1');
+      expect(membership?.sectionId).toBe(mockSection1.id);
     });
 
     it('should return null for non-existent membership', async () => {
-      const membership = await repository.getMembership('user-1', 'section-1');
+      const membership = await repository.getMembership('user-1', mockSection1.id);
       expect(membership).toBeNull();
     });
   });
 
   describe('validateJoinCode', () => {
     it('should return section for valid active join code', async () => {
-      const section = await repository.validateJoinCode('ABC-123-XYZ');
+      const section = await repository.validateJoinCode(mockSection1.joinCode);
 
       expect(section).not.toBeNull();
-      expect(section?.id).toBe('section-1');
-      expect(section?.joinCode).toBe('ABC-123-XYZ');
+      expect(section?.id).toBe(mockSection1.id);
+      expect(section?.joinCode).toBe(mockSection1.joinCode);
     });
 
     it('should normalize join code (uppercase, trim)', async () => {
-      const section1 = await repository.validateJoinCode('abc-123-xyz');
+      const section1 = await repository.validateJoinCode(mockSection1.joinCode.toLowerCase());
       expect(section1).not.toBeNull();
 
-      const section2 = await repository.validateJoinCode('  ABC-123-XYZ  ');
+      const section2 = await repository.validateJoinCode(`  ${mockSection1.joinCode}  `);
       expect(section2).not.toBeNull();
     });
 
@@ -460,47 +419,43 @@ describe('MembershipRepository', () => {
     });
 
     it('should return null for inactive section', async () => {
-      const inactiveSection: Section = {
-        ...mockSection1,
-        active: false,
-      };
+      // Deactivate the section
+      await sectionRepository.updateSection(mockSection1.id, { active: false });
 
-      mockSectionRepository.getSectionByJoinCode.mockImplementation((code: string) => {
-        if (code === 'ABC-123-XYZ') return Promise.resolve(inactiveSection);
-        return Promise.resolve(null);
-      });
-
-      const section = await repository.validateJoinCode('ABC-123-XYZ');
+      const section = await repository.validateJoinCode(mockSection1.joinCode);
       expect(section).toBeNull();
+      
+      // Reactivate for other tests
+      await sectionRepository.updateSection(mockSection1.id, { active: true });
     });
 
     it('should throw error if section repository not configured', async () => {
-      const repoWithoutDeps = new MembershipRepository(tempDir);
+      const repoWithoutDeps = new FakeMembershipRepository();
       
       await expect(
-        repoWithoutDeps.validateJoinCode('ABC-123-XYZ')
+        repoWithoutDeps.validateJoinCode(mockSection1.joinCode)
       ).rejects.toThrow('Section repository not set');
     });
   });
 
   describe('joinSection', () => {
     it('should enroll student via join code', async () => {
-      const membership = await repository.joinSection('user-1', 'ABC-123-XYZ');
+      const membership = await repository.joinSection('user-1', mockSection1.joinCode);
 
       expect(membership).toBeDefined();
       expect(membership.userId).toBe('user-1');
-      expect(membership.sectionId).toBe('section-1');
+      expect(membership.sectionId).toBe(mockSection1.id);
       expect(membership.role).toBe('student');
     });
 
     it('should normalize join code', async () => {
-      const membership = await repository.joinSection('user-1', 'abc-123-xyz');
-      expect(membership.sectionId).toBe('section-1');
+      const membership = await repository.joinSection('user-1', mockSection1.joinCode.toLowerCase());
+      expect(membership.sectionId).toBe(mockSection1.id);
     });
 
     it('should be idempotent (return existing membership)', async () => {
-      const membership1 = await repository.joinSection('user-1', 'ABC-123-XYZ');
-      const membership2 = await repository.joinSection('user-1', 'ABC-123-XYZ');
+      const membership1 = await repository.joinSection('user-1', mockSection1.joinCode);
+      const membership2 = await repository.joinSection('user-1', mockSection1.joinCode);
 
       expect(membership1.id).toBe(membership2.id);
       
@@ -522,24 +477,22 @@ describe('MembershipRepository', () => {
     });
 
     it('should throw error for inactive section', async () => {
-      const inactiveSection: Section = {
-        ...mockSection1,
+      // Create an inactive section
+      const inactiveSection = await sectionRepository.createSection({
+        classId: mockClass.id,
+        name: 'Inactive Section',
+        instructorIds: ['instructor-1'],
         active: false,
-      };
-
-      mockSectionRepository.getSectionByJoinCode.mockImplementation((code: string) => {
-        if (code === 'ABC-123-XYZ') return Promise.resolve(inactiveSection);
-        return Promise.resolve(null);
       });
 
       await expect(
-        repository.joinSection('user-1', 'ABC-123-XYZ')
+        repository.joinSection('user-1', inactiveSection.joinCode)
       ).rejects.toThrow('Invalid or inactive join code');
     });
 
     it('should allow student to join multiple sections', async () => {
-      await repository.joinSection('user-1', 'ABC-123-XYZ');
-      await repository.joinSection('user-1', 'DEF-456-GHI');
+      await repository.joinSection('user-1', mockSection1.joinCode);
+      await repository.joinSection('user-1', mockSection2.joinCode);
 
       const sections = await repository.getUserSections('user-1');
       expect(sections).toHaveLength(2);

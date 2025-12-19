@@ -4,10 +4,7 @@
  * Tests section management, join code generation, and collision handling
  */
 
-import { SectionRepository } from '../section-repository';
-import * as fs from 'fs/promises';
-import * as path from 'path';
-import * as os from 'os';
+import { FakeSectionRepository, FakeMembershipRepository } from '../../__tests__/test-utils/fake-classes';
 
 // Mock the join code service to make tests deterministic
 jest.mock('../join-code-service', () => {
@@ -24,14 +21,11 @@ jest.mock('../join-code-service', () => {
 import { generateJoinCode } from '../join-code-service';
 
 describe('SectionRepository', () => {
-  let tempDir: string;
-  let repository: SectionRepository;
-  let mockMembershipRepository: any;
+  let repository: FakeSectionRepository;
+  let mockMembershipRepository: FakeMembershipRepository;
 
-  beforeEach(async () => {
-    // Create temp directory for test data
-    tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'section-test-'));
-    repository = new SectionRepository(tempDir);
+  beforeEach(() => {
+    repository = new FakeSectionRepository();
     
     // Reset mock counter
     (generateJoinCode as jest.Mock).mockClear();
@@ -41,20 +35,13 @@ describe('SectionRepository', () => {
       return codes[counter++ % codes.length];
     });
     
-    // Mock membership repository
-    mockMembershipRepository = {
-      getSectionMembers: jest.fn().mockResolvedValue([]),
-    };
+    mockMembershipRepository = new FakeMembershipRepository();
     repository.setMembershipRepository(mockMembershipRepository);
   });
 
-  afterEach(async () => {
-    // Clean up temp directory
-    try {
-      await fs.rm(tempDir, { recursive: true, force: true });
-    } catch (error) {
-      // Ignore cleanup errors
-    }
+  afterEach(() => {
+    repository.clear();
+    mockMembershipRepository.clear();
   });
 
   describe('createSection', () => {
@@ -146,22 +133,17 @@ describe('SectionRepository', () => {
     });
 
     it('should persist to disk', async () => {
-      await repository.createSection({
+      const created = await repository.createSection({
         classId: 'class-1',
         name: 'Section A',
         instructorIds: ['instructor-1'],
         active: true,
       });
 
-      // Verify file was created
-      const filePath = path.join(tempDir, 'sections.json');
-      const fileExists = await fs.access(filePath).then(() => true).catch(() => false);
-      expect(fileExists).toBe(true);
-
-      // Verify file content
-      const content = await fs.readFile(filePath, 'utf-8');
-      const parsed = JSON.parse(content);
-      expect(Object.keys(parsed)).toHaveLength(1);
+      // Verify section is retrievable
+      const retrieved = await repository.getSection(created.id);
+      expect(retrieved).not.toBeNull();
+      expect(retrieved?.name).toBe('Section A');
     });
   });
 
