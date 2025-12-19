@@ -1,6 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
 import { Session, Student } from './types';
-import { IStorageRepository } from './persistence';
+import { IStorageRepository, getStorage } from './persistence';
 
 export class SessionManager {
   // In-memory index for join codes (for fast lookup)
@@ -8,6 +8,18 @@ export class SessionManager {
 
   constructor(private storage?: IStorageRepository) {
     // Storage is optional for backward compatibility during migration
+  }
+
+  /**
+   * Ensure storage is initialized (auto-initialize for API routes)
+   */
+  private async ensureStorage(): Promise<IStorageRepository> {
+    if (!this.storage) {
+      console.log('[SessionManager] Auto-initializing storage');
+      this.storage = await getStorage();
+      await this.initialize();
+    }
+    return this.storage;
   }
 
   /**
@@ -425,10 +437,10 @@ export class SessionManager {
    * Get sessions where user is creator (instructor)
    */
   async getSessionsByCreator(creatorId: string): Promise<Session[]> {
-    if (!this.storage) return [];
+    const storage = await this.ensureStorage();
     
     try {
-      const allSessions = await this.storage.sessions.listAllSessions();
+      const allSessions = await storage.sessions.listAllSessions();
       return allSessions.filter(s => s.creatorId === creatorId);
     } catch (error) {
       console.error('Failed to get sessions by creator:', error);
@@ -443,16 +455,10 @@ export class SessionManager {
    * Get sessions where user is a participant (student)
    */
   async getSessionsByParticipant(userId: string): Promise<Session[]> {
-    console.log('[SessionManager] getSessionsByParticipant called for:', userId);
-    console.log('[SessionManager] Storage available:', !!this.storage);
-    
-    if (!this.storage) {
-      console.log('[SessionManager] No storage, returning empty array');
-      return [];
-    }
+    const storage = await this.ensureStorage();
     
     try {
-      const allSessions = await this.storage.sessions.listAllSessions();
+      const allSessions = await storage.sessions.listAllSessions();
       console.log('[SessionManager] Retrieved', allSessions.length, 'total sessions');
       
       allSessions.forEach(s => {
