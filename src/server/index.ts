@@ -39,7 +39,7 @@ app.prepare().then(async () => {
   // Create WebSocket server without automatic attachment (noServer: true)
   // This prevents it from taking over all upgrade events
   const wss = new WebSocketServer({ noServer: true });
-  wsHandler.initialize(wss);
+  await wsHandler.initialize(wss);
   
   // Manually handle upgrade events to route correctly
   server.on('upgrade', (request, socket, head) => {
@@ -48,6 +48,7 @@ app.prepare().then(async () => {
     // Only handle /ws path with our custom WebSocket server
     if (url?.startsWith('/ws')) {
       wss.handleUpgrade(request, socket, head, (ws) => {
+        // Pass the request to the connection event so we can extract cookies
         wss.emit('connection', ws, request);
       });
     }

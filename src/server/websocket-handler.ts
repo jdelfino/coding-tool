@@ -1,8 +1,10 @@
 import { WebSocket, WebSocketServer } from 'ws';
+import { IncomingMessage } from 'http';
 import { v4 as uuidv4 } from 'uuid';
 import { sessionManagerHolder } from './session-manager';
 import { executeCodeSafe } from './code-executor';
 import { MessageType, WebSocketMessage, Student } from './types';
+import { getAuthProvider } from './auth';
 
 interface Connection {
   ws: WebSocket;
@@ -17,18 +19,43 @@ class WebSocketHandler {
   private connections: Map<WebSocket, Connection> = new Map();
   private heartbeatInterval: NodeJS.Timeout | null = null;
 
-  initialize(wss: WebSocketServer) {
+  async initialize(wss: WebSocketServer) {
     // Set up heartbeat to detect dead connections
     this.heartbeatInterval = setInterval(() => {
       this.heartbeat();
     }, 30000); // 30 seconds
 
-    wss.on('connection', (ws: WebSocket) => {
+    wss.on('connection', async (ws: WebSocket, request: IncomingMessage) => {
       console.log('New WebSocket connection');
+      
+      // Extract user authentication from cookies
+      let userId: string | undefined;
+      try {
+        const cookies = request.headers.cookie;
+        if (cookies) {
+          const sessionId = cookies
+            .split(';')
+            .map(c => c.trim())
+            .find(c => c.startsWith('sessionId='))
+            ?.split('=')[1];
+          
+          if (sessionId) {
+            const authProvider = await getAuthProvider();
+            const session = authProvider.getSession(sessionId);
+            if (session) {
+              userId = session.user.id;
+              console.log('WebSocket connection authenticated as user:', userId);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error extracting user authentication:', error);
+      }
       
       const connection: Connection = {
         ws,
         role: 'student', // Will be set when they identify themselves
+        userId, // Set from authentication if available
         isAlive: true,
       };
       
@@ -263,7 +290,9 @@ class WebSocketHandler {
       return;
     }
 
-    const studentId = uuidv4();
+    // Use authenticated user ID if available, otherwise generate a UUID
+    // This ensures students can see their session history after signing out and back in
+    const studentId = connection.userId || uuidv4();
     connection.role = 'student';
     connection.sessionId = session.id;
     connection.studentId = studentId;
