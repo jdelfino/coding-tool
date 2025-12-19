@@ -159,10 +159,9 @@ export class FakeSessionRepository implements ISessionRepository {
   async shutdown(): Promise<void> {}
   async health(): Promise<boolean> { return true; }
 
-  async createSession(session: Omit<Session, 'students'>): Promise<string> {
+  async createSession(session: Session): Promise<string> {
     const stored: StoredSession = {
       ...session,
-      studentData: [],
       _metadata: {
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -181,25 +180,40 @@ export class FakeSessionRepository implements ISessionRepository {
     const existing = this.sessions.get(sessionId);
     if (existing) {
       Object.assign(existing, updates);
+      if (existing._metadata) {
+        existing._metadata.updatedAt = new Date();
+        existing._metadata.version++;
+      }
     }
   }
 
-  async deleteSession(sessionId: string): Promise<boolean> {
-    return this.sessions.delete(sessionId);
+  async deleteSession(sessionId: string): Promise<void> {
+    this.sessions.delete(sessionId);
   }
 
-  async listSessions(filters?: any): Promise<StoredSession[]> {
+  async listActiveSessions(): Promise<StoredSession[]> {
+    return Array.from(this.sessions.values()).filter(s => s.status === 'active');
+  }
+
+  async listAllSessions(): Promise<StoredSession[]> {
     return Array.from(this.sessions.values());
-  }
-
-  async getActiveSessionsForInstructor(instructorId: string): Promise<StoredSession[]> {
-    return Array.from(this.sessions.values()).filter(
-      s => s.creatorId === instructorId && s.status === 'active'
-    );
   }
 
   async getSessionByJoinCode(joinCode: string): Promise<StoredSession | null> {
     return Array.from(this.sessions.values()).find(s => s.joinCode === joinCode) || null;
+  }
+
+  async countSessions(): Promise<number> {
+    return this.sessions.size;
+  }
+
+  // Helper methods for testing
+  clear() {
+    this.sessions.clear();
+  }
+
+  getSessionCount(): number {
+    return this.sessions.size;
   }
 }
 
