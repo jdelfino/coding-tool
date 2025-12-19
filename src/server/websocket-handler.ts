@@ -305,6 +305,9 @@ class WebSocketHandler {
     connection.sessionId = session.id;
     connection.studentId = studentId;
 
+    // Check if student has existing code (rejoining)
+    const existingCode = await sessionManagerHolder.instance.getStudentCode(session.id, studentId);
+
     const success = await sessionManagerHolder.instance.addStudent(session.id, studentId, studentName.trim());
     if (!success) {
       this.sendError(ws, 'Failed to join session. Please try again.');
@@ -317,6 +320,7 @@ class WebSocketHandler {
         sessionId: session.id,
         studentId,
         problemText: session.problemText,
+        code: existingCode || '', // Include existing code if rejoining
       },
     });
 

@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
     }
 
     const authProvider = await getAuthProvider();
-    const session = authProvider.getSession(sessionId);
+    const session = await authProvider.getSession(sessionId);
 
     if (!session) {
       return NextResponse.json(

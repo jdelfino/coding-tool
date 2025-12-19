@@ -4,15 +4,20 @@ import { useState, useEffect, useCallback } from 'react';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSessionHistory, SessionHistory } from '@/hooks/useSessionHistory';
 import JoinForm from './components/JoinForm';
+import StudentDashboard from './components/StudentDashboard';
 import ProblemDisplay from './components/ProblemDisplay';
 import CodeEditor from './components/CodeEditor';
 import OutputPanel from './components/OutputPanel';
 
 function StudentPage() {
   const { user, signOut } = useAuth();
+  const { sessions, isLoading: isLoadingSessions, refetch: refetchSessions } = useSessionHistory();
+  const [view, setView] = useState<'dashboard' | 'join' | 'session'>('dashboard');
   const [joined, setJoined] = useState(false);
   const [studentId, setStudentId] = useState<string | null>(null);
+  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [problemText, setProblemText] = useState('');
   const [code, setCode] = useState('');
   const [executionResult, setExecutionResult] = useState<any>(null);
@@ -20,6 +25,7 @@ function StudentPage() {
   const [error, setError] = useState<string | null>(null);
   const [isJoining, setIsJoining] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const [hasCheckedAutoRejoin, setHasCheckedAutoRejoin] = useState(false);
 
   // Construct WebSocket URL - only initialize on client side
   const [wsUrl, setWsUrl] = useState('');
@@ -36,6 +42,62 @@ function StudentPage() {
   
   const { isConnected, connectionStatus, connectionError, lastMessage, sendMessage } = useWebSocket(wsUrl);
 
+  // Define handlers with useCallback to avoid dependency issues
+  const handleJoin = useCallback((joinCode: string) => {
+    // Validate join code
+    if (!joinCode || joinCode.length !== 6) {
+      setError('Join code must be 6 characters');
+      return;
+    }
+
+    // Use username from auth context
+    const studentName = user?.username || 'Student';
+
+    setError(null);
+    setIsJoining(true);
+    sendMessage('JOIN_SESSION', { joinCode, studentName });
+    
+    // Set timeout for join operation
+    setTimeout(() => {
+      setIsJoining(prev => {
+        if (prev) {
+          setError('Join request timed out. Please try again.');
+        }
+        return false;
+      });
+    }, 10000);
+  }, [user?.username, sendMessage]);
+
+  const handleRejoinSession = useCallback((sessionId: string, joinCode: string) => {
+    setCurrentSessionId(sessionId);
+    handleJoin(joinCode);
+  }, [handleJoin]);
+
+  // Auto-rejoin logic: check for active sessions on mount (only after WebSocket connects)
+  useEffect(() => {
+    if (!hasCheckedAutoRejoin && !isLoadingSessions && isConnected) {
+      setHasCheckedAutoRejoin(true);
+      
+      if (sessions.length > 0) {
+        // Filter active sessions
+        const activeSessions = sessions.filter(s => s.status === 'active');
+        
+        // If exactly one active session, auto-rejoin
+        if (activeSessions.length === 1) {
+          const session = activeSessions[0];
+          console.log('Auto-rejoining session:', session.joinCode);
+          handleRejoinSession(session.id, session.joinCode);
+        } else {
+          // Multiple or no active sessions - show dashboard
+          setView('dashboard');
+        }
+      } else {
+        // No sessions at all - show dashboard
+        setView('dashboard');
+      }
+    }
+  }, [hasCheckedAutoRejoin, isLoadingSessions, isConnected, sessions, handleRejoinSession]);
+
   // Handle incoming WebSocket messages
   useEffect(() => {
     if (!lastMessage) return;
@@ -46,9 +108,15 @@ function StudentPage() {
       case 'SESSION_JOINED':
         setJoined(true);
         setStudentId(lastMessage.payload.studentId);
+        setCurrentSessionId(lastMessage.payload.sessionId);
         setProblemText(lastMessage.payload.problemText || '');
+        // Restore existing code if rejoining
+        if (lastMessage.payload.code) {
+          setCode(lastMessage.payload.code);
+        }
         setIsJoining(false);
         setError(null);
+        setView('session');
         break;
 
       case 'PROBLEM_UPDATE':
@@ -80,27 +148,26 @@ function StudentPage() {
     return () => clearTimeout(timeout);
   }, [code, joined, studentId, sendMessage]);
 
-  const handleJoin = (joinCode: string) => {
-    // Validate join code
-    if (!joinCode || joinCode.length !== 6) {
-      setError('Join code must be 6 characters');
-      return;
-    }
+  const handleShowDashboard = () => {
+    setView('dashboard');
+  };
 
-    // Use username from auth context
-    const studentName = user?.username || 'Student';
+  const handleShowJoinForm = () => {
+    setView('join');
+  };
 
-    setError(null);
-    setIsJoining(true);
-    sendMessage('JOIN_SESSION', { joinCode, studentName });
+  const handleLeaveSession = () => {
+    // Reset session state
+    setJoined(false);
+    setStudentId(null);
+    setCurrentSessionId(null);
+    setProblemText('');
+    setCode('');
+    setExecutionResult(null);
+    setView('dashboard');
     
-    // Set timeout for join operation
-    setTimeout(() => {
-      if (isJoining && !joined) {
-        setError('Join request timed out. Please try again.');
-        setIsJoining(false);
-      }
-    }, 10000);
+    // Refresh sessions
+    refetchSessions();
   };
 
   const handleRunCode = () => {
@@ -127,11 +194,77 @@ function StudentPage() {
     }, 15000);
   };
 
+  // Show loading state while checking for auto-rejoin
+  if (!hasCheckedAutoRejoin || isLoadingSessions) {
+    return (
+      <main style={{ padding: '2rem', textAlign: 'center' }}>
+        <h1>Live Coding Classroom</h1>
+        <p>Loading...</p>
+      </main>
+    );
+  }
+
+  // Dashboard or Join Form view (not in a session)
   if (!joined) {
     return (
       <main style={{ padding: '2rem' }}>
-        <h1 style={{ textAlign: 'center' }}>Live Coding Classroom</h1>
-        
+        {/* Header with Sign Out */}
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center',
+          marginBottom: '2rem'
+        }}>
+          <div>
+            <h1 style={{ margin: 0 }}>Live Coding Classroom</h1>
+            <p style={{ margin: '0.5rem 0 0 0', color: '#666' }}>
+              Student Dashboard
+            </p>
+          </div>
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '1rem',
+            padding: '0.5rem 1rem',
+            backgroundColor: '#f8f9fa',
+            borderRadius: '4px',
+            border: '1px solid #dee2e6'
+          }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+              <span style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>{user?.username}</span>
+              <span style={{ 
+                fontSize: '0.75rem', 
+                color: '#28a745',
+                fontWeight: '500'
+              }}>Student</span>
+            </div>
+            <button
+              onClick={async () => {
+                setIsSigningOut(true);
+                try {
+                  await signOut();
+                } catch (error) {
+                  console.error('Sign out error:', error);
+                  setIsSigningOut(false);
+                }
+              }}
+              disabled={isSigningOut}
+              style={{
+                padding: '0.5rem 1rem',
+                backgroundColor: '#dc3545',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: isSigningOut ? 'not-allowed' : 'pointer',
+                fontSize: '0.9rem',
+                opacity: isSigningOut ? 0.6 : 1
+              }}
+            >
+              {isSigningOut ? 'Signing out...' : 'Sign Out'}
+            </button>
+          </div>
+        </div>
+
         {/* Connection Status */}
         <div style={{ 
           textAlign: 'center', 
@@ -191,64 +324,41 @@ function StudentPage() {
           </div>
         )}
 
-        {/* Header with Sign Out */}
-        <div style={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'center',
-          marginBottom: '1rem'
-        }}>
-          <h2 style={{ margin: 0 }}>Join a Session</h2>
-          <div style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: '1rem',
-            padding: '0.5rem 1rem',
-            backgroundColor: '#f8f9fa',
-            borderRadius: '4px',
-            border: '1px solid #dee2e6'
-          }}>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-              <span style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>{user?.username}</span>
-              <span style={{ 
-                fontSize: '0.75rem', 
-                color: '#28a745',
-                fontWeight: '500'
-              }}>Student</span>
+        {/* Dashboard or Join Form */}
+        {view === 'dashboard' ? (
+          <StudentDashboard
+            sessions={sessions}
+            onJoinNewSession={handleShowJoinForm}
+            onRejoinSession={handleRejoinSession}
+            disabled={!isConnected || connectionStatus === 'failed'}
+          />
+        ) : (
+          <div>
+            <div style={{ marginBottom: '1rem' }}>
+              <button
+                onClick={handleShowDashboard}
+                style={{
+                  padding: '0.5rem 1rem',
+                  backgroundColor: 'transparent',
+                  color: '#0070f3',
+                  border: '1px solid #0070f3',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontSize: '0.9rem'
+                }}
+              >
+                ← Back to Dashboard
+              </button>
             </div>
-            <button
-              onClick={async () => {
-                setIsSigningOut(true);
-                try {
-                  await signOut();
-                } catch (error) {
-                  console.error('Sign out error:', error);
-                  setIsSigningOut(false);
-                }
-              }}
-              disabled={isSigningOut}
-              style={{
-                padding: '0.5rem 1rem',
-                backgroundColor: '#dc3545',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: isSigningOut ? 'not-allowed' : 'pointer',
-                fontSize: '0.9rem',
-                opacity: isSigningOut ? 0.6 : 1
-              }}
-            >
-              {isSigningOut ? 'Signing out...' : 'Sign Out'}
-            </button>
+            <h2>Join a Session</h2>
+            <JoinForm 
+              onJoin={handleJoin} 
+              username={user?.username || 'Student'}
+              isJoining={isJoining} 
+              disabled={!isConnected || connectionStatus === 'failed'} 
+            />
           </div>
-        </div>
-
-        <JoinForm 
-          onJoin={handleJoin} 
-          username={user?.username || 'Student'}
-          isJoining={isJoining} 
-          disabled={!isConnected || connectionStatus === 'failed'} 
-        />
+        )}
       </main>
     );
   }
@@ -263,6 +373,7 @@ function StudentPage() {
     }
   };
 
+  // Active session view
   return (
     <main style={{ padding: '2rem', maxWidth: '1000px', margin: '0 auto' }}>
       {/* Header with Sign Out */}
@@ -290,36 +401,56 @@ function StudentPage() {
         <div style={{ 
           display: 'flex', 
           alignItems: 'center', 
-          gap: '1rem',
-          padding: '0.5rem 1rem',
-          backgroundColor: '#f8f9fa',
-          borderRadius: '4px',
-          border: '1px solid #dee2e6'
+          gap: '0.5rem'
         }}>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-            <span style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>{user?.username}</span>
-            <span style={{ 
-              fontSize: '0.75rem', 
-              color: '#28a745',
-              fontWeight: '500'
-            }}>Student</span>
-          </div>
           <button
-            onClick={handleSignOut}
-            disabled={isSigningOut}
+            onClick={handleLeaveSession}
             style={{
               padding: '0.5rem 1rem',
-              backgroundColor: '#dc3545',
-              color: 'white',
-              border: 'none',
+              backgroundColor: 'transparent',
+              color: '#0070f3',
+              border: '1px solid #0070f3',
               borderRadius: '4px',
-              cursor: isSigningOut ? 'not-allowed' : 'pointer',
-              fontSize: '0.9rem',
-              opacity: isSigningOut ? 0.6 : 1
+              cursor: 'pointer',
+              fontSize: '0.9rem'
             }}
           >
-            {isSigningOut ? 'Signing out...' : 'Sign Out'}
+            Leave Session
           </button>
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '1rem',
+            padding: '0.5rem 1rem',
+            backgroundColor: '#f8f9fa',
+            borderRadius: '4px',
+            border: '1px solid #dee2e6'
+          }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+              <span style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>{user?.username}</span>
+              <span style={{ 
+                fontSize: '0.75rem', 
+                color: '#28a745',
+                fontWeight: '500'
+              }}>Student</span>
+            </div>
+            <button
+              onClick={handleSignOut}
+              disabled={isSigningOut}
+              style={{
+                padding: '0.5rem 1rem',
+                backgroundColor: '#dc3545',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: isSigningOut ? 'not-allowed' : 'pointer',
+                fontSize: '0.9rem',
+                opacity: isSigningOut ? 0.6 : 1
+              }}
+            >
+              {isSigningOut ? 'Signing out...' : 'Sign Out'}
+            </button>
+          </div>
         </div>
       </div>
 

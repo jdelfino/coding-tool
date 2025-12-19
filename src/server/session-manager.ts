@@ -153,10 +153,13 @@ export class SessionManager {
     const session = await this.getSession(sessionId);
     if (!session) return false;
     
+    // Check if student already exists (rejoining)
+    const existingStudent = session.connectedStudents.get(studentId);
+    
     const student: Student = {
       id: studentId,
       name,
-      code: '',
+      code: existingStudent?.code || '', // Preserve existing code if rejoining
       lastUpdate: new Date(),
     };
     
@@ -173,7 +176,7 @@ export class SessionManager {
         participants: session.participants,
         lastActivity: new Date(),
       });
-      console.log(`Added student ${name} (${studentId}) to session ${sessionId}`);
+      console.log(`Added student ${name} (${studentId}) to session ${sessionId}${existingStudent ? ' (rejoining with existing code)' : ''}`);
       return true;
     } catch (error) {
       console.error(`Failed to add student to session ${sessionId}:`, error);

@@ -22,7 +22,7 @@ export async function DELETE(
     }
 
     const authProvider = await getAuthProvider();
-    const session = authProvider.getSession(sessionId);
+    const session = await authProvider.getSession(sessionId);
 
     if (!session) {
       return NextResponse.json(
