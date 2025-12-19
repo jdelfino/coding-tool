@@ -444,7 +444,16 @@ export class SessionManager {
     
     try {
       const allSessions = await this.storage.sessions.listAllSessions();
-      return allSessions.filter(s => s.participants.includes(userId));
+      console.log('[SessionManager] Checking', allSessions.length, 'sessions for participant:', userId);
+      const filtered = allSessions.filter(s => {
+        const includes = s.participants.includes(userId);
+        if (includes) {
+          console.log('[SessionManager] Session', s.id, 'includes user in participants:', s.participants);
+        }
+        return includes;
+      });
+      console.log('[SessionManager] Found', filtered.length, 'sessions where user is participant');
+      return filtered;
     } catch (error) {
       console.error('Failed to get sessions by participant:', error);
       return [];

@@ -33,12 +33,16 @@ export async function GET(request: NextRequest) {
     const user = session.user;
     let sessions;
     
+    console.log('[Session History] Fetching for user:', user.id, user.username, user.role);
+    
     if (user.role === 'instructor') {
       // Instructors see sessions they created
       sessions = await sessionManagerHolder.instance.getSessionsByCreator(user.id);
+      console.log('[Session History] Found', sessions.length, 'sessions as creator');
     } else {
       // Students see sessions they participated in
       sessions = await sessionManagerHolder.instance.getSessionsByParticipant(user.id);
+      console.log('[Session History] Found', sessions.length, 'sessions as participant');
     }
 
     // Convert sessions to serializable format (Maps can't be JSON stringified)
