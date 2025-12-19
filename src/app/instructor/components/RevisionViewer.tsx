@@ -1,6 +1,7 @@
 'use client';
 
 import { useRevisionHistory, CodeRevision } from '@/hooks/useRevisionHistory';
+import { useState, useEffect, useMemo } from 'react';
 
 interface RevisionViewerProps {
   sessionId: string;
@@ -59,6 +60,58 @@ export default function RevisionViewer({
     const seconds = elapsed % 60;
     
     return `+${minutes}m ${seconds}s`;
+  };
+
+  // Track changes and trigger highlight animation
+  const [highlightKey, setHighlightKey] = useState(0);
+  
+  useEffect(() => {
+    // Trigger highlight animation when revision changes
+    setHighlightKey(prev => prev + 1);
+  }, [currentIndex]);
+
+  // Calculate which lines changed compared to previous revision
+  const changedLines = useMemo(() => {
+    if (currentIndex === 0 || !currentRevision) return new Set<number>();
+    
+    const prevRevision = revisions[currentIndex - 1];
+    if (!prevRevision) return new Set<number>();
+    
+    const prevLines = prevRevision.code.split('\n');
+    const currLines = currentRevision.code.split('\n');
+    const changes = new Set<number>();
+    
+    // Simple line-by-line comparison
+    const maxLines = Math.max(prevLines.length, currLines.length);
+    for (let i = 0; i < maxLines; i++) {
+      if (prevLines[i] !== currLines[i]) {
+        changes.add(i);
+      }
+    }
+    
+    return changes;
+  }, [currentIndex, currentRevision, revisions]);
+
+  // Render code with line highlighting
+  const renderCodeWithHighlights = () => {
+    if (!currentRevision) return '';
+    
+    const lines = currentRevision.code.split('\n');
+    return lines.map((line, idx) => {
+      const isChanged = changedLines.has(idx);
+      return (
+        <div
+          key={`${highlightKey}-${idx}`}
+          style={{
+            backgroundColor: isChanged ? '#ffd700' : 'transparent',
+            animation: isChanged ? 'fadeOut 2s ease-out forwards' : 'none',
+            transition: 'background-color 0.3s',
+          }}
+        >
+          {line || '\n'}
+        </div>
+      );
+    });
   };
 
   if (loading && totalRevisions === 0) {
@@ -236,6 +289,12 @@ export default function RevisionViewer({
           backgroundColor: '#f5f5f5',
           minHeight: 0,
         }}>
+          <style>{`
+            @keyframes fadeOut {
+              0% { background-color: #ffd700; }
+              100% { background-color: transparent; }
+            }
+          `}</style>
           <pre style={{
             margin: 0,
             padding: '1rem',
@@ -244,11 +303,12 @@ export default function RevisionViewer({
             borderRadius: '4px',
             fontFamily: 'monospace',
             fontSize: '0.9rem',
-            whiteSpace: 'pre-wrap',
+            whiteSpace: 'pre',
             wordWrap: 'break-word',
             minHeight: '100%',
+            lineHeight: '1.5',
           }}>
-            {currentRevision?.code || ''}
+            {renderCodeWithHighlights()}
           </pre>
         </div>
 
