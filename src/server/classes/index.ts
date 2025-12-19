@@ -30,4 +30,4 @@ export type {
 export { ClassRepository } from './class-repository';
 export { SectionRepository } from './section-repository';
 export { MembershipRepository } from './membership-repository';
-export { JoinCodeService } from './join-code-service';
+export { generateJoinCode, isValidJoinCodeFormat } from './join-code-service';

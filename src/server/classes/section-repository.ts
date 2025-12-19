@@ -10,7 +10,7 @@ import * as path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { ISectionRepository } from './interfaces';
 import { Section, SectionFilters, SectionStats } from './types';
-import { JoinCodeService } from './join-code-service';
+import { generateJoinCode } from './join-code-service';
 
 /**
  * Local file-based implementation of section repository
@@ -21,16 +21,11 @@ export class SectionRepository implements ISectionRepository {
   private sections: Map<string, Section> = new Map();
   private joinCodeIndex: Map<string, string> = new Map(); // joinCode -> sectionId
   private initialized = false;
-  private joinCodeService: JoinCodeService;
   private membershipRepository: any; // Will be injected
 
-  constructor(
-    dataDir: string = path.join(process.cwd(), 'data'),
-    joinCodeService: JoinCodeService
-  ) {
+  constructor(dataDir: string = path.join(process.cwd(), 'data')) {
     this.dataDir = dataDir;
     this.filePath = path.join(dataDir, 'sections.json');
-    this.joinCodeService = joinCodeService;
   }
 
   /**
@@ -38,13 +33,6 @@ export class SectionRepository implements ISectionRepository {
    */
   setMembershipRepository(membershipRepository: any): void {
     this.membershipRepository = membershipRepository;
-  }
-
-  /**
-   * Set the join code service for code generation
-   */
-  setJoinCodeService(joinCodeService: JoinCodeService): void {
-    this.joinCodeService = joinCodeService;
   }
 
   /**
@@ -110,7 +98,7 @@ export class SectionRepository implements ISectionRepository {
     const maxAttempts = 10;
 
     while (attempts < maxAttempts) {
-      const code = this.joinCodeService.generateJoinCode();
+      const code = generateJoinCode();
       
       // Check if code is already in use
       if (!this.joinCodeIndex.has(code)) {

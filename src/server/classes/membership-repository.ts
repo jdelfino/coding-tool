@@ -9,8 +9,9 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { IMembershipRepository } from './interfaces';
-import { SectionMembership, SectionWithClass } from './types';
+import { SectionMembership, SectionWithClass, Section } from './types';
 import { User } from '../auth/types';
+import { isValidJoinCodeFormat } from './join-code-service';
 
 /**
  * Local file-based implementation of membership repository
@@ -291,5 +292,70 @@ export class MembershipRepository implements IMembershipRepository {
     }
 
     return null;
+  }
+
+  /**
+   * Validate a join code and return the section
+   * 
+   * @param code - The join code to validate
+   * @returns The section if code is valid and active, null otherwise
+   */
+  async validateJoinCode(code: string): Promise<Section | null> {
+    if (!isValidJoinCodeFormat(code)) {
+      return null;
+    }
+
+    // Normalize the code (uppercase, trim whitespace)
+    const normalizedCode = code.trim().toUpperCase();
+    
+    if (!this.sectionRepository) {
+      throw new Error('Section repository not set');
+    }
+
+    const section = await this.sectionRepository.getSectionByJoinCode(normalizedCode);
+    
+    // Return section only if it exists and is active
+    if (section && section.active) {
+      return section;
+    }
+    
+    return null;
+  }
+
+  /**
+   * Join a section using a join code
+   * 
+   * Creates a membership with role 'student'. If the user is already
+   * a member, returns the existing membership (idempotent).
+   * 
+   * @param userId - The user ID attempting to join
+   * @param joinCode - The join code for the section
+   * @returns The created or existing membership
+   * @throws Error if join code is invalid
+   */
+  async joinSection(userId: string, joinCode: string): Promise<SectionMembership> {
+    // Validate the join code
+    const section = await this.validateJoinCode(joinCode);
+    
+    if (!section) {
+      throw new Error('Invalid or inactive join code');
+    }
+
+    // Check if user is already a member
+    const existingMembership = await this.getMembership(userId, section.id);
+
+    if (existingMembership) {
+      // Idempotent - return existing membership
+      return existingMembership;
+    }
+
+    // Create new membership with student role
+    const membership = await this.addMembership({
+      userId,
+      sectionId: section.id,
+      role: 'student',
+    });
+
+    return membership;
   }
 }

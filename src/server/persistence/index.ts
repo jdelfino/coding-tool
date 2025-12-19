@@ -15,7 +15,6 @@ import {
   ClassRepository,
   SectionRepository,
   MembershipRepository,
-  JoinCodeService,
 } from '../classes';
 import {
   ISessionRepository,
@@ -47,17 +46,14 @@ export class StorageBackend implements IStorageRepository {
     this.users = new LocalUserRepository(config);
     
     // Initialize class/section repositories (multi-tenancy)
-    // Note: These have circular dependencies, so we create them first then wire them up
     const baseDir = config.baseDir || './data';
-    const sectionRepo = new SectionRepository(baseDir, null as any); // Will set JoinCodeService later
+    const sectionRepo = new SectionRepository(baseDir);
     const classRepo = new ClassRepository(baseDir);
     const membershipRepo = new MembershipRepository(baseDir);
-    const joinCodeService = new JoinCodeService(sectionRepo, membershipRepo);
     
     // Set up dependencies after construction
     membershipRepo.setRepositories(this.users, sectionRepo, classRepo);
     sectionRepo.setMembershipRepository(membershipRepo);
-    sectionRepo.setJoinCodeService(joinCodeService); // Set the join code service
     classRepo.setSectionRepository(sectionRepo);
     
     // Assign to interface properties
