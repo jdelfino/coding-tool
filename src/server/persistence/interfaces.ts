@@ -14,6 +14,7 @@
  */
 
 import { Session, Student } from '../types';
+import { IUserRepository } from '../auth/interfaces';
 import {
   ProblemSpec,
   CodeRevision,
@@ -23,6 +24,9 @@ import {
   StoredProblem,
   StoredRevision,
 } from './types';
+
+// Re-export IUserRepository for convenience
+export type { IUserRepository };
 
 /**
  * Base interface for all storage backends
@@ -287,4 +291,7 @@ export interface IStorageRepository extends IStorageBackend {
   
   /** Revision data operations */
   revisions: IRevisionRepository;
+  
+  /** User data operations */
+  users: IUserRepository;
 }

@@ -32,7 +32,7 @@ app.prepare().then(async () => {
 
   // Initialize authentication provider with persistent user storage
   console.log('Initializing authentication provider...');
-  await initializeAuthProvider();
+  initializeAuthProvider(storage);
   console.log('Authentication provider initialized successfully');
 
   const expressApp = express();

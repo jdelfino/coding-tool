@@ -9,11 +9,13 @@ import {
   LocalSessionRepository,
   LocalProblemRepository,
   LocalRevisionRepository,
+  LocalUserRepository,
 } from './local-storage';
 import {
   ISessionRepository,
   IProblemRepository,
   IRevisionRepository,
+  IUserRepository,
   IStorageRepository,
 } from './interfaces';
 import { StorageConfig } from './types';
@@ -25,12 +27,14 @@ export class StorageBackend implements IStorageRepository {
   public readonly sessions: ISessionRepository;
   public readonly problems: IProblemRepository;
   public readonly revisions: IRevisionRepository;
+  public readonly users: IUserRepository;
 
   constructor(config: StorageConfig) {
     // Create repository instances
     this.sessions = new LocalSessionRepository(config);
     this.problems = new LocalProblemRepository(config);
     this.revisions = new LocalRevisionRepository(config);
+    this.users = new LocalUserRepository(config);
   }
 
   async initialize(): Promise<void> {
@@ -38,6 +42,9 @@ export class StorageBackend implements IStorageRepository {
       this.sessions.initialize(),
       this.problems.initialize(),
       this.revisions.initialize(),
+      // Users repository has initialize but it's not in IUserRepository interface
+      // We know LocalUserRepository has it, so cast to access it
+      (this.users as any).initialize?.(),
     ]);
   }
 
@@ -46,6 +53,7 @@ export class StorageBackend implements IStorageRepository {
       this.sessions.shutdown(),
       this.problems.shutdown(),
       this.revisions.shutdown(),
+      (this.users as any).shutdown?.(),
     ]);
   }
 
@@ -54,9 +62,11 @@ export class StorageBackend implements IStorageRepository {
       this.sessions.health(),
       this.problems.health(),
       this.revisions.health(),
+      // Health check for users if available
+      (this.users as any).health?.() ?? Promise.resolve(true),
     ]);
     // All repositories must be healthy
-    return results.every(r => r);
+    return results.every((r: boolean) => r);
   }
 }
 
