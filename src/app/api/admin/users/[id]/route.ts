@@ -21,7 +21,7 @@ export async function DELETE(
       );
     }
 
-    const authProvider = getAuthProvider();
+    const authProvider = await getAuthProvider();
     const session = authProvider.getSession(sessionId);
 
     if (!session) {

@@ -111,9 +111,22 @@ export async function createDefaultStorage(): Promise<IStorageRepository> {
 
 // Mutable singleton instance holder
 // Will be set in index.ts with a properly initialized instance
+// Or auto-initialized on first access for API routes
 export const storageHolder = {
   instance: null as IStorageRepository | null,
 };
+
+/**
+ * Get or initialize the storage instance
+ * Lazy initialization for API routes that run in separate process
+ */
+export async function getStorage(): Promise<IStorageRepository> {
+  if (!storageHolder.instance) {
+    console.log('[Storage] Auto-initializing storage for API routes');
+    storageHolder.instance = await createDefaultStorage();
+  }
+  return storageHolder.instance;
+}
 
 // Re-export all types and interfaces for convenience
 export * from './types';

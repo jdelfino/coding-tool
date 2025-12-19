@@ -5,18 +5,16 @@
 
 import { LocalAuthProvider } from './local-provider';
 import { IAuthProvider } from './interfaces';
-import { storageHolder } from '../persistence';
+import { getStorage } from '../persistence';
 
 let authProviderInstance: IAuthProvider | null = null;
 
-export function getAuthProvider(): IAuthProvider {
+export async function getAuthProvider(): Promise<IAuthProvider> {
   if (!authProviderInstance) {
-    if (!storageHolder.instance) {
-      throw new Error('Storage not initialized. Cannot create auth provider.');
-    }
-    // Lazy initialization using storage holder
-    authProviderInstance = new LocalAuthProvider(storageHolder.instance.users);
-    console.log('[Auth] Lazy-initialized auth provider');
+    // Auto-initialize storage if needed (for API routes)
+    const storage = await getStorage();
+    authProviderInstance = new LocalAuthProvider(storage.users);
+    console.log('[Auth] Initialized auth provider');
   }
   return authProviderInstance;
 }

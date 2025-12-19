@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const authProvider = getAuthProvider();
+    const authProvider = await getAuthProvider();
     const user = await authProvider.authenticate(username.trim());
 
     if (!user) {

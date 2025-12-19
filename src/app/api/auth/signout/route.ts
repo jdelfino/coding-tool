@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
     const sessionId = request.cookies.get('sessionId')?.value;
 
     if (sessionId) {
-      const authProvider = getAuthProvider();
+      const authProvider = await getAuthProvider();
       authProvider.destroySession(sessionId);
     }
 

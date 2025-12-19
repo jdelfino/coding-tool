@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const authProvider = getAuthProvider();
+    const authProvider = await getAuthProvider();
     const session = authProvider.getSession(sessionId);
 
     if (!session) {
