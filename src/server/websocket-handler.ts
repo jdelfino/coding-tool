@@ -5,6 +5,7 @@ import { sessionManagerHolder } from './session-manager';
 import { executeCodeSafe } from './code-executor';
 import { MessageType, WebSocketMessage, Student } from './types';
 import { getAuthProvider } from './auth';
+import { revisionBufferHolder } from './revision-buffer';
 
 interface Connection {
   ws: WebSocket;
@@ -249,6 +250,11 @@ class WebSocketHandler {
       const ended = await sessionManagerHolder.instance.endSession(sessionId);
       
       if (ended) {
+        // Flush all revisions for this session before ending
+        if (revisionBufferHolder.instance) {
+          await revisionBufferHolder.instance.flushSession(sessionId);
+        }
+
         // Notify all connected clients in this session
         this.broadcastToSession(sessionId, {
           type: MessageType.SESSION_ENDED,
@@ -326,6 +332,11 @@ class WebSocketHandler {
       },
     });
 
+    // Reset revision tracking baseline when student rejoins with existing code
+    if (revisionBufferHolder.instance && existingCode) {
+      revisionBufferHolder.instance.resetStudent(session.id, studentId, existingCode);
+    }
+
     // Notify instructor of new student
     await this.broadcastStudentList(session.id);
   }
@@ -369,6 +380,11 @@ class WebSocketHandler {
 
     const { code } = payload;
     await sessionManagerHolder.instance.updateStudentCode(connection.sessionId, connection.studentId, code);
+
+    // Track revision using the revision buffer (generates diffs server-side)
+    if (revisionBufferHolder.instance) {
+      await revisionBufferHolder.instance.addRevision(connection.sessionId, connection.studentId, code);
+    }
 
     // Notify instructor
     await this.broadcastStudentList(connection.sessionId);

@@ -70,11 +70,20 @@ export interface CodeRevision {
   /** Student who made this revision */
   studentId: string;
   
-  /** The code snapshot */
-  code: string;
-  
   /** When this revision was created */
   timestamp: Date;
+  
+  /** Whether this revision stores a diff or full code snapshot */
+  isDiff: boolean;
+  
+  /** Diff patches (if isDiff is true) */
+  diff?: string;
+  
+  /** Full code snapshot (if isDiff is false) */
+  fullCode?: string;
+  
+  /** Optional: Base revision ID for diff application (future use) */
+  baseRevisionId?: string;
   
   /** Optional: execution result if code was run */
   executionResult?: {

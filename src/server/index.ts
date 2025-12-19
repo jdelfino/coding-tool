@@ -5,6 +5,7 @@ import next from 'next';
 import { wsHandler } from './websocket-handler';
 import { createDefaultStorage, storageHolder } from './persistence';
 import { SessionManager, sessionManagerHolder } from './session-manager';
+import { RevisionBuffer, revisionBufferHolder } from './revision-buffer';
 
 const dev = process.env.NODE_ENV !== 'production';
 const hostname = 'localhost';
@@ -29,6 +30,11 @@ app.prepare().then(async () => {
   const sessionManagerInstance = new SessionManager(storage);
   await sessionManagerInstance.initialize();
   sessionManagerHolder.instance = sessionManagerInstance;
+  
+  // Initialize revision buffer with storage
+  const revisionBuffer = new RevisionBuffer(storage);
+  revisionBuffer.startAutoFlush();
+  revisionBufferHolder.instance = revisionBuffer;
   
   console.log('Storage backend initialized successfully');
   console.log('Authentication provider will auto-initialize on first use');
@@ -74,12 +80,18 @@ app.prepare().then(async () => {
   // Cleanup on server shutdown
   process.on('SIGINT', async () => {
     console.log('\nShutting down server...');
+    if (revisionBufferHolder.instance) {
+      await revisionBufferHolder.instance.shutdown();
+    }
     await storage.shutdown();
     process.exit(0);
   });
   
   process.on('SIGTERM', async () => {
     console.log('\nShutting down server...');
+    if (revisionBufferHolder.instance) {
+      await revisionBufferHolder.instance.shutdown();
+    }
     await storage.shutdown();
     process.exit(0);
   });
