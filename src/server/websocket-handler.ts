@@ -32,6 +32,8 @@ class WebSocketHandler {
       let userId: string | undefined;
       try {
         const cookies = request.headers.cookie;
+        console.log('[WS Auth] Raw cookies:', cookies);
+        
         if (cookies) {
           const sessionId = cookies
             .split(';')
@@ -39,17 +41,25 @@ class WebSocketHandler {
             .find(c => c.startsWith('sessionId='))
             ?.split('=')[1];
           
+          console.log('[WS Auth] Extracted sessionId:', sessionId);
+          
           if (sessionId) {
             const authProvider = await getAuthProvider();
             const session = authProvider.getSession(sessionId);
+            console.log('[WS Auth] Session lookup result:', session ? 'found' : 'not found');
+            
             if (session) {
               userId = session.user.id;
-              console.log('WebSocket connection authenticated as user:', userId);
+              console.log('[WS Auth] Authenticated as user:', userId, '(', session.user.username, session.user.role, ')');
             }
+          } else {
+            console.log('[WS Auth] No sessionId cookie found');
           }
+        } else {
+          console.log('[WS Auth] No cookies in request headers');
         }
       } catch (error) {
-        console.error('Error extracting user authentication:', error);
+        console.error('[WS Auth] Error extracting user authentication:', error);
       }
       
       const connection: Connection = {
