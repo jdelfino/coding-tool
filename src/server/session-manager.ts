@@ -16,8 +16,8 @@ export class SessionManager {
   private async ensureStorage(): Promise<IStorageRepository> {
     if (!this.storage) {
       console.log('[SessionManager] Auto-initializing storage');
-      this.storage = await getStorage();
-      await this.initialize();
+      this.storage = await getStorage(); // Use singleton storage
+      // Don't call initialize() - getStorage() handles that
     }
     return this.storage;
   }

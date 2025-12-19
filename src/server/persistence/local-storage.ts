@@ -141,17 +141,25 @@ export class LocalSessionRepository implements ISessionRepository {
     const baseDir = this.config.baseDir || './data';
     await ensureDir(baseDir);
     
+    await this.reloadFromDisk();
+    
+    this.initialized = true;
+  }
+
+  /**
+   * Reload sessions from disk (for cross-process consistency)
+   */
+  private async reloadFromDisk(): Promise<void> {
     // Load existing sessions into cache
     const sessions = await readJsonFile<Record<string, StoredSession>>(
       this.filePath,
       {}
     );
     
+    this.cache.clear();
     for (const [id, session] of Object.entries(sessions)) {
       this.cache.set(id, session);
     }
-    
-    this.initialized = true;
   }
 
   async shutdown(): Promise<void> {
@@ -241,6 +249,9 @@ export class LocalSessionRepository implements ISessionRepository {
   }
 
   async listAllSessions(options?: SessionQueryOptions): Promise<StoredSession[]> {
+    // Reload from disk to get latest data from other processes
+    await this.reloadFromDisk();
+    
     let sessions = Array.from(this.cache.values());
     
     // Apply filters
