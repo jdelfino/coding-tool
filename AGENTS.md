@@ -1,8 +1,16 @@
 # Agent Instructions
 
-## Test coverage
-Changes should generally include unit test coverage. Unit tests should be isolated, and
-not resemble integration tests. Use mocking or fakes as needed to isolate the unit under test.
+## ⚠️ MANDATORY: Unit Test Coverage
+
+**ALL code changes MUST include unit test coverage.**
+
+- New components → Create corresponding .test.tsx file
+- New functions/classes → Create .test.ts file  
+- Modified code → Update existing tests + add new test cases
+- Use mocking/fakes to isolate units under test
+- Tests should be isolated, not integration tests
+
+**Before committing: Run `npm test` and verify all tests pass.**
 
 ## Issue Tracking with bd (beads)
 
