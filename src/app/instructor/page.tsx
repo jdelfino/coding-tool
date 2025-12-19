@@ -156,6 +156,16 @@ function InstructorPage() {
     sendMessage('END_SESSION', { sessionId });
   };
 
+  const handleLeaveSession = () => {
+    // Leave session view without ending the session
+    setSessionId(null);
+    setJoinCode(null);
+    setStudents([]);
+    setSelectedStudentId(null);
+    setSelectedStudentCode('');
+    setError(null);
+  };
+
   const handleUpdateProblem = (problemText: string) => {
     if (!isConnected) {
       setError('Not connected to server. Cannot update problem.');
@@ -331,6 +341,35 @@ function InstructorPage() {
         />
       ) : (
         <>
+          <div style={{ marginBottom: '1rem' }}>
+            <button
+              onClick={handleLeaveSession}
+              style={{
+                padding: '0.5rem 1rem',
+                backgroundColor: 'transparent',
+                color: '#0070f3',
+                border: '1px solid #0070f3',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '0.9rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem'
+              }}
+            >
+              <svg 
+                width="16" 
+                height="16" 
+                viewBox="0 0 24 24" 
+                fill="none" 
+                stroke="currentColor" 
+                strokeWidth="2"
+              >
+                <path d="M19 12H5M12 19l-7-7 7-7"/>
+              </svg>
+              Back to Dashboard
+            </button>
+          </div>
           <SessionControls 
             sessionId={sessionId}
             joinCode={joinCode}
