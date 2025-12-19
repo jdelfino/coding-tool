@@ -48,9 +48,9 @@ export async function GET(request: NextRequest) {
       problemText: session.problemText,
       createdAt: session.createdAt.toISOString(),
       lastActivity: session.lastActivity.toISOString(),
-      creatorId: session.creatorId || 'unknown',
-      participantCount: session.participants?.length || 0,
-      status: session.status || 'active',
+      creatorId: session.creatorId,
+      participantCount: session.participants.length,
+      status: session.status,
       endedAt: session.endedAt?.toISOString(),
     }));
 
