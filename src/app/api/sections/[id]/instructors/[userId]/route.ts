@@ -1,5 +1,5 @@
 /**
- * DELETE /api/sections/:sectionId/instructors/:userId - Remove an instructor from a section
+ * DELETE /api/sections/:id/instructors/:userId - Remove an instructor from a section
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -8,10 +8,10 @@ import { getSectionRepository, getMembershipRepository } from '@/server/classes'
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ sectionId: string; userId: string }> }
+  { params }: { params: Promise<{ id: string; userId: string }> }
 ) {
   try {
-    const { sectionId, userId } = await params;
+    const { id: sectionId, userId } = await params;
     const sessionId = request.cookies.get('sessionId')?.value;
 
     if (!sessionId) {
@@ -31,7 +31,7 @@ export async function DELETE(
       );
     }
 
-    const sectionRepo = getSectionRepository();
+    const sectionRepo = await getSectionRepository();
     const section = await sectionRepo.getSection(sectionId);
 
     if (!section) {
@@ -58,7 +58,7 @@ export async function DELETE(
     }
 
     // Remove instructor from section
-    const membershipRepo = getMembershipRepository();
+    const membershipRepo = await getMembershipRepository();
     await membershipRepo.removeMembership(userId, sectionId);
 
     // Update section instructorIds

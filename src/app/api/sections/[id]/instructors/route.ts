@@ -33,7 +33,7 @@ export async function POST(
       );
     }
 
-    const sectionRepo = getSectionRepository();
+    const sectionRepo = await getSectionRepository();
     const section = await sectionRepo.getSection(id);
 
     if (!section) {
@@ -80,7 +80,7 @@ export async function POST(
     }
 
     // Add instructor to section
-    const membershipRepo = getMembershipRepository();
+    const membershipRepo = await getMembershipRepository();
     await membershipRepo.addMembership({
       userId: user.id,
       sectionId: id,

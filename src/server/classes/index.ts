@@ -42,31 +42,29 @@ let classRepositoryInstance: ClassRepository | null = null;
 let sectionRepositoryInstance: SectionRepository | null = null;
 let membershipRepositoryInstance: MembershipRepository | null = null;
 
-export function getClassRepository(): ClassRepository {
+export async function getClassRepository(): Promise<ClassRepository> {
   if (!classRepositoryInstance) {
-    const storage = getStorage();
-    classRepositoryInstance = new ClassRepository(storage);
-    // Wire up dependencies
-    classRepositoryInstance.setSectionRepository(getSectionRepository());
+    const storage = await getStorage();
+    // Use the class repository from storage backend
+    classRepositoryInstance = storage.classes as ClassRepository;
   }
   return classRepositoryInstance;
 }
 
-export function getSectionRepository(): SectionRepository {
+export async function getSectionRepository(): Promise<SectionRepository> {
   if (!sectionRepositoryInstance) {
-    const storage = getStorage();
-    sectionRepositoryInstance = new SectionRepository(storage);
+    const storage = await getStorage();
+    // Use the section repository from storage backend
+    sectionRepositoryInstance = storage.sections as SectionRepository;
   }
   return sectionRepositoryInstance;
 }
 
-export function getMembershipRepository(): MembershipRepository {
+export async function getMembershipRepository(): Promise<MembershipRepository> {
   if (!membershipRepositoryInstance) {
-    const storage = getStorage();
-    membershipRepositoryInstance = new MembershipRepository(storage);
-    // Wire up dependencies
-    const { getUserRepository } = require('../auth');
-    membershipRepositoryInstance.setRepositories(getUserRepository(), getSectionRepository(), getClassRepository());
+    const storage = await getStorage();
+    // Use the membership repository from storage backend
+    membershipRepositoryInstance = storage.memberships as MembershipRepository;
   }
   return membershipRepositoryInstance;
 }

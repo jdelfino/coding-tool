@@ -32,7 +32,7 @@ export async function GET(
       );
     }
 
-    const sectionRepo = getSectionRepository();
+    const sectionRepo = await getSectionRepository();
     const section = await sectionRepo.getSection(id);
 
     if (!section) {
@@ -43,7 +43,7 @@ export async function GET(
     }
 
     // Get members
-    const membershipRepo = getMembershipRepository();
+    const membershipRepo = await getMembershipRepository();
     const members = await membershipRepo.getSectionMembers(id);
 
     return NextResponse.json({ 
@@ -84,7 +84,7 @@ export async function PUT(
       );
     }
 
-    const sectionRepo = getSectionRepository();
+    const sectionRepo = await getSectionRepository();
     const section = await sectionRepo.getSection(id);
 
     if (!section) {

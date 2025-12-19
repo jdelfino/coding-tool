@@ -31,7 +31,7 @@ export async function POST(
       );
     }
 
-    const sectionRepo = getSectionRepository();
+    const sectionRepo = await getSectionRepository();
     const section = await sectionRepo.getSection(id);
 
     if (!section) {

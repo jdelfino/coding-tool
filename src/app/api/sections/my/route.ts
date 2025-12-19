@@ -28,12 +28,12 @@ export async function GET(request: NextRequest) {
     }
 
     // Get all sections for this user
-    const membershipRepo = getMembershipRepository();
+    const membershipRepo = await getMembershipRepository();
     const memberships = await membershipRepo.getUserSections(session.user.id);
 
     // Get full section details for each
-    const sectionRepo = getSectionRepository();
-    const classRepo = getClassRepository();
+    const sectionRepo = await getSectionRepository();
+    const classRepo = await getClassRepository();
 
     const sectionsWithDetails = await Promise.all(
       memberships.map(async (membership: any) => {

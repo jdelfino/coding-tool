@@ -32,7 +32,7 @@ export async function GET(
       );
     }
 
-    const sectionRepo = getSectionRepository();
+    const sectionRepo = await getSectionRepository();
     const section = await sectionRepo.getSection(id);
 
     if (!section) {
@@ -43,7 +43,7 @@ export async function GET(
     }
 
     // Check if user is a member of this section
-    const membershipRepo = getMembershipRepository();
+    const membershipRepo = await getMembershipRepository();
     const membership = await membershipRepo.getMembership(session.user.id, id);
 
     if (!membership) {

@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get all classes where user is an instructor
-    const classRepo = getClassRepository();
+    const classRepo = await getClassRepository();
     const classes = await classRepo.listClasses(session.user.id);
 
     return NextResponse.json({ classes });
@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const classRepo = getClassRepository();
+    const classRepo = await getClassRepository();
     const newClass = await classRepo.createClass({
       name: name.trim(),
       description: description?.trim() || '',

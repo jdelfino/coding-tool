@@ -704,6 +704,11 @@ export class LocalUserRepository implements IUserRepository {
     return this.users.size;
   }
 
+  async getUserByEmail(email: string): Promise<User | null> {
+    // In this system, email is the same as username
+    return this.getUserByUsername(email);
+  }
+
   async clear(): Promise<void> {
     this.users.clear();
     this.usernameIndex.clear();

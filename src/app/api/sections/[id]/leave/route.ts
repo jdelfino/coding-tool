@@ -31,7 +31,7 @@ export async function DELETE(
       );
     }
 
-    const sectionRepo = getSectionRepository();
+    const sectionRepo = await getSectionRepository();
     const section = await sectionRepo.getSection(id);
 
     if (!section) {
@@ -42,7 +42,7 @@ export async function DELETE(
     }
 
     // Check if user is a member
-    const membershipRepo = getMembershipRepository();
+    const membershipRepo = await getMembershipRepository();
     const membership = await membershipRepo.getMembership(session.user.id, id);
 
     if (!membership) {

@@ -33,7 +33,7 @@ export async function GET(
       );
     }
 
-    const classRepo = getClassRepository();
+    const classRepo = await getClassRepository();
     const classData = await classRepo.getClass(id);
 
     if (!classData) {
@@ -84,7 +84,7 @@ export async function PUT(
       );
     }
 
-    const classRepo = getClassRepository();
+    const classRepo = await getClassRepository();
     const classData = await classRepo.getClass(id);
 
     if (!classData) {
@@ -146,7 +146,7 @@ export async function DELETE(
       );
     }
 
-    const classRepo = getClassRepository();
+    const classRepo = await getClassRepository();
     const classData = await classRepo.getClass(id);
 
     if (!classData) {

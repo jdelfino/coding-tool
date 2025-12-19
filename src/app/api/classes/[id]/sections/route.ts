@@ -39,7 +39,7 @@ export async function POST(
       );
     }
 
-    const classRepo = getClassRepository();
+    const classRepo = await getClassRepository();
     const classData = await classRepo.getClass(classId);
 
     if (!classData) {
@@ -59,7 +59,7 @@ export async function POST(
       );
     }
 
-    const sectionRepo = getSectionRepository();
+    const sectionRepo = await getSectionRepository();
     const newSection = await sectionRepo.createSection({
       classId,
       name: name.trim(),

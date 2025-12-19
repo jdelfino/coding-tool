@@ -23,8 +23,7 @@ export async function getAuthProvider(): Promise<IAuthProvider> {
 
 export function getUserRepository(): IUserRepository {
   if (!userRepositoryInstance) {
-    const storage = getStorage();
-    userRepositoryInstance = new InMemoryUserRepository(storage.users);
+    userRepositoryInstance = new InMemoryUserRepository();
   }
   return userRepositoryInstance;
 }

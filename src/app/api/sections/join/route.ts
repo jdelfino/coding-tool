@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Find section by join code
-    const sectionRepo = getSectionRepository();
+    const sectionRepo = await getSectionRepository();
     const section = await sectionRepo.getSectionByJoinCode(joinCode.toUpperCase().trim());
 
     if (!section) {
@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if already a member
-    const membershipRepo = getMembershipRepository();
+    const membershipRepo = await getMembershipRepository();
     const existingMembership = await membershipRepo.getMembership(session.user.id, section.id);
 
     if (existingMembership) {
