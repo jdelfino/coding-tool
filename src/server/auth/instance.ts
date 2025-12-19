@@ -8,8 +8,14 @@ import { IAuthProvider } from './interfaces';
 import type { IStorageRepository } from '../persistence/interfaces';
 
 let authProviderInstance: IAuthProvider | null = null;
+let storageInstance: IStorageRepository | null = null;
+
+export function setStorage(storage: IStorageRepository): void {
+  storageInstance = storage;
+}
 
 export function initializeAuthProvider(storage: IStorageRepository): IAuthProvider {
+  storageInstance = storage;
   if (!authProviderInstance) {
     // Use the user repository from the storage backend
     authProviderInstance = new LocalAuthProvider(storage.users);
@@ -20,7 +26,12 @@ export function initializeAuthProvider(storage: IStorageRepository): IAuthProvid
 
 export function getAuthProvider(): IAuthProvider {
   if (!authProviderInstance) {
-    throw new Error('Auth provider not initialized. Call initializeAuthProvider() first.');
+    if (!storageInstance) {
+      throw new Error('Storage not initialized. Cannot create auth provider.');
+    }
+    // Lazy initialization using stored storage instance
+    authProviderInstance = new LocalAuthProvider(storageInstance.users);
+    console.log('[Auth] Lazy-initialized auth provider');
   }
   return authProviderInstance;
 }
