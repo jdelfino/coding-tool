@@ -297,4 +297,41 @@ export class SectionRepository implements ISectionRepository {
       activeSessionCount: 0,
     };
   }
+
+  /**
+   * Helper: Add an instructor to a section
+   */
+  async addInstructor(sectionId: string, userId: string): Promise<void> {
+    await this.ensureInitialized();
+    
+    const section = this.sections.get(sectionId);
+    if (!section) {
+      throw new Error(`Section not found: ${sectionId}`);
+    }
+
+    if (!section.instructorIds.includes(userId)) {
+      section.instructorIds.push(userId);
+      section.updatedAt = new Date();
+      await this.save();
+    }
+  }
+
+  /**
+   * Helper: Remove an instructor from a section
+   */
+  async removeInstructor(sectionId: string, userId: string): Promise<void> {
+    await this.ensureInitialized();
+    
+    const section = this.sections.get(sectionId);
+    if (!section) {
+      throw new Error(`Section not found: ${sectionId}`);
+    }
+
+    const index = section.instructorIds.indexOf(userId);
+    if (index > -1) {
+      section.instructorIds.splice(index, 1);
+      section.updatedAt = new Date();
+      await this.save();
+    }
+  }
 }

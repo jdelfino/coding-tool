@@ -4,8 +4,11 @@ import { WebSocketServer } from 'ws';
 import next from 'next';
 import { wsHandler } from './websocket-handler';
 import { createDefaultStorage, storageHolder } from './persistence';
-import { SessionManager, sessionManagerHolder } from './session-manager';
+import { SessionManager, sessionManagerHolder, getSessionManager } from './session-manager';
 import { RevisionBuffer, revisionBufferHolder } from './revision-buffer';
+
+// Export getSessionManager for use in API routes
+export { getSessionManager } from './session-manager';
 
 const dev = process.env.NODE_ENV !== 'production';
 const hostname = 'localhost';

@@ -526,3 +526,8 @@ export const sessionManagerHolder = {
 
 // For convenience, export the instance directly too
 export { sessionManagerHolder as sessionManager };
+
+// Getter function for API routes
+export function getSessionManager(): SessionManager {
+  return sessionManagerHolder.instance;
+}

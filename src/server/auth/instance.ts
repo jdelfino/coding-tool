@@ -4,10 +4,12 @@
  */
 
 import { LocalAuthProvider } from './local-provider';
-import { IAuthProvider } from './interfaces';
+import { IAuthProvider, IUserRepository } from './interfaces';
 import { getStorage } from '../persistence';
+import { InMemoryUserRepository } from './user-repository';
 
 let authProviderInstance: IAuthProvider | null = null;
+let userRepositoryInstance: IUserRepository | null = null;
 
 export async function getAuthProvider(): Promise<IAuthProvider> {
   if (!authProviderInstance) {
@@ -17,5 +19,13 @@ export async function getAuthProvider(): Promise<IAuthProvider> {
     console.log('[Auth] Initialized auth provider');
   }
   return authProviderInstance;
+}
+
+export function getUserRepository(): IUserRepository {
+  if (!userRepositoryInstance) {
+    const storage = getStorage();
+    userRepositoryInstance = new InMemoryUserRepository(storage.users);
+  }
+  return userRepositoryInstance;
 }
 

@@ -124,6 +124,15 @@ export interface IUserRepository {
   getUserByUsername(username: string): Promise<User | null>;
 
   /**
+   * Get a user by their email.
+   * Note: In the current implementation, email and username are the same.
+   * 
+   * @param email - User's email
+   * @returns User if found, null otherwise
+   */
+  getUserByEmail(email: string): Promise<User | null>;
+
+  /**
    * List all users, optionally filtered by role.
    * 
    * @param role - Optional role filter

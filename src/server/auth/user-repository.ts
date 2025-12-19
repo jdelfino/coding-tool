@@ -55,6 +55,14 @@ export class InMemoryUserRepository implements IUserRepository {
   }
 
   /**
+   * Get a user by their email.
+   * In the current implementation, email and username are the same.
+   */
+  async getUserByEmail(email: string): Promise<User | null> {
+    return this.getUserByUsername(email);
+  }
+
+  /**
    * Update user information.
    */
   async updateUser(userId: string, updates: Partial<User>): Promise<void> {
