@@ -44,6 +44,7 @@ export class LocalAuthProvider implements IAuthProvider {
       }) as Record<string, AuthSession>;
 
       for (const [sessionId, session] of Object.entries(sessions)) {
+        console.log(`[Auth] Loading session ${sessionId}:`, JSON.stringify(session, null, 2));
         this.activeSessions.set(sessionId, session);
       }
       
@@ -195,7 +196,9 @@ export class LocalAuthProvider implements IAuthProvider {
    */
   async getSession(sessionId: string): Promise<AuthSession | null> {
     await this.loadSessions(); // Ensure sessions are loaded
-    return this.activeSessions.get(sessionId) || null;
+    const session = this.activeSessions.get(sessionId) || null;
+    console.log(`[Auth] getSession(${sessionId}):`, session ? JSON.stringify(session, null, 2) : 'null');
+    return session;
   }
 
   /**
