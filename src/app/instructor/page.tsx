@@ -9,6 +9,7 @@ import SessionDashboard from './components/SessionDashboard';
 import ProblemInput from './components/ProblemInput';
 import StudentList from './components/StudentList';
 import CodeViewer from './components/CodeViewer';
+import RevisionViewer from './components/RevisionViewer';
 
 interface Student {
   id: string;
@@ -37,6 +38,10 @@ function InstructorPage() {
   const [error, setError] = useState<string | null>(null);
   const [isCreatingSession, setIsCreatingSession] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const [revisionViewerState, setRevisionViewerState] = useState<{
+    studentId: string;
+    studentName: string;
+  } | null>(null);
 
   // Construct WebSocket URL - only initialize on client side
   const [wsUrl, setWsUrl] = useState('');
@@ -416,6 +421,7 @@ function InstructorPage() {
               students={students}
               onSelectStudent={handleSelectStudent}
               onShowOnPublicView={handleShowOnPublicView}
+              onViewHistory={(studentId, studentName) => setRevisionViewerState({ studentId, studentName })}
             />
             
             <CodeViewer
@@ -425,6 +431,18 @@ function InstructorPage() {
               onRunCode={handleRunCode}
             />
           </div>
+
+          {/* Revision Viewer Modal */}
+          {revisionViewerState && sessionId && (
+            <RevisionViewer
+              sessionId={sessionId}
+              studentId={revisionViewerState.studentId}
+              studentName={revisionViewerState.studentName}
+              sendMessage={sendMessage}
+              lastMessage={lastMessage}
+              onClose={() => setRevisionViewerState(null)}
+            />
+          )}
         </>
       )}
     </main>

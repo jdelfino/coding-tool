@@ -10,9 +10,10 @@ interface StudentListProps {
   students: Student[];
   onSelectStudent: (studentId: string) => void;
   onShowOnPublicView?: (studentId: string) => void;
+  onViewHistory?: (studentId: string, studentName: string) => void;
 }
 
-export default function StudentList({ students, onSelectStudent, onShowOnPublicView }: StudentListProps) {
+export default function StudentList({ students, onSelectStudent, onShowOnPublicView, onViewHistory }: StudentListProps) {
   return (
     <div style={{ padding: '1rem', border: '1px solid #ccc', marginBottom: '1rem' }}>
       <h3>Connected Students ({students.length})</h3>
@@ -54,6 +55,22 @@ export default function StudentList({ students, onSelectStudent, onShowOnPublicV
                 >
                   View Code
                 </button>
+                {onViewHistory && (
+                  <button
+                    onClick={() => onViewHistory(student.id, student.name)}
+                    style={{
+                      padding: '0.5rem 1rem',
+                      backgroundColor: '#8b5cf6',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                    }}
+                    title="View code revision history"
+                  >
+                    View History
+                  </button>
+                )}
                 {onShowOnPublicView && (
                   <button
                     onClick={() => onShowOnPublicView(student.id)}

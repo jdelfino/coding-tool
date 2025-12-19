@@ -6,6 +6,8 @@ import { executeCodeSafe } from './code-executor';
 import { MessageType, WebSocketMessage, Student } from './types';
 import { getAuthProvider } from './auth';
 import { revisionBufferHolder } from './revision-buffer';
+import { getStorage } from './persistence';
+import * as DiffMatchPatch from 'diff-match-patch';
 
 interface Connection {
   ws: WebSocket;
@@ -141,6 +143,10 @@ class WebSocketHandler {
         
       case MessageType.REQUEST_STUDENT_CODE:
         await this.handleRequestStudentCode(ws, connection, message.payload);
+        break;
+        
+      case MessageType.GET_REVISIONS:
+        await this.handleGetRevisions(ws, connection, message.payload);
         break;
         
       case MessageType.SELECT_SUBMISSION_FOR_PUBLIC:
@@ -464,6 +470,80 @@ class WebSocketHandler {
       type: MessageType.STUDENT_CODE,
       payload: { studentId, code },
     });
+  }
+
+  private async handleGetRevisions(ws: WebSocket, connection: Connection, payload: any) {
+    if (connection.role !== 'instructor' || !connection.sessionId) return;
+
+    const { studentId } = payload;
+    
+    try {
+      const storage = await getStorage();
+      const storedRevisions = await storage.revisions.getRevisions(connection.sessionId, studentId);
+      
+      // Reconstruct full code for each revision from diffs
+      const dmp = new DiffMatchPatch.diff_match_patch();
+      const revisions = [];
+      
+      for (const rev of storedRevisions) {
+        let fullCode: string;
+        
+        if (rev.isDiff && rev.diff) {
+          // Apply diff to reconstruct code
+          // Find the previous full snapshot
+          const prevSnapshot = storedRevisions
+            .slice(0, storedRevisions.indexOf(rev))
+            .reverse()
+            .find(r => !r.isDiff && r.fullCode !== undefined);
+          
+          if (prevSnapshot && prevSnapshot.fullCode !== undefined) {
+            // Start with previous snapshot
+            let currentCode = prevSnapshot.fullCode;
+            
+            // Apply all diffs between snapshot and current revision
+            const startIdx = storedRevisions.indexOf(prevSnapshot) + 1;
+            const endIdx = storedRevisions.indexOf(rev) + 1;
+            
+            for (let i = startIdx; i < endIdx; i++) {
+              const r = storedRevisions[i];
+              if (r.isDiff && r.diff) {
+                const patches = dmp.patch_fromText(r.diff);
+                const [patchedCode] = dmp.patch_apply(patches, currentCode);
+                currentCode = patchedCode;
+              } else if (r.fullCode !== undefined) {
+                currentCode = r.fullCode;
+              }
+            }
+            fullCode = currentCode;
+          } else {
+            // No previous snapshot, skip or use empty
+            fullCode = '';
+          }
+        } else if (rev.fullCode !== undefined) {
+          fullCode = rev.fullCode;
+        } else {
+          fullCode = '';
+        }
+        
+        revisions.push({
+          id: rev.id,
+          timestamp: rev.timestamp,
+          code: fullCode,
+        });
+      }
+      
+      this.send(ws, {
+        type: MessageType.REVISIONS_DATA,
+        payload: {
+          sessionId: connection.sessionId,
+          studentId,
+          revisions,
+        },
+      });
+    } catch (error) {
+      console.error('Error fetching revisions:', error);
+      this.sendError(ws, 'Failed to fetch revisions');
+    }
   }
 
   private async handleSelectSubmissionForPublic(connection: Connection, payload: any) {
