@@ -439,20 +439,33 @@ export class SessionManager {
   /**
    * Get sessions where user is a participant (student)
    */
+  /**
+   * Get sessions where user is a participant (student)
+   */
   async getSessionsByParticipant(userId: string): Promise<Session[]> {
-    if (!this.storage) return [];
+    console.log('[SessionManager] getSessionsByParticipant called for:', userId);
+    console.log('[SessionManager] Storage available:', !!this.storage);
+    
+    if (!this.storage) {
+      console.log('[SessionManager] No storage, returning empty array');
+      return [];
+    }
     
     try {
       const allSessions = await this.storage.sessions.listAllSessions();
-      console.log('[SessionManager] Checking', allSessions.length, 'sessions for participant:', userId);
+      console.log('[SessionManager] Retrieved', allSessions.length, 'total sessions');
+      
+      allSessions.forEach(s => {
+        console.log('[SessionManager] Session', s.id, '- participants:', s.participants);
+      });
+      
       const filtered = allSessions.filter(s => {
         const includes = s.participants.includes(userId);
-        if (includes) {
-          console.log('[SessionManager] Session', s.id, 'includes user in participants:', s.participants);
-        }
+        console.log('[SessionManager] Session', s.id, 'includes user?', includes);
         return includes;
       });
-      console.log('[SessionManager] Found', filtered.length, 'sessions where user is participant');
+      
+      console.log('[SessionManager] Returning', filtered.length, 'filtered sessions');
       return filtered;
     } catch (error) {
       console.error('Failed to get sessions by participant:', error);
