@@ -19,6 +19,11 @@ export interface Session {
   featuredCode?: string;
   createdAt: Date;
   lastActivity: Date;
+  // Session history fields
+  creatorId: string; // User ID of the instructor who created the session
+  participants: string[]; // Array of user IDs who participated
+  status: 'active' | 'completed';
+  endedAt?: Date;
 }
 
 export interface ExecutionResult {

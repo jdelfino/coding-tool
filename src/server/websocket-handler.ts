@@ -9,6 +9,7 @@ interface Connection {
   role: 'instructor' | 'student' | 'public';
   sessionId?: string;
   studentId?: string;
+  userId?: string; // User ID from authentication
   isAlive: boolean;
 }
 
@@ -128,7 +129,7 @@ class WebSocketHandler {
   }
 
   private async handleCreateSession(ws: WebSocket, connection: Connection) {
-    const session = await sessionManagerHolder.instance.createSession();
+    const session = await sessionManagerHolder.instance.createSession(connection.userId);
     connection.role = 'instructor';
     connection.sessionId = session.id;
     
@@ -210,9 +211,9 @@ class WebSocketHandler {
     }
 
     try {
-      const deleted = await sessionManagerHolder.instance.deleteSession(sessionId);
+      const ended = await sessionManagerHolder.instance.endSession(sessionId);
       
-      if (deleted) {
+      if (ended) {
         // Notify all connected clients in this session
         this.broadcastToSession(sessionId, {
           type: MessageType.SESSION_ENDED,

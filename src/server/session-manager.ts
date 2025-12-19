@@ -54,7 +54,7 @@ export class SessionManager {
   /**
    * Create a new session
    */
-  async createSession(): Promise<Session> {
+  async createSession(creatorId?: string): Promise<Session> {
     const sessionId = uuidv4();
     const joinCode = this.generateJoinCode();
     
@@ -65,6 +65,9 @@ export class SessionManager {
       connectedStudents: new Map(),
       createdAt: new Date(),
       lastActivity: new Date(),
+      creatorId: creatorId || 'system',
+      participants: [],
+      status: 'active',
     };
     
     // Persist to storage if available
@@ -147,9 +150,15 @@ export class SessionManager {
     
     session.connectedStudents.set(studentId, student);
     
+    // Add to participants list if not already there
+    if (!session.participants.includes(studentId)) {
+      session.participants.push(studentId);
+    }
+    
     try {
       await this.storage.sessions.updateSession(sessionId, {
         connectedStudents: session.connectedStudents,
+        participants: session.participants,
         lastActivity: new Date(),
       });
       console.log(`Added student ${name} (${studentId}) to session ${sessionId}`);
@@ -311,6 +320,28 @@ export class SessionManager {
   }
 
   /**
+   * End a session (mark as completed)
+   */
+  async endSession(sessionId: string): Promise<boolean> {
+    if (!this.storage) return false;
+    
+    const session = await this.getSession(sessionId);
+    if (!session) return false;
+    
+    try {
+      await this.storage.sessions.updateSession(sessionId, {
+        status: 'completed',
+        endedAt: new Date(),
+      });
+      console.log(`Ended session ${sessionId}`);
+      return true;
+    } catch (error) {
+      console.error(`Failed to end session ${sessionId}:`, error);
+      return false;
+    }
+  }
+
+  /**
    * Delete a session
    */
   async deleteSession(sessionId: string): Promise<boolean> {
@@ -386,6 +417,36 @@ export class SessionManager {
       return await this.storage.sessions.listAllSessions();
     } catch (error) {
       console.error('Failed to list sessions:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Get sessions where user is creator (instructor)
+   */
+  async getSessionsByCreator(creatorId: string): Promise<Session[]> {
+    if (!this.storage) return [];
+    
+    try {
+      const allSessions = await this.storage.sessions.listAllSessions();
+      return allSessions.filter(s => s.creatorId === creatorId);
+    } catch (error) {
+      console.error('Failed to get sessions by creator:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Get sessions where user is a participant (student)
+   */
+  async getSessionsByParticipant(userId: string): Promise<Session[]> {
+    if (!this.storage) return [];
+    
+    try {
+      const allSessions = await this.storage.sessions.listAllSessions();
+      return allSessions.filter(s => s.participants.includes(userId));
+    } catch (error) {
+      console.error('Failed to get sessions by participant:', error);
       return [];
     }
   }
