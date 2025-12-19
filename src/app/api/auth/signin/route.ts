@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create session
-    const session = authProvider.createSession(user);
+    const session = await authProvider.createSession(user);
 
     // Set session cookie
     const response = NextResponse.json({

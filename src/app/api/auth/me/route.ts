@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
     }
 
     const authProvider = await getAuthProvider();
-    const session = authProvider.getSession(sessionId);
+    const session = await authProvider.getSession(sessionId);
 
     if (!session) {
       // Session invalid or expired

@@ -6,6 +6,8 @@
 import { User, UserRole, AuthenticationError, AuthSession } from './types';
 import { IAuthProvider, IUserRepository } from './interfaces';
 import { randomUUID } from 'crypto';
+import fs from 'fs/promises';
+import path from 'path';
 
 /**
  * Local authentication provider using simple username-based login.
@@ -17,9 +19,60 @@ import { randomUUID } from 'crypto';
 export class LocalAuthProvider implements IAuthProvider {
   private userRepository: IUserRepository;
   private activeSessions: Map<string, AuthSession> = new Map();
+  private readonly sessionsFilePath: string;
+  private sessionsLoaded = false;
 
-  constructor(userRepository: IUserRepository) {
+  constructor(userRepository: IUserRepository, dataDir: string = './data') {
     this.userRepository = userRepository;
+    this.sessionsFilePath = path.join(dataDir, 'auth-sessions.json');
+  }
+
+  /**
+   * Load sessions from disk
+   */
+  private async loadSessions(): Promise<void> {
+    if (this.sessionsLoaded) return;
+
+    try {
+      const data = await fs.readFile(this.sessionsFilePath, 'utf-8');
+      const sessions = JSON.parse(data, (key, value) => {
+        // Revive Date objects
+        if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(value)) {
+          return new Date(value);
+        }
+        return value;
+      }) as Record<string, AuthSession>;
+
+      for (const [sessionId, session] of Object.entries(sessions)) {
+        this.activeSessions.set(sessionId, session);
+      }
+      
+      console.log(`[Auth] Loaded ${this.activeSessions.size} sessions from disk`);
+    } catch (error: any) {
+      if (error.code !== 'ENOENT') {
+        console.error('[Auth] Error loading sessions:', error);
+      }
+      // File doesn't exist yet, that's okay
+    }
+
+    this.sessionsLoaded = true;
+  }
+
+  /**
+   * Save sessions to disk
+   */
+  private async saveSessions(): Promise<void> {
+    try {
+      const sessions: Record<string, AuthSession> = {};
+      for (const [sessionId, session] of this.activeSessions.entries()) {
+        sessions[sessionId] = session;
+      }
+
+      const data = JSON.stringify(sessions, null, 2);
+      await fs.writeFile(this.sessionsFilePath, data, 'utf-8');
+    } catch (error) {
+      console.error('[Auth] Error saving sessions:', error);
+    }
   }
 
   /**
@@ -123,7 +176,9 @@ export class LocalAuthProvider implements IAuthProvider {
   /**
    * Create an auth session for a user.
    */
-  createSession(user: User): AuthSession {
+  async createSession(user: User): Promise<AuthSession> {
+    await this.loadSessions(); // Ensure sessions are loaded
+
     const session: AuthSession = {
       user,
       sessionId: randomUUID(),
@@ -131,13 +186,15 @@ export class LocalAuthProvider implements IAuthProvider {
     };
 
     this.activeSessions.set(session.sessionId, session);
+    await this.saveSessions(); // Persist to disk
     return session;
   }
 
   /**
    * Get an active session by ID.
    */
-  getSession(sessionId: string): AuthSession | null {
+  async getSession(sessionId: string): Promise<AuthSession | null> {
+    await this.loadSessions(); // Ensure sessions are loaded
     return this.activeSessions.get(sessionId) || null;
   }
 
@@ -145,6 +202,7 @@ export class LocalAuthProvider implements IAuthProvider {
    * Get a user from a session ID.
    */
   async getUserFromSession(sessionId: string): Promise<User | null> {
+    await this.loadSessions(); // Ensure sessions are loaded
     const session = this.activeSessions.get(sessionId);
     return session?.user || null;
   }
@@ -152,8 +210,10 @@ export class LocalAuthProvider implements IAuthProvider {
   /**
    * Destroy a session (logout).
    */
-  destroySession(sessionId: string): void {
+  async destroySession(sessionId: string): Promise<void> {
+    await this.loadSessions(); // Ensure sessions are loaded
     this.activeSessions.delete(sessionId);
+    await this.saveSessions(); // Persist to disk
   }
 
   /**

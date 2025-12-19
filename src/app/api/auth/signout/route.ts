@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
 
     if (sessionId) {
       const authProvider = await getAuthProvider();
-      authProvider.destroySession(sessionId);
+      await authProvider.destroySession(sessionId);
     }
 
     // Clear session cookie

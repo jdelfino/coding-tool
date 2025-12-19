@@ -68,7 +68,7 @@ export interface IAuthProvider {
    * @param user - User to create session for
    * @returns New auth session
    */
-  createSession(user: User): AuthSession;
+  createSession(user: User): Promise<AuthSession>;
 
   /**
    * Get an active session by ID.
@@ -76,7 +76,7 @@ export interface IAuthProvider {
    * @param sessionId - Session identifier
    * @returns Session if found, null otherwise
    */
-  getSession(sessionId: string): AuthSession | null;
+  getSession(sessionId: string): Promise<AuthSession | null>;
 
   /**
    * Get user from a session ID.
@@ -91,7 +91,7 @@ export interface IAuthProvider {
    * 
    * @param sessionId - Session identifier to destroy
    */
-  destroySession(sessionId: string): void;
+  destroySession(sessionId: string): Promise<void>;
 }
 
 /**
