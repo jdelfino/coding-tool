@@ -186,9 +186,8 @@ export default function RevisionViewer({
         style={{
           backgroundColor: 'white',
           borderRadius: '8px',
-          maxWidth: '90%',
-          maxHeight: '90%',
           width: '900px',
+          height: '600px',
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
@@ -202,6 +201,7 @@ export default function RevisionViewer({
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
+          flexShrink: 0,
         }}>
           <div>
             <h3 style={{ margin: 0, marginBottom: '0.5rem' }}>
@@ -234,6 +234,7 @@ export default function RevisionViewer({
           overflow: 'auto',
           padding: '1.5rem',
           backgroundColor: '#f5f5f5',
+          minHeight: 0,
         }}>
           <pre style={{
             margin: 0,
@@ -245,6 +246,7 @@ export default function RevisionViewer({
             fontSize: '0.9rem',
             whiteSpace: 'pre-wrap',
             wordWrap: 'break-word',
+            minHeight: '100%',
           }}>
             {currentRevision?.code || ''}
           </pre>
@@ -254,6 +256,7 @@ export default function RevisionViewer({
         <div style={{
           padding: '1.5rem',
           borderTop: '1px solid #ddd',
+          flexShrink: 0,
         }}>
           {/* Navigation Buttons */}
           <div style={{
