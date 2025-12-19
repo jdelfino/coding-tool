@@ -1,0 +1,305 @@
+/**
+ * Section repository implementation with local file-based storage
+ * 
+ * Manages CRUD operations for sections with persistence to data/sections.json
+ * Handles join code generation and collision detection
+ */
+
+import * as fs from 'fs/promises';
+import * as path from 'path';
+import { v4 as uuidv4 } from 'uuid';
+import { ISectionRepository } from './interfaces';
+import { Section, SectionFilters, SectionStats } from './types';
+import { JoinCodeService } from './join-code-service';
+
+/**
+ * Local file-based implementation of section repository
+ */
+export class SectionRepository implements ISectionRepository {
+  private dataDir: string;
+  private filePath: string;
+  private sections: Map<string, Section> = new Map();
+  private joinCodeIndex: Map<string, string> = new Map(); // joinCode -> sectionId
+  private initialized = false;
+  private joinCodeService: JoinCodeService;
+  private membershipRepository: any; // Will be injected
+
+  constructor(
+    dataDir: string = path.join(process.cwd(), 'data'),
+    joinCodeService: JoinCodeService
+  ) {
+    this.dataDir = dataDir;
+    this.filePath = path.join(dataDir, 'sections.json');
+    this.joinCodeService = joinCodeService;
+  }
+
+  /**
+   * Set the membership repository for stats queries
+   */
+  setMembershipRepository(membershipRepository: any): void {
+    this.membershipRepository = membershipRepository;
+  }
+
+  /**
+   * Initialize the repository by loading data from disk
+   */
+  private async ensureInitialized(): Promise<void> {
+    if (this.initialized) {
+      return;
+    }
+
+    // Ensure data directory exists
+    await fs.mkdir(this.dataDir, { recursive: true });
+
+    // Load existing data if file exists
+    try {
+      const data = await fs.readFile(this.filePath, 'utf-8');
+      const parsed = JSON.parse(data, (key, value) => {
+        // Revive Date objects
+        if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(value)) {
+          return new Date(value);
+        }
+        return value;
+      });
+
+      // Convert object to Map and build join code index
+      this.sections = new Map(Object.entries(parsed));
+      this.joinCodeIndex.clear();
+      for (const [id, section] of Array.from(this.sections.entries())) {
+        this.joinCodeIndex.set(section.joinCode, id);
+      }
+    } catch (error: any) {
+      if (error.code === 'ENOENT') {
+        // File doesn't exist yet, start with empty map
+        this.sections = new Map();
+        this.joinCodeIndex = new Map();
+      } else {
+        throw new Error(`Failed to load sections: ${error.message}`);
+      }
+    }
+
+    this.initialized = true;
+  }
+
+  /**
+   * Save sections to disk atomically
+   */
+  private async save(): Promise<void> {
+    // Convert Map to object for JSON serialization
+    const obj = Object.fromEntries(this.sections);
+    const json = JSON.stringify(obj, null, 2);
+    
+    // Atomic write: write to temp file, then rename
+    const tempPath = `${this.filePath}.tmp`;
+    await fs.writeFile(tempPath, json, 'utf-8');
+    await fs.rename(tempPath, this.filePath);
+  }
+
+  /**
+   * Generate a unique join code (check for collisions)
+   */
+  private async generateUniqueJoinCode(): Promise<string> {
+    let attempts = 0;
+    const maxAttempts = 10;
+
+    while (attempts < maxAttempts) {
+      const code = this.joinCodeService.generateJoinCode();
+      
+      // Check if code is already in use
+      if (!this.joinCodeIndex.has(code)) {
+        return code;
+      }
+      
+      attempts++;
+    }
+
+    throw new Error('Failed to generate unique join code after multiple attempts');
+  }
+
+  /**
+   * Create a new section with auto-generated join code
+   */
+  async createSection(sectionData: Omit<Section, 'id' | 'joinCode' | 'createdAt' | 'updatedAt'>): Promise<Section> {
+    await this.ensureInitialized();
+
+    const now = new Date();
+    const joinCode = await this.generateUniqueJoinCode();
+    
+    const newSection: Section = {
+      id: `section-${uuidv4()}`,
+      ...sectionData,
+      joinCode,
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    this.sections.set(newSection.id, newSection);
+    this.joinCodeIndex.set(joinCode, newSection.id);
+    await this.save();
+
+    return newSection;
+  }
+
+  /**
+   * Get a section by ID
+   */
+  async getSection(sectionId: string): Promise<Section | null> {
+    await this.ensureInitialized();
+    return this.sections.get(sectionId) || null;
+  }
+
+  /**
+   * Get a section by join code
+   */
+  async getSectionByJoinCode(joinCode: string): Promise<Section | null> {
+    await this.ensureInitialized();
+    
+    const sectionId = this.joinCodeIndex.get(joinCode);
+    if (!sectionId) {
+      return null;
+    }
+    
+    return this.sections.get(sectionId) || null;
+  }
+
+  /**
+   * Update a section
+   */
+  async updateSection(sectionId: string, updates: Partial<Omit<Section, 'id' | 'createdAt'>>): Promise<void> {
+    await this.ensureInitialized();
+
+    const existingSection = this.sections.get(sectionId);
+    if (!existingSection) {
+      throw new Error(`Section not found: ${sectionId}`);
+    }
+
+    // If join code is being updated, update the index
+    if (updates.joinCode && updates.joinCode !== existingSection.joinCode) {
+      // Check if new code is already in use
+      if (this.joinCodeIndex.has(updates.joinCode)) {
+        throw new Error(`Join code already in use: ${updates.joinCode}`);
+      }
+      
+      // Remove old code from index
+      this.joinCodeIndex.delete(existingSection.joinCode);
+      // Add new code to index
+      this.joinCodeIndex.set(updates.joinCode, sectionId);
+    }
+
+    const updatedSection: Section = {
+      ...existingSection,
+      ...updates,
+      id: existingSection.id, // Preserve ID
+      createdAt: existingSection.createdAt, // Preserve creation date
+      updatedAt: new Date(),
+    };
+
+    this.sections.set(sectionId, updatedSection);
+    await this.save();
+  }
+
+  /**
+   * Delete a section
+   */
+  async deleteSection(sectionId: string): Promise<void> {
+    await this.ensureInitialized();
+
+    const section = this.sections.get(sectionId);
+    if (!section) {
+      throw new Error(`Section not found: ${sectionId}`);
+    }
+
+    // Remove from join code index
+    this.joinCodeIndex.delete(section.joinCode);
+    
+    // Remove section
+    this.sections.delete(sectionId);
+    await this.save();
+  }
+
+  /**
+   * List sections with optional filtering
+   */
+  async listSections(filters?: SectionFilters): Promise<Section[]> {
+    await this.ensureInitialized();
+
+    let sections = Array.from(this.sections.values());
+
+    if (filters) {
+      if (filters.classId) {
+        sections = sections.filter(s => s.classId === filters.classId);
+      }
+      
+      if (filters.instructorId) {
+        sections = sections.filter(s => 
+          s.instructorIds.includes(filters.instructorId!)
+        );
+      }
+      
+      if (filters.active !== undefined) {
+        sections = sections.filter(s => s.active === filters.active);
+      }
+    }
+
+    // Sort by creation date (newest first)
+    sections.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+
+    return sections;
+  }
+
+  /**
+   * Regenerate the join code for a section
+   */
+  async regenerateJoinCode(sectionId: string): Promise<string> {
+    await this.ensureInitialized();
+
+    const section = this.sections.get(sectionId);
+    if (!section) {
+      throw new Error(`Section not found: ${sectionId}`);
+    }
+
+    // Generate new unique code
+    const newJoinCode = await this.generateUniqueJoinCode();
+    
+    // Remove old code from index
+    this.joinCodeIndex.delete(section.joinCode);
+    
+    // Update section with new code
+    section.joinCode = newJoinCode;
+    section.updatedAt = new Date();
+    
+    // Add new code to index
+    this.joinCodeIndex.set(newJoinCode, sectionId);
+    
+    await this.save();
+
+    return newJoinCode;
+  }
+
+  /**
+   * Get statistics for a section
+   */
+  async getSectionStats(sectionId: string): Promise<SectionStats> {
+    await this.ensureInitialized();
+
+    const section = this.sections.get(sectionId);
+    if (!section) {
+      throw new Error(`Section not found: ${sectionId}`);
+    }
+
+    if (!this.membershipRepository) {
+      throw new Error('Membership repository not configured');
+    }
+
+    // Count students in section
+    const students = await this.membershipRepository.getSectionMembers(sectionId, 'student');
+    
+    // TODO: Query session counts when session repository is available
+    // For now, return placeholder values
+    return {
+      studentCount: students.length,
+      sessionCount: 0,
+      activeSessionCount: 0,
+    };
+  }
+}

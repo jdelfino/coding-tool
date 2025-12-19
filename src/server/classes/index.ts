@@ -25,3 +25,9 @@ export type {
   IMembershipRepository,
   IJoinCodeService,
 } from './interfaces';
+
+// Export implementations
+export { ClassRepository } from './class-repository';
+export { SectionRepository } from './section-repository';
+export { MembershipRepository } from './membership-repository';
+export { JoinCodeService } from './join-code-service';
