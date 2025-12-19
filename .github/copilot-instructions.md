@@ -1,8 +1,5 @@
 # GitHub Copilot Instructions
 
-## Test coverage
-Changes should generally include unit test coverage. Unit tests should be isolated, and
-not resemble integration tests. Use mocking or fakes as needed to isolate the unit under test.
 
 ## Issue Tracking with bd
 

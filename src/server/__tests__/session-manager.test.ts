@@ -820,4 +820,146 @@ describe('SessionManager', () => {
       expect(result).toBe(false);
     });
   });
+
+  describe('Section-scoped Operations', () => {
+    describe('getSessionsBySection', () => {
+      it('should filter sessions by sectionId', async () => {
+        // Create sessions with different section IDs
+        const session1 = await sessionManager.createSession('instructor-1');
+        const session2 = await sessionManager.createSession('instructor-1');
+        const session3 = await sessionManager.createSession('instructor-1');
+
+        // Manually update sessions with section IDs
+        const stored1 = await storage.sessions.getSession(session1.id);
+        const stored2 = await storage.sessions.getSession(session2.id);
+        const stored3 = await storage.sessions.getSession(session3.id);
+
+        if (stored1) {
+          stored1.sectionId = 'section-1';
+          await storage.sessions.updateSession(session1.id, stored1);
+        }
+
+        if (stored2) {
+          stored2.sectionId = 'section-1';
+          await storage.sessions.updateSession(session2.id, stored2);
+        }
+
+        if (stored3) {
+          stored3.sectionId = 'section-2';
+          await storage.sessions.updateSession(session3.id, stored3);
+        }
+
+        const section1Sessions = await sessionManager.getSessionsBySection('section-1');
+        expect(section1Sessions).toHaveLength(2);
+        expect(section1Sessions.map(s => s.id)).toContain(session1.id);
+        expect(section1Sessions.map(s => s.id)).toContain(session2.id);
+      });
+
+      it('should return empty array for section with no sessions', async () => {
+        const sessions = await sessionManager.getSessionsBySection('non-existent-section');
+        expect(sessions).toEqual([]);
+      });
+
+      it('should handle storage errors gracefully', async () => {
+        storage.sessions.listAllSessions = jest.fn().mockRejectedValue(new Error('Storage error'));
+
+        const sessions = await sessionManager.getSessionsBySection('section-1');
+        expect(sessions).toEqual([]);
+      });
+    });
+
+    describe('isSectionMember', () => {
+      it('should return true for member of session section', async () => {
+        const session = await sessionManager.createSession('instructor-1');
+
+        // Update session with section ID
+        const stored = await storage.sessions.getSession(session.id);
+        if (stored) {
+          stored.sectionId = 'section-1';
+          await storage.sessions.updateSession(session.id, stored);
+        }
+
+        // Mock membership repository
+        storage.memberships = {
+          getMembership: jest.fn().mockResolvedValue({
+            id: 'membership-1',
+            userId: 'user-1',
+            sectionId: 'section-1',
+            role: 'student',
+          }),
+        } as any;
+
+        const isMember = await sessionManager.isSectionMember(session.id, 'user-1');
+        expect(isMember).toBe(true);
+      });
+
+      it('should return false for non-member', async () => {
+        const session = await sessionManager.createSession('instructor-1');
+
+        // Update session with section ID
+        const stored = await storage.sessions.getSession(session.id);
+        if (stored) {
+          stored.sectionId = 'section-1';
+          await storage.sessions.updateSession(session.id, stored);
+        }
+
+        // Mock membership repository
+        storage.memberships = {
+          getMembership: jest.fn().mockResolvedValue(null),
+        } as any;
+
+        const isMember = await sessionManager.isSectionMember(session.id, 'user-2');
+        expect(isMember).toBe(false);
+      });
+
+      it('should return true for session without sectionId (backwards compatibility)', async () => {
+        const session = await sessionManager.createSession('instructor-1');
+
+        // No sectionId set - should allow access
+        const isMember = await sessionManager.isSectionMember(session.id, 'any-user');
+        expect(isMember).toBe(true);
+      });
+
+      it('should return false for non-existent session', async () => {
+        const isMember = await sessionManager.isSectionMember('non-existent-session', 'user-1');
+        expect(isMember).toBe(false);
+      });
+
+      it('should return false when membership repository not available', async () => {
+        const session = await sessionManager.createSession('instructor-1');
+
+        // Update session with section ID
+        const stored = await storage.sessions.getSession(session.id);
+        if (stored) {
+          stored.sectionId = 'section-1';
+          await storage.sessions.updateSession(session.id, stored);
+        }
+
+        // No membership repository configured
+        storage.memberships = undefined;
+
+        const isMember = await sessionManager.isSectionMember(session.id, 'user-1');
+        expect(isMember).toBe(false);
+      });
+
+      it('should handle membership check errors gracefully', async () => {
+        const session = await sessionManager.createSession('instructor-1');
+
+        // Update session with section ID
+        const stored = await storage.sessions.getSession(session.id);
+        if (stored) {
+          stored.sectionId = 'section-1';
+          await storage.sessions.updateSession(session.id, stored);
+        }
+
+        // Mock membership repository to throw error
+        storage.memberships = {
+          getMembership: jest.fn().mockRejectedValue(new Error('Database error')),
+        } as any;
+
+        const isMember = await sessionManager.isSectionMember(session.id, 'user-1');
+        expect(isMember).toBe(false);
+      });
+    });
+  });
 });
