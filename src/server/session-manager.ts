@@ -150,6 +150,11 @@ export class SessionManager {
     
     session.connectedStudents.set(studentId, student);
     
+    // Initialize participants array if it doesn't exist (backwards compatibility)
+    if (!session.participants) {
+      session.participants = [];
+    }
+    
     // Add to participants list if not already there
     if (!session.participants.includes(studentId)) {
       session.participants.push(studentId);
@@ -444,7 +449,7 @@ export class SessionManager {
     
     try {
       const allSessions = await this.storage.sessions.listAllSessions();
-      return allSessions.filter(s => s.participants.includes(userId));
+      return allSessions.filter(s => s.participants && s.participants.includes(userId));
     } catch (error) {
       console.error('Failed to get sessions by participant:', error);
       return [];
