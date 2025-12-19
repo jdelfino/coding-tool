@@ -239,25 +239,26 @@ export class FakeSectionRepository implements ISectionRepository {
     }
   }
 
-  async getSectionStats(sectionId: string): Promise<SectionStats | null> {
+  async getSectionStats(sectionId: string): Promise<SectionStats> {
     const section = this.sections.get(sectionId);
-    if (!section) return null;
+    if (!section) {
+      throw new Error(`Section not found: ${sectionId}`);
+    }
 
     if (!this.membershipRepository) {
       return {
-        sectionId,
         studentCount: 0,
-        instructorCount: section.instructorIds.length,
+        sessionCount: 0,
+        activeSessionCount: 0,
       };
     }
 
     const students = await this.membershipRepository.getSectionMembers(sectionId, 'student');
-    const instructors = await this.membershipRepository.getSectionMembers(sectionId, 'instructor');
 
     return {
-      sectionId,
       studentCount: students.length,
-      instructorCount: instructors.length,
+      sessionCount: 0,
+      activeSessionCount: 0,
     };
   }
 

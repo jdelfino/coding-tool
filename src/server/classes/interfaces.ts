@@ -148,6 +148,30 @@ export interface ISectionRepository {
   regenerateJoinCode(sectionId: string): Promise<string>;
 
   /**
+   * Add an instructor to a section
+   * 
+   * Helper method to add an instructor ID to the instructorIds array.
+   * Idempotent - if instructor already exists, no change is made.
+   * 
+   * @param sectionId - The section ID
+   * @param instructorId - The instructor user ID to add
+   * @throws Error if section not found
+   */
+  addInstructor(sectionId: string, instructorId: string): Promise<void>;
+
+  /**
+   * Remove an instructor from a section
+   * 
+   * Helper method to remove an instructor ID from the instructorIds array.
+   * Idempotent - if instructor doesn't exist, no error is thrown.
+   * 
+   * @param sectionId - The section ID
+   * @param instructorId - The instructor user ID to remove
+   * @throws Error if section not found
+   */
+  removeInstructor(sectionId: string, instructorId: string): Promise<void>;
+
+  /**
    * Get statistics for a section
    * 
    * @param sectionId - The section ID

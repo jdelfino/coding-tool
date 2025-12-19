@@ -34,37 +34,41 @@ export { generateJoinCode, isValidJoinCodeFormat } from './join-code-service';
 
 // Singleton instances
 import { getStorage } from '../persistence';
-import { ClassRepository } from './class-repository';
-import { SectionRepository } from './section-repository';
-import { MembershipRepository } from './membership-repository';
+import type { IClassRepository, ISectionRepository, IMembershipRepository } from './interfaces';
 
-let classRepositoryInstance: ClassRepository | null = null;
-let sectionRepositoryInstance: SectionRepository | null = null;
-let membershipRepositoryInstance: MembershipRepository | null = null;
+let classRepositoryInstance: IClassRepository | null = null;
+let sectionRepositoryInstance: ISectionRepository | null = null;
+let membershipRepositoryInstance: IMembershipRepository | null = null;
 
-export async function getClassRepository(): Promise<ClassRepository> {
+export async function getClassRepository(): Promise<IClassRepository> {
   if (!classRepositoryInstance) {
     const storage = await getStorage();
-    // Use the class repository from storage backend
-    classRepositoryInstance = storage.classes as ClassRepository;
+    if (!storage.classes) {
+      throw new Error('Class repository not initialized in storage backend');
+    }
+    classRepositoryInstance = storage.classes;
   }
   return classRepositoryInstance;
 }
 
-export async function getSectionRepository(): Promise<SectionRepository> {
+export async function getSectionRepository(): Promise<ISectionRepository> {
   if (!sectionRepositoryInstance) {
     const storage = await getStorage();
-    // Use the section repository from storage backend
-    sectionRepositoryInstance = storage.sections as SectionRepository;
+    if (!storage.sections) {
+      throw new Error('Section repository not initialized in storage backend');
+    }
+    sectionRepositoryInstance = storage.sections;
   }
   return sectionRepositoryInstance;
 }
 
-export async function getMembershipRepository(): Promise<MembershipRepository> {
+export async function getMembershipRepository(): Promise<IMembershipRepository> {
   if (!membershipRepositoryInstance) {
     const storage = await getStorage();
-    // Use the membership repository from storage backend
-    membershipRepositoryInstance = storage.memberships as MembershipRepository;
+    if (!storage.memberships) {
+      throw new Error('Membership repository not initialized in storage backend');
+    }
+    membershipRepositoryInstance = storage.memberships;
   }
   return membershipRepositoryInstance;
 }
