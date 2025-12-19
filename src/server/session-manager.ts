@@ -459,20 +459,7 @@ export class SessionManager {
     
     try {
       const allSessions = await storage.sessions.listAllSessions();
-      console.log('[SessionManager] Retrieved', allSessions.length, 'total sessions');
-      
-      allSessions.forEach(s => {
-        console.log('[SessionManager] Session', s.id, '- participants:', s.participants);
-      });
-      
-      const filtered = allSessions.filter(s => {
-        const includes = s.participants.includes(userId);
-        console.log('[SessionManager] Session', s.id, 'includes user?', includes);
-        return includes;
-      });
-      
-      console.log('[SessionManager] Returning', filtered.length, 'filtered sessions');
-      return filtered;
+      return allSessions.filter(s => s.participants.includes(userId));
     } catch (error) {
       console.error('Failed to get sessions by participant:', error);
       return [];

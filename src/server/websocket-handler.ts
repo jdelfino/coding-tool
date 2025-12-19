@@ -164,7 +164,6 @@ class WebSocketHandler {
   }
 
   private async handleCreateSession(ws: WebSocket, connection: Connection) {
-    console.log('Creating session for user:', connection.userId || 'undefined (will default to "system")');
     const session = await sessionManagerHolder.instance.createSession(connection.userId);
     connection.role = 'instructor';
     connection.sessionId = session.id;
@@ -302,7 +301,6 @@ class WebSocketHandler {
     // Use authenticated user ID if available, otherwise generate a UUID
     // This ensures students can see their session history after signing out and back in
     const studentId = connection.userId || uuidv4();
-    console.log('Student joining session - userId:', connection.userId, 'studentId:', studentId);
     connection.role = 'student';
     connection.sessionId = session.id;
     connection.studentId = studentId;
