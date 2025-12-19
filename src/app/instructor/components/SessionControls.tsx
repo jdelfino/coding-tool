@@ -1,50 +1,54 @@
 'use client';
 
 interface SessionControlsProps {
-  sessionId: string | null;
-  joinCode: string | null;
-  onCreateSession: () => void;
-  isCreating?: boolean;
-  disabled?: boolean;
+  sessionId: string;
+  joinCode: string;
+  sectionName?: string;
+  onEndSession: () => void;
+  onLeaveSession: () => void;
 }
 
 export default function SessionControls({ 
   sessionId, 
   joinCode, 
-  onCreateSession,
-  isCreating = false,
-  disabled = false
+  sectionName,
+  onEndSession,
+  onLeaveSession
 }: SessionControlsProps) {
   return (
-    <div style={{ padding: '1rem', border: '1px solid #ccc', marginBottom: '1rem' }}>
-      {!sessionId ? (
-        <button
-          onClick={onCreateSession}
-          disabled={disabled || isCreating}
-          style={{
-            padding: '1rem 2rem',
-            fontSize: '1.2rem',
-            backgroundColor: disabled || isCreating ? '#6c757d' : '#0070f3',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: disabled || isCreating ? 'not-allowed' : 'pointer',
-            opacity: disabled || isCreating ? 0.6 : 1,
-          }}
-        >
-          {isCreating ? 'Creating Session...' : disabled ? 'Server Unavailable' : 'Create Session'}
-        </button>
-      ) : (
+    <div className="bg-white border-2 border-blue-200 rounded-xl shadow-lg p-6">
+      <div className="flex justify-between items-start mb-4">
         <div>
-          <h2>Session Active</h2>
-          <div style={{ fontSize: '3rem', fontWeight: 'bold', margin: '1rem 0' }}>
-            Join Code: {joinCode}
-          </div>
-          <p style={{ color: '#666' }}>
-            Share this code with students so they can join the session.
-          </p>
+          <h2 className="text-xl font-bold text-gray-900 mb-1">Active Session</h2>
+          {sectionName && (
+            <p className="text-sm text-gray-600">{sectionName}</p>
+          )}
         </div>
-      )}
+        <div className="flex gap-2">
+          <button
+            onClick={onLeaveSession}
+            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            Leave Session
+          </button>
+          <button
+            onClick={onEndSession}
+            className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
+          >
+            End Session
+          </button>
+        </div>
+      </div>
+      
+      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-6 border-2 border-blue-300">
+        <p className="text-sm text-gray-600 mb-2">Student Join Code</p>
+        <div className="text-5xl font-bold text-blue-600 font-mono tracking-wider">
+          {joinCode}
+        </div>
+        <p className="text-sm text-gray-600 mt-3">
+          Share this code with students so they can join the session
+        </p>
+      </div>
     </div>
   );
 }

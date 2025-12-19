@@ -7,6 +7,7 @@ import { MessageType, WebSocketMessage, Student } from './types';
 import { getAuthProvider } from './auth';
 import { revisionBufferHolder } from './revision-buffer';
 import { getStorage } from './persistence';
+import { getSectionRepository } from './classes';
 import * as DiffMatchPatch from 'diff-match-patch';
 
 interface Connection {
@@ -106,7 +107,7 @@ class WebSocketHandler {
 
     switch (message.type) {
       case MessageType.CREATE_SESSION:
-        await this.handleCreateSession(ws, connection);
+        await this.handleCreateSession(ws, connection, message.payload);
         break;
 
       case MessageType.LIST_SESSIONS:
@@ -170,8 +171,42 @@ class WebSocketHandler {
     }
   }
 
-  private async handleCreateSession(ws: WebSocket, connection: Connection) {
-    const session = await sessionManagerHolder.instance.createSession(connection.userId);
+  private async handleCreateSession(ws: WebSocket, connection: Connection, payload: any) {
+    const { sectionId } = payload;
+    
+    if (!sectionId || typeof sectionId !== 'string') {
+      this.sendError(ws, 'Section ID is required to create a session');
+      return;
+    }
+
+    if (!connection.userId) {
+      this.sendError(ws, 'Authentication required to create a session');
+      return;
+    }
+
+    // Validate instructor has access to this section
+    const sectionRepo = await getSectionRepository();
+    const section = await sectionRepo.getSection(sectionId);
+    
+    if (!section) {
+      this.sendError(ws, 'Section not found');
+      return;
+    }
+
+    // Check if user is instructor of this section
+    const isInstructor = section.instructorIds.includes(connection.userId);
+    if (!isInstructor) {
+      this.sendError(ws, 'You are not an instructor of this section');
+      return;
+    }
+
+    // Create session with section context
+    const session = await sessionManagerHolder.instance.createSession(
+      connection.userId,
+      sectionId,
+      section.name
+    );
+    
     connection.role = 'instructor';
     connection.sessionId = session.id;
     
@@ -180,6 +215,8 @@ class WebSocketHandler {
       payload: {
         sessionId: session.id,
         joinCode: session.joinCode,
+        sectionId: session.sectionId,
+        sectionName: session.sectionName,
       },
     });
   }

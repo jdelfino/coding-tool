@@ -24,9 +24,9 @@ export interface Session {
   participants: string[]; // Array of user IDs who participated
   status: 'active' | 'completed';
   endedAt?: Date;
-  // Multi-tenancy fields
-  sectionId?: string; // Section this session belongs to (optional for backwards compatibility)
-  sectionName?: string; // Denormalized section name for display
+  // Multi-tenancy fields (required - sessions always belong to a section)
+  sectionId: string; // Section this session belongs to
+  sectionName: string; // Denormalized section name for display
 }
 
 export interface ExecutionResult {

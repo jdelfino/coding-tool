@@ -40,7 +40,7 @@ describe('SessionManager', () => {
 
   describe('Session Creation', () => {
     it('should create session with auto-generated join code', async () => {
-      const session = await sessionManager.createSession();
+      const session = await sessionManager.createSession('test-instructor', 'test-section-id', 'Test Section');
 
       expect(session).toBeDefined();
       expect(session.id).toBe('session-0');
@@ -49,14 +49,18 @@ describe('SessionManager', () => {
       expect(session.students).toBeInstanceOf(Map);
       expect(session.students.size).toBe(0);
       expect(session.status).toBe('active');
-      expect(session.creatorId).toBe('system');
+      expect(session.creatorId).toBe('test-instructor');
+      expect(session.sectionId).toBe('test-section-id');
+      expect(session.sectionName).toBe('Test Section');
     });
 
     it('should create session with custom creator ID', async () => {
-      const session = await sessionManager.createSession('instructor-123');
+      const session = await sessionManager.createSession('instructor-123', 'test-section-id', 'Test Section');
 
       expect(session.creatorId).toBe('instructor-123');
       expect(session.id).toBe('session-0');
+      expect(session.sectionId).toBe('test-section-id');
+      expect(session.sectionName).toBe('Test Section');
     });
 
     it('should generate unique join codes (collision handling)', async () => {
@@ -69,8 +73,8 @@ describe('SessionManager', () => {
         return callCount++ < 2 ? 0.5 : 0.7;
       });
 
-      const session1 = await sessionManager.createSession();
-      const session2 = await sessionManager.createSession();
+      const session1 = await sessionManager.createSession('test-instructor', 'test-section-id', 'Test Section');
+      const session2 = await sessionManager.createSession('test-instructor', 'test-section-id', 'Test Section');
 
       expect(session1.joinCode).toBeDefined();
       expect(session2.joinCode).toBeDefined();
@@ -80,8 +84,8 @@ describe('SessionManager', () => {
     });
 
     it('should assign unique session IDs', async () => {
-      const session1 = await sessionManager.createSession();
-      const session2 = await sessionManager.createSession();
+      const session1 = await sessionManager.createSession('test-instructor', 'test-section-id', 'Test Section');
+      const session2 = await sessionManager.createSession('test-instructor', 'test-section-id', 'Test Section');
 
       expect(session1.id).toBe('session-0');
       expect(session2.id).toBe('session-1');
@@ -89,7 +93,7 @@ describe('SessionManager', () => {
     });
 
     it('should validate initial session state', async () => {
-      const session = await sessionManager.createSession('instructor-1');
+      const session = await sessionManager.createSession('instructor-1', 'test-section-id', 'Test Section');
 
       expect(session.problemText).toBe('');
       expect(session.participants).toEqual([]);
@@ -100,7 +104,7 @@ describe('SessionManager', () => {
     });
 
     it('should persist session to storage', async () => {
-      const session = await sessionManager.createSession();
+      const session = await sessionManager.createSession('test-instructor', 'test-section-id', 'Test Section');
 
       const stored = await storage.sessions.getSession(session.id);
       expect(stored).toBeDefined();
@@ -112,20 +116,20 @@ describe('SessionManager', () => {
       // Mock storage to throw error
       storage.sessions.createSession = jest.fn().mockRejectedValue(new Error('Storage error'));
 
-      await expect(sessionManager.createSession()).rejects.toThrow('Storage error');
+      await expect(sessionManager.createSession('test-instructor', 'test-section-id', 'Test Section')).rejects.toThrow('Storage error');
     });
   });
 
   describe('Join Code Management', () => {
     it('should generate 6-character uppercase codes', async () => {
-      const session = await sessionManager.createSession();
+      const session = await sessionManager.createSession('test-instructor', 'test-section-id', 'Test Section');
 
       expect(session.joinCode).toHaveLength(6);
       expect(session.joinCode).toMatch(/^[A-Z0-9]+$/);
     });
 
     it('should normalize join codes to uppercase', async () => {
-      const session = await sessionManager.createSession();
+      const session = await sessionManager.createSession('test-instructor', 'test-section-id', 'Test Section');
       
       // Test case-insensitive lookup
       const found = await sessionManager.getSessionByJoinCode(session.joinCode.toLowerCase());
@@ -134,7 +138,7 @@ describe('SessionManager', () => {
     });
 
     it('should find session by join code', async () => {
-      const session = await sessionManager.createSession();
+      const session = await sessionManager.createSession('test-instructor', 'test-section-id', 'Test Section');
 
       const found = await sessionManager.getSessionByJoinCode(session.joinCode);
       expect(found).toBeDefined();
@@ -148,7 +152,7 @@ describe('SessionManager', () => {
     });
 
     it('should handle case-insensitive join code lookup', async () => {
-      const session = await sessionManager.createSession();
+      const session = await sessionManager.createSession('test-instructor', 'test-section-id', 'Test Section');
       const lowerCode = session.joinCode.toLowerCase();
       const mixedCode = session.joinCode.split('').map((c, i) => 
         i % 2 === 0 ? c.toLowerCase() : c.toUpperCase()
@@ -166,7 +170,7 @@ describe('SessionManager', () => {
     let session: Session;
 
     beforeEach(async () => {
-      session = await sessionManager.createSession('instructor-1');
+      session = await sessionManager.createSession('instructor-1', 'test-section-id', 'Test Section');
     });
 
     it('should add student to session', async () => {
@@ -252,7 +256,7 @@ describe('SessionManager', () => {
     let session: Session;
 
     beforeEach(async () => {
-      session = await sessionManager.createSession();
+      session = await sessionManager.createSession('test-instructor', 'test-section-id', 'Test Section');
     });
 
     it('should update problem text', async () => {
@@ -304,7 +308,7 @@ describe('SessionManager', () => {
     let session: Session;
 
     beforeEach(async () => {
-      session = await sessionManager.createSession();
+      session = await sessionManager.createSession('test-instructor', 'test-section-id', 'Test Section');
       await sessionManager.addStudent(session.id, 'student-1', 'Alice');
     });
 
@@ -385,16 +389,16 @@ describe('SessionManager', () => {
 
   describe('Session Lifecycle', () => {
     it('should list all sessions', async () => {
-      await sessionManager.createSession('instructor-1');
-      await sessionManager.createSession('instructor-2');
-      await sessionManager.createSession('instructor-1');
+      await sessionManager.createSession('instructor-1', 'test-section-id', 'Test Section');
+      await sessionManager.createSession('instructor-2', 'test-section-id', 'Test Section');
+      await sessionManager.createSession('instructor-1', 'test-section-id', 'Test Section');
 
       const sessions = await sessionManager.listSessions();
       expect(sessions).toHaveLength(3);
     });
 
     it('should get session by ID', async () => {
-      const session = await sessionManager.createSession();
+      const session = await sessionManager.createSession('test-instructor', 'test-section-id', 'Test Section');
 
       const found = await sessionManager.getSession(session.id);
       expect(found).toBeDefined();
@@ -407,7 +411,7 @@ describe('SessionManager', () => {
     });
 
     it('should delete session and cleanup', async () => {
-      const session = await sessionManager.createSession();
+      const session = await sessionManager.createSession('test-instructor', 'test-section-id', 'Test Section');
       
       const result = await sessionManager.deleteSession(session.id);
       expect(result).toBe(true);
@@ -417,7 +421,7 @@ describe('SessionManager', () => {
     });
 
     it('should remove join code index on delete', async () => {
-      const session = await sessionManager.createSession();
+      const session = await sessionManager.createSession('test-instructor', 'test-section-id', 'Test Section');
       const joinCode = session.joinCode;
 
       await sessionManager.deleteSession(session.id);
@@ -427,8 +431,8 @@ describe('SessionManager', () => {
     });
 
     it('should track active vs inactive sessions', async () => {
-      const session1 = await sessionManager.createSession();
-      const session2 = await sessionManager.createSession();
+      const session1 = await sessionManager.createSession('test-instructor', 'test-section-id', 'Test Section');
+      const session2 = await sessionManager.createSession('test-instructor', 'test-section-id', 'Test Section');
 
       await sessionManager.endSession(session1.id);
 
@@ -440,7 +444,7 @@ describe('SessionManager', () => {
     });
 
     it('should update last activity timestamp', async () => {
-      const session = await sessionManager.createSession();
+      const session = await sessionManager.createSession('test-instructor', 'test-section-id', 'Test Section');
       const initialActivity = session.lastActivity;
 
       await new Promise(resolve => setTimeout(resolve, 10));
@@ -451,8 +455,8 @@ describe('SessionManager', () => {
     });
 
     it('should return session count', async () => {
-      await sessionManager.createSession();
-      await sessionManager.createSession();
+      await sessionManager.createSession('test-instructor', 'test-section-id', 'Test Section');
+      await sessionManager.createSession('test-instructor', 'test-section-id', 'Test Section');
 
       const count = await sessionManager.getSessionCount();
       expect(count).toBe(2);
@@ -466,8 +470,8 @@ describe('SessionManager', () => {
 
   describe('Session Cleanup', () => {
     it('should cleanup old sessions (>24h)', async () => {
-      const session1 = await sessionManager.createSession();
-      const session2 = await sessionManager.createSession();
+      const session1 = await sessionManager.createSession('test-instructor', 'test-section-id', 'Test Section');
+      const session2 = await sessionManager.createSession('test-instructor', 'test-section-id', 'Test Section');
 
       // Manually set old lastActivity (25 hours ago)
       const oldDate = new Date(Date.now() - 25 * 60 * 60 * 1000);
@@ -481,8 +485,8 @@ describe('SessionManager', () => {
     });
 
     it('should not cleanup recent sessions', async () => {
-      const session1 = await sessionManager.createSession();
-      const session2 = await sessionManager.createSession();
+      const session1 = await sessionManager.createSession('test-instructor', 'test-section-id', 'Test Section');
+      const session2 = await sessionManager.createSession('test-instructor', 'test-section-id', 'Test Section');
 
       const cleaned = await sessionManager.cleanupOldSessions();
 
@@ -496,7 +500,7 @@ describe('SessionManager', () => {
       const oldDate = new Date(Date.now() - 25 * 60 * 60 * 1000);
       
       for (let i = 0; i < 10; i++) {
-        const session = await sessionManager.createSession();
+        const session = await sessionManager.createSession('test-instructor', 'test-section-id', 'Test Section');
         await storage.sessions.updateSession(session.id, { lastActivity: oldDate });
       }
 
@@ -513,7 +517,7 @@ describe('SessionManager', () => {
     });
 
     it('should handle cleanup errors gracefully', async () => {
-      const session = await sessionManager.createSession();
+      const session = await sessionManager.createSession('test-instructor', 'test-section-id', 'Test Section');
       const oldDate = new Date(Date.now() - 25 * 60 * 60 * 1000);
       await storage.sessions.updateSession(session.id, { lastActivity: oldDate });
 
@@ -533,9 +537,9 @@ describe('SessionManager', () => {
 
   describe('Creator/Participant Queries', () => {
     it('should get sessions by creator', async () => {
-      await sessionManager.createSession('instructor-1');
-      await sessionManager.createSession('instructor-2');
-      await sessionManager.createSession('instructor-1');
+      await sessionManager.createSession('instructor-1', 'test-section-id', 'Test Section');
+      await sessionManager.createSession('instructor-2', 'test-section-id', 'Test Section');
+      await sessionManager.createSession('instructor-1', 'test-section-id', 'Test Section');
 
       const sessions = await sessionManager.getSessionsByCreator('instructor-1');
       expect(sessions).toHaveLength(2);
@@ -543,9 +547,9 @@ describe('SessionManager', () => {
     });
 
     it('should get sessions by participant', async () => {
-      const session1 = await sessionManager.createSession();
-      const session2 = await sessionManager.createSession();
-      const session3 = await sessionManager.createSession();
+      const session1 = await sessionManager.createSession('test-instructor', 'test-section-id', 'Test Section');
+      const session2 = await sessionManager.createSession('test-instructor', 'test-section-id', 'Test Section');
+      const session3 = await sessionManager.createSession('test-instructor', 'test-section-id', 'Test Section');
 
       await sessionManager.addStudent(session1.id, 'student-1', 'Alice');
       await sessionManager.addStudent(session3.id, 'student-1', 'Alice');
@@ -568,7 +572,7 @@ describe('SessionManager', () => {
 
     it('should handle multiple sessions per creator', async () => {
       for (let i = 0; i < 5; i++) {
-        await sessionManager.createSession('instructor-1');
+        await sessionManager.createSession('instructor-1', 'test-section-id', 'Test Section');
       }
 
       const sessions = await sessionManager.getSessionsByCreator('instructor-1');
@@ -595,11 +599,11 @@ describe('SessionManager', () => {
     it('should handle storage errors during create', async () => {
       storage.sessions.createSession = jest.fn().mockRejectedValue(new Error('DB error'));
 
-      await expect(sessionManager.createSession()).rejects.toThrow('DB error');
+      await expect(sessionManager.createSession('test-instructor', 'test-section-id', 'Test Section')).rejects.toThrow('DB error');
     });
 
     it('should handle storage errors during update', async () => {
-      const session = await sessionManager.createSession();
+      const session = await sessionManager.createSession('test-instructor', 'test-section-id', 'Test Section');
       
       storage.sessions.updateSession = jest.fn().mockRejectedValue(new Error('Update failed'));
 
@@ -619,7 +623,7 @@ describe('SessionManager', () => {
     });
 
     it('should handle concurrent operations', async () => {
-      const session = await sessionManager.createSession();
+      const session = await sessionManager.createSession('test-instructor', 'test-section-id', 'Test Section');
 
       // Concurrent student additions
       await Promise.all([
@@ -635,7 +639,7 @@ describe('SessionManager', () => {
 
   describe('Storage Integration', () => {
     it('should persist session on create', async () => {
-      const session = await sessionManager.createSession();
+      const session = await sessionManager.createSession('test-instructor', 'test-section-id', 'Test Section');
 
       const stored = await storage.sessions.getSession(session.id);
       expect(stored).toBeDefined();
@@ -643,7 +647,7 @@ describe('SessionManager', () => {
     });
 
     it('should persist updates to storage', async () => {
-      const session = await sessionManager.createSession();
+      const session = await sessionManager.createSession('test-instructor', 'test-section-id', 'Test Section');
       await sessionManager.updateProblem(session.id, 'Test problem');
 
       const stored = await storage.sessions.getSession(session.id);
@@ -652,8 +656,8 @@ describe('SessionManager', () => {
 
     it('should load sessions on initialize', async () => {
       // Create sessions
-      const session1 = await sessionManager.createSession();
-      const session2 = await sessionManager.createSession();
+      const session1 = await sessionManager.createSession('test-instructor', 'test-section-id', 'Test Section');
+      const session2 = await sessionManager.createSession('test-instructor', 'test-section-id', 'Test Section');
 
       // Create new manager instance
       const newManager = new SessionManager(storage);
@@ -668,8 +672,8 @@ describe('SessionManager', () => {
     });
 
     it('should rebuild join code index on initialize', async () => {
-      const session1 = await sessionManager.createSession();
-      const session2 = await sessionManager.createSession();
+      const session1 = await sessionManager.createSession('test-instructor', 'test-section-id', 'Test Section');
+      const session2 = await sessionManager.createSession('test-instructor', 'test-section-id', 'Test Section');
 
       // Create new manager and initialize
       const newManager = new SessionManager(storage);
@@ -700,7 +704,7 @@ describe('SessionManager', () => {
     let session: Session;
 
     beforeEach(async () => {
-      session = await sessionManager.createSession();
+      session = await sessionManager.createSession('test-instructor', 'test-section-id', 'Test Section');
       await sessionManager.addStudent(session.id, 'student-1', 'Alice');
       await sessionManager.updateStudentCode(session.id, 'student-1', 'print("featured")');
     });
@@ -744,7 +748,7 @@ describe('SessionManager', () => {
 
   describe('End Session', () => {
     it('should end session and set status to completed', async () => {
-      const session = await sessionManager.createSession();
+      const session = await sessionManager.createSession('test-instructor', 'test-section-id', 'Test Section');
       
       const result = await sessionManager.endSession(session.id);
       expect(result).toBe(true);
@@ -762,7 +766,7 @@ describe('SessionManager', () => {
 
   describe('Edge Cases', () => {
     it('should handle very long problem text', async () => {
-      const session = await sessionManager.createSession();
+      const session = await sessionManager.createSession('test-instructor', 'test-section-id', 'Test Section');
       const longText = 'x'.repeat(10000);
 
       await sessionManager.updateProblem(session.id, longText);
@@ -772,7 +776,7 @@ describe('SessionManager', () => {
     });
 
     it('should handle special characters in student names', async () => {
-      const session = await sessionManager.createSession();
+      const session = await sessionManager.createSession('test-instructor', 'test-section-id', 'Test Section');
       const specialName = "O'Brien <script>alert('xss')</script>";
 
       await sessionManager.addStudent(session.id, 'student-1', specialName);
@@ -782,7 +786,7 @@ describe('SessionManager', () => {
     });
 
     it('should handle empty student name', async () => {
-      const session = await sessionManager.createSession();
+      const session = await sessionManager.createSession('test-instructor', 'test-section-id', 'Test Section');
 
       await sessionManager.addStudent(session.id, 'student-1', '');
 
@@ -791,7 +795,7 @@ describe('SessionManager', () => {
     });
 
     it('should handle null/undefined values gracefully', async () => {
-      const session = await sessionManager.createSession();
+      const session = await sessionManager.createSession('test-instructor', 'test-section-id', 'Test Section');
 
       // These should not throw
       await sessionManager.updateProblem(session.id, '');
@@ -810,7 +814,7 @@ describe('SessionManager', () => {
     });
 
     it('should handle storage failures mid-operation', async () => {
-      const session = await sessionManager.createSession();
+      const session = await sessionManager.createSession('test-instructor', 'test-section-id', 'Test Section');
       await sessionManager.addStudent(session.id, 'student-1', 'Alice');
 
       // Mock storage to fail on next update
@@ -825,9 +829,9 @@ describe('SessionManager', () => {
     describe('getSessionsBySection', () => {
       it('should filter sessions by sectionId', async () => {
         // Create sessions with different section IDs
-        const session1 = await sessionManager.createSession('instructor-1');
-        const session2 = await sessionManager.createSession('instructor-1');
-        const session3 = await sessionManager.createSession('instructor-1');
+        const session1 = await sessionManager.createSession('instructor-1', 'test-section-id', 'Test Section');
+        const session2 = await sessionManager.createSession('instructor-1', 'test-section-id', 'Test Section');
+        const session3 = await sessionManager.createSession('instructor-1', 'test-section-id', 'Test Section');
 
         // Manually update sessions with section IDs
         const stored1 = await storage.sessions.getSession(session1.id);
@@ -870,7 +874,7 @@ describe('SessionManager', () => {
 
     describe('isSectionMember', () => {
       it('should return true for member of session section', async () => {
-        const session = await sessionManager.createSession('instructor-1');
+        const session = await sessionManager.createSession('instructor-1', 'test-section-id', 'Test Section');
 
         // Update session with section ID
         const stored = await storage.sessions.getSession(session.id);
@@ -894,7 +898,7 @@ describe('SessionManager', () => {
       });
 
       it('should return false for non-member', async () => {
-        const session = await sessionManager.createSession('instructor-1');
+        const session = await sessionManager.createSession('instructor-1', 'test-section-id', 'Test Section');
 
         // Update session with section ID
         const stored = await storage.sessions.getSession(session.id);
@@ -912,21 +916,13 @@ describe('SessionManager', () => {
         expect(isMember).toBe(false);
       });
 
-      it('should return true for session without sectionId (backwards compatibility)', async () => {
-        const session = await sessionManager.createSession('instructor-1');
-
-        // No sectionId set - should allow access
-        const isMember = await sessionManager.isSectionMember(session.id, 'any-user');
-        expect(isMember).toBe(true);
-      });
-
       it('should return false for non-existent session', async () => {
         const isMember = await sessionManager.isSectionMember('non-existent-session', 'user-1');
         expect(isMember).toBe(false);
       });
 
       it('should return false when membership repository not available', async () => {
-        const session = await sessionManager.createSession('instructor-1');
+        const session = await sessionManager.createSession('instructor-1', 'test-section-id', 'Test Section');
 
         // Update session with section ID
         const stored = await storage.sessions.getSession(session.id);
@@ -943,7 +939,7 @@ describe('SessionManager', () => {
       });
 
       it('should handle membership check errors gracefully', async () => {
-        const session = await sessionManager.createSession('instructor-1');
+        const session = await sessionManager.createSession('instructor-1', 'test-section-id', 'Test Section');
 
         // Update session with section ID
         const stored = await storage.sessions.getSession(session.id);

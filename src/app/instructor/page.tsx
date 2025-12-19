@@ -4,8 +4,9 @@ import { useState, useEffect } from 'react';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { useAuth } from '@/contexts/AuthContext';
+import ClassList from './components/ClassList';
+import SectionView from './components/SectionView';
 import SessionControls from './components/SessionControls';
-import SessionDashboard from './components/SessionDashboard';
 import ProblemInput from './components/ProblemInput';
 import StudentList from './components/StudentList';
 import CodeViewer from './components/CodeViewer';
@@ -17,20 +18,29 @@ interface Student {
   hasCode: boolean;
 }
 
-interface SessionInfo {
-  id: string;
-  joinCode: string;
-  problemText: string;
-  studentCount: number;
-  createdAt: string;
-  lastActivity: string;
+type ViewMode = 'classes' | 'sections' | 'session';
+
+interface ClassContext {
+  classId: string;
+  className: string;
+}
+
+interface SessionContext {
+  sectionId: string;
+  sectionName: string;
 }
 
 function InstructorPage() {
   const { user, signOut } = useAuth();
+  
+  // Navigation state
+  const [viewMode, setViewMode] = useState<ViewMode>('classes');
+  const [classContext, setClassContext] = useState<ClassContext | null>(null);
+  const [sessionContext, setSessionContext] = useState<SessionContext | null>(null);
+  
+  // Session state
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [joinCode, setJoinCode] = useState<string | null>(null);
-  const [sessions, setSessions] = useState<SessionInfo[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
   const [selectedStudentCode, setSelectedStudentCode] = useState<string>('');
@@ -43,7 +53,7 @@ function InstructorPage() {
     studentName: string;
   } | null>(null);
 
-  // Construct WebSocket URL - only initialize on client side
+  // Construct WebSocket URL
   const [wsUrl, setWsUrl] = useState('');
   
   useEffect(() => {
@@ -51,408 +61,362 @@ function InstructorPage() {
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       const host = window.location.host;
       const url = `${protocol}//${host}/ws`;
-      console.log('WebSocket URL:', url);
       setWsUrl(url);
     }
   }, []);
   
   const { isConnected, connectionStatus, connectionError, lastMessage, sendMessage } = useWebSocket(wsUrl);
 
-  // Request session list when connected
-  useEffect(() => {
-    if (isConnected && !sessionId) {
-      sendMessage('LIST_SESSIONS', {});
-    }
-  }, [isConnected, sessionId]);
-
   // Handle incoming WebSocket messages
   useEffect(() => {
     if (!lastMessage) return;
-
-    console.log('Received message:', lastMessage.type);
 
     switch (lastMessage.type) {
       case 'SESSION_CREATED':
         setSessionId(lastMessage.payload.sessionId);
         setJoinCode(lastMessage.payload.joinCode);
+        setSessionContext({
+          sectionId: lastMessage.payload.sectionId,
+          sectionName: lastMessage.payload.sectionName,
+        });
+        setViewMode('session');
         setIsCreatingSession(false);
         setError(null);
-        break;
-
-      case 'SESSION_LIST':
-        setSessions(lastMessage.payload.sessions || []);
         break;
 
       case 'SESSION_JOINED':
         setSessionId(lastMessage.payload.sessionId);
         setJoinCode(lastMessage.payload.joinCode);
+        setViewMode('session');
         setError(null);
         break;
 
       case 'SESSION_ENDED':
-        // If our current session was ended, go back to dashboard
         if (lastMessage.payload.sessionId === sessionId) {
-          setSessionId(null);
-          setJoinCode(null);
-          setStudents([]);
-          setSelectedStudentId(null);
-          setSelectedStudentCode('');
-          // Refresh session list
-          sendMessage('LIST_SESSIONS', {});
-        } else {
-          // Another session was ended, refresh list
-          setSessions(sessions.filter(s => s.id !== lastMessage.payload.sessionId));
+          handleLeaveSession();
         }
         break;
 
-      case 'STUDENT_LIST_UPDATE':
-        setStudents(lastMessage.payload.students);
+      case 'STUDENT_JOINED':
+        setStudents(prev => {
+          const exists = prev.find(s => s.id === lastMessage.payload.studentId);
+          if (exists) return prev;
+          
+          return [...prev, {
+            id: lastMessage.payload.studentId,
+            name: lastMessage.payload.studentName,
+            hasCode: false,
+          }];
+        });
+        break;
+
+      case 'STUDENT_LEFT':
+        setStudents(prev => 
+          prev.filter(s => s.id !== lastMessage.payload.studentId)
+        );
+        if (selectedStudentId === lastMessage.payload.studentId) {
+          setSelectedStudentId(null);
+          setSelectedStudentCode('');
+        }
+        break;
+
+      case 'CODE_UPDATE':
+        setStudents(prev => 
+          prev.map(s => 
+            s.id === lastMessage.payload.studentId 
+              ? { ...s, hasCode: true }
+              : s
+          )
+        );
+        
+        if (selectedStudentId === lastMessage.payload.studentId) {
+          setSelectedStudentCode(lastMessage.payload.code);
+        }
         break;
 
       case 'STUDENT_CODE':
-        setSelectedStudentCode(lastMessage.payload.code);
+        if (lastMessage.payload.studentId === selectedStudentId) {
+          setSelectedStudentCode(lastMessage.payload.code);
+        }
         break;
 
       case 'EXECUTION_RESULT':
         setExecutionResult(lastMessage.payload);
         break;
 
+      case 'PROBLEM_UPDATED':
+        // Problem update acknowledged
+        break;
+
       case 'ERROR':
-        const errorMsg = lastMessage.payload.error || 'An error occurred';
-        setError(errorMsg);
+        setError(lastMessage.payload.message);
         setIsCreatingSession(false);
         break;
     }
-  }, [lastMessage]);
+  }, [lastMessage, sessionId, selectedStudentId]);
 
-  const handleCreateSession = () => {
-    if (!isConnected) {
-      setError('Not connected to server. Please wait for connection.');
-      return;
+  // Navigation handlers
+  const handleSelectClass = async (classId: string) => {
+    try {
+      const response = await fetch(`/api/classes/${classId}`);
+      if (!response.ok) throw new Error('Failed to load class');
+      const data = await response.json();
+      
+      setClassContext({
+        classId,
+        className: data.class.name,
+      });
+      setViewMode('sections');
+    } catch (err) {
+      console.error('Error loading class:', err);
+      setError('Failed to load class');
     }
-    setError(null);
-    setIsCreatingSession(true);
-    sendMessage('CREATE_SESSION', {});
-    
-    // Timeout for session creation
-    setTimeout(() => {
-      if (isCreatingSession && !sessionId) {
-        setError('Session creation timed out. Please try again.');
-        setIsCreatingSession(false);
-      }
-    }, 10000);
   };
 
-  const handleJoinExistingSession = (sessionId: string) => {
+  const handleBackToClasses = () => {
+    setClassContext(null);
+    setViewMode('classes');
+  };
+
+  const handleCreateSession = (sectionId: string, sectionName: string) => {
     if (!isConnected) {
-      setError('Not connected to server.');
+      setError('Not connected to server');
       return;
     }
-    setError(null);
+
+    setIsCreatingSession(true);
+    setSessionContext({ sectionId, sectionName });
+    sendMessage('CREATE_SESSION', { sectionId });
+  };
+
+  const handleJoinSession = (sessionId: string) => {
+    if (!isConnected) {
+      setError('Not connected to server');
+      return;
+    }
+
     sendMessage('JOIN_EXISTING_SESSION', { sessionId });
   };
 
-  const handleEndSession = (sessionId: string) => {
-    if (!isConnected) {
-      setError('Not connected to server.');
-      return;
-    }
-    setError(null);
-    sendMessage('END_SESSION', { sessionId });
-  };
-
   const handleLeaveSession = () => {
-    // Leave session view without ending the session
     setSessionId(null);
     setJoinCode(null);
     setStudents([]);
     setSelectedStudentId(null);
     setSelectedStudentCode('');
-    setError(null);
+    setExecutionResult(null);
+    setRevisionViewerState(null);
+    setViewMode('sections');
+  };
+
+  const handleEndSession = () => {
+    if (!sessionId) return;
+    
+    if (confirm('Are you sure you want to end this session? Students will be disconnected.')) {
+      sendMessage('END_SESSION', { sessionId });
+      handleLeaveSession();
+    }
   };
 
   const handleUpdateProblem = (problemText: string) => {
-    if (!isConnected) {
-      setError('Not connected to server. Cannot update problem.');
-      return;
-    }
-    if (problemText.length > 10000) {
-      setError('Problem text is too long (max 10,000 characters)');
-      return;
-    }
-    setError(null);
-    sendMessage('UPDATE_PROBLEM', { problemText });
+    if (!sessionId) return;
+    sendMessage('UPDATE_PROBLEM', { sessionId, problemText });
   };
 
   const handleSelectStudent = (studentId: string) => {
-    if (!isConnected) {
-      setError('Not connected to server.');
-      return;
-    }
-    setError(null);
     setSelectedStudentId(studentId);
     setExecutionResult(null);
-    sendMessage('REQUEST_STUDENT_CODE', { studentId });
+    
+    sendMessage('REQUEST_STUDENT_CODE', {
+      sessionId,
+      studentId,
+    });
   };
 
-  const handleRunCode = () => {
-    if (!isConnected) {
-      setError('Not connected to server. Cannot run code.');
-      return;
+  const handleExecuteStudentCode = () => {
+    if (!selectedStudentId || !sessionId) return;
+    
+    sendMessage('EXECUTE_STUDENT_CODE', {
+      sessionId,
+      studentId: selectedStudentId,
+    });
+  };
+
+  const handleViewRevisions = (studentId: string) => {
+    const student = students.find(s => s.id === studentId);
+    if (student) {
+      setRevisionViewerState({
+        studentId,
+        studentName: student.name,
+      });
     }
-    if (!selectedStudentId) {
-      setError('No student selected');
-      return;
-    }
-    setError(null);
-    sendMessage('EXECUTE_STUDENT_CODE', { studentId: selectedStudentId });
   };
 
-  const handleShowOnPublicView = (studentId: string) => {
-    sendMessage('SELECT_SUBMISSION_FOR_PUBLIC', { studentId });
+  const handleCloseRevisionViewer = () => {
+    setRevisionViewerState(null);
   };
-
-  const handleOpenPublicView = () => {
-    if (sessionId) {
-      const publicUrl = `/instructor/public?sessionId=${sessionId}`;
-      window.open(publicUrl, '_blank');
-    }
-  };
-
-  const selectedStudent = students.find(s => s.id === selectedStudentId);
 
   const handleSignOut = async () => {
     setIsSigningOut(true);
     try {
       await signOut();
-    } catch (error) {
-      console.error('Sign out error:', error);
+    } catch (err) {
+      console.error('Sign out error:', err);
       setIsSigningOut(false);
     }
   };
 
-  return (
-    <main style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
-      {/* Header with Sign Out */}
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'center',
-        marginBottom: '1rem'
-      }}>
-        <h1 style={{ margin: 0 }}>Instructor Dashboard</h1>
-        <div style={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          gap: '1rem',
-          padding: '0.5rem 1rem',
-          backgroundColor: '#f8f9fa',
-          borderRadius: '4px',
-          border: '1px solid #dee2e6'
-        }}>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-            <span style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>{user?.username}</span>
-            <span style={{ 
-              fontSize: '0.75rem', 
-              color: '#0070f3',
-              fontWeight: '500'
-            }}>Instructor</span>
-          </div>
-          <button
-            onClick={handleSignOut}
-            disabled={isSigningOut}
-            style={{
-              padding: '0.5rem 1rem',
-              backgroundColor: '#dc3545',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: isSigningOut ? 'not-allowed' : 'pointer',
-              fontSize: '0.9rem',
-              opacity: isSigningOut ? 0.6 : 1
-            }}
-          >
-            {isSigningOut ? 'Signing out...' : 'Sign Out'}
-          </button>
-        </div>
-      </div>
-      
-      {/* Connection Status */}
-      <div style={{ 
-        padding: '0.5rem 1rem', 
-        backgroundColor: connectionStatus === 'connected' ? '#d4edda' : 
-                        connectionStatus === 'connecting' ? '#fff3cd' : '#f8d7da',
-        borderRadius: '4px',
-        marginBottom: '1rem'
-      }}>
-        {connectionStatus === 'connected' && '● Connected'}
-        {connectionStatus === 'connecting' && '○ Connecting...'}
-        {connectionStatus === 'disconnected' && '○ Disconnected'}
-        {connectionStatus === 'failed' && '✕ Connection Failed'}
-      </div>
+  // Render different views based on mode
+  const renderContent = () => {
+    if (viewMode === 'classes') {
+      return <ClassList onSelectClass={handleSelectClass} />;
+    }
 
-      {/* Connection Error */}
-      {connectionError && (
-        <div style={{
-          marginBottom: '1rem',
-          padding: '0.75rem',
-          backgroundColor: '#fff3cd',
-          color: '#856404',
-          borderRadius: '4px',
-          border: '1px solid #ffeaa7'
-        }}>
-          ⚠ {connectionError}
-        </div>
-      )}
-
-      {/* Application Error */}
-      {error && (
-        <div style={{
-          marginBottom: '1rem',
-          padding: '0.75rem',
-          backgroundColor: '#f8d7da',
-          color: '#721c24',
-          borderRadius: '4px',
-          border: '1px solid #f5c6cb',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center'
-        }}>
-          <span>{error}</span>
-          <button
-            onClick={() => setError(null)}
-            style={{
-              padding: '0.25rem 0.5rem',
-              backgroundColor: 'transparent',
-              border: '1px solid #721c24',
-              borderRadius: '3px',
-              cursor: 'pointer',
-              color: '#721c24'
-            }}
-          >
-            ✕
-          </button>
-        </div>
-      )}
-
-      {!sessionId ? (
-        <SessionDashboard
-          sessions={sessions}
+    if (viewMode === 'sections' && classContext) {
+      return (
+        <SectionView
+          classId={classContext.classId}
+          className={classContext.className}
+          onBack={handleBackToClasses}
           onCreateSession={handleCreateSession}
-          onJoinSession={handleJoinExistingSession}
-          onEndSession={handleEndSession}
-          isCreating={isCreatingSession}
-          disabled={!isConnected || connectionStatus === 'failed'}
+          onJoinSession={handleJoinSession}
         />
-      ) : (
-        <>
-          <div style={{ marginBottom: '1rem' }}>
-            <button
-              onClick={handleLeaveSession}
-              style={{
-                padding: '0.5rem 1rem',
-                backgroundColor: 'transparent',
-                color: '#0070f3',
-                border: '1px solid #0070f3',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                fontSize: '0.9rem',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem'
-              }}
-            >
-              <svg 
-                width="16" 
-                height="16" 
-                viewBox="0 0 24 24" 
-                fill="none" 
-                stroke="currentColor" 
-                strokeWidth="2"
-              >
-                <path d="M19 12H5M12 19l-7-7 7-7"/>
-              </svg>
-              Back to Dashboard
-            </button>
-          </div>
-          <SessionControls 
-            sessionId={sessionId}
+      );
+    }
+
+    if (viewMode === 'session' && sessionId && joinCode) {
+      return (
+        <div className="space-y-6">
+          <SessionControls
             joinCode={joinCode}
-            onCreateSession={handleCreateSession}
-            isCreating={isCreatingSession}
-            disabled={!isConnected || connectionStatus === 'failed'}
+            sessionId={sessionId}
+            sectionName={sessionContext?.sectionName}
+            onEndSession={handleEndSession}
+            onLeaveSession={handleLeaveSession}
           />
 
-          <div style={{ 
-            padding: '1rem', 
-            backgroundColor: '#e7f3ff', 
-            borderRadius: '4px',
-            marginBottom: '1rem',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center'
-          }}>
-            <div>
-              <strong>Public Display View</strong>
-              <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.9rem', color: '#666' }}>
-                Open this in a separate tab/window to display on a projector
-              </p>
-            </div>
-            <button
-              onClick={handleOpenPublicView}
-              style={{
-                padding: '0.75rem 1.5rem',
-                backgroundColor: '#0070f3',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                fontWeight: 'bold',
-              }}
-            >
-              Open Public View
-            </button>
-          </div>
+          <ProblemInput
+            sessionId={sessionId}
+            onUpdateProblem={handleUpdateProblem}
+          />
 
-          <ProblemInput onUpdateProblem={handleUpdateProblem} />
-          
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-            <StudentList 
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <StudentList
               students={students}
+              selectedStudentId={selectedStudentId}
               onSelectStudent={handleSelectStudent}
-              onShowOnPublicView={handleShowOnPublicView}
-              onViewHistory={(studentId, studentName) => setRevisionViewerState({ studentId, studentName })}
+              onViewRevisions={handleViewRevisions}
             />
-            
-            <CodeViewer
-              code={selectedStudentCode}
-              studentName={selectedStudent?.name}
-              executionResult={executionResult}
-              onRunCode={handleRunCode}
-            />
+
+            {selectedStudentId && (
+              <CodeViewer
+                studentId={selectedStudentId}
+                studentName={students.find(s => s.id === selectedStudentId)?.name || ''}
+                code={selectedStudentCode}
+                executionResult={executionResult}
+                onExecute={handleExecuteStudentCode}
+              />
+            )}
           </div>
 
-          {/* Revision Viewer Modal */}
-          {revisionViewerState && sessionId && (
+          {revisionViewerState && (
             <RevisionViewer
               sessionId={sessionId}
               studentId={revisionViewerState.studentId}
               studentName={revisionViewerState.studentName}
-              sendMessage={sendMessage}
-              lastMessage={lastMessage}
-              onClose={() => setRevisionViewerState(null)}
+              onClose={handleCloseRevisionViewer}
             />
           )}
-        </>
-      )}
-    </main>
-  );
-}
+        </div>
+      );
+    }
 
-export default function InstructorPageWrapper() {
+    return null;
+  };
+
   return (
-    <ProtectedRoute requiredRole="instructor">
-      <InstructorPage />
+    <ProtectedRoute allowedRoles={['instructor', 'admin']}>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+        {/* Header */}
+        <div className="bg-white border-b border-gray-200 shadow-sm">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div className="flex justify-between items-center">
+              <div>
+                <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                  Instructor Dashboard
+                </h1>
+                {user && (
+                  <p className="text-sm text-gray-600 mt-1">
+                    Signed in as {user.username}
+                  </p>
+                )}
+              </div>
+              
+              <div className="flex items-center gap-4">
+                {/* Connection status */}
+                <div className="flex items-center gap-2">
+                  <div className={`w-2 h-2 rounded-full ${
+                    isConnected ? 'bg-green-500' : 'bg-red-500'
+                  }`}></div>
+                  <span className="text-sm text-gray-600">
+                    {connectionStatus}
+                  </span>
+                </div>
+
+                <button
+                  onClick={handleSignOut}
+                  disabled={isSigningOut}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {isSigningOut ? 'Signing out...' : 'Sign Out'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Main content */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {connectionError && (
+            <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
+              <p className="font-semibold">Connection Error</p>
+              <p className="text-sm">{connectionError}</p>
+            </div>
+          )}
+
+          {error && (
+            <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
+              <div className="flex justify-between items-start">
+                <div>
+                  <p className="font-semibold">Error</p>
+                  <p className="text-sm">{error}</p>
+                </div>
+                <button
+                  onClick={() => setError(null)}
+                  className="text-red-500 hover:text-red-700"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {isCreatingSession && (
+            <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4 text-blue-700">
+              <div className="flex items-center gap-3">
+                <div className="animate-spin w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full"></div>
+                <span>Creating session...</span>
+              </div>
+            </div>
+          )}
+
+          {renderContent()}
+        </div>
+      </div>
     </ProtectedRoute>
   );
 }
+
+export default InstructorPage;

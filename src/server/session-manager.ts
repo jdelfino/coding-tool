@@ -64,9 +64,12 @@ export class SessionManager {
   }
 
   /**
-   * Create a new session
+   * Create a new session within a section
+   * @param creatorId - User ID of the instructor creating the session
+   * @param sectionId - Section ID this session belongs to (required)
+   * @param sectionName - Section name for display (required)
    */
-  async createSession(creatorId?: string, sectionId?: string, sectionName?: string): Promise<Session> {
+  async createSession(creatorId: string, sectionId: string, sectionName: string): Promise<Session> {
     const sessionId = uuidv4();
     const joinCode = this.generateJoinCode();
     
@@ -77,7 +80,7 @@ export class SessionManager {
       students: new Map(),
       createdAt: new Date(),
       lastActivity: new Date(),
-      creatorId: creatorId || 'system',
+      creatorId,
       participants: [],
       status: 'active',
       sectionId,
