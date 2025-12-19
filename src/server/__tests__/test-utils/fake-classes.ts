@@ -214,6 +214,31 @@ export class FakeSectionRepository implements ISectionRepository {
     return newJoinCode;
   }
 
+  async addInstructor(sectionId: string, instructorId: string): Promise<void> {
+    const section = this.sections.get(sectionId);
+    if (!section) {
+      throw new Error(`Section not found: ${sectionId}`);
+    }
+
+    if (!section.instructorIds.includes(instructorId)) {
+      section.instructorIds.push(instructorId);
+      section.updatedAt = new Date();
+    }
+  }
+
+  async removeInstructor(sectionId: string, instructorId: string): Promise<void> {
+    const section = this.sections.get(sectionId);
+    if (!section) {
+      throw new Error(`Section not found: ${sectionId}`);
+    }
+
+    const index = section.instructorIds.indexOf(instructorId);
+    if (index > -1) {
+      section.instructorIds.splice(index, 1);
+      section.updatedAt = new Date();
+    }
+  }
+
   async getSectionStats(sectionId: string): Promise<SectionStats | null> {
     const section = this.sections.get(sectionId);
     if (!section) return null;

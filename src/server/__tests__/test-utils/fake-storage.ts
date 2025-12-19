@@ -221,30 +221,63 @@ export class FakeSessionRepository implements ISessionRepository {
  * Fake user repository (minimal implementation for testing)
  */
 export class FakeUserRepository implements IUserRepository {
+  private users: Map<string, User> = new Map();
+  private usernameIndex: Map<string, string> = new Map(); // username -> userId
+  private nextId = 1;
+
   async initialize(): Promise<void> {}
   async shutdown(): Promise<void> {}
   async health(): Promise<boolean> { return true; }
 
   async createUser(user: Omit<User, 'id'>): Promise<User> {
-    throw new Error('Not implemented');
+    const newUser: User = {
+      ...user,
+      id: `user-${this.nextId++}`,
+      createdAt: new Date(),
+    };
+    this.users.set(newUser.id, newUser);
+    this.usernameIndex.set(newUser.username.toLowerCase(), newUser.id);
+    return newUser;
   }
 
   async getUser(userId: string): Promise<User | null> {
-    return null;
+    return this.users.get(userId) || null;
   }
 
   async getUserByUsername(username: string): Promise<User | null> {
-    return null;
+    const userId = this.usernameIndex.get(username.toLowerCase());
+    return userId ? this.users.get(userId) || null : null;
   }
 
-  async updateUser(userId: string, updates: Partial<User>): Promise<void> {}
+  async getUserByEmail(email: string): Promise<User | null> {
+    // In this system, email is the same as username
+    return this.getUserByUsername(email);
+  }
+
+  async updateUser(userId: string, updates: Partial<User>): Promise<void> {
+    const user = this.users.get(userId);
+    if (!user) {
+      throw new Error(`User not found: ${userId}`);
+    }
+    Object.assign(user, updates);
+  }
 
   async deleteUser(userId: string): Promise<boolean> {
-    return false;
+    const user = this.users.get(userId);
+    if (!user) return false;
+    this.usernameIndex.delete(user.username.toLowerCase());
+    this.users.delete(userId);
+    return true;
   }
 
   async listUsers(filters?: any): Promise<User[]> {
-    return [];
+    return Array.from(this.users.values());
+  }
+
+  clear() {
+    this.users.clear();
+    this.usernameIndex.clear();
+    this.nextId = 1;
   }
 }
 
