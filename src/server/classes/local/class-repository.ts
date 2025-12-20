@@ -7,8 +7,8 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { v4 as uuidv4 } from 'uuid';
-import { IClassRepository } from './interfaces';
-import { Class, Section } from './types';
+import { IClassRepository } from '../interfaces';
+import { Class, Section } from '../types';
 
 /**
  * Local file-based implementation of class repository

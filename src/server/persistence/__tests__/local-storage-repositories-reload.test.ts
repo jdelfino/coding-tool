@@ -11,7 +11,7 @@ import {
   LocalProblemRepository,
   LocalRevisionRepository,
   LocalUserRepository,
-} from '../local-storage';
+} from '../local';
 import { ProblemSpec, CodeRevision } from '../types';
 import { User } from '../../auth/types';
 import * as fs from 'fs/promises';

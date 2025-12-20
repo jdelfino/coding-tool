@@ -5,7 +5,7 @@
  * are visible to another instance (simulating cross-process behavior)
  */
 
-import { ClassRepository } from '../class-repository';
+import { ClassRepository } from '../local';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as os from 'os';

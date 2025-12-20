@@ -16,7 +16,13 @@ This directory contains the persistence layer for the coding tool. The architect
 persistence/
 ├── interfaces.ts          # Repository interface definitions
 ├── types.ts              # Persistence-specific types
-├── local-storage.ts      # Local file-based implementation (TODO)
+├── local/                # Local file-based implementations
+│   ├── index.ts          # Exports all local repositories
+│   ├── utils.ts          # Shared utilities
+│   ├── session-repository.ts
+│   ├── problem-repository.ts
+│   ├── revision-repository.ts
+│   └── user-repository.ts
 ├── session-repository.ts # Session operations implementation (TODO)
 ├── problem-repository.ts # Problem operations implementation (TODO)
 ├── revision-repository.ts # Revision operations implementation (TODO)
@@ -73,7 +79,7 @@ Problem definition with title, description, starter code, tags
 ```typescript
 // Future implementation example
 import { ISessionRepository } from './persistence/interfaces';
-import { LocalSessionRepository } from './persistence/local-storage';
+import { LocalSessionRepository } from './persistence/local';
 
 // Create repository instance
 const sessionRepo: ISessionRepository = new LocalSessionRepository({

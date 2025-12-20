@@ -5,10 +5,10 @@
  * are visible to another instance (simulating cross-process behavior)
  */
 
-import { MembershipRepository } from '../membership-repository';
-import { SectionRepository } from '../section-repository';
-import { ClassRepository } from '../class-repository';
-import { LocalUserRepository } from '../../persistence/local-storage';
+import { MembershipRepository } from '../local';
+import { SectionRepository } from '../local';
+import { ClassRepository } from '../local';
+import { LocalUserRepository } from '../../persistence/local';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as os from 'os';

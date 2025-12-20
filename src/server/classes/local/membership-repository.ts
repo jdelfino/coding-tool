@@ -8,10 +8,10 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { v4 as uuidv4 } from 'uuid';
-import { IMembershipRepository } from './interfaces';
-import { SectionMembership, SectionWithClass, Section } from './types';
-import { User } from '../auth/types';
-import { isValidJoinCodeFormat } from './join-code-service';
+import { IMembershipRepository } from '../interfaces';
+import { SectionMembership, SectionWithClass, Section } from '../types';
+import { User } from '../../auth/types';
+import { isValidJoinCodeFormat } from '../join-code-service';
 
 /**
  * Local file-based implementation of membership repository

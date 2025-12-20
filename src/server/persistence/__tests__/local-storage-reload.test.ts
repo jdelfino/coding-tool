@@ -5,7 +5,7 @@
  * are visible to another instance (simulating cross-process behavior)
  */
 
-import { LocalSessionRepository } from '../local-storage';
+import { LocalSessionRepository } from '../local';
 import { Session } from '../../types';
 import * as fs from 'fs/promises';
 import * as path from 'path';

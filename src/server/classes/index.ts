@@ -27,9 +27,9 @@ export type {
 } from './interfaces';
 
 // Export implementations
-export { ClassRepository } from './class-repository';
-export { SectionRepository } from './section-repository';
-export { MembershipRepository } from './membership-repository';
+export { ClassRepository } from './local';
+export { SectionRepository } from './local';
+export { MembershipRepository } from './local';
 export { generateJoinCode, isValidJoinCodeFormat } from './join-code-service';
 
 // Singleton instances

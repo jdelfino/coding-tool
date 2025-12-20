@@ -10,7 +10,7 @@ import {
   LocalProblemRepository,
   LocalRevisionRepository,
   LocalUserRepository,
-} from './local-storage';
+} from './local';
 import {
   ClassRepository,
   SectionRepository,
@@ -164,4 +164,4 @@ export {
   LocalSessionRepository,
   LocalProblemRepository,
   LocalRevisionRepository,
-} from './local-storage';
+} from './local';

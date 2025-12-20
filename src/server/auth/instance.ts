@@ -6,7 +6,7 @@
 import { LocalAuthProvider } from './local-provider';
 import { IAuthProvider, IUserRepository } from './interfaces';
 import { getStorage } from '../persistence';
-import { InMemoryUserRepository } from './user-repository';
+import { InMemoryUserRepository } from './local';
 
 let authProviderInstance: IAuthProvider | null = null;
 let userRepositoryInstance: IUserRepository | null = null;

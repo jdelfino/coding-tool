@@ -8,9 +8,9 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { v4 as uuidv4 } from 'uuid';
-import { ISectionRepository } from './interfaces';
-import { Section, SectionFilters, SectionStats } from './types';
-import { generateJoinCode } from './join-code-service';
+import { ISectionRepository } from '../interfaces';
+import { Section, SectionFilters, SectionStats } from '../types';
+import { generateJoinCode } from '../join-code-service';
 
 /**
  * Local file-based implementation of section repository

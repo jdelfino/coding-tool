@@ -193,7 +193,13 @@ npm start
 │       │   └── user-repository.ts # User data access
 │       └── persistence/       # Data persistence layer
 │           ├── interfaces.ts  # Repository interfaces
-│           ├── local-storage.ts # File-based storage implementation
+│           ├── local/           # Local file-based storage implementations
+│           │   ├── index.ts
+│           │   ├── utils.ts
+│           │   ├── session-repository.ts
+│           │   ├── problem-repository.ts
+│           │   ├── revision-repository.ts
+│           │   └── user-repository.ts
 │           ├── types.ts       # Persistence types
 │           └── index.ts       # Storage backend integration
 ├── data/                      # Persistent data files (JSON)
@@ -357,7 +363,7 @@ Test files are located in:
 
 3. **Data Persistence**
    - Repository interfaces: `src/server/persistence/interfaces.ts`
-   - Implementation: `src/server/persistence/local-storage.ts`
+   - Implementation: `src/server/persistence/local/`
    - Types: `src/server/persistence/types.ts`
 
 4. **Authentication & Authorization**

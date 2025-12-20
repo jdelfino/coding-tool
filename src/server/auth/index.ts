@@ -10,7 +10,7 @@ export * from './types';
 export * from './interfaces';
 
 // Implementations
-export { InMemoryUserRepository } from './user-repository';
+export { InMemoryUserRepository } from './local';
 export { LocalAuthProvider } from './local-provider';
 export { RBACService } from './rbac';
 

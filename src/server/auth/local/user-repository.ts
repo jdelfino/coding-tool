@@ -4,9 +4,8 @@
  * Can be replaced with database-backed implementation later.
  */
 
-import { User, UserRole, AuthenticationError } from './types';
-import { IUserRepository } from './interfaces';
-import { randomUUID } from 'crypto';
+import { User, UserRole, AuthenticationError } from '../types';
+import { IUserRepository } from '../interfaces';
 
 /**
  * Simple in-memory user repository.
