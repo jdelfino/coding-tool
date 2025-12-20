@@ -5,10 +5,11 @@
 
 /**
  * User roles in the system.
- * - instructor: Full access to create sessions, view all data, manage users
+ * - admin: Full system access, can manage users and elevate roles
+ * - instructor: Full access to create sessions, view all data, manage classes
  * - student: Limited access to join sessions and view own code only
  */
-export type UserRole = 'instructor' | 'student';
+export type UserRole = 'admin' | 'instructor' | 'student';
 
 /**
  * Granular permissions for fine-grained access control.
@@ -26,10 +27,13 @@ export type Permission =
   | 'user.create'
   | 'user.delete'
   | 'user.viewAll'
+  | 'user.changeRole'
   // Data access permissions
   | 'data.viewAll'
   | 'data.viewOwn'
-  | 'data.export';
+  | 'data.export'
+  // System administration
+  | 'system.admin';
 
 /**
  * Represents a user account in the system.

@@ -30,12 +30,12 @@ export class RBACService implements IRBACService {
 
   /**
    * Check if a user can access a specific coding session.
-   * Instructors can access all sessions.
+   * Admins and instructors can access all sessions.
    * Students can only access sessions they're enrolled in.
    */
   async canAccessSession(user: User, sessionId: string): Promise<boolean> {
-    // Instructors can access any session
-    if (user.role === 'instructor') {
+    // Admins and instructors can access any session
+    if (user.role === 'admin' || user.role === 'instructor') {
       return true;
     }
 
@@ -63,16 +63,23 @@ export class RBACService implements IRBACService {
 
   /**
    * Check if a user can manage (modify/delete) another user.
-   * Only instructors can manage users.
+   * Only admins and instructors can manage users.
+   * Admins can manage anyone including other admins.
+   * Instructors can manage students but not admins or other instructors.
    */
   canManageUser(actor: User, target: User): boolean {
-    // Only instructors can manage users
-    if (actor.role !== 'instructor') {
-      return false;
+    // Admins can manage anyone
+    if (actor.role === 'admin') {
+      return true;
     }
 
-    // Instructors can manage anyone (including other instructors)
-    return true;
+    // Instructors can only manage students
+    if (actor.role === 'instructor') {
+      return target.role === 'student';
+    }
+
+    // Students cannot manage anyone
+    return false;
   }
 
   /**

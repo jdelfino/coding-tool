@@ -15,12 +15,14 @@ interface ProtectedRouteProps {
   children: React.ReactNode;
   requiredRole?: UserRole;
   fallbackPath?: string;
+  allowAdmin?: boolean; // Allow admins to access this route even if requiredRole is different
 }
 
 export function ProtectedRoute({
   children,
   requiredRole,
   fallbackPath = '/auth/signin',
+  allowAdmin = true, // Default to allowing admins
 }: ProtectedRouteProps) {
   const { user, isLoading } = useAuth();
   const router = useRouter();
@@ -30,13 +32,17 @@ export function ProtectedRoute({
       if (!user) {
         // Not authenticated, redirect to sign-in
         router.push(fallbackPath);
-      } else if (requiredRole && user.role !== requiredRole) {
-        // Wrong role, redirect to appropriate page
-        const defaultPath = user.role === 'instructor' ? '/instructor' : '/student';
-        router.push(defaultPath);
+      } else if (requiredRole) {
+        // Check if user has required role or is admin (if allowed)
+        const hasAccess = user.role === requiredRole || (allowAdmin && user.role === 'admin');
+        if (!hasAccess) {
+          // Wrong role, redirect to appropriate page
+          const defaultPath = user.role === 'instructor' ? '/instructor' : '/student';
+          router.push(defaultPath);
+        }
       }
     }
-  }, [user, isLoading, requiredRole, router, fallbackPath]);
+  }, [user, isLoading, requiredRole, router, fallbackPath, allowAdmin]);
 
   // Show loading state while checking authentication
   if (isLoading) {
@@ -55,8 +61,11 @@ export function ProtectedRoute({
   // SECURITY FIX: Check role BEFORE rendering children
   // This prevents unauthorized users from seeing protected content
   // even briefly before the redirect completes
-  if (requiredRole && user.role !== requiredRole) {
-    return null;
+  if (requiredRole) {
+    const hasAccess = user.role === requiredRole || (allowAdmin && user.role === 'admin');
+    if (!hasAccess) {
+      return null;
+    }
   }
 
   return <>{children}</>;

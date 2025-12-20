@@ -92,6 +92,14 @@ export interface IAuthProvider {
    * @param sessionId - Session identifier to destroy
    */
   destroySession(sessionId: string): Promise<void>;
+
+  /**
+   * Get all users in the system.
+   * For admin purposes only.
+   * 
+   * @returns Array of all users
+   */
+  getAllUsers(): Promise<User[]>;
 }
 
 /**

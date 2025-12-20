@@ -78,6 +78,7 @@ export class LocalAuthProvider implements IAuthProvider {
    * Authenticate a user with their username.
    * Auto-creates user if they don't exist.
    * First user becomes instructor, subsequent users are students.
+   * Users matching ADMIN_EMAIL become admins on first login.
    */
   async authenticate(username: string): Promise<User | null> {
     if (!username || username.trim().length === 0) {
@@ -92,11 +93,36 @@ export class LocalAuthProvider implements IAuthProvider {
     if (!user) {
       // Auto-create user
       const userCount = await (this.userRepository as any).getUserCount?.() || 0;
-      const role: UserRole = userCount === 0 ? 'instructor' : 'student';
+      
+      // Determine role
+      let role: UserRole;
+      const adminEmail = process.env.ADMIN_EMAIL?.trim();
+      
+      if (adminEmail && normalizedUsername.toLowerCase() === adminEmail.toLowerCase()) {
+        // Bootstrap admin from ADMIN_EMAIL
+        role = 'admin';
+        console.log(`[Auth] Creating bootstrap admin account: ${normalizedUsername}`);
+      } else if (userCount === 0) {
+        // First user becomes instructor (if no ADMIN_EMAIL set)
+        role = 'instructor';
+      } else {
+        // Subsequent users are students
+        role = 'student';
+      }
       
       user = await this.createUser(normalizedUsername, role);
       console.log(`[Auth] Created new ${role} account: ${normalizedUsername}`);
     } else {
+      // Check if existing user should be elevated to admin
+      const adminEmail = process.env.ADMIN_EMAIL?.trim();
+      if (adminEmail && 
+          normalizedUsername.toLowerCase() === adminEmail.toLowerCase() &&
+          user.role !== 'admin') {
+        console.log(`[Auth] Elevating user to admin: ${normalizedUsername}`);
+        await this.userRepository.updateUser(user.id, { role: 'admin' });
+        user = await this.userRepository.getUser(user.id) as User;
+      }
+      
       // Update last login time
       await this.userRepository.updateUser(user.id, {
         lastLoginAt: new Date(),
@@ -229,5 +255,13 @@ export class LocalAuthProvider implements IAuthProvider {
   cleanupSessions(): void {
     // For now, sessions don't expire
     // Can add expiration logic here later if needed
+  }
+
+  /**
+   * Get all users in the system.
+   * For admin purposes only.
+   */
+  async getAllUsers(): Promise<User[]> {
+    return (this.userRepository as any).listUsers();
   }
 }

@@ -79,6 +79,24 @@ export function createRoleMiddleware(requiredRole: User['role']) {
 }
 
 /**
+ * Middleware to require admin role.
+ * Convenience wrapper around createRoleMiddleware for admin-only routes.
+ */
+export function requireAdmin(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+  if (!req.user) {
+    return res.status(401).json({ error: 'Not authenticated' });
+  }
+
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({ 
+      error: 'Access denied. Administrator privileges required.' 
+    });
+  }
+
+  next();
+}
+
+/**
  * Create middleware to require a specific permission.
  */
 export function createPermissionMiddleware(rbacService: RBACService, permission: string) {

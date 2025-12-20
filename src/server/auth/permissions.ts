@@ -7,9 +7,33 @@ import { UserRole, Permission } from './types';
 
 /**
  * Map of roles to their allowed permissions.
- * Instructors have full access, students have limited access.
+ * Admins have full access, instructors have teaching access, students have limited access.
  */
 export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
+  admin: [
+    // Session permissions
+    'session.create',
+    'session.join',
+    'session.viewAll',
+    'session.viewOwn',
+    'session.delete',
+    
+    // User management permissions
+    'user.manage',
+    'user.create',
+    'user.delete',
+    'user.viewAll',
+    'user.changeRole',
+    
+    // Data access permissions
+    'data.viewAll',
+    'data.viewOwn',
+    'data.export',
+    
+    // System administration
+    'system.admin',
+  ],
+  
   instructor: [
     // Session permissions
     'session.create',
@@ -69,8 +93,11 @@ export const PERMISSION_DESCRIPTIONS: Record<Permission, string> = {
   'user.create': 'Create new user accounts',
   'user.delete': 'Delete user accounts',
   'user.viewAll': 'View all user accounts',
+  'user.changeRole': 'Change user roles',
   
   'data.viewAll': 'View all student data and code',
   'data.viewOwn': 'View own data and code',
   'data.export': 'Export data and analytics',
+  
+  'system.admin': 'Full system administration access',
 };

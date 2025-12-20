@@ -1,7 +1,7 @@
 /**
  * GET /api/admin/users
  * List all users, optionally filtered by role.
- * Instructors only.
+ * Admins and instructors only.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -29,10 +29,10 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Check if user is an instructor
-    if (session.user.role !== 'instructor') {
+    // Check if user is an admin or instructor
+    if (session.user.role !== 'admin' && session.user.role !== 'instructor') {
       return NextResponse.json(
-        { error: 'Forbidden: Instructors only' },
+        { error: 'Forbidden: Admin or instructor role required' },
         { status: 403 }
       );
     }
