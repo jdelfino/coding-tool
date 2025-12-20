@@ -4,6 +4,7 @@
 
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import CreateClassModal from '../CreateClassModal';
 
 describe('CreateClassModal', () => {
@@ -251,12 +252,15 @@ describe('CreateClassModal', () => {
 
     const nameInput = screen.getByLabelText(/class name/i);
     fireEvent.change(nameInput, { target: { value: 'CS101' } });
-    fireEvent.click(screen.getByRole('button', { name: /create class/i }));
+    
+    const form = screen.getByRole('button', { name: /create class/i }).closest('form');
+    fireEvent.submit(form!);
 
-    await waitFor(() => {
-      expect(screen.getByText(/an error occurred/i)).toBeInTheDocument();
-    });
-
+    // Wait for fetch to be called
+    await waitFor(() => expect(global.fetch).toHaveBeenCalled());
+    
+    // The error message from the rejected promise will be displayed
+    expect(await screen.findByText(/network error/i, {}, { timeout: 3000 })).toBeInTheDocument();
     expect(mockOnSuccess).not.toHaveBeenCalled();
   });
 

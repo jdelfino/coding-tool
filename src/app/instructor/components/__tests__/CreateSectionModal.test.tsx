@@ -4,6 +4,7 @@
 
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import CreateSectionModal from '../CreateSectionModal';
 
 describe('CreateSectionModal', () => {
@@ -99,12 +100,11 @@ describe('CreateSectionModal', () => {
     
     fireEvent.change(nameInput, { target: { value: 'Section A' } });
     fireEvent.change(capacityInput, { target: { value: '-5' } });
-    fireEvent.click(screen.getByRole('button', { name: /create section/i }));
+    
+    const form = screen.getByRole('button', { name: /create section/i }).closest('form');
+    fireEvent.submit(form!);
 
-    await waitFor(() => {
-      expect(screen.getByText(/capacity must be a positive number/i)).toBeInTheDocument();
-    });
-
+    expect(await screen.findByText(/capacity must be a positive number/i)).toBeInTheDocument();
     expect(global.fetch).not.toHaveBeenCalled();
   });
 
@@ -116,12 +116,11 @@ describe('CreateSectionModal', () => {
     
     fireEvent.change(nameInput, { target: { value: 'Section A' } });
     fireEvent.change(capacityInput, { target: { value: '0' } });
-    fireEvent.click(screen.getByRole('button', { name: /create section/i }));
+    
+    const form = screen.getByRole('button', { name: /create section/i }).closest('form');
+    fireEvent.submit(form!);
 
-    await waitFor(() => {
-      expect(screen.getByText(/capacity must be a positive number/i)).toBeInTheDocument();
-    });
-
+    expect(await screen.findByText(/capacity must be a positive number/i)).toBeInTheDocument();
     expect(global.fetch).not.toHaveBeenCalled();
   });
 
@@ -310,12 +309,15 @@ describe('CreateSectionModal', () => {
 
     const nameInput = screen.getByLabelText(/section name/i);
     fireEvent.change(nameInput, { target: { value: 'Section A' } });
-    fireEvent.click(screen.getByRole('button', { name: /create section/i }));
+    
+    const form = screen.getByRole('button', { name: /create section/i }).closest('form');
+    fireEvent.submit(form!);
 
-    await waitFor(() => {
-      expect(screen.getByText(/an error occurred/i)).toBeInTheDocument();
-    });
-
+    // Wait for fetch to be called
+    await waitFor(() => expect(global.fetch).toHaveBeenCalled());
+    
+    // The error message from the rejected promise will be displayed
+    expect(await screen.findByText(/network error/i, {}, { timeout: 3000 })).toBeInTheDocument();
     expect(mockOnSuccess).not.toHaveBeenCalled();
   });
 

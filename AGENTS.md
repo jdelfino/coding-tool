@@ -15,7 +15,7 @@
 Before every commit, verify:
 
 - [ ] ✅ Unit tests written for all new/modified code
-- [ ] ✅ All tests passing (`npm test`)
+- [ ] ✅ All tests passing (`npm test`). Commits should never be made with failing tests.
 - [ ] ✅ No TypeScript errors
 
 ## Issue Tracking with bd (beads)
