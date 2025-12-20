@@ -17,7 +17,16 @@
 
 - [ ] ✅ Unit tests written for all new/modified code
 - [ ] ✅ All tests passing (`npm test`). Commits should never be made with failing tests.
-- [ ] ✅ No TypeScript errors. Commits should never ber made with typescript errors.
+- [ ] ✅ No TypeScript errors (`npx tsc --noEmit`). Commits should never be made with TypeScript errors.
+- [ ] ✅ No type assertions (`as any`, `as unknown`) remain in production code. Use proper interfaces instead.
+- [ ] ✅ No optional chaining on required properties (`user?.role` when role is always present).
+
+**TypeScript Hygiene:**
+When removing backward compatibility or tightening data models:
+1. Run `npx tsc --noEmit` to find ALL type errors (not just file-specific ones)
+2. Ensure interfaces expose all publicly-used properties (e.g., `readonly userRepository`)
+3. Replace type assertions with proper interface methods
+4. Check that class visibility modifiers match interface requirements (public vs private)
 
 ## Issue Tracking with bd (beads)
 
