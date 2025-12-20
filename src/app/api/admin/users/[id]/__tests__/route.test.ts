@@ -1,0 +1,260 @@
+/**
+ * Unit tests for DELETE /api/admin/users/[id]
+ * Tests user deletion endpoint with proper role-based access control
+ */
+
+import { DELETE } from '../route';
+import { getAuthProvider } from '@/server/auth';
+import { NextRequest } from 'next/server';
+
+// Mock dependencies
+jest.mock('@/server/auth');
+
+const mockGetAuthProvider = getAuthProvider as jest.MockedFunction<typeof getAuthProvider>;
+
+describe('DELETE /api/admin/users/[id]', () => {
+  let mockAuthProvider: any;
+  let mockUserRepository: any;
+
+  beforeEach(() => {
+    // Reset mocks
+    jest.clearAllMocks();
+
+    // Setup mock user repository
+    mockUserRepository = {
+      getUser: jest.fn(),
+      deleteUser: jest.fn(),
+      listUsers: jest.fn(),
+    };
+
+    // Setup mock auth provider
+    mockAuthProvider = {
+      getSession: jest.fn(),
+      deleteUser: jest.fn(),
+      userRepository: mockUserRepository,
+    };
+    mockGetAuthProvider.mockResolvedValue(mockAuthProvider);
+  });
+
+  const createMockRequest = (sessionId?: string): NextRequest => {
+    const url = 'http://localhost:3000/api/admin/users/user123';
+    const request = new NextRequest(url, {
+      method: 'DELETE',
+    });
+
+    // Mock cookies
+    if (sessionId) {
+      Object.defineProperty(request, 'cookies', {
+        value: {
+          get: jest.fn((name: string) => 
+            name === 'sessionId' ? { value: sessionId } : undefined
+          ),
+        },
+        configurable: true,
+      });
+    } else {
+      Object.defineProperty(request, 'cookies', {
+        value: {
+          get: jest.fn(() => undefined),
+        },
+        configurable: true,
+      });
+    }
+
+    return request;
+  };
+
+  describe('Authentication', () => {
+    it('should return 401 when no session cookie is provided', async () => {
+      const request = createMockRequest();
+      const params = Promise.resolve({ id: 'user123' });
+
+      const response = await DELETE(request, { params });
+      const data = await response.json();
+
+      expect(response.status).toBe(401);
+      expect(data.error).toBe('Not authenticated');
+    });
+
+    it('should return 401 when session is invalid', async () => {
+      const request = createMockRequest('invalid-session');
+      const params = Promise.resolve({ id: 'user123' });
+      mockAuthProvider.getSession.mockResolvedValue(null);
+
+      const response = await DELETE(request, { params });
+      const data = await response.json();
+
+      expect(response.status).toBe(401);
+      expect(data.error).toBe('Invalid session');
+    });
+  });
+
+  describe('Authorization', () => {
+    it('should allow instructors to delete users', async () => {
+      const request = createMockRequest('instructor-session');
+      const params = Promise.resolve({ id: 'user123' });
+      
+      mockAuthProvider.getSession.mockResolvedValue({
+        user: { id: 'instructor1', username: 'instructor', role: 'instructor' },
+      });
+      mockUserRepository.getUser.mockResolvedValue({
+        id: 'user123',
+        username: 'student',
+        role: 'student',
+      });
+      mockUserRepository.listUsers.mockResolvedValue([
+        { id: 'instructor1', role: 'instructor' },
+        { id: 'instructor2', role: 'instructor' },
+      ]);
+      mockAuthProvider.deleteUser.mockResolvedValue(undefined);
+
+      const response = await DELETE(request, { params });
+
+      expect(response.status).toBe(200);
+      expect(mockAuthProvider.deleteUser).toHaveBeenCalledWith('user123');
+    });
+
+    it('should allow admins to delete users', async () => {
+      const request = createMockRequest('admin-session');
+      const params = Promise.resolve({ id: 'user123' });
+      
+      mockAuthProvider.getSession.mockResolvedValue({
+        user: { id: 'admin1', username: 'admin', role: 'admin' },
+      });
+      mockUserRepository.getUser.mockResolvedValue({
+        id: 'user123',
+        username: 'student',
+        role: 'student',
+      });
+      mockUserRepository.listUsers.mockResolvedValue([
+        { id: 'instructor1', role: 'instructor' },
+      ]);
+      mockAuthProvider.deleteUser.mockResolvedValue(undefined);
+
+      const response = await DELETE(request, { params });
+
+      expect(response.status).toBe(200);
+      expect(mockAuthProvider.deleteUser).toHaveBeenCalledWith('user123');
+    });
+
+    it('should deny students from deleting users', async () => {
+      const request = createMockRequest('student-session');
+      const params = Promise.resolve({ id: 'user123' });
+      
+      mockAuthProvider.getSession.mockResolvedValue({
+        user: { id: 'student1', username: 'student', role: 'student' },
+      });
+
+      const response = await DELETE(request, { params });
+      const data = await response.json();
+
+      expect(response.status).toBe(403);
+      expect(data.error).toBe('Forbidden: Instructors only');
+      expect(mockAuthProvider.deleteUser).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Self-Deletion Prevention', () => {
+    it('should prevent users from deleting themselves', async () => {
+      const request = createMockRequest('instructor-session');
+      const params = Promise.resolve({ id: 'instructor1' });
+      
+      mockAuthProvider.getSession.mockResolvedValue({
+        user: { id: 'instructor1', username: 'instructor', role: 'instructor' },
+      });
+
+      const response = await DELETE(request, { params });
+      const data = await response.json();
+
+      expect(response.status).toBe(400);
+      expect(data.error).toBe('Cannot delete your own account');
+      expect(mockUserRepository.getUser).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Last Instructor Protection', () => {
+    it('should prevent deletion of the last instructor', async () => {
+      const request = createMockRequest('instructor-session');
+      const params = Promise.resolve({ id: 'instructor2' });
+      
+      mockAuthProvider.getSession.mockResolvedValue({
+        user: { id: 'instructor1', username: 'instructor', role: 'instructor' },
+      });
+      mockUserRepository.getUser.mockResolvedValue({
+        id: 'instructor2',
+        username: 'instructor2',
+        role: 'instructor',
+      });
+      // Only one instructor in the system
+      mockUserRepository.listUsers.mockResolvedValue([
+        { id: 'instructor2', role: 'instructor' },
+      ]);
+
+      const response = await DELETE(request, { params });
+      const data = await response.json();
+
+      expect(response.status).toBe(400);
+      expect(data.error).toContain('Cannot delete the last instructor');
+      expect(mockAuthProvider.deleteUser).not.toHaveBeenCalled();
+    });
+
+    it('should allow deletion when multiple instructors exist', async () => {
+      const request = createMockRequest('instructor-session');
+      const params = Promise.resolve({ id: 'instructor2' });
+      
+      mockAuthProvider.getSession.mockResolvedValue({
+        user: { id: 'instructor1', username: 'instructor', role: 'instructor' },
+      });
+      mockUserRepository.getUser.mockResolvedValue({
+        id: 'instructor2',
+        username: 'instructor2',
+        role: 'instructor',
+      });
+      mockUserRepository.listUsers.mockResolvedValue([
+        { id: 'instructor1', role: 'instructor' },
+        { id: 'instructor2', role: 'instructor' },
+        { id: 'instructor3', role: 'instructor' },
+      ]);
+      mockAuthProvider.deleteUser.mockResolvedValue(undefined);
+
+      const response = await DELETE(request, { params });
+
+      expect(response.status).toBe(200);
+      expect(mockAuthProvider.deleteUser).toHaveBeenCalledWith('instructor2');
+    });
+  });
+
+  describe('Error Handling', () => {
+    beforeEach(() => {
+      mockAuthProvider.getSession.mockResolvedValue({
+        user: { id: 'instructor1', username: 'instructor', role: 'instructor' },
+      });
+    });
+
+    it('should return 404 when user does not exist', async () => {
+      const request = createMockRequest('instructor-session');
+      const params = Promise.resolve({ id: 'nonexistent' });
+      
+      mockUserRepository.getUser.mockResolvedValue(null);
+
+      const response = await DELETE(request, { params });
+      const data = await response.json();
+
+      expect(response.status).toBe(404);
+      expect(data.error).toBe('User not found');
+    });
+
+    it('should return 500 for database errors', async () => {
+      const request = createMockRequest('instructor-session');
+      const params = Promise.resolve({ id: 'user123' });
+      
+      mockUserRepository.getUser.mockRejectedValue(new Error('Database error'));
+
+      const response = await DELETE(request, { params });
+      const data = await response.json();
+
+      expect(response.status).toBe(500);
+      expect(data.error).toContain('Failed to delete user');
+    });
+  });
+});

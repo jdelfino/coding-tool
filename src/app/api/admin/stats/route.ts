@@ -9,7 +9,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAuthProvider } from '@/server/auth/instance';
 import { getSectionRepository } from '@/server/classes';
 import { getMembershipRepository } from '@/server/classes';
-import { getSessionManager } from '@/server';
+import { getSessionManager } from '@/server/session-manager';
 
 export async function GET(request: NextRequest) {
   try {

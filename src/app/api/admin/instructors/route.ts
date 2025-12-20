@@ -28,8 +28,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if user is an instructor
-    if (session.user.role !== 'instructor') {
+    // Check if user is an instructor or admin
+    if (session.user.role !== 'instructor' && session.user.role !== 'admin') {
       return NextResponse.json(
         { error: 'Forbidden: Instructors only' },
         { status: 403 }
