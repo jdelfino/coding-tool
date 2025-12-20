@@ -100,6 +100,11 @@ function InstructorPage() {
         }
         break;
 
+      case 'STUDENT_LIST_UPDATE':
+        console.log('[STUDENT_LIST_UPDATE] Updating students list');
+        setStudents(lastMessage.payload.students || []);
+        break;
+
       case 'STUDENT_JOINED':
         setStudents(prev => {
           const exists = prev.find(s => s.id === lastMessage.payload.studentId);

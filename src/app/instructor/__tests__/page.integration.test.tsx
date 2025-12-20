@@ -23,6 +23,12 @@ jest.mock('../components/CodeViewer', () => ({
   default: ({ code }: { code: string }) => <div data-testid="code-viewer">{code}</div>,
 }));
 
+// Mock ProblemInput to avoid React import issues
+jest.mock('../components/ProblemInput', () => ({
+  __esModule: true,
+  default: () => <div data-testid="problem-input">Problem Input</div>,
+}));
+
 // Mock RevisionViewer to avoid complex dependencies
 jest.mock('../components/RevisionViewer', () => ({
   __esModule: true,
@@ -319,6 +325,234 @@ describe('InstructorPage - Integration Tests', () => {
 
       await waitFor(() => {
         expect(screen.getByText(/Network error/i)).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe('WebSocket Student List Updates', () => {
+    it('should display students when STUDENT_LIST_UPDATE message is received', async () => {
+      const mockClasses = [{ id: 'class-1', name: 'CS101' }];
+
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: true,
+        json: async () => ({ classes: mockClasses }),
+      });
+
+      // Create a mock WebSocket state with a way to update lastMessage
+      let mockWebSocketState = {
+        isConnected: true,
+        connectionStatus: 'connected' as const,
+        connectionError: null,
+        lastMessage: null as any,
+        sendMessage: mockSendMessage,
+      };
+
+      (useWebSocket as jest.Mock).mockReturnValue(mockWebSocketState);
+
+      const { rerender } = render(<InstructorPage />);
+
+      await waitFor(() => {
+        expect(screen.getByText('CS101')).toBeInTheDocument();
+      });
+
+      // First, simulate session creation to get into session view
+      mockWebSocketState = {
+        ...mockWebSocketState,
+        lastMessage: {
+          type: 'SESSION_CREATED',
+          payload: {
+            sessionId: 'test-session-id',
+            joinCode: 'ABC123',
+            sectionId: 'section-1',
+            sectionName: 'Test Section',
+          },
+        },
+      };
+      (useWebSocket as jest.Mock).mockReturnValue(mockWebSocketState);
+      rerender(<InstructorPage />);
+
+      // Wait for session view to render
+      await waitFor(() => {
+        expect(screen.getByText('ABC123')).toBeInTheDocument();
+      });
+
+      // Now simulate receiving a STUDENT_LIST_UPDATE message
+      const studentListUpdate = {
+        type: 'STUDENT_LIST_UPDATE',
+        payload: {
+          students: [
+            { id: '8a099edb-31ec-4a42-9dd2-e5c040ec1fd8', name: 'stu', hasCode: true },
+            { id: 'student-2', name: 'Alice', hasCode: false },
+          ],
+        },
+      };
+
+      // Update the mock to return the new message
+      mockWebSocketState = {
+        ...mockWebSocketState,
+        lastMessage: studentListUpdate,
+      };
+      (useWebSocket as jest.Mock).mockReturnValue(mockWebSocketState);
+
+      // Trigger re-render to simulate WebSocket message arrival
+      rerender(<InstructorPage />);
+
+      // Verify students appear in the UI
+      await waitFor(() => {
+        expect(screen.getByText('stu')).toBeInTheDocument();
+        expect(screen.getByText('Alice')).toBeInTheDocument();
+      });
+
+      // Verify student count is displayed
+      expect(screen.getByText(/Connected Students \(2\)/i)).toBeInTheDocument();
+    });
+
+    it('should replace existing students when STUDENT_LIST_UPDATE is received', async () => {
+      const mockClasses = [{ id: 'class-1', name: 'CS101' }];
+
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: true,
+        json: async () => ({ classes: mockClasses }),
+      });
+
+      let mockWebSocketState = {
+        isConnected: true,
+        connectionStatus: 'connected' as const,
+        connectionError: null,
+        lastMessage: null as any,
+        sendMessage: mockSendMessage,
+      };
+
+      (useWebSocket as jest.Mock).mockReturnValue(mockWebSocketState);
+
+      const { rerender } = render(<InstructorPage />);
+
+      await waitFor(() => {
+        expect(screen.getByText('CS101')).toBeInTheDocument();
+      });
+
+      // First, create a session
+      mockWebSocketState = {
+        ...mockWebSocketState,
+        lastMessage: {
+          type: 'SESSION_CREATED',
+          payload: {
+            sessionId: 'test-session-id',
+            joinCode: 'ABC123',
+            sectionId: 'section-1',
+            sectionName: 'Test Section',
+          },
+        },
+      };
+      (useWebSocket as jest.Mock).mockReturnValue(mockWebSocketState);
+      rerender(<InstructorPage />);
+
+      await waitFor(() => {
+        expect(screen.getByText('ABC123')).toBeInTheDocument();
+      });
+
+      // Send a STUDENT_JOINED message
+      mockWebSocketState = {
+        ...mockWebSocketState,
+        lastMessage: {
+          type: 'STUDENT_JOINED',
+          payload: {
+            studentId: 'old-student',
+            studentName: 'Old Student',
+          },
+        },
+      };
+      (useWebSocket as jest.Mock).mockReturnValue(mockWebSocketState);
+      rerender(<InstructorPage />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Old Student')).toBeInTheDocument();
+      });
+
+      // Now send STUDENT_LIST_UPDATE with different students
+      mockWebSocketState = {
+        ...mockWebSocketState,
+        lastMessage: {
+          type: 'STUDENT_LIST_UPDATE',
+          payload: {
+            students: [
+              { id: 'new-student-1', name: 'New Student 1', hasCode: true },
+              { id: 'new-student-2', name: 'New Student 2', hasCode: false },
+            ],
+          },
+        },
+      };
+      (useWebSocket as jest.Mock).mockReturnValue(mockWebSocketState);
+      rerender(<InstructorPage />);
+
+      // Old student should be gone, new students should appear
+      await waitFor(() => {
+        expect(screen.queryByText('Old Student')).not.toBeInTheDocument();
+        expect(screen.getByText('New Student 1')).toBeInTheDocument();
+        expect(screen.getByText('New Student 2')).toBeInTheDocument();
+      });
+    });
+
+    it('should show empty state when STUDENT_LIST_UPDATE has no students', async () => {
+      const mockClasses = [{ id: 'class-1', name: 'CS101' }];
+
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: true,
+        json: async () => ({ classes: mockClasses }),
+      });
+
+      let mockWebSocketState = {
+        isConnected: true,
+        connectionStatus: 'connected' as const,
+        connectionError: null,
+        lastMessage: null as any,
+        sendMessage: mockSendMessage,
+      };
+
+      (useWebSocket as jest.Mock).mockReturnValue(mockWebSocketState);
+
+      const { rerender } = render(<InstructorPage />);
+
+      await waitFor(() => {
+        expect(screen.getByText('CS101')).toBeInTheDocument();
+      });
+
+      // Create a session first
+      mockWebSocketState = {
+        ...mockWebSocketState,
+        lastMessage: {
+          type: 'SESSION_CREATED',
+          payload: {
+            sessionId: 'test-session-id',
+            joinCode: 'ABC123',
+            sectionId: 'section-1',
+            sectionName: 'Test Section',
+          },
+        },
+      };
+      (useWebSocket as jest.Mock).mockReturnValue(mockWebSocketState);
+      rerender(<InstructorPage />);
+
+      await waitFor(() => {
+        expect(screen.getByText('ABC123')).toBeInTheDocument();
+      });
+
+      // Send STUDENT_LIST_UPDATE with empty students array
+      mockWebSocketState = {
+        ...mockWebSocketState,
+        lastMessage: {
+          type: 'STUDENT_LIST_UPDATE',
+          payload: {
+            students: [],
+          },
+        },
+      };
+      (useWebSocket as jest.Mock).mockReturnValue(mockWebSocketState);
+      rerender(<InstructorPage />);
+
+      // Should show "No students connected yet" message
+      await waitFor(() => {
+        expect(screen.getByText(/No students connected yet/i)).toBeInTheDocument();
       });
     });
   });
