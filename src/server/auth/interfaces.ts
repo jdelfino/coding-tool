@@ -114,6 +114,24 @@ export interface IAuthProvider {
  */
 export interface IUserRepository {
   /**
+   * Initialize the repository.
+   * Can be no-op for implementations that don't need setup.
+   */
+  initialize?(): Promise<void>;
+
+  /**
+   * Shutdown the repository gracefully.
+   * Can be no-op for implementations that don't need cleanup.
+   */
+  shutdown?(): Promise<void>;
+
+  /**
+   * Check if repository is healthy.
+   * Can return true for implementations without health checks.
+   */
+  health?(): Promise<boolean>;
+
+  /**
    * Save a user to storage.
    * Creates new user if not exists, updates if exists.
    * 

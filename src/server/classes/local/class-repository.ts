@@ -35,7 +35,7 @@ export class ClassRepository implements IClassRepository {
   /**
    * Initialize the repository by loading data from disk
    */
-  private async ensureInitialized(): Promise<void> {
+  async ensureInitialized(): Promise<void> {
     if (this.initialized) {
       return;
     }

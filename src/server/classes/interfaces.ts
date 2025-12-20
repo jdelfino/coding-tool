@@ -24,6 +24,12 @@ import {
  */
 export interface IClassRepository {
   /**
+   * Initialize the repository.
+   * Can be no-op for implementations that don't need setup.
+   */
+  ensureInitialized?(): Promise<void>;
+
+  /**
    * Create a new class
    * 
    * @param classData - Class data without id, createdAt, updatedAt
@@ -82,6 +88,12 @@ export interface IClassRepository {
  * Manages CRUD operations for sections within classes.
  */
 export interface ISectionRepository {
+  /**
+   * Initialize the repository.
+   * Can be no-op for implementations that don't need setup.
+   */
+  ensureInitialized?(): Promise<void>;
+
   /**
    * Create a new section
    * 
@@ -186,6 +198,12 @@ export interface ISectionRepository {
  * Manages the relationship between users (instructors and students) and sections.
  */
 export interface IMembershipRepository {
+  /**
+   * Initialize the repository.
+   * Can be no-op for implementations that don't need setup.
+   */
+  ensureInitialized?(): Promise<void>;
+
   /**
    * Add a membership (enroll a user in a section)
    * 

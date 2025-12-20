@@ -70,30 +70,19 @@ export class StorageBackend implements IStorageRepository {
       this.revisions.initialize(),
     ]);
     
-    // NOTE: Type assertions below are necessary because repository interfaces don't declare
-    // lifecycle methods (initialize, ensureInitialized, shutdown, health).
-    // This is intentional - these methods are implementation-specific for local file storage
-    // and won't exist when we migrate to Supabase. The interfaces only declare data operations.
-    // TODO: Consider creating separate IInitializable, IShutdownable interfaces that
-    // implementations can optionally implement for better type safety.
-    
-    // Initialize repositories with custom initialization methods
+    // Initialize repositories with optional lifecycle methods
     const optionalInits: Promise<void>[] = [];
-    const usersAny = this.users as any;
-    if (usersAny.initialize && typeof usersAny.initialize === 'function') {
-      optionalInits.push(usersAny.initialize());
+    if (this.users.initialize) {
+      optionalInits.push(this.users.initialize());
     }
-    const classesAny = this.classes as any;
-    if (classesAny?.ensureInitialized && typeof classesAny.ensureInitialized === 'function') {
-      optionalInits.push(classesAny.ensureInitialized());
+    if (this.classes?.ensureInitialized) {
+      optionalInits.push(this.classes.ensureInitialized());
     }
-    const sectionsAny = this.sections as any;
-    if (sectionsAny?.ensureInitialized && typeof sectionsAny.ensureInitialized === 'function') {
-      optionalInits.push(sectionsAny.ensureInitialized());
+    if (this.sections?.ensureInitialized) {
+      optionalInits.push(this.sections.ensureInitialized());
     }
-    const membershipsAny = this.memberships as any;
-    if (membershipsAny?.ensureInitialized && typeof membershipsAny.ensureInitialized === 'function') {
-      optionalInits.push(membershipsAny.ensureInitialized());
+    if (this.memberships?.ensureInitialized) {
+      optionalInits.push(this.memberships.ensureInitialized());
     }
     
     await Promise.all(optionalInits);
@@ -107,9 +96,8 @@ export class StorageBackend implements IStorageRepository {
     ];
     
     // Add optional shutdown for users repository
-    const usersAny = this.users as any;
-    if (usersAny.shutdown && typeof usersAny.shutdown === 'function') {
-      shutdowns.push(usersAny.shutdown());
+    if (this.users.shutdown) {
+      shutdowns.push(this.users.shutdown());
     }
     
     await Promise.all(shutdowns);
@@ -123,9 +111,8 @@ export class StorageBackend implements IStorageRepository {
     ];
     
     // Add optional health check for users repository
-    const usersAny = this.users as any;
-    if (usersAny.health && typeof usersAny.health === 'function') {
-      healthChecks.push(usersAny.health());
+    if (this.users.health) {
+      healthChecks.push(this.users.health());
     } else {
       healthChecks.push(Promise.resolve(true));
     }
