@@ -172,53 +172,69 @@ class WebSocketHandler {
   }
 
   private async handleCreateSession(ws: WebSocket, connection: Connection, payload: any) {
-    const { sectionId } = payload;
-    
-    if (!sectionId || typeof sectionId !== 'string') {
-      this.sendError(ws, 'Section ID is required to create a session');
-      return;
-    }
+    try {
+      console.log('[handleCreateSession] Starting, payload:', payload);
+      const { sectionId } = payload;
+      
+      if (!sectionId || typeof sectionId !== 'string') {
+        console.error('[handleCreateSession] Invalid sectionId');
+        this.sendError(ws, 'Section ID is required to create a session');
+        return;
+      }
 
-    if (!connection.userId) {
-      this.sendError(ws, 'Authentication required to create a session');
-      return;
-    }
+      if (!connection.userId) {
+        console.error('[handleCreateSession] No userId in connection');
+        this.sendError(ws, 'Authentication required to create a session');
+        return;
+      }
 
-    // Validate instructor has access to this section
-    const sectionRepo = await getSectionRepository();
-    const section = await sectionRepo.getSection(sectionId);
-    
-    if (!section) {
-      this.sendError(ws, 'Section not found');
-      return;
-    }
+      console.log('[handleCreateSession] Fetching section:', sectionId);
+      // Validate instructor has access to this section
+      const sectionRepo = await getSectionRepository();
+      const section = await sectionRepo.getSection(sectionId);
+      
+      if (!section) {
+        console.error('[handleCreateSession] Section not found:', sectionId);
+        this.sendError(ws, 'Section not found');
+        return;
+      }
 
-    // Check if user is instructor of this section
-    const isInstructor = section.instructorIds.includes(connection.userId);
-    if (!isInstructor) {
-      this.sendError(ws, 'You are not an instructor of this section');
-      return;
-    }
+      console.log('[handleCreateSession] Checking instructor access, section.instructorIds:', section.instructorIds, 'userId:', connection.userId);
+      // Check if user is instructor of this section
+      const isInstructor = section.instructorIds.includes(connection.userId);
+      if (!isInstructor) {
+        console.error('[handleCreateSession] User is not instructor of section');
+        this.sendError(ws, 'You are not an instructor of this section');
+        return;
+      }
 
-    // Create session with section context
-    const session = await sessionManagerHolder.instance.createSession(
-      connection.userId,
-      sectionId,
-      section.name
-    );
-    
-    connection.role = 'instructor';
-    connection.sessionId = session.id;
-    
-    this.send(ws, {
-      type: MessageType.SESSION_CREATED,
-      payload: {
-        sessionId: session.id,
-        joinCode: session.joinCode,
-        sectionId: session.sectionId,
-        sectionName: session.sectionName,
-      },
-    });
+      console.log('[handleCreateSession] Creating session...');
+      // Create session with section context
+      const session = await sessionManagerHolder.instance.createSession(
+        connection.userId,
+        sectionId,
+        section.name
+      );
+      
+      console.log('[handleCreateSession] Session created:', session.id);
+      connection.role = 'instructor';
+      connection.sessionId = session.id;
+      
+      console.log('[handleCreateSession] Sending SESSION_CREATED response');
+      this.send(ws, {
+        type: MessageType.SESSION_CREATED,
+        payload: {
+          sessionId: session.id,
+          joinCode: session.joinCode,
+          sectionId: session.sectionId,
+          sectionName: session.sectionName,
+        },
+      });
+      console.log('[handleCreateSession] Response sent successfully');
+    } catch (error) {
+      console.error('[handleCreateSession] Error:', error);
+      this.sendError(ws, 'Failed to create session: ' + (error instanceof Error ? error.message : String(error)));
+    }
   }
 
   private async handleListSessions(ws: WebSocket, connection: Connection) {
