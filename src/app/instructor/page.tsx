@@ -71,8 +71,11 @@ function InstructorPage() {
   useEffect(() => {
     if (!lastMessage) return;
 
+    console.log('[WebSocket] Received message:', lastMessage.type, lastMessage.payload);
+
     switch (lastMessage.type) {
       case 'SESSION_CREATED':
+        console.log('[SESSION_CREATED] Setting session state');
         setSessionId(lastMessage.payload.sessionId);
         setJoinCode(lastMessage.payload.joinCode);
         setSessionContext({
@@ -179,15 +182,20 @@ function InstructorPage() {
   };
 
   const handleCreateSession = (sectionId: string, sectionName: string) => {
+    console.log('[handleCreateSession] Called', { sectionId, sectionName, isConnected });
+    
     if (!isConnected) {
+      console.error('[handleCreateSession] WebSocket not connected');
       alert('Not connected to server. Please wait for connection or refresh the page.');
       return;
     }
 
+    console.log('[handleCreateSession] Setting state and sending message');
     setIsCreatingSession(true);
     setSessionContext({ sectionId, sectionName });
     setViewMode('session'); // Switch to session view to show "Creating session..." message
     sendMessage('CREATE_SESSION', { sectionId });
+    console.log('[handleCreateSession] Message sent');
   };
 
   const handleJoinSession = (sessionId: string) => {
@@ -287,13 +295,34 @@ function InstructorPage() {
 
     if (viewMode === 'session') {
       // Show loading state while creating session
-      if (isCreatingSession && !sessionId) {
-        return null; // Loading state is shown above renderContent()
+      if (isCreatingSession) {
+        return (
+          <div className="text-center py-12">
+            <div className="inline-flex items-center gap-3 bg-blue-50 border border-blue-200 rounded-lg p-6">
+              <div className="animate-spin w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full"></div>
+              <div className="text-left">
+                <p className="font-semibold text-blue-900">Creating session...</p>
+                <p className="text-sm text-blue-700 mt-1">
+                  {sessionContext?.sectionName || 'Setting up your session'}
+                </p>
+              </div>
+            </div>
+          </div>
+        );
       }
 
       // Only render session content once we have sessionId and joinCode
       if (!sessionId || !joinCode) {
-        return null;
+        return (
+          <div className="text-center py-12">
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 max-w-md mx-auto">
+              <p className="font-semibold text-yellow-900">Waiting for session...</p>
+              <p className="text-sm text-yellow-700 mt-2">
+                If this persists, please refresh the page.
+              </p>
+            </div>
+          </div>
+        );
       }
 
       return (
