@@ -7,7 +7,7 @@ import { MessageType, WebSocketMessage, Student } from './types';
 import { getAuthProvider } from './auth';
 import { revisionBufferHolder } from './revision-buffer';
 import { getStorage } from './persistence';
-import { getSectionRepository } from './classes';
+import { getSectionRepository, getMembershipRepository } from './classes';
 import * as DiffMatchPatch from 'diff-match-patch';
 
 interface Connection {
@@ -376,12 +376,30 @@ class WebSocketHandler {
       return;
     }
 
-    // Validate section membership if session is scoped to a section
+    // Auto-enroll student in section if session is scoped to a section
     if (session.sectionId && connection.userId) {
-      const isMember = await sessionManagerHolder.instance.isSectionMember(session.id, connection.userId);
-      if (!isMember) {
-        this.sendError(ws, 'You are not enrolled in this section. Please join the section first.');
-        return;
+      console.log('[JOIN_SESSION] Checking/creating section membership for user:', connection.userId);
+      const membershipRepo = await getMembershipRepository();
+      
+      // Check if already a member
+      const existingMembership = await membershipRepo.getMembership(connection.userId, session.sectionId);
+      
+      if (!existingMembership) {
+        console.log('[JOIN_SESSION] Auto-enrolling student in section:', session.sectionId);
+        try {
+          await membershipRepo.addMembership({
+            userId: connection.userId,
+            sectionId: session.sectionId,
+            role: 'student',
+          });
+          console.log('[JOIN_SESSION] Student successfully enrolled in section');
+        } catch (error) {
+          console.error('[JOIN_SESSION] Error enrolling student:', error);
+          this.sendError(ws, 'Failed to join session. Please try again.');
+          return;
+        }
+      } else {
+        console.log('[JOIN_SESSION] Student already enrolled in section');
       }
     } else if (session.sectionId && !connection.userId) {
       // Session requires section membership but user is not authenticated
