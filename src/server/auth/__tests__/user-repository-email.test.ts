@@ -1,11 +1,10 @@
 /**
- * Unit tests for getUserByEmail method in InMemoryUserRepository
+ * Unit tests for getUserByEmail method in UserRepository
  */
 
-import { InMemoryUserRepository } from '../user-repository';
 import { FakeUserRepository } from '../../__tests__/test-utils/fake-storage';
 
-describe('InMemoryUserRepository - getUserByEmail', () => {
+describe('FakeUserRepository - getUserByEmail', () => {
   let repository: FakeUserRepository;
 
   beforeEach(() => {
@@ -16,7 +15,6 @@ describe('InMemoryUserRepository - getUserByEmail', () => {
     // Create a user
     const user = await repository.createUser({
       username: 'alice@example.com',
-      passwordHash: 'hash',
       role: 'instructor',
     });
 
@@ -32,7 +30,6 @@ describe('InMemoryUserRepository - getUserByEmail', () => {
   it('should be case-insensitive', async () => {
     const user = await repository.createUser({
       username: 'alice@example.com',
-      passwordHash: 'hash',
       role: 'instructor',
     });
 
@@ -49,7 +46,6 @@ describe('InMemoryUserRepository - getUserByEmail', () => {
   it('should work same as getUserByUsername', async () => {
     const user = await repository.createUser({
       username: 'bob@example.com',
-      passwordHash: 'hash',
       role: 'student',
     });
 

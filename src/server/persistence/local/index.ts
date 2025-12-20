@@ -6,7 +6,6 @@
  */
 
 export { LocalSessionRepository } from './session-repository';
-export { LocalProblemRepository } from './problem-repository';
 export { LocalRevisionRepository } from './revision-repository';
 export { LocalUserRepository } from './user-repository';
 export * from './utils';

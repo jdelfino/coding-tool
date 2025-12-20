@@ -7,7 +7,6 @@
 
 import {
   LocalSessionRepository,
-  LocalProblemRepository,
   LocalRevisionRepository,
   LocalUserRepository,
 } from './local';
@@ -18,7 +17,6 @@ import {
 } from '../classes';
 import {
   ISessionRepository,
-  IProblemRepository,
   IRevisionRepository,
   IUserRepository,
   IStorageRepository,
@@ -31,7 +29,6 @@ import { StorageConfig } from './types';
  */
 export class StorageBackend implements IStorageRepository {
   public readonly sessions: ISessionRepository;
-  public readonly problems: IProblemRepository;
   public readonly revisions: IRevisionRepository;
   public readonly users: IUserRepository;
   public readonly classes?: IClassRepository;
@@ -41,7 +38,6 @@ export class StorageBackend implements IStorageRepository {
   constructor(config: StorageConfig) {
     // Create repository instances
     this.sessions = new LocalSessionRepository(config);
-    this.problems = new LocalProblemRepository(config);
     this.revisions = new LocalRevisionRepository(config);
     this.users = new LocalUserRepository(config);
     
@@ -66,7 +62,6 @@ export class StorageBackend implements IStorageRepository {
     // Initialize repositories that have standard initialize() method
     await Promise.all([
       this.sessions.initialize(),
-      this.problems.initialize(),
       this.revisions.initialize(),
     ]);
     
@@ -91,7 +86,6 @@ export class StorageBackend implements IStorageRepository {
   async shutdown(): Promise<void> {
     const shutdowns: Promise<void>[] = [
       this.sessions.shutdown(),
-      this.problems.shutdown(),
       this.revisions.shutdown(),
     ];
     
@@ -106,7 +100,6 @@ export class StorageBackend implements IStorageRepository {
   async health(): Promise<boolean> {
     const healthChecks: Promise<boolean>[] = [
       this.sessions.health(),
-      this.problems.health(),
       this.revisions.health(),
     ];
     
@@ -186,6 +179,5 @@ export * from './types';
 export * from './interfaces';
 export {
   LocalSessionRepository,
-  LocalProblemRepository,
   LocalRevisionRepository,
 } from './local';

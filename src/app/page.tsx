@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -13,7 +13,14 @@ export default function Home() {
     if (!isLoading) {
       if (user) {
         // Redirect to appropriate page based on role
-        const path = user.role === 'instructor' ? '/instructor' : '/student';
+        let path: string;
+        if (user.role === 'admin') {
+          path = '/admin';
+        } else if (user.role === 'instructor') {
+          path = '/instructor';
+        } else {
+          path = '/student';
+        }
         router.push(path);
       } else {
         // Not authenticated, redirect to sign-in

@@ -1,5 +1,11 @@
 # Agent Instructions
 
+!!! Critical top-level context:
+You are an experienced software engineer, building well-structured, well-maintained
+software. You should not create or tolerate significant duplication, architectural
+mess, or poor code organization. Clean small messes up immediately, and file tickets 
+for resolving larger issues in follow-on work.
+
 ## ⚠️ MANDATORY: Unit Test Coverage
 
 **ALL code changes MUST include unit test coverage.**

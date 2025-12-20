@@ -4,7 +4,7 @@
  */
 
 import { 
-  StorageBackend, 
+  IStorageBackend, 
   ISessionRepository, 
   IRevisionRepository,
   IUserRepository,
@@ -114,6 +114,14 @@ export class FakeRevisionRepository implements IRevisionRepository {
     
     sessionMap.delete(studentId);
     return revisions.length;
+  }
+
+  async deleteRevisions(sessionId: string, studentId?: string): Promise<void> {
+    if (studentId) {
+      await this.deleteStudentRevisions(sessionId, studentId);
+    } else {
+      await this.deleteSessionRevisions(sessionId);
+    }
   }
 
   async getAllSessionRevisions(sessionId: string): Promise<Map<string, StoredRevision[]>> {
@@ -229,7 +237,7 @@ export class FakeUserRepository implements IUserRepository {
   async shutdown(): Promise<void> {}
   async health(): Promise<boolean> { return true; }
 
-  async createUser(user: Omit<User, 'id'>): Promise<User> {
+  async createUser(user: Omit<User, 'id' | 'createdAt'>): Promise<User> {
     const newUser: User = {
       ...user,
       id: `user-${this.nextId++}`,
@@ -238,6 +246,11 @@ export class FakeUserRepository implements IUserRepository {
     this.users.set(newUser.id, newUser);
     this.usernameIndex.set(newUser.username.toLowerCase(), newUser.id);
     return newUser;
+  }
+
+  async saveUser(user: User): Promise<void> {
+    this.users.set(user.id, user);
+    this.usernameIndex.set(user.username.toLowerCase(), user.id);
   }
 
   async getUser(userId: string): Promise<User | null> {
@@ -262,12 +275,13 @@ export class FakeUserRepository implements IUserRepository {
     Object.assign(user, updates);
   }
 
-  async deleteUser(userId: string): Promise<boolean> {
+  async deleteUser(userId: string): Promise<void> {
     const user = this.users.get(userId);
-    if (!user) return false;
+    if (!user) {
+      throw new Error(`User not found: ${userId}`);
+    }
     this.usernameIndex.delete(user.username.toLowerCase());
     this.users.delete(userId);
-    return true;
   }
 
   async listUsers(filters?: any): Promise<User[]> {
@@ -284,10 +298,11 @@ export class FakeUserRepository implements IUserRepository {
 /**
  * Fake storage backend combining all repositories
  */
-export class FakeStorageBackend implements StorageBackend {
+export class FakeStorageBackend implements IStorageBackend {
   public readonly sessions: FakeSessionRepository;
   public readonly revisions: FakeRevisionRepository;
   public readonly users: FakeUserRepository;
+  public memberships?: any; // Optional membership repository for tests
 
   constructor() {
     this.sessions = new FakeSessionRepository();
@@ -307,16 +322,13 @@ export class FakeStorageBackend implements StorageBackend {
     await this.users.shutdown();
   }
 
-  async health(): Promise<{ 
-    sessions: boolean; 
-    revisions: boolean; 
-    users: boolean; 
-  }> {
-    return {
-      sessions: await this.sessions.health(),
-      revisions: await this.revisions.health(),
-      users: await this.users.health(),
-    };
+  async health(): Promise<boolean> {
+    const results = await Promise.all([
+      this.sessions.health(),
+      this.revisions.health(),
+      this.users.health(),
+    ]);
+    return results.every(r => r === true);
   }
 }
 

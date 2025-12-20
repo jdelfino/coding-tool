@@ -263,7 +263,7 @@ export default function SectionView({
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    handleDeleteSection(section.id);
+                    handleDeleteSection(section.id, section.name);
                   }}
                   disabled={deletingId === section.id}
                   className="absolute top-4 right-4 p-2 bg-red-600 text-white rounded-lg opacity-0 group-hover:opacity-100 hover:bg-red-700 transition-all duration-200 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed z-10"

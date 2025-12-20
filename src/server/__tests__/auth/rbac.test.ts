@@ -349,24 +349,24 @@ describe('RBACService', () => {
 
   describe('User Management Authorization', () => {
     describe('Instructor Management', () => {
-      it('should allow instructor to manage any user', () => {
+      it('should allow instructor to manage students', () => {
         const instructor = createUser('instructor', 'instructor-1', 'instructor');
         const targetUser = createUser('student', 'student-1', 'student');
 
         expect(rbacService.canManageUser(instructor, targetUser)).toBe(true);
       });
 
-      it('should allow instructor to manage another instructor', () => {
+      it('should deny instructor from managing another instructor', () => {
         const instructor = createUser('instructor', 'instructor-1', 'instructor1');
         const targetInstructor = createUser('instructor', 'instructor-2', 'instructor2');
 
-        expect(rbacService.canManageUser(instructor, targetInstructor)).toBe(true);
+        expect(rbacService.canManageUser(instructor, targetInstructor)).toBe(false);
       });
 
-      it('should allow instructor to manage themselves', () => {
+      it('should deny instructor from managing themselves', () => {
         const instructor = createUser('instructor', 'instructor-1', 'instructor');
 
-        expect(rbacService.canManageUser(instructor, instructor)).toBe(true);
+        expect(rbacService.canManageUser(instructor, instructor)).toBe(false);
       });
     });
 

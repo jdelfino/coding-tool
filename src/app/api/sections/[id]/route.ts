@@ -126,10 +126,21 @@ export async function DELETE(
   context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
+    const sessionId = request.cookies.get('sessionId')?.value;
+
+    if (!sessionId) {
       return NextResponse.json(
-        { error: 'Unauthorized' },
+        { error: 'Not authenticated' },
+        { status: 401 }
+      );
+    }
+
+    const authProvider = await getAuthProvider();
+    const session = await authProvider.getSession(sessionId);
+
+    if (!session) {
+      return NextResponse.json(
+        { error: 'Session expired' },
         { status: 401 }
       );
     }
@@ -137,6 +148,7 @@ export async function DELETE(
     const userId = session.user.id;
     const { id } = await context.params;
 
+    const sectionRepo = await getSectionRepository();
     const section = await sectionRepo.getSection(id);
     if (!section) {
       return NextResponse.json(

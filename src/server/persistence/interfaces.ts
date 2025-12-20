@@ -286,9 +286,6 @@ export interface IStorageRepository extends IStorageBackend {
   /** Session data operations */
   sessions: ISessionRepository;
   
-  /** Problem data operations */
-  problems: IProblemRepository;
-  
   /** Revision data operations */
   revisions: IRevisionRepository;
   

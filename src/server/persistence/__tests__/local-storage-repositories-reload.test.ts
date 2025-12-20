@@ -4,103 +4,18 @@
  * These tests verify that changes made by one repository instance
  * are visible to another instance (simulating cross-process behavior)
  * 
- * Tests: LocalProblemRepository, LocalRevisionRepository, LocalUserRepository
+ * Tests: LocalRevisionRepository, LocalUserRepository
  */
 
 import {
-  LocalProblemRepository,
   LocalRevisionRepository,
   LocalUserRepository,
 } from '../local';
-import { ProblemSpec, CodeRevision } from '../types';
+import { CodeRevision } from '../types';
 import { User } from '../../auth/types';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as os from 'os';
-
-describe('LocalProblemRepository - Cross-Process Data Reloading', () => {
-  let testDir: string;
-  let repository1: LocalProblemRepository;
-  let repository2: LocalProblemRepository;
-
-  beforeEach(async () => {
-    testDir = await fs.mkdtemp(path.join(os.tmpdir(), 'problem-repo-test-'));
-    
-    const config = { type: 'local' as const, baseDir: testDir };
-    repository1 = new LocalProblemRepository(config);
-    repository2 = new LocalProblemRepository(config);
-    
-    await repository1.initialize();
-    await repository2.initialize();
-  });
-
-  afterEach(async () => {
-    await repository1.shutdown();
-    await repository2.shutdown();
-    await fs.rm(testDir, { recursive: true, force: true });
-  });
-
-  it('should see problems created by another repository instance', async () => {
-    const problem: ProblemSpec = {
-      id: 'problem-123',
-      title: 'Test Problem',
-      description: 'A test problem for cross-process testing',
-      starterCode: 'print("Hello")',
-      testCases: [],
-    };
-
-    await repository1.saveProblem(problem);
-
-    const retrievedProblem = await repository2.getProblem('problem-123');
-    
-    expect(retrievedProblem).not.toBeNull();
-    expect(retrievedProblem?.id).toBe('problem-123');
-    expect(retrievedProblem?.title).toBe('Test Problem');
-    expect(retrievedProblem?.description).toBe('A test problem for cross-process testing');
-  });
-
-  it('should see problem updates made by another repository instance', async () => {
-    const problem: ProblemSpec = {
-      id: 'problem-456',
-      title: 'Original Title',
-      description: 'Original description',
-      starterCode: 'print("Hello")',
-      testCases: [],
-    };
-
-    await repository1.saveProblem(problem);
-    await repository1.updateProblem('problem-456', {
-      title: 'Updated Title',
-      description: 'Updated description',
-    });
-
-    const retrievedProblem = await repository2.getProblem('problem-456');
-    
-    expect(retrievedProblem).not.toBeNull();
-    expect(retrievedProblem?.title).toBe('Updated Title');
-    expect(retrievedProblem?.description).toBe('Updated description');
-  });
-
-  it('should not see deleted problems across repository instances', async () => {
-    const problem: ProblemSpec = {
-      id: 'problem-delete',
-      title: 'To Be Deleted',
-      description: 'This problem will be deleted',
-      starterCode: '',
-      testCases: [],
-    };
-
-    await repository1.saveProblem(problem);
-
-    let retrievedProblem = await repository2.getProblem('problem-delete');
-    expect(retrievedProblem).not.toBeNull();
-
-    await repository1.deleteProblem('problem-delete');
-
-    retrievedProblem = await repository2.getProblem('problem-delete');
-    expect(retrievedProblem).toBeNull();
-  });
-});
 
 describe('LocalRevisionRepository - Cross-Process Data Reloading', () => {
   let testDir: string;
@@ -129,7 +44,8 @@ describe('LocalRevisionRepository - Cross-Process Data Reloading', () => {
       id: 'rev-123',
       sessionId: 'session-1',
       studentId: 'student-1',
-      code: 'print("Hello World")',
+      fullCode: 'print("Hello World")',
+      isDiff: false,
       timestamp: new Date(),
     };
 
@@ -139,7 +55,7 @@ describe('LocalRevisionRepository - Cross-Process Data Reloading', () => {
     
     expect(revisions).toHaveLength(1);
     expect(revisions[0].id).toBe('rev-123');
-    expect(revisions[0].code).toBe('print("Hello World")');
+    expect(revisions[0].fullCode).toBe('print("Hello World")');
   });
 
   it('should see latest revision across repository instances', async () => {
@@ -147,7 +63,8 @@ describe('LocalRevisionRepository - Cross-Process Data Reloading', () => {
       id: 'rev-1',
       sessionId: 'session-2',
       studentId: 'student-2',
-      code: 'print("First")',
+      fullCode: 'print("First")',
+      isDiff: false,
       timestamp: new Date(),
     };
 
@@ -155,7 +72,8 @@ describe('LocalRevisionRepository - Cross-Process Data Reloading', () => {
       id: 'rev-2',
       sessionId: 'session-2',
       studentId: 'student-2',
-      code: 'print("Second")',
+      fullCode: 'print("Second")',
+      isDiff: false,
       timestamp: new Date(Date.now() + 1000),
     };
 
@@ -166,7 +84,7 @@ describe('LocalRevisionRepository - Cross-Process Data Reloading', () => {
     
     expect(latestRevision).not.toBeNull();
     expect(latestRevision?.id).toBe('rev-2');
-    expect(latestRevision?.code).toBe('print("Second")');
+    expect(latestRevision?.fullCode).toBe('print("Second")');
   });
 
   it('should see revision by ID across repository instances', async () => {
@@ -174,7 +92,8 @@ describe('LocalRevisionRepository - Cross-Process Data Reloading', () => {
       id: 'rev-unique',
       sessionId: 'session-3',
       studentId: 'student-3',
-      code: 'print("Unique revision")',
+      fullCode: 'print("Unique revision")',
+      isDiff: false,
       timestamp: new Date(),
     };
 
@@ -184,7 +103,7 @@ describe('LocalRevisionRepository - Cross-Process Data Reloading', () => {
     
     expect(retrievedRevision).not.toBeNull();
     expect(retrievedRevision?.id).toBe('rev-unique');
-    expect(retrievedRevision?.code).toBe('print("Unique revision")');
+    expect(retrievedRevision?.fullCode).toBe('print("Unique revision")');
   });
 
   it('should handle deletion across repository instances', async () => {
@@ -192,7 +111,8 @@ describe('LocalRevisionRepository - Cross-Process Data Reloading', () => {
       id: 'rev-delete',
       sessionId: 'session-4',
       studentId: 'student-4',
-      code: 'print("To be deleted")',
+      fullCode: 'print("To be deleted")',
+      isDiff: false,
       timestamp: new Date(),
     };
 

@@ -27,7 +27,7 @@ describe('SessionManager', () => {
   beforeEach(() => {
     // Reset UUID counter for deterministic IDs
     uuidCounter = 0;
-    mockUuid.mockImplementation(() => `session-${uuidCounter++}`);
+    mockUuid.mockImplementation(() => `session-${uuidCounter++}` as any);
 
     // Create fresh instances
     storage = new FakeStorageBackend();
@@ -580,8 +580,8 @@ describe('SessionManager', () => {
     });
 
     it('should handle creator and participant overlap', async () => {
-      const session1 = await sessionManager.createSession('user-1');
-      const session2 = await sessionManager.createSession('user-2');
+      const session1 = await sessionManager.createSession('user-1', 'section-1', 'Section 1');
+      const session2 = await sessionManager.createSession('user-2', 'section-2', 'Section 2');
       
       await sessionManager.addStudent(session2.id, 'user-1', 'User 1');
 
