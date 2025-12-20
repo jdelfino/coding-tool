@@ -63,39 +63,76 @@ export class StorageBackend implements IStorageRepository {
   }
 
   async initialize(): Promise<void> {
+    // Initialize repositories that have standard initialize() method
     await Promise.all([
       this.sessions.initialize(),
       this.problems.initialize(),
       this.revisions.initialize(),
-      // Users repository has initialize but it's not in IUserRepository interface
-      // We know LocalUserRepository has it, so cast to access it
-      (this.users as any).initialize?.(),
-      // Initialize class/section repositories
-      (this.classes as any)?.ensureInitialized?.(),
-      (this.sections as any)?.ensureInitialized?.(),
-      (this.memberships as any)?.ensureInitialized?.(),
     ]);
+    
+    // NOTE: Type assertions below are necessary because repository interfaces don't declare
+    // lifecycle methods (initialize, ensureInitialized, shutdown, health).
+    // This is intentional - these methods are implementation-specific for local file storage
+    // and won't exist when we migrate to Supabase. The interfaces only declare data operations.
+    // TODO: Consider creating separate IInitializable, IShutdownable interfaces that
+    // implementations can optionally implement for better type safety.
+    
+    // Initialize repositories with custom initialization methods
+    const optionalInits: Promise<void>[] = [];
+    const usersAny = this.users as any;
+    if (usersAny.initialize && typeof usersAny.initialize === 'function') {
+      optionalInits.push(usersAny.initialize());
+    }
+    const classesAny = this.classes as any;
+    if (classesAny?.ensureInitialized && typeof classesAny.ensureInitialized === 'function') {
+      optionalInits.push(classesAny.ensureInitialized());
+    }
+    const sectionsAny = this.sections as any;
+    if (sectionsAny?.ensureInitialized && typeof sectionsAny.ensureInitialized === 'function') {
+      optionalInits.push(sectionsAny.ensureInitialized());
+    }
+    const membershipsAny = this.memberships as any;
+    if (membershipsAny?.ensureInitialized && typeof membershipsAny.ensureInitialized === 'function') {
+      optionalInits.push(membershipsAny.ensureInitialized());
+    }
+    
+    await Promise.all(optionalInits);
   }
 
   async shutdown(): Promise<void> {
-    await Promise.all([
+    const shutdowns: Promise<void>[] = [
       this.sessions.shutdown(),
       this.problems.shutdown(),
       this.revisions.shutdown(),
-      (this.users as any).shutdown?.(),
-    ]);
+    ];
+    
+    // Add optional shutdown for users repository
+    const usersAny = this.users as any;
+    if (usersAny.shutdown && typeof usersAny.shutdown === 'function') {
+      shutdowns.push(usersAny.shutdown());
+    }
+    
+    await Promise.all(shutdowns);
   }
 
   async health(): Promise<boolean> {
-    const results = await Promise.all([
+    const healthChecks: Promise<boolean>[] = [
       this.sessions.health(),
       this.problems.health(),
       this.revisions.health(),
-      // Health check for users if available
-      (this.users as any).health?.() ?? Promise.resolve(true),
-    ]);
+    ];
+    
+    // Add optional health check for users repository
+    const usersAny = this.users as any;
+    if (usersAny.health && typeof usersAny.health === 'function') {
+      healthChecks.push(usersAny.health());
+    } else {
+      healthChecks.push(Promise.resolve(true));
+    }
+    
+    const results = await Promise.all(healthChecks);
     // All repositories must be healthy
-    return results.every((r: boolean) => r);
+    return results.every(r => r);
   }
 }
 

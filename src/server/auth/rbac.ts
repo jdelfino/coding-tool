@@ -25,7 +25,9 @@ export class RBACService implements IRBACService {
    */
   hasPermission(user: User, permission: string): boolean {
     const rolePermissions = ROLE_PERMISSIONS[user.role];
-    return rolePermissions.includes(permission as any);
+    // Type-safe check: permission is a string, rolePermissions is Permission[]
+    // This works because TypeScript's structural typing allows string[] to accept string
+    return rolePermissions.some(p => p === permission);
   }
 
   /**

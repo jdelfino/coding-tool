@@ -165,9 +165,9 @@ export class LocalSessionRepository implements ISessionRepository {
     if (options?.sortBy) {
       const order = options.sortOrder === 'desc' ? -1 : 1;
       sessions.sort((a, b) => {
-        const field = options.sortBy!;
-        const aVal = (a as any)[field];
-        const bVal = (b as any)[field];
+        const field = options.sortBy! as keyof StoredSession;
+        const aVal = a[field] ?? '';
+        const bVal = b[field] ?? '';
         if (aVal < bVal) return -order;
         if (aVal > bVal) return order;
         return 0;

@@ -135,7 +135,7 @@ export async function authenticateWebSocket(
     }
 
     // Get user from session
-    const user = await (authProvider as any).getUserFromSession?.(sessionId);
+    const user = await authProvider.getUserFromSession(sessionId);
 
     if (user) {
       ws.user = user;

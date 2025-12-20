@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthProvider } from '@/server/auth/instance';
 import { LocalAuditLogRepository } from '@/server/auth/local/audit-log-repository';
+import { AuditLogEntry } from '@/server/auth/audit';
 
 export async function GET(request: NextRequest) {
   try {
@@ -41,13 +42,13 @@ export async function GET(request: NextRequest) {
     // Get audit log entries
     const auditRepo = new LocalAuditLogRepository();
     const entries = await auditRepo.getEntries({
-      action: action as any,
+      action: action as AuditLogEntry['action'] | undefined,
       limit,
       offset,
     });
 
     const total = await auditRepo.getCount({
-      action: action as any,
+      action: action as AuditLogEntry['action'] | undefined,
     });
 
     return NextResponse.json({

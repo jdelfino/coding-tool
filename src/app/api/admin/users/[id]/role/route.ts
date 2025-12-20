@@ -23,7 +23,7 @@ export async function PUT(
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
-    const actor = await (authProvider as any).getUserFromSession(sessionId);
+    const actor = await authProvider.getUserFromSession(sessionId);
     if (!actor) {
       return NextResponse.json({ error: 'Invalid session' }, { status: 401 });
     }
@@ -38,7 +38,7 @@ export async function PUT(
 
     // Get target user
     const { id: targetId } = await params;
-    const userRepo = (authProvider as any).userRepository;
+    const userRepo = authProvider.userRepository;
     const target = await userRepo.getUser(targetId);
 
     if (!target) {
