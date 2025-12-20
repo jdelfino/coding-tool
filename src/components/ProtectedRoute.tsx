@@ -52,7 +52,9 @@ export function ProtectedRoute({
     return null;
   }
 
-  // Check role if required
+  // SECURITY FIX: Check role BEFORE rendering children
+  // This prevents unauthorized users from seeing protected content
+  // even briefly before the redirect completes
   if (requiredRole && user.role !== requiredRole) {
     return null;
   }

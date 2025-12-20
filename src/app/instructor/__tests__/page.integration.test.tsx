@@ -13,14 +13,27 @@ import { useWebSocket } from '@/hooks/useWebSocket';
 // Mock dependencies
 jest.mock('@/contexts/AuthContext');
 jest.mock('@/hooks/useWebSocket');
+
+// Mock ProtectedRoute by default for most tests (to simplify testing)
+// But we'll unmock it for access control tests
 jest.mock('@/components/ProtectedRoute', () => ({
   ProtectedRoute: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
 
-// Mock CodeViewer to avoid syntax highlighter issues
-jest.mock('../components/CodeViewer', () => ({
-  __esModule: true,
-  default: ({ code }: { code: string }) => <div data-testid="code-viewer">{code}</div>,
+// Mock next/navigation for router.push tracking
+const mockPush = jest.fn();
+jest.mock('next/navigation', () => ({
+  useRouter: () => ({
+    push: mockPush,
+  }),
+}));
+
+// Mock react-syntax-highlighter to avoid import issues
+jest.mock('react-syntax-highlighter', () => ({
+  Prism: ({ children }: { children: string }) => <pre>{children}</pre>,
+}));
+jest.mock('react-syntax-highlighter/dist/esm/styles/prism', () => ({
+  vscDarkPlus: {},
 }));
 
 // Mock ProblemInput to avoid React import issues
@@ -554,6 +567,187 @@ describe('InstructorPage - Integration Tests', () => {
       await waitFor(() => {
         expect(screen.getByText(/No students connected yet/i)).toBeInTheDocument();
       });
+    });
+  });
+
+  describe('Run Code Button', () => {
+    it('should execute student code when Run Code button is clicked', async () => {
+      const mockClasses = [
+        { id: 'class-1', name: 'CS101', description: 'Intro to CS' },
+      ];
+
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ classes: mockClasses }),
+      });
+
+      let mockWebSocketState = {
+        isConnected: true,
+        connectionStatus: 'connected' as const,
+        connectionError: null,
+        lastMessage: null as any,
+        sendMessage: mockSendMessage,
+      };
+
+      (useWebSocket as jest.Mock).mockReturnValue(mockWebSocketState);
+
+      const { rerender } = render(<InstructorPage />);
+
+      await waitFor(() => {
+        expect(screen.getByText('CS101')).toBeInTheDocument();
+      });
+
+      // Create a session
+      mockWebSocketState = {
+        ...mockWebSocketState,
+        lastMessage: {
+          type: 'SESSION_CREATED',
+          payload: {
+            sessionId: 'test-session-id',
+            joinCode: 'ABC123',
+            sectionId: 'section-1',
+            sectionName: 'Test Section',
+          },
+        },
+      };
+      (useWebSocket as jest.Mock).mockReturnValue(mockWebSocketState);
+      rerender(<InstructorPage />);
+
+      await waitFor(() => {
+        expect(screen.getByText('ABC123')).toBeInTheDocument();
+      });
+
+      // Add a student
+      mockWebSocketState = {
+        ...mockWebSocketState,
+        lastMessage: {
+          type: 'STUDENT_JOINED',
+          payload: {
+            studentId: 'student-1',
+            studentName: 'Alice',
+          },
+        },
+      };
+      (useWebSocket as jest.Mock).mockReturnValue(mockWebSocketState);
+      rerender(<InstructorPage />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Alice')).toBeInTheDocument();
+      });
+
+      // Select the student by clicking "View Code" button
+      const viewCodeButton = screen.getByRole('button', { name: /View Code/i });
+      fireEvent.click(viewCodeButton);
+
+      // Should send REQUEST_STUDENT_CODE message
+      expect(mockSendMessage).toHaveBeenCalledWith('REQUEST_STUDENT_CODE', {
+        sessionId: 'test-session-id',
+        studentId: 'student-1',
+      });
+
+      // Receive student code
+      mockWebSocketState = {
+        ...mockWebSocketState,
+        lastMessage: {
+          type: 'STUDENT_CODE',
+          payload: {
+            studentId: 'student-1',
+            code: 'print("Hello, World!")',
+          },
+        },
+      };
+      (useWebSocket as jest.Mock).mockReturnValue(mockWebSocketState);
+      rerender(<InstructorPage />);
+
+      await waitFor(() => {
+        expect(screen.getByText(/Alice's Code/i)).toBeInTheDocument();
+      });
+
+      // Click the Run Code button
+      const runButton = screen.getByText(/▶ Run Code/i);
+      fireEvent.click(runButton);
+
+      // Should send EXECUTE_STUDENT_CODE message
+      expect(mockSendMessage).toHaveBeenCalledWith('EXECUTE_STUDENT_CODE', {
+        sessionId: 'test-session-id',
+        studentId: 'student-1',
+      });
+    });
+  });
+
+  describe('Access Control', () => {
+    beforeEach(() => {
+      // Reset the mock before each test in this suite
+      mockPush.mockClear();
+    });
+
+    it('should prevent students from accessing instructor dashboard', async () => {
+      // Unmock ProtectedRoute for this test to use the real implementation
+      jest.unmock('@/components/ProtectedRoute');
+      
+      // Import the actual ProtectedRoute after unmocking
+      const { ProtectedRoute: RealProtectedRoute } = await import('@/components/ProtectedRoute');
+      
+      // Create a test component that uses the real ProtectedRoute
+      const TestComponent = () => {
+        const studentUser = {
+          id: 'student-1',
+          username: 'student',
+          role: 'student' as const,
+        };
+
+        (useAuth as jest.Mock).mockReturnValue({
+          user: studentUser,
+          signOut: mockSignOut,
+          isLoading: false,
+        });
+
+        return (
+          <RealProtectedRoute requiredRole="instructor">
+            <div data-testid="instructor-content">Instructor Dashboard</div>
+          </RealProtectedRoute>
+        );
+      };
+
+      render(<TestComponent />);
+
+      // Student should NOT see instructor content
+      await waitFor(() => {
+        const content = screen.queryByTestId('instructor-content');
+        expect(content).not.toBeInTheDocument();
+      });
+
+      // Should redirect to /student
+      expect(mockPush).toHaveBeenCalledWith('/student');
+    });
+
+    it('should allow instructors to access instructor dashboard', async () => {
+      const instructorUser = {
+        id: 'instructor-1',
+        username: 'instructor',
+        role: 'instructor' as const,
+      };
+
+      (useAuth as jest.Mock).mockReturnValue({
+        user: instructorUser,
+        signOut: mockSignOut,
+        isLoading: false,
+      });
+
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ classes: [] }),
+      });
+
+      render(<InstructorPage />);
+
+      // Instructor should see their dashboard
+      await waitFor(() => {
+        expect(screen.getByText('Instructor Dashboard')).toBeInTheDocument();
+      });
+      
+      // Should NOT redirect
+      expect(mockPush).not.toHaveBeenCalled();
     });
   });
 });
