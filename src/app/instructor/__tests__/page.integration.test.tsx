@@ -99,5 +99,86 @@ describe('InstructorPage - Integration Tests', () => {
         expect(screen.getByText(/Back to Classes/i)).toBeInTheDocument();
       });
     });
+
+    it('should handle session creation with disconnected WebSocket', async () => {
+      const mockClasses = [{ id: 'class-1', name: 'CS101' }];
+      const mockSections = [
+        { 
+          id: 'section-1', 
+          name: 'Section A',
+          schedule: 'MWF 10am',
+          studentCount: 0,
+          sessionCount: 0,
+          activeSessionCount: 0,
+        },
+      ];
+
+      // Mock fetch to handle all calls
+      (global.fetch as jest.Mock).mockImplementation((url) => {
+        console.log('[Test] Fetch called with URL:', url);
+        if (url === '/api/classes') {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({ classes: mockClasses }),
+          });
+        }
+        if (url.includes('/sections')) {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({ sections: mockSections }),
+          });
+        }
+        if (url.includes('/api/classes/class-1')) {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({ class: { name: 'CS101' } }),
+          });
+        }
+        return Promise.reject(new Error(`Unexpected fetch to ${url}`));
+      });
+
+      // Set WebSocket as disconnected
+      const mockWebSocketState = {
+        isConnected: false,
+        connectionStatus: 'disconnected',
+        connectionError: null,
+        lastMessage: null,
+        sendMessage: mockSendMessage,
+      };
+      (useWebSocket as jest.Mock).mockReturnValue(mockWebSocketState);
+
+      const { debug } = render(<InstructorPage />);
+
+      // Wait for classes to load
+      await waitFor(() => {
+        expect(screen.getByText('CS101')).toBeInTheDocument();
+      });
+
+      // Click to navigate to sections
+      fireEvent.click(screen.getByText('CS101'));
+
+      // Debug what's rendered after click
+      console.log('[Test] After clicking CS101, looking for sections...');
+
+      // Wait for sections view to load
+      await waitFor(() => {
+        const backButton = screen.queryByText(/Back to Classes/i);
+        console.log('[Test] Back button found:', !!backButton);
+        expect(backButton).toBeInTheDocument();
+      }, { timeout: 5000 });
+
+      // Now check if Section A appears
+      await waitFor(() => {
+        // Log the current HTML to see what's actually rendered
+        const body = document.body.innerHTML;
+        console.log('[Test] Body HTML:', body.substring(0, 2000));
+        console.log('[Test] Body text includes "Classes":', document.body.textContent?.includes('Classes'));
+        console.log('[Test] Body text includes "Create Session":', document.body.textContent?.includes('Create Session'));
+        
+        const sectionA = screen.queryByText('Section A');
+        console.log('[Test] Section A found:', !!sectionA);
+        expect(sectionA).toBeInTheDocument();
+      }, { timeout: 5000 });
+    });
   });
 });
