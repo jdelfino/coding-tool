@@ -19,7 +19,7 @@ import path from 'path';
  * - No password required (trust-based for local development)
  */
 export class LocalAuthProvider implements IAuthProvider {
-  private userRepository: IUserRepository;
+  public readonly userRepository: IUserRepository;
   private activeSessions: Map<string, AuthSession> = new Map();
   private readonly sessionsFilePath: string;
 
@@ -96,7 +96,8 @@ export class LocalAuthProvider implements IAuthProvider {
 
     if (!user) {
       // Auto-create user
-      const userCount = await (this.userRepository as any).getUserCount();
+      const allUsers = await this.userRepository.listUsers();
+      const userCount = allUsers.length;
       
       // Determine role
       let role: UserRole;
@@ -266,6 +267,6 @@ export class LocalAuthProvider implements IAuthProvider {
    * For admin purposes only.
    */
   async getAllUsers(): Promise<User[]> {
-    return (this.userRepository as any).listUsers();
+    return this.userRepository.listUsers();
   }
 }
