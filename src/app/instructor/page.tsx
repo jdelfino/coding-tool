@@ -256,14 +256,11 @@ function InstructorPage() {
     });
   };
 
-  const handleViewRevisions = (studentId: string) => {
-    const student = students.find(s => s.id === studentId);
-    if (student) {
-      setRevisionViewerState({
-        studentId,
-        studentName: student.name,
-      });
-    }
+  const handleViewRevisions = (studentId: string, studentName: string) => {
+    setRevisionViewerState({
+      studentId,
+      studentName,
+    });
   };
 
   const handleCloseRevisionViewer = () => {
@@ -341,25 +338,22 @@ function InstructorPage() {
           />
 
           <ProblemInput
-            sessionId={sessionId}
             onUpdateProblem={handleUpdateProblem}
           />
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <StudentList
               students={students}
-              selectedStudentId={selectedStudentId}
               onSelectStudent={handleSelectStudent}
-              onViewRevisions={handleViewRevisions}
+              onViewHistory={handleViewRevisions}
             />
 
             {selectedStudentId && (
               <CodeViewer
-                studentId={selectedStudentId}
                 studentName={students.find(s => s.id === selectedStudentId)?.name || ''}
                 code={selectedStudentCode}
                 executionResult={executionResult}
-                onExecute={handleExecuteStudentCode}
+                onRunCode={handleExecuteStudentCode}
               />
             )}
           </div>
@@ -369,6 +363,8 @@ function InstructorPage() {
               sessionId={sessionId}
               studentId={revisionViewerState.studentId}
               studentName={revisionViewerState.studentName}
+              sendMessage={sendMessage}
+              lastMessage={lastMessage}
               onClose={handleCloseRevisionViewer}
             />
           )}
@@ -380,7 +376,7 @@ function InstructorPage() {
   };
 
   return (
-    <ProtectedRoute allowedRoles={['instructor', 'admin']}>
+    <ProtectedRoute requiredRole="instructor">
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
         {/* Header */}
         <div className="bg-white border-b border-gray-200 shadow-sm">
