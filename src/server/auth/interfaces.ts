@@ -12,6 +12,12 @@ import { User, UserRole, AuthSession } from './types';
  */
 export interface IAuthProvider {
   /**
+   * User repository for direct data access operations.
+   * Exposed for admin operations that need batch queries.
+   */
+  readonly userRepository: IUserRepository;
+
+  /**
    * Authenticate a user with their username.
    * 
    * @param username - User's username
@@ -23,7 +29,7 @@ export interface IAuthProvider {
    * Create a new user account.
    * 
    * @param username - User's username
-   * @param role - User's role (instructor or student)
+   * @param role - User's role (admin, instructor, or student)
    * @returns The newly created user
    * @throws {Error} If user already exists or creation fails
    */

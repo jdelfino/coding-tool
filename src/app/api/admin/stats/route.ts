@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
-    const user = await (authProvider as any).getUserFromSession(sessionId);
+    const user = await authProvider.getUserFromSession(sessionId);
     if (!user) {
       return NextResponse.json({ error: 'Invalid session' }, { status: 401 });
     }
@@ -40,18 +40,18 @@ export async function GET(request: NextRequest) {
     const sessionManager = getSessionManager();
 
     // Get all users
-    const users = await (authProvider as any).getAllUsers();
-    const usersByRole = users.reduce((acc: Record<string, number>, u: any) => {
+    const users = await authProvider.getAllUsers();
+    const usersByRole = users.reduce((acc: Record<string, number>, u) => {
       acc[u.role] = (acc[u.role] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
 
     // Get all sections (to count classes from unique classIds)
-    const allSections = await (sectionRepo as any).getAllSections();
-    const uniqueClassIds = new Set(allSections.map((s: any) => s.classId));
+    const allSections = await sectionRepo.listSections();
+    const uniqueClassIds = new Set(allSections.map(s => s.classId));
     
-    // Get session count (not all sessions, just count active ones from storage)
-    const sessionCount = await (sessionManager as any).getSessionCount?.() || 0;
+    // Get session count
+    const sessionCount = await sessionManager.getSessionCount();
 
     const stats = {
       users: {

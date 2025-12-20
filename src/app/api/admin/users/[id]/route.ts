@@ -50,13 +50,7 @@ export async function DELETE(
     }
 
     // Check if it's the last instructor
-    const userRepo = (authProvider as any).userRepository;
-    if (!userRepo) {
-      return NextResponse.json(
-        { error: 'User repository not available' },
-        { status: 500 }
-      );
-    }
+    const userRepo = authProvider.userRepository;
 
     const targetUser = await userRepo.getUser(userId);
     if (!targetUser) {

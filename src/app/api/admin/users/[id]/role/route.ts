@@ -66,8 +66,8 @@ export async function PUT(
 
     // Check if this would leave no admins
     if (target.role === 'admin' && newRole !== 'admin') {
-      const allUsers = await (authProvider as any).getAllUsers();
-      const adminCount = allUsers.filter((u: any) => u.role === 'admin').length;
+      const allUsers = await authProvider.getAllUsers();
+      const adminCount = allUsers.filter(u => u.role === 'admin').length;
       
       if (adminCount <= 1) {
         return NextResponse.json(

@@ -41,7 +41,7 @@ export function createAuthMiddleware(authProvider: IAuthProvider) {
       }
 
       // Get user from session
-      const user = await (authProvider as any).getUserFromSession?.(sessionId);
+      const user = await authProvider.getUserFromSession(sessionId);
 
       if (!user) {
         return res.status(401).json({ error: 'Invalid session' });

@@ -13,7 +13,9 @@ import path from 'path';
  * Local authentication provider using simple username-based login.
  * Features:
  * - Auto-creates users on first login
- * - First user becomes instructor, subsequent users are students
+ * - Users matching ADMIN_EMAIL become admins
+ * - First user becomes instructor (if no ADMIN_EMAIL)
+ * - Subsequent users are students
  * - No password required (trust-based for local development)
  */
 export class LocalAuthProvider implements IAuthProvider {
@@ -77,8 +79,10 @@ export class LocalAuthProvider implements IAuthProvider {
   /**
    * Authenticate a user with their username.
    * Auto-creates user if they don't exist.
-   * First user becomes instructor, subsequent users are students.
-   * Users matching ADMIN_EMAIL become admins on first login.
+   * Role assignment:
+   * 1. Users matching ADMIN_EMAIL -> admin
+   * 2. First user (if no ADMIN_EMAIL) -> instructor
+   * 3. Subsequent users -> student
    */
   async authenticate(username: string): Promise<User | null> {
     if (!username || username.trim().length === 0) {
@@ -92,7 +96,7 @@ export class LocalAuthProvider implements IAuthProvider {
 
     if (!user) {
       // Auto-create user
-      const userCount = await (this.userRepository as any).getUserCount?.() || 0;
+      const userCount = await (this.userRepository as any).getUserCount();
       
       // Determine role
       let role: UserRole;

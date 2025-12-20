@@ -38,7 +38,9 @@ function AdminPage() {
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [roleChangeLoading, setRoleChangeLoading] = useState<string | null>(null);
 
-  const isAdmin = user?.role === 'admin';
+  // Admin page requires authenticated user with role
+  if (!user) return null;
+  const isAdmin = user.role === 'admin';
 
   const loadStats = async () => {
     if (!isAdmin) return;
@@ -197,13 +199,13 @@ function AdminPage() {
           border: '1px solid #dee2e6'
         }}>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-            <span style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>{user?.username}</span>
+            <span style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>{user.username}</span>
             <span style={{ 
               fontSize: '0.75rem', 
-              color: getRoleBadgeColor(user?.role || 'student'),
+              color: getRoleBadgeColor(user.role),
               fontWeight: '500',
               textTransform: 'capitalize'
-            }}>{user?.role}</span>
+            }}>{user.role}</span>
           </div>
           <button
             onClick={handleSignOut}
@@ -477,7 +479,7 @@ function AdminPage() {
               <h2 style={{ marginBottom: '1rem' }}>Instructors</h2>
               <UserList 
                 users={instructors}
-                currentUserId={user?.id || ''}
+                currentUserId={user.id}
                 onDelete={handleDeleteUser}
                 showActions={true}
               />
@@ -493,7 +495,7 @@ function AdminPage() {
               </p>
               <UserList 
                 users={students}
-                currentUserId={user?.id || ''}
+                currentUserId={user.id}
                 showActions={false}
               />
             </div>

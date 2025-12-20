@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
     const roleParam = searchParams.get('role') as UserRole | null;
 
     // Get user repository from auth provider
-    const userRepo = (authProvider as any).userRepository;
+    const userRepo = authProvider.userRepository;
     if (!userRepo || typeof userRepo.listUsers !== 'function') {
       return NextResponse.json(
         { error: 'User repository not available' },

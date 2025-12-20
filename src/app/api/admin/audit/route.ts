@@ -12,14 +12,14 @@ import { LocalAuditLogRepository } from '@/server/auth/local/audit-log-repositor
 export async function GET(request: NextRequest) {
   try {
     // Authenticate user
-    const authProvider = getAuthProvider();
+    const authProvider = await getAuthProvider();
     const sessionId = request.cookies.get('sessionId')?.value;
 
     if (!sessionId) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
-    const user = await (authProvider as any).getUserFromSession(sessionId);
+    const user = await authProvider.getUserFromSession(sessionId);
     if (!user) {
       return NextResponse.json({ error: 'Invalid session' }, { status: 401 });
     }
