@@ -85,7 +85,7 @@ describe('ClassList', () => {
       expect(screen.getByText('No Classes Yet')).toBeInTheDocument();
     });
 
-    expect(screen.getByText(/Contact your administrator/)).toBeInTheDocument();
+    expect(screen.getByText(/Create your first class to get started/)).toBeInTheDocument();
   });
 
   it('should display error state on fetch failure', async () => {

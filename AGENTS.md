@@ -10,7 +10,13 @@
 - Use mocking/fakes to isolate units under test
 - Tests should be isolated, not integration tests
 
-**Before committing: Run `npm test` and verify all tests pass.**
+## Commit Checklist
+
+Before every commit, verify:
+
+- [ ] ✅ Unit tests written for all new/modified code
+- [ ] ✅ All tests passing (`npm test`)
+- [ ] ✅ No TypeScript errors
 
 ## Issue Tracking with bd (beads)
 

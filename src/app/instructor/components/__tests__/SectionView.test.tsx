@@ -106,7 +106,7 @@ describe('SectionView', () => {
       expect(screen.getByText('No Sections Yet')).toBeInTheDocument();
     });
 
-    expect(screen.getByText(/Contact your administrator/)).toBeInTheDocument();
+    expect(screen.getByText(/Create your first section to start organizing sessions/)).toBeInTheDocument();
   });
 
   it('should display error state on fetch failure', async () => {

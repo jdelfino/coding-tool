@@ -120,3 +120,47 @@ export async function PUT(
     );
   }
 }
+
+export async function DELETE(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    const userId = session.user.id;
+    const { id } = await context.params;
+
+    const section = await sectionRepo.getSection(id);
+    if (!section) {
+      return NextResponse.json(
+        { error: 'Section not found' },
+        { status: 404 }
+      );
+    }
+
+    // Verify the user is an instructor for this section
+    if (!section.instructorIds.includes(userId)) {
+      return NextResponse.json(
+        { error: 'Only section instructors can delete it' },
+        { status: 403 }
+      );
+    }
+
+    await sectionRepo.deleteSection(id);
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('[API] Delete section error:', error);
+    return NextResponse.json(
+      { error: 'Failed to delete section' },
+      { status: 500 }
+    );
+  }
+}
