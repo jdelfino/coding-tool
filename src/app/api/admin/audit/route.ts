@@ -3,34 +3,21 @@
  * GET /api/admin/audit
  * 
  * Returns audit log entries for role changes and other admin actions
+ * Requires 'system.admin' permission.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthProvider } from '@/server/auth/instance';
 import { LocalAuditLogRepository } from '@/server/auth/local/audit-log-repository';
 import { AuditLogEntry } from '@/server/auth/audit';
+import { requirePermission } from '@/server/auth/api-helpers';
 
 export async function GET(request: NextRequest) {
   try {
-    // Authenticate user
-    const authProvider = await getAuthProvider();
-    const sessionId = request.cookies.get('sessionId')?.value;
-
-    if (!sessionId) {
-      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
-    }
-
-    const user = await authProvider.getUserFromSession(sessionId);
-    if (!user) {
-      return NextResponse.json({ error: 'Invalid session' }, { status: 401 });
-    }
-
-    // Check admin permission
-    if (user.role !== 'admin') {
-      return NextResponse.json(
-        { error: 'Administrator privileges required' },
-        { status: 403 }
-      );
+    // Check authentication and authorization
+    const auth = await requirePermission(request, 'system.admin');
+    if (auth instanceof NextResponse) {
+      return auth; // Return 401/403 error response
     }
 
     // Get query parameters

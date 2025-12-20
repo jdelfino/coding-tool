@@ -3,41 +3,31 @@
  * PUT /api/admin/users/[id]/role
  * 
  * Allows admins to change user roles
+ * Requires 'user.changeRole' permission.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthProvider } from '@/server/auth/instance';
 import { LocalAuditLogRepository } from '@/server/auth/local/audit-log-repository';
 import type { UserRole } from '@/server/auth/types';
+import { requirePermission } from '@/server/auth/api-helpers';
 
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // Authenticate user
-    const authProvider = await getAuthProvider();
-    const sessionId = request.cookies.get('sessionId')?.value;
-
-    if (!sessionId) {
-      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    // Check authentication and authorization
+    const auth = await requirePermission(request, 'user.changeRole');
+    if (auth instanceof NextResponse) {
+      return auth; // Return 401/403 error response
     }
 
-    const actor = await authProvider.getUserFromSession(sessionId);
-    if (!actor) {
-      return NextResponse.json({ error: 'Invalid session' }, { status: 401 });
-    }
-
-    // Check admin permission
-    if (actor.role !== 'admin') {
-      return NextResponse.json(
-        { error: 'Administrator privileges required' },
-        { status: 403 }
-      );
-    }
+    const actor = auth.user;
 
     // Get target user
     const { id: targetId } = await params;
+    const authProvider = await getAuthProvider();
     const userRepo = authProvider.userRepository;
     const target = await userRepo.getUser(targetId);
 

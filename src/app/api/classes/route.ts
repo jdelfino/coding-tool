@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthProvider } from '@/server/auth';
 import { getClassRepository } from '@/server/classes';
+import { requirePermission } from '@/server/auth/api-helpers';
 
 export async function GET(request: NextRequest) {
   try {
@@ -44,31 +45,10 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const sessionId = request.cookies.get('sessionId')?.value;
-
-    if (!sessionId) {
-      return NextResponse.json(
-        { error: 'Not authenticated' },
-        { status: 401 }
-      );
-    }
-
-    const authProvider = await getAuthProvider();
-    const session = await authProvider.getSession(sessionId);
-
-    if (!session) {
-      return NextResponse.json(
-        { error: 'Session expired' },
-        { status: 401 }
-      );
-    }
-
-    // Check instructor role
-    if (session.user.role !== 'instructor') {
-      return NextResponse.json(
-        { error: 'Only instructors can create classes' },
-        { status: 403 }
-      );
+    // Check authentication and authorization
+    const auth = await requirePermission(request, 'session.create');
+    if (auth instanceof NextResponse) {
+      return auth; // Return 401/403 error response
     }
 
     const body = await request.json();
@@ -85,7 +65,7 @@ export async function POST(request: NextRequest) {
     const newClass = await classRepo.createClass({
       name: name.trim(),
       description: description?.trim() || '',
-      createdBy: session.user.id,
+      createdBy: auth.user.id,
     });
 
     return NextResponse.json({ class: newClass }, { status: 201 });

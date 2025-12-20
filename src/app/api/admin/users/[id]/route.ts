@@ -1,55 +1,36 @@
 /**
  * DELETE /api/admin/users/[id]
  * Delete a user account.
- * Instructors only.
+ * Requires 'user.delete' permission.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthProvider } from '@/server/auth';
+import { requirePermission } from '@/server/auth/api-helpers';
 
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // Check authentication
-    const sessionId = request.cookies.get('sessionId')?.value;
-    if (!sessionId) {
-      return NextResponse.json(
-        { error: 'Not authenticated' },
-        { status: 401 }
-      );
-    }
-
-    const authProvider = await getAuthProvider();
-    const session = await authProvider.getSession(sessionId);
-
-    if (!session) {
-      return NextResponse.json(
-        { error: 'Invalid session' },
-        { status: 401 }
-      );
-    }
-
-    // Check if user is an instructor or admin
-    if (session.user.role !== 'instructor' && session.user.role !== 'admin') {
-      return NextResponse.json(
-        { error: 'Forbidden: Instructors only' },
-        { status: 403 }
-      );
+    // Check authentication and authorization
+    const auth = await requirePermission(request, 'user.delete');
+    if (auth instanceof NextResponse) {
+      return auth; // Return 401/403 error response
     }
 
     const { id: userId } = await params;
 
     // Prevent self-deletion
-    if (userId === session.user.id) {
+    if (userId === auth.user.id) {
       return NextResponse.json(
         { error: 'Cannot delete your own account' },
         { status: 400 }
       );
     }
 
-    // Check if it's the last instructor
+    // Get auth provider and user repository
+    const authProvider = await getAuthProvider();
     const userRepo = authProvider.userRepository;
 
     const targetUser = await userRepo.getUser(userId);
@@ -57,6 +38,14 @@ export async function DELETE(
       return NextResponse.json(
         { error: 'User not found' },
         { status: 404 }
+      );
+    }
+
+    // Check RBAC rules for user management
+    if (!auth.rbac.canManageUser(auth.user, targetUser)) {
+      return NextResponse.json(
+        { error: 'Forbidden: Cannot manage this user' },
+        { status: 403 }
       );
     }
 

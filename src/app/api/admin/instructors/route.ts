@@ -1,39 +1,19 @@
 /**
  * POST /api/admin/instructors
  * Create a new instructor account.
- * Instructors only.
+ * Requires 'user.create' permission.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthProvider } from '@/server/auth';
+import { requirePermission } from '@/server/auth/api-helpers';
 
 export async function POST(request: NextRequest) {
   try {
-    // Check authentication
-    const sessionId = request.cookies.get('sessionId')?.value;
-    if (!sessionId) {
-      return NextResponse.json(
-        { error: 'Not authenticated' },
-        { status: 401 }
-      );
-    }
-
-    const authProvider = await getAuthProvider();
-    const session = await authProvider.getSession(sessionId);
-
-    if (!session) {
-      return NextResponse.json(
-        { error: 'Invalid session' },
-        { status: 401 }
-      );
-    }
-
-    // Check if user is an instructor or admin
-    if (session.user.role !== 'instructor' && session.user.role !== 'admin') {
-      return NextResponse.json(
-        { error: 'Forbidden: Instructors only' },
-        { status: 403 }
-      );
+    // Check authentication and authorization
+    const auth = await requirePermission(request, 'user.create');
+    if (auth instanceof NextResponse) {
+      return auth; // Return 401/403 error response
     }
 
     const body = await request.json();
@@ -47,6 +27,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create the instructor account
+    const authProvider = await getAuthProvider();
     const newUser = await authProvider.createUser(username.trim(), 'instructor');
 
     return NextResponse.json({ 

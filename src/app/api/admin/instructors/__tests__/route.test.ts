@@ -6,11 +6,14 @@
 import { POST } from '../route';
 import { getAuthProvider } from '@/server/auth';
 import { NextRequest } from 'next/server';
+import * as apiHelpers from '@/server/auth/api-helpers';
 
 // Mock dependencies
 jest.mock('@/server/auth');
+jest.mock('@/server/auth/api-helpers');
 
 const mockGetAuthProvider = getAuthProvider as jest.MockedFunction<typeof getAuthProvider>;
+const mockRequirePermission = apiHelpers.requirePermission as jest.MockedFunction<typeof apiHelpers.requirePermission>;
 
 describe('POST /api/admin/instructors', () => {
   let mockAuthProvider: any;
@@ -27,6 +30,50 @@ describe('POST /api/admin/instructors', () => {
     };
     mockGetAuthProvider.mockResolvedValue(mockAuthProvider);
   });
+
+  /**
+   * Helper to set up requirePermission mock to simulate auth+permission check
+   */
+  const mockRequirePermissionForUser = (user: any | null, permission: string = 'user.create') => {
+    if (!user) {
+      // Not authenticated
+      mockRequirePermission.mockResolvedValue(
+        new (require('next/server').NextResponse)(
+          JSON.stringify({ error: 'Not authenticated' }),
+          { status: 401 }
+        )
+      );
+    } else {
+      // Check if user has permission (mock RBAC logic)
+      const hasPermission = 
+        (permission === 'user.create' && (user.role === 'instructor' || user.role === 'admin')) ||
+        (user.role === 'admin'); // Admins have all permissions
+
+      if (hasPermission) {
+        // Auth successful, return auth context
+        mockRequirePermission.mockResolvedValue({
+          user,
+          rbac: {
+            hasPermission: jest.fn().mockReturnValue(true),
+            canManageUser: jest.fn().mockReturnValue(true),
+            canAccessSession: jest.fn().mockResolvedValue(true),
+            getRolePermissions: jest.fn().mockReturnValue([]),
+            assertPermission: jest.fn(),
+            assertCanAccessSession: jest.fn().mockResolvedValue(undefined),
+            assertCanManageUser: jest.fn(),
+          },
+        });
+      } else {
+        // Permission denied
+        mockRequirePermission.mockResolvedValue(
+          new (require('next/server').NextResponse)(
+            JSON.stringify({ error: `Forbidden: Requires ${permission} permission` }),
+            { status: 403 }
+          )
+        );
+      }
+    }
+  };
 
   const createMockRequest = (body: any, sessionId?: string): NextRequest => {
     const url = 'http://localhost:3000/api/admin/instructors';
@@ -63,6 +110,7 @@ describe('POST /api/admin/instructors', () => {
   describe('Authentication', () => {
     it('should return 401 when no session cookie is provided', async () => {
       mockRequest = createMockRequest({ username: 'newteacher' });
+      mockRequirePermissionForUser(null);
 
       const response = await POST(mockRequest);
       const data = await response.json();
@@ -73,22 +121,22 @@ describe('POST /api/admin/instructors', () => {
 
     it('should return 401 when session is invalid', async () => {
       mockRequest = createMockRequest({ username: 'newteacher' }, 'invalid-session');
-      mockAuthProvider.getSession.mockResolvedValue(null);
+      mockRequirePermissionForUser(null);
 
       const response = await POST(mockRequest);
       const data = await response.json();
 
       expect(response.status).toBe(401);
-      expect(data.error).toBe('Invalid session');
+      expect(data.error).toBe('Not authenticated');
     });
   });
 
   describe('Authorization', () => {
     it('should allow instructors to create instructor accounts', async () => {
+      const instructor = { id: 'instructor1', username: 'instructor', role: 'instructor' };
       mockRequest = createMockRequest({ username: 'newteacher' }, 'instructor-session');
-      mockAuthProvider.getSession.mockResolvedValue({
-        user: { id: 'instructor1', username: 'instructor', role: 'instructor' },
-      });
+      mockRequirePermissionForUser(instructor);
+      
       mockAuthProvider.createUser.mockResolvedValue({
         id: 'new-id',
         username: 'newteacher',
@@ -106,10 +154,10 @@ describe('POST /api/admin/instructors', () => {
     });
 
     it('should allow admins to create instructor accounts', async () => {
+      const admin = { id: 'admin1', username: 'admin', role: 'admin' };
       mockRequest = createMockRequest({ username: 'newteacher' }, 'admin-session');
-      mockAuthProvider.getSession.mockResolvedValue({
-        user: { id: 'admin1', username: 'admin', role: 'admin' },
-      });
+      mockRequirePermissionForUser(admin);
+      
       mockAuthProvider.createUser.mockResolvedValue({
         id: 'new-id',
         username: 'newteacher',
@@ -126,25 +174,24 @@ describe('POST /api/admin/instructors', () => {
     });
 
     it('should deny students from creating instructor accounts', async () => {
+      const student = { id: 'student1', username: 'student', role: 'student' };
       mockRequest = createMockRequest({ username: 'newteacher' }, 'student-session');
-      mockAuthProvider.getSession.mockResolvedValue({
-        user: { id: 'student1', username: 'student', role: 'student' },
-      });
+      mockRequirePermissionForUser(student);
 
       const response = await POST(mockRequest);
       const data = await response.json();
 
       expect(response.status).toBe(403);
-      expect(data.error).toBe('Forbidden: Instructors only');
+      expect(data.error).toContain('Forbidden');
       expect(mockAuthProvider.createUser).not.toHaveBeenCalled();
     });
   });
 
   describe('Input Validation', () => {
+    const instructor = { id: 'instructor1', username: 'instructor', role: 'instructor' };
+    
     beforeEach(() => {
-      mockAuthProvider.getSession.mockResolvedValue({
-        user: { id: 'instructor1', username: 'instructor', role: 'instructor' },
-      });
+      mockRequirePermissionForUser(instructor);
     });
 
     it('should return 400 when username is missing', async () => {
@@ -185,10 +232,10 @@ describe('POST /api/admin/instructors', () => {
   });
 
   describe('Error Handling', () => {
+    const instructor = { id: 'instructor1', username: 'instructor', role: 'instructor' };
+    
     beforeEach(() => {
-      mockAuthProvider.getSession.mockResolvedValue({
-        user: { id: 'instructor1', username: 'instructor', role: 'instructor' },
-      });
+      mockRequirePermissionForUser(instructor);
     });
 
     it('should return 409 when username is already taken', async () => {

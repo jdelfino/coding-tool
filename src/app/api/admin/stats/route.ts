@@ -3,6 +3,7 @@
  * GET /api/admin/stats
  * 
  * Returns system-wide statistics for the admin dashboard
+ * Requires 'system.admin' permission.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -10,29 +11,18 @@ import { getAuthProvider } from '@/server/auth/instance';
 import { getSectionRepository } from '@/server/classes';
 import { getMembershipRepository } from '@/server/classes';
 import { getSessionManager } from '@/server/session-manager';
+import { requirePermission } from '@/server/auth/api-helpers';
 
 export async function GET(request: NextRequest) {
   try {
-    // Authenticate user
+    // Check authentication and authorization
+    const auth = await requirePermission(request, 'system.admin');
+    if (auth instanceof NextResponse) {
+      return auth; // Return 401/403 error response
+    }
+
+    // Get auth provider for user queries
     const authProvider = await getAuthProvider();
-    const sessionId = request.cookies.get('sessionId')?.value;
-
-    if (!sessionId) {
-      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
-    }
-
-    const user = await authProvider.getUserFromSession(sessionId);
-    if (!user) {
-      return NextResponse.json({ error: 'Invalid session' }, { status: 401 });
-    }
-
-    // Check admin permission
-    if (user.role !== 'admin') {
-      return NextResponse.json(
-        { error: 'Administrator privileges required' },
-        { status: 403 }
-      );
-    }
 
     // Get repositories
     const sectionRepo = await getSectionRepository();
