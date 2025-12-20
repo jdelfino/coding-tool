@@ -13,11 +13,11 @@
 
 ## Commit Checklist
 
-Before every commit, verify:
+⚠️ MANDATORY: Before every commit, verify:
 
 - [ ] ✅ Unit tests written for all new/modified code
 - [ ] ✅ All tests passing (`npm test`). Commits should never be made with failing tests.
-- [ ] ✅ No TypeScript errors
+- [ ] ✅ No TypeScript errors. Commits should never ber made with typescript errors.
 
 ## Issue Tracking with bd (beads)
 
