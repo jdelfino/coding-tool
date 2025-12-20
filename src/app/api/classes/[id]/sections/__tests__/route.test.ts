@@ -34,7 +34,7 @@ describe('/api/classes/[id]/sections', () => {
     };
 
     const mockMembershipRepo = {
-      getSectionMemberships: jest.fn(),
+      getSectionMembers: jest.fn(),
     };
 
     beforeEach(() => {
@@ -143,14 +143,13 @@ describe('/api/classes/[id]/sections', () => {
           semester: 'MWF 1-2pm',
         },
       ] as any);
-      mockMembershipRepo.getSectionMemberships
+      mockMembershipRepo.getSectionMembers
         .mockResolvedValueOnce([
-          { userId: 'student-1', role: 'student' },
-          { userId: 'student-2', role: 'student' },
-          { userId: 'instructor-1', role: 'instructor' },
+          { id: 'student-1', username: 'student1', role: 'student' },
+          { id: 'student-2', username: 'student2', role: 'student' },
         ] as any)
         .mockResolvedValueOnce([
-          { userId: 'student-3', role: 'student' },
+          { id: 'student-3', username: 'student3', role: 'student' },
         ] as any);
 
       const response = await GET(request, { params });

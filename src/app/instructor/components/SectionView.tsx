@@ -284,6 +284,17 @@ export default function SectionView({
             ))}
           </div>
         )}
+
+        {showCreateModal && (
+          <CreateSectionModal
+            classId={classId}
+            onClose={() => setShowCreateModal(false)}
+            onSuccess={() => {
+              setShowCreateModal(false);
+              loadSections();
+            }}
+          />
+        )}
       </div>
     );
   }
@@ -384,17 +395,6 @@ export default function SectionView({
             </button>
           ))}
         </div>
-      )}
-
-      {showCreateModal && (
-        <CreateSectionModal
-          classId={classId}
-          onClose={() => setShowCreateModal(false)}
-          onSuccess={() => {
-            setShowCreateModal(false);
-            loadSections();
-          }}
-        />
       )}
     </div>
   );

@@ -53,8 +53,8 @@ export async function GET(
       const membershipRepo = await getMembershipRepository();
       const sectionsWithCounts = await Promise.all(
         classSections.map(async (section) => {
-          const memberships = await membershipRepo.getSectionMemberships(section.id);
-          const studentCount = memberships.filter(m => m.role === 'student').length;
+          const students = await membershipRepo.getSectionMembers(section.id, 'student');
+          const studentCount = students.length;
           
           // TODO: Add active session count when we have a way to query sessions by section
           return {

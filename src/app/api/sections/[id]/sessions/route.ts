@@ -5,7 +5,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthProvider } from '@/server/auth';
 import { getSectionRepository, getMembershipRepository } from '@/server/classes';
-import { getSessionManager } from '@/server';
+import { getSessionManager } from '@/server/session-manager';
 
 export async function GET(
   request: NextRequest,
@@ -42,15 +42,20 @@ export async function GET(
       );
     }
 
-    // Check if user is a member of this section
-    const membershipRepo = await getMembershipRepository();
-    const membership = await membershipRepo.getMembership(session.user.id, id);
-
-    if (!membership) {
-      return NextResponse.json(
-        { error: 'You are not a member of this section' },
-        { status: 403 }
-      );
+    // Check if user has access to this section
+    // Access granted if: user is a section instructor OR a member (student/instructor)
+    const isInstructor = section.instructorIds.includes(session.user.id);
+    
+    if (!isInstructor) {
+      const membershipRepo = await getMembershipRepository();
+      const membership = await membershipRepo.getMembership(session.user.id, id);
+      
+      if (!membership) {
+        return NextResponse.json(
+          { error: 'You do not have access to this section' },
+          { status: 403 }
+        );
+      }
     }
 
     // Get sessions for this section

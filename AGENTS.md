@@ -7,6 +7,7 @@
 - New components → Create corresponding .test.tsx file
 - New functions/classes → Create .test.ts file  
 - Modified code → Update existing tests + add new test cases
+- When fixing bugs, a regression test must be added
 - Use mocking/fakes to isolate units under test
 - Tests should be isolated, not integration tests
 

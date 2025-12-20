@@ -180,12 +180,13 @@ function InstructorPage() {
 
   const handleCreateSession = (sectionId: string, sectionName: string) => {
     if (!isConnected) {
-      setError('Not connected to server');
+      alert('Not connected to server. Please wait for connection or refresh the page.');
       return;
     }
 
     setIsCreatingSession(true);
     setSessionContext({ sectionId, sectionName });
+    setViewMode('session'); // Switch to session view to show "Creating session..." message
     sendMessage('CREATE_SESSION', { sectionId });
   };
 
@@ -284,7 +285,17 @@ function InstructorPage() {
       );
     }
 
-    if (viewMode === 'session' && sessionId && joinCode) {
+    if (viewMode === 'session') {
+      // Show loading state while creating session
+      if (isCreatingSession && !sessionId) {
+        return null; // Loading state is shown above renderContent()
+      }
+
+      // Only render session content once we have sessionId and joinCode
+      if (!sessionId || !joinCode) {
+        return null;
+      }
+
       return (
         <div className="space-y-6">
           <SessionControls
