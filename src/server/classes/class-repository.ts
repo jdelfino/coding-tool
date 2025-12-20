@@ -43,6 +43,17 @@ export class ClassRepository implements IClassRepository {
     // Ensure data directory exists
     await fs.mkdir(this.dataDir, { recursive: true });
 
+    // Load initial data
+    await this.reloadFromDisk();
+
+    this.initialized = true;
+  }
+
+  /**
+   * Reload classes from disk (for cross-process consistency)
+   * This ensures that changes made in other processes (e.g., API routes) are visible
+   */
+  private async reloadFromDisk(): Promise<void> {
     // Load existing data if file exists
     try {
       const data = await fs.readFile(this.filePath, 'utf-8');
@@ -64,8 +75,6 @@ export class ClassRepository implements IClassRepository {
         throw new Error(`Failed to load classes: ${error.message}`);
       }
     }
-
-    this.initialized = true;
   }
 
   /**
@@ -107,6 +116,8 @@ export class ClassRepository implements IClassRepository {
    */
   async getClass(classId: string): Promise<Class | null> {
     await this.ensureInitialized();
+    // Reload from disk to get latest data from other processes
+    await this.reloadFromDisk();
     return this.classes.get(classId) || null;
   }
 
@@ -154,6 +165,8 @@ export class ClassRepository implements IClassRepository {
    */
   async listClasses(createdBy?: string): Promise<Class[]> {
     await this.ensureInitialized();
+    // Reload from disk to get latest data from other processes
+    await this.reloadFromDisk();
 
     let classes = Array.from(this.classes.values());
 

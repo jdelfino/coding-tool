@@ -46,6 +46,17 @@ export class SectionRepository implements ISectionRepository {
     // Ensure data directory exists
     await fs.mkdir(this.dataDir, { recursive: true });
 
+    // Load initial data
+    await this.reloadFromDisk();
+
+    this.initialized = true;
+  }
+
+  /**
+   * Reload sections from disk (for cross-process consistency)
+   * This ensures that changes made in other processes (e.g., API routes) are visible
+   */
+  private async reloadFromDisk(): Promise<void> {
     // Load existing data if file exists
     try {
       const data = await fs.readFile(this.filePath, 'utf-8');
@@ -72,8 +83,6 @@ export class SectionRepository implements ISectionRepository {
         throw new Error(`Failed to load sections: ${error.message}`);
       }
     }
-
-    this.initialized = true;
   }
 
   /**
@@ -140,6 +149,8 @@ export class SectionRepository implements ISectionRepository {
    */
   async getSection(sectionId: string): Promise<Section | null> {
     await this.ensureInitialized();
+    // Reload from disk to get latest data from other processes (e.g., API routes)
+    await this.reloadFromDisk();
     return this.sections.get(sectionId) || null;
   }
 
@@ -148,6 +159,8 @@ export class SectionRepository implements ISectionRepository {
    */
   async getSectionByJoinCode(joinCode: string): Promise<Section | null> {
     await this.ensureInitialized();
+    // Reload from disk to get latest data from other processes
+    await this.reloadFromDisk();
     
     const sectionId = this.joinCodeIndex.get(joinCode);
     if (!sectionId) {
@@ -217,6 +230,8 @@ export class SectionRepository implements ISectionRepository {
    */
   async listSections(filters?: SectionFilters): Promise<Section[]> {
     await this.ensureInitialized();
+    // Reload from disk to get latest data from other processes
+    await this.reloadFromDisk();
 
     let sections = Array.from(this.sections.values());
 

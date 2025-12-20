@@ -207,6 +207,8 @@ export class LocalSessionRepository implements ISessionRepository {
   }
 
   async getSession(sessionId: string): Promise<StoredSession | null> {
+    // Reload from disk to get latest data from other processes (e.g., WebSocket updates)
+    await this.reloadFromDisk();
     return this.cache.get(sessionId) || null;
   }
 
@@ -316,16 +318,24 @@ export class LocalProblemRepository implements IProblemRepository {
     const baseDir = this.config.baseDir || './data';
     await ensureDir(baseDir);
     
+    await this.reloadFromDisk();
+    
+    this.initialized = true;
+  }
+
+  /**
+   * Reload problems from disk (for cross-process consistency)
+   */
+  private async reloadFromDisk(): Promise<void> {
     const problems = await readJsonFile<Record<string, StoredProblem>>(
       this.filePath,
       {}
     );
     
+    this.cache.clear();
     for (const [id, problem] of Object.entries(problems)) {
       this.cache.set(id, problem);
     }
-    
-    this.initialized = true;
   }
 
   async shutdown(): Promise<void> {
@@ -365,6 +375,8 @@ export class LocalProblemRepository implements IProblemRepository {
   }
 
   async getProblem(problemId: string): Promise<StoredProblem | null> {
+    // Reload from disk to get latest data from other processes
+    await this.reloadFromDisk();
     return this.cache.get(problemId) || null;
   }
 
@@ -470,16 +482,24 @@ export class LocalRevisionRepository implements IRevisionRepository {
     const baseDir = this.config.baseDir || './data';
     await ensureDir(baseDir);
     
+    await this.reloadFromDisk();
+    
+    this.initialized = true;
+  }
+
+  /**
+   * Reload revisions from disk (for cross-process consistency)
+   */
+  private async reloadFromDisk(): Promise<void> {
     const revisions = await readJsonFile<Record<string, StoredRevision[]>>(
       this.filePath,
       {}
     );
     
+    this.cache.clear();
     for (const [key, revs] of Object.entries(revisions)) {
       this.cache.set(key, revs);
     }
-    
-    this.initialized = true;
   }
 
   async shutdown(): Promise<void> {
@@ -523,11 +543,15 @@ export class LocalRevisionRepository implements IRevisionRepository {
   }
 
   async getRevisions(sessionId: string, studentId: string): Promise<StoredRevision[]> {
+    // Reload from disk to get latest data from other processes
+    await this.reloadFromDisk();
     const key = this.getCacheKey(sessionId, studentId);
     return this.cache.get(key) || [];
   }
 
   async getRevision(revisionId: string): Promise<StoredRevision | null> {
+    // Reload from disk to get latest data from other processes
+    await this.reloadFromDisk();
     for (const revisions of this.cache.values()) {
       const found = revisions.find(r => r.id === revisionId);
       if (found) return found;
@@ -599,19 +623,28 @@ export class LocalUserRepository implements IUserRepository {
     const baseDir = this.config.baseDir || './data';
     await ensureDir(baseDir);
 
+    await this.reloadFromDisk();
+
+    this.initialized = true;
+    console.log(`[UserStorage] Loaded ${this.users.size} users from disk`);
+  }
+
+  /**
+   * Reload users from disk (for cross-process consistency)
+   */
+  private async reloadFromDisk(): Promise<void> {
     // Load existing users into memory
     const userData = await readJsonFile<Record<string, User>>(
       this.filePath,
       {}
     );
 
+    this.users.clear();
+    this.usernameIndex.clear();
     for (const [id, user] of Object.entries(userData)) {
       this.users.set(id, user);
       this.usernameIndex.set(user.username.toLowerCase(), id);
     }
-
-    this.initialized = true;
-    console.log(`[UserStorage] Loaded ${this.users.size} users from disk`);
   }
 
   async shutdown(): Promise<void> {
@@ -652,10 +685,14 @@ export class LocalUserRepository implements IUserRepository {
   }
 
   async getUser(userId: string): Promise<User | null> {
+    // Reload from disk to get latest data from other processes
+    await this.reloadFromDisk();
     return this.users.get(userId) || null;
   }
 
   async getUserByUsername(username: string): Promise<User | null> {
+    // Reload from disk to get latest data from other processes
+    await this.reloadFromDisk();
     const userId = this.usernameIndex.get(username.toLowerCase());
     if (!userId) {
       return null;
@@ -664,6 +701,8 @@ export class LocalUserRepository implements IUserRepository {
   }
 
   async listUsers(role?: UserRole): Promise<User[]> {
+    // Reload from disk to get latest data from other processes
+    await this.reloadFromDisk();
     const allUsers = Array.from(this.users.values());
     if (role) {
       return allUsers.filter(user => user.role === role);

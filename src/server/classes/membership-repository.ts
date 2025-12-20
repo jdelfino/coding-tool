@@ -52,6 +52,17 @@ export class MembershipRepository implements IMembershipRepository {
     // Ensure data directory exists
     await fs.mkdir(this.dataDir, { recursive: true });
 
+    // Load initial data
+    await this.reloadFromDisk();
+
+    this.initialized = true;
+  }
+
+  /**
+   * Reload memberships from disk (for cross-process consistency)
+   * This ensures that changes made in other processes (e.g., API routes) are visible
+   */
+  private async reloadFromDisk(): Promise<void> {
     // Load existing data if file exists
     try {
       const data = await fs.readFile(this.filePath, 'utf-8');
@@ -76,8 +87,6 @@ export class MembershipRepository implements IMembershipRepository {
         throw new Error(`Failed to load memberships: ${error.message}`);
       }
     }
-
-    this.initialized = true;
   }
 
   /**
@@ -179,6 +188,8 @@ export class MembershipRepository implements IMembershipRepository {
    */
   async getUserSections(userId: string, role?: 'instructor' | 'student'): Promise<SectionWithClass[]> {
     await this.ensureInitialized();
+    // Reload from disk to get latest data from other processes
+    await this.reloadFromDisk();
 
     if (!this.sectionRepository || !this.classRepository) {
       throw new Error('Repositories not configured');
@@ -231,6 +242,8 @@ export class MembershipRepository implements IMembershipRepository {
    */
   async getSectionMembers(sectionId: string, role?: 'instructor' | 'student'): Promise<User[]> {
     await this.ensureInitialized();
+    // Reload from disk to get latest data from other processes
+    await this.reloadFromDisk();
 
     if (!this.userRepository) {
       throw new Error('User repository not configured');
@@ -252,7 +265,7 @@ export class MembershipRepository implements IMembershipRepository {
     const users: User[] = [];
     
     for (const membership of memberships) {
-      const user = await this.userRepository.getUserById(membership.userId);
+      const user = await this.userRepository.getUser(membership.userId);
       if (user) {
         users.push(user);
       }
@@ -279,6 +292,8 @@ export class MembershipRepository implements IMembershipRepository {
    */
   async getMembership(userId: string, sectionId: string): Promise<SectionMembership | null> {
     await this.ensureInitialized();
+    // Reload from disk to get latest data from other processes
+    await this.reloadFromDisk();
 
     // Use index to find membership IDs for this user
     const membershipIds = this.userSectionIndex.get(userId) || new Set();
