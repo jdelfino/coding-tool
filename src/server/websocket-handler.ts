@@ -275,12 +275,27 @@ class WebSocketHandler {
       return;
     }
 
-    // Validate section membership if session is scoped to a section
+    // Validate access if session is scoped to a section
     if (session.sectionId && connection.userId) {
-      const isMember = await sessionManagerHolder.instance.isSectionMember(sessionId, connection.userId);
-      if (!isMember) {
-        this.sendError(ws, 'You are not authorized to access this section\'s session.');
+      const sectionRepo = await getSectionRepository();
+      const section = await sectionRepo.getSection(session.sectionId);
+      
+      if (!section) {
+        this.sendError(ws, 'Section not found');
         return;
+      }
+
+      // Check if user is section instructor OR a member
+      const isInstructor = section.instructorIds.includes(connection.userId);
+      
+      if (!isInstructor) {
+        const membershipRepo = await getMembershipRepository();
+        const membership = await membershipRepo.getMembership(connection.userId, session.sectionId);
+        
+        if (!membership) {
+          this.sendError(ws, 'You are not authorized to access this section\'s session.');
+          return;
+        }
       }
     } else if (session.sectionId && !connection.userId) {
       // Session requires section membership but user is not authenticated
