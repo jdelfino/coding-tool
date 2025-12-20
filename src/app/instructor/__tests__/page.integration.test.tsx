@@ -180,5 +180,146 @@ describe('InstructorPage - Integration Tests', () => {
         expect(sectionA).toBeInTheDocument();
       }, { timeout: 5000 });
     });
+
+    it('should show loading state while fetching sections', async () => {
+      const mockClasses = [{ id: 'class-1', name: 'CS101' }];
+      
+      let resolveSections: any;
+      const sectionsPromise = new Promise((resolve) => {
+        resolveSections = resolve;
+      });
+
+      (global.fetch as jest.Mock).mockImplementation((url) => {
+        if (url === '/api/classes') {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({ classes: mockClasses }),
+          });
+        }
+        if (url.includes('/sections')) {
+          return sectionsPromise.then(() => Promise.resolve({
+            ok: true,
+            json: async () => ({ sections: [] }),
+          }));
+        }
+        if (url.includes('/api/classes/class-1')) {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({ class: { name: 'CS101' } }),
+          });
+        }
+        return Promise.reject(new Error(`Unexpected fetch to ${url}`));
+      });
+
+      render(<InstructorPage />);
+
+      await waitFor(() => {
+        expect(screen.getByText('CS101')).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByText('CS101'));
+
+      // Wait for sections view - should see loading spinner while waiting
+      await waitFor(() => {
+        const spinner = document.querySelector('.animate-spin');
+        expect(spinner).toBeInTheDocument();
+      });
+
+      // Resolve the sections fetch
+      resolveSections();
+
+      // Loading spinner should disappear
+      await waitFor(() => {
+        expect(document.querySelector('.animate-spin')).not.toBeInTheDocument();
+      });
+    });
+
+    it('should display empty state when no sections exist', async () => {
+      const mockClasses = [{ id: 'class-1', name: 'CS101' }];
+
+      (global.fetch as jest.Mock).mockImplementation((url) => {
+        if (url === '/api/classes') {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({ classes: mockClasses }),
+          });
+        }
+        if (url.includes('/sections')) {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({ sections: [] }),
+          });
+        }
+        if (url.includes('/api/classes/class-1')) {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({ class: { name: 'CS101' } }),
+          });
+        }
+        return Promise.reject(new Error(`Unexpected fetch to ${url}`));
+      });
+
+      render(<InstructorPage />);
+
+      await waitFor(() => {
+        expect(screen.getByText('CS101')).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByText('CS101'));
+
+      // Should show empty state
+      await waitFor(() => {
+        expect(screen.getByText(/No Sections Yet/i)).toBeInTheDocument();
+      });
+    });
+
+    it('should display WebSocket connection status', async () => {
+      const mockClasses = [{ id: 'class-1', name: 'CS101' }];
+
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: true,
+        json: async () => ({ classes: mockClasses }),
+      });
+
+      // Test with connected state
+      (useWebSocket as jest.Mock).mockReturnValue({
+        isConnected: true,
+        connectionStatus: 'connected',
+        connectionError: null,
+        lastMessage: null,
+        sendMessage: mockSendMessage,
+      });
+
+      const { rerender } = render(<InstructorPage />);
+
+      await waitFor(() => {
+        expect(screen.getByText(/connected/i)).toBeInTheDocument();
+      });
+
+      // Test with disconnected state
+      (useWebSocket as jest.Mock).mockReturnValue({
+        isConnected: false,
+        connectionStatus: 'disconnected',
+        connectionError: null,
+        lastMessage: null,
+        sendMessage: mockSendMessage,
+      });
+
+      rerender(<InstructorPage />);
+
+      await waitFor(() => {
+        expect(screen.getByText(/disconnected/i)).toBeInTheDocument();
+      });
+    });
+
+    it('should handle fetch error when loading classes', async () => {
+      (global.fetch as jest.Mock).mockRejectedValue(new Error('Network error'));
+
+      render(<InstructorPage />);
+
+      await waitFor(() => {
+        expect(screen.getByText(/Network error/i)).toBeInTheDocument();
+      });
+    });
   });
 });
