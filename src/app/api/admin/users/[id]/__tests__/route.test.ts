@@ -5,12 +5,29 @@
 
 import { DELETE } from '../route';
 import { getAuthProvider } from '@/server/auth';
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import type { User } from '@/server/auth/types';
+import { RBACService } from '@/server/auth/rbac';
 
 // Mock dependencies
 jest.mock('@/server/auth');
+jest.mock('@/server/auth/api-helpers', () => ({
+  requirePermission: jest.fn(),
+}));
+
+import { requirePermission } from '@/server/auth/api-helpers';
 
 const mockGetAuthProvider = getAuthProvider as jest.MockedFunction<typeof getAuthProvider>;
+const mockRequirePermission = requirePermission as jest.MockedFunction<typeof requirePermission>;
+
+// Helper to create auth context
+function createAuthContext(user: User) {
+  return {
+    user,
+    sessionId: 'test-session',
+    rbac: new RBACService(user),
+  };
+}
 
 describe('DELETE /api/admin/users/[id]', () => {
   let mockAuthProvider: any;
@@ -66,6 +83,10 @@ describe('DELETE /api/admin/users/[id]', () => {
 
   describe('Authentication', () => {
     it('should return 401 when no session cookie is provided', async () => {
+      mockRequirePermission.mockResolvedValue(
+        NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+      );
+      
       const request = createMockRequest();
       const params = Promise.resolve({ id: 'user123' });
 
@@ -77,9 +98,12 @@ describe('DELETE /api/admin/users/[id]', () => {
     });
 
     it('should return 401 when session is invalid', async () => {
+      mockRequirePermission.mockResolvedValue(
+        NextResponse.json({ error: 'Invalid session' }, { status: 401 })
+      );
+      
       const request = createMockRequest('invalid-session');
       const params = Promise.resolve({ id: 'user123' });
-      mockAuthProvider.getSession.mockResolvedValue(null);
 
       const response = await DELETE(request, { params });
       const data = await response.json();
@@ -91,16 +115,22 @@ describe('DELETE /api/admin/users/[id]', () => {
 
   describe('Authorization', () => {
     it('should allow instructors to delete users', async () => {
+      const instructor: User = {
+        id: 'instructor1',
+        username: 'instructor',
+        role: 'instructor',
+        createdAt: new Date(),
+      };
+      mockRequirePermission.mockResolvedValue(createAuthContext(instructor));
+      
       const request = createMockRequest('instructor-session');
       const params = Promise.resolve({ id: 'user123' });
       
-      mockAuthProvider.getSession.mockResolvedValue({
-        user: { id: 'instructor1', username: 'instructor', role: 'instructor' },
-      });
       mockUserRepository.getUser.mockResolvedValue({
         id: 'user123',
         username: 'student',
         role: 'student',
+        createdAt: new Date(),
       });
       mockUserRepository.listUsers.mockResolvedValue([
         { id: 'instructor1', role: 'instructor' },
@@ -115,12 +145,17 @@ describe('DELETE /api/admin/users/[id]', () => {
     });
 
     it('should allow admins to delete users', async () => {
+      const admin: User = {
+        id: 'admin1',
+        username: 'admin',
+        role: 'admin',
+        createdAt: new Date(),
+      };
+      mockRequirePermission.mockResolvedValue(createAuthContext(admin));
+      
       const request = createMockRequest('admin-session');
       const params = Promise.resolve({ id: 'user123' });
       
-      mockAuthProvider.getSession.mockResolvedValue({
-        user: { id: 'admin1', username: 'admin', role: 'admin' },
-      });
       mockUserRepository.getUser.mockResolvedValue({
         id: 'user123',
         username: 'student',
@@ -138,31 +173,34 @@ describe('DELETE /api/admin/users/[id]', () => {
     });
 
     it('should deny students from deleting users', async () => {
+      mockRequirePermission.mockResolvedValue(
+        NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      );
+      
       const request = createMockRequest('student-session');
       const params = Promise.resolve({ id: 'user123' });
-      
-      mockAuthProvider.getSession.mockResolvedValue({
-        user: { id: 'student1', username: 'student', role: 'student' },
-      });
 
       const response = await DELETE(request, { params });
       const data = await response.json();
 
       expect(response.status).toBe(403);
-      expect(data.error).toBe('Forbidden: Instructors only');
       expect(mockAuthProvider.deleteUser).not.toHaveBeenCalled();
     });
   });
 
   describe('Self-Deletion Prevention', () => {
     it('should prevent users from deleting themselves', async () => {
+      const instructor: User = {
+        id: 'instructor1',
+        username: 'instructor',
+        role: 'instructor',
+        createdAt: new Date(),
+      };
+      mockRequirePermission.mockResolvedValue(createAuthContext(instructor));
+      
       const request = createMockRequest('instructor-session');
       const params = Promise.resolve({ id: 'instructor1' });
       
-      mockAuthProvider.getSession.mockResolvedValue({
-        user: { id: 'instructor1', username: 'instructor', role: 'instructor' },
-      });
-
       const response = await DELETE(request, { params });
       const data = await response.json();
 
@@ -174,20 +212,26 @@ describe('DELETE /api/admin/users/[id]', () => {
 
   describe('Last Instructor Protection', () => {
     it('should prevent deletion of the last instructor', async () => {
-      const request = createMockRequest('instructor-session');
+      const admin: User = {
+        id: 'admin1',
+        username: 'admin',
+        role: 'admin',
+        createdAt: new Date(),
+      };
+      mockRequirePermission.mockResolvedValue(createAuthContext(admin));
+      
+      const request = createMockRequest('admin-session');
       const params = Promise.resolve({ id: 'instructor2' });
       
-      mockAuthProvider.getSession.mockResolvedValue({
-        user: { id: 'instructor1', username: 'instructor', role: 'instructor' },
-      });
       mockUserRepository.getUser.mockResolvedValue({
         id: 'instructor2',
         username: 'instructor2',
         role: 'instructor',
+        createdAt: new Date(),
       });
       // Only one instructor in the system
       mockUserRepository.listUsers.mockResolvedValue([
-        { id: 'instructor2', role: 'instructor' },
+        { id: 'instructor2', role: 'instructor', createdAt: new Date() },
       ]);
 
       const response = await DELETE(request, { params });
@@ -199,21 +243,27 @@ describe('DELETE /api/admin/users/[id]', () => {
     });
 
     it('should allow deletion when multiple instructors exist', async () => {
-      const request = createMockRequest('instructor-session');
+      const admin: User = {
+        id: 'admin1',
+        username: 'admin',
+        role: 'admin',
+        createdAt: new Date(),
+      };
+      mockRequirePermission.mockResolvedValue(createAuthContext(admin));
+      
+      const request = createMockRequest('admin-session');
       const params = Promise.resolve({ id: 'instructor2' });
       
-      mockAuthProvider.getSession.mockResolvedValue({
-        user: { id: 'instructor1', username: 'instructor', role: 'instructor' },
-      });
       mockUserRepository.getUser.mockResolvedValue({
         id: 'instructor2',
         username: 'instructor2',
         role: 'instructor',
+        createdAt: new Date(),
       });
       mockUserRepository.listUsers.mockResolvedValue([
-        { id: 'instructor1', role: 'instructor' },
-        { id: 'instructor2', role: 'instructor' },
-        { id: 'instructor3', role: 'instructor' },
+        { id: 'instructor1', role: 'instructor', createdAt: new Date() },
+        { id: 'instructor2', role: 'instructor', createdAt: new Date() },
+        { id: 'instructor3', role: 'instructor', createdAt: new Date() },
       ]);
       mockAuthProvider.deleteUser.mockResolvedValue(undefined);
 

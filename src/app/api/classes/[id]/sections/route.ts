@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthProvider } from '@/server/auth';
 import { getClassRepository, getSectionRepository, getMembershipRepository } from '@/server/classes';
+import { requireAuth, requirePermission } from '@/server/auth/api-helpers';
 
 export async function GET(
   request: NextRequest,
@@ -13,23 +14,11 @@ export async function GET(
 ) {
   try {
     const { id: classId } = await params;
-    const sessionId = request.cookies.get('sessionId')?.value;
-
-    if (!sessionId) {
-      return NextResponse.json(
-        { error: 'Not authenticated' },
-        { status: 401 }
-      );
-    }
-
-    const authProvider = await getAuthProvider();
-    const session = await authProvider.getSession(sessionId);
-
-    if (!session) {
-      return NextResponse.json(
-        { error: 'Session expired' },
-        { status: 401 }
-      );
+    
+    // Check authentication
+    const auth = await requireAuth(request);
+    if (auth instanceof NextResponse) {
+      return auth; // Return 401 error response
     }
 
     // Verify class exists
@@ -48,8 +37,8 @@ export async function GET(
     const allSections = await sectionRepo.listSections();
     const classSections = allSections.filter(s => s.classId === classId);
 
-    // For instructors, add student count and active session count
-    if (session.user.role === 'instructor') {
+    // For users with viewAll permission, add student count and active session count
+    if (auth.rbac.hasPermission(auth.user, 'session.viewAll')) {
       const membershipRepo = await getMembershipRepository();
       const sectionsWithCounts = await Promise.all(
         classSections.map(async (section) => {
@@ -93,31 +82,11 @@ export async function POST(
 ) {
   try {
     const { id: classId } = await params;
-    const sessionId = request.cookies.get('sessionId')?.value;
-
-    if (!sessionId) {
-      return NextResponse.json(
-        { error: 'Not authenticated' },
-        { status: 401 }
-      );
-    }
-
-    const authProvider = await getAuthProvider();
-    const session = await authProvider.getSession(sessionId);
-
-    if (!session) {
-      return NextResponse.json(
-        { error: 'Session expired' },
-        { status: 401 }
-      );
-    }
-
-    // Check instructor role
-    if (session.user.role !== 'instructor') {
-      return NextResponse.json(
-        { error: 'Only instructors can create sections' },
-        { status: 403 }
-      );
+    
+    // Check authentication and authorization
+    const auth = await requirePermission(request, 'session.create');
+    if (auth instanceof NextResponse) {
+      return auth; // Return 401/403 error response
     }
 
     const classRepo = await getClassRepository();
@@ -145,7 +114,7 @@ export async function POST(
       classId,
       name: name.trim(),
       semester: semester?.trim() || '',
-      instructorIds: [session.user.id],
+      instructorIds: [auth.user.id],
       active: true,
     });
 

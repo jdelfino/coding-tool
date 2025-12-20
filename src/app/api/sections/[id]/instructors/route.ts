@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAuthProvider } from '@/server/auth';
 import { getSectionRepository, getMembershipRepository } from '@/server/classes';
 import { getUserRepository } from '@/server/auth';
+import { requireAuth } from '@/server/auth/api-helpers';
 
 export async function POST(
   request: NextRequest,
@@ -14,23 +15,11 @@ export async function POST(
 ) {
   try {
     const { id } = await params;
-    const sessionId = request.cookies.get('sessionId')?.value;
-
-    if (!sessionId) {
-      return NextResponse.json(
-        { error: 'Not authenticated' },
-        { status: 401 }
-      );
-    }
-
-    const authProvider = await getAuthProvider();
-    const session = await authProvider.getSession(sessionId);
-
-    if (!session) {
-      return NextResponse.json(
-        { error: 'Session expired' },
-        { status: 401 }
-      );
+    
+    // Check authentication
+    const auth = await requireAuth(request);
+    if (auth instanceof NextResponse) {
+      return auth; // Return 401 error response
     }
 
     const sectionRepo = await getSectionRepository();
@@ -43,8 +32,16 @@ export async function POST(
       );
     }
 
-    // Check if user is an instructor of this section
-    if (!section.instructorIds.includes(session.user.id)) {
+    // Check if user has permission to manage users AND is an instructor of this section
+    if (!auth.rbac.hasPermission(auth.user, 'user.manage')) {
+      return NextResponse.json(
+        { error: 'Forbidden: Requires user management permission' },
+        { status: 403 }
+      );
+    }
+
+    // Also check if user is an instructor of this section
+    if (!section.instructorIds.includes(auth.user.id)) {
       return NextResponse.json(
         { error: 'Only section instructors can add co-instructors' },
         { status: 403 }

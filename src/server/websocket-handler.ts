@@ -5,6 +5,8 @@ import { sessionManagerHolder } from './session-manager';
 import { executeCodeSafe } from './code-executor';
 import { MessageType, WebSocketMessage, Student } from './types';
 import { getAuthProvider } from './auth';
+import { RBACService } from './auth/rbac';
+import { User } from './auth/types';
 import { revisionBufferHolder } from './revision-buffer';
 import { getStorage } from './persistence';
 import { getSectionRepository, getMembershipRepository } from './classes';
@@ -16,12 +18,25 @@ interface Connection {
   sessionId?: string;
   studentId?: string;
   userId?: string; // User ID from authentication
+  user?: User; // Full user object for permission checks
   isAlive: boolean;
 }
 
 class WebSocketHandler {
   private connections: Map<WebSocket, Connection> = new Map();
   private heartbeatInterval: NodeJS.Timeout | null = null;
+  private rbac = new RBACService();
+
+  /**
+   * Check if a connection has a specific permission.
+   * Returns true if the user has the permission, false otherwise.
+   */
+  private hasPermission(connection: Connection, permission: string): boolean {
+    if (!connection.user) {
+      return false;
+    }
+    return this.rbac.hasPermission(connection.user, permission);
+  }
 
   async initialize(wss: WebSocketServer) {
     // Set up heartbeat to detect dead connections
@@ -34,6 +49,7 @@ class WebSocketHandler {
       
       // Extract user authentication from cookies
       let userId: string | undefined;
+      let user: User | undefined;
       try {
         const cookies = request.headers.cookie;
         
@@ -50,6 +66,7 @@ class WebSocketHandler {
             
             if (session && session.user) {
               userId = session.user.id;
+              user = session.user; // Store full user object
               console.log('[WS Auth] Authenticated as user:', userId, '(', session.user.username, session.user.role, ')');
             } else if (session) {
               console.log('[WS Auth] Session found but user property is missing!');
@@ -68,6 +85,7 @@ class WebSocketHandler {
         ws,
         role: 'student', // Will be set when they identify themselves
         userId, // Set from authentication if available
+        user, // Store full user object for permission checks
         isAlive: true,
       };
       
@@ -460,7 +478,8 @@ class WebSocketHandler {
   }
 
   private async handleUpdateProblem(connection: Connection, payload: any) {
-    if (connection.role !== 'instructor' || !connection.sessionId) {
+    // Check if user has permission to manage sessions
+    if (!this.hasPermission(connection, 'session.viewAll') || !connection.sessionId) {
       return;
     }
 
@@ -535,8 +554,9 @@ class WebSocketHandler {
   }
 
   private async handleExecuteStudentCode(ws: WebSocket, connection: Connection, payload: any) {
-    if (connection.role !== 'instructor' || !connection.sessionId) {
-      this.sendError(ws, 'Only instructors can execute student code');
+    // Check if user has permission to execute code for all students
+    if (!this.hasPermission(connection, 'data.viewAll') || !connection.sessionId) {
+      this.sendError(ws, 'Permission denied: Requires data.viewAll permission');
       return;
     }
 
@@ -568,7 +588,8 @@ class WebSocketHandler {
   }
 
   private async handleRequestStudentCode(ws: WebSocket, connection: Connection, payload: any) {
-    if (connection.role !== 'instructor' || !connection.sessionId) return;
+    // Check if user has permission to view student data
+    if (!this.hasPermission(connection, 'data.viewAll') || !connection.sessionId) return;
 
     const { studentId } = payload;
     const code = await sessionManagerHolder.instance.getStudentCode(connection.sessionId, studentId);
@@ -585,7 +606,8 @@ class WebSocketHandler {
   }
 
   private async handleGetRevisions(ws: WebSocket, connection: Connection, payload: any) {
-    if (connection.role !== 'instructor' || !connection.sessionId) return;
+    // Check if user has permission to view student data
+    if (!this.hasPermission(connection, 'data.viewAll') || !connection.sessionId) return;
 
     const { studentId } = payload;
     
@@ -659,7 +681,8 @@ class WebSocketHandler {
   }
 
   private async handleSelectSubmissionForPublic(connection: Connection, payload: any) {
-    if (connection.role !== 'instructor' || !connection.sessionId) return;
+    // Check if user has permission to manage sessions
+    if (!this.hasPermission(connection, 'session.viewAll') || !connection.sessionId) return;
 
     const { studentId } = payload;
     

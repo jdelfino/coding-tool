@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthProvider } from '@/server/auth';
 import { sessionManagerHolder } from '@/server/session-manager';
+import { requireAuth } from '@/server/auth/api-helpers';
 
 /**
  * GET /api/sessions/history
@@ -10,35 +11,27 @@ import { sessionManagerHolder } from '@/server/session-manager';
  */
 export async function GET(request: NextRequest) {
   try {
-    // Get authenticated user
-    const sessionId = request.cookies.get('sessionId')?.value;
-
-    if (!sessionId) {
-      return NextResponse.json(
-        { error: 'Not authenticated' },
-        { status: 401 }
-      );
+    // Check authentication
+    const auth = await requireAuth(request);
+    if (auth instanceof NextResponse) {
+      return auth; // Return 401 error response
     }
 
-    const authProvider = await getAuthProvider();
-    const session = await authProvider.getSession(sessionId);
-
-    if (!session) {
-      return NextResponse.json(
-        { error: 'Session expired' },
-        { status: 401 }
-      );
-    }
-
-    const user = session.user;
+    const user = auth.user;
     let sessions;
     
-    if (user.role === 'instructor') {
+    // Check permission for viewing sessions
+    if (auth.rbac.hasPermission(user, 'session.viewAll')) {
       // Instructors see sessions they created
       sessions = await sessionManagerHolder.instance.getSessionsByCreator(user.id);
-    } else {
+    } else if (auth.rbac.hasPermission(user, 'session.viewOwn')) {
       // Students see sessions they participated in
       sessions = await sessionManagerHolder.instance.getSessionsByParticipant(user.id);
+    } else {
+      return NextResponse.json(
+        { error: 'Forbidden: No session view permission' },
+        { status: 403 }
+      );
     }
 
     // Convert sessions to serializable format (Maps can't be JSON stringified)

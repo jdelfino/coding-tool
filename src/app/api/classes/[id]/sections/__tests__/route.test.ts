@@ -2,13 +2,30 @@
  * @jest-environment node
  */
 
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { GET, POST } from '../route';
 import { getAuthProvider } from '@/server/auth';
 import { getClassRepository, getSectionRepository, getMembershipRepository } from '@/server/classes';
+import type { User } from '@/server/auth/types';
+import { RBACService } from '@/server/auth/rbac';
 
 jest.mock('@/server/auth');
 jest.mock('@/server/classes');
+jest.mock('@/server/auth/api-helpers', () => ({
+  requireAuth: jest.fn(),
+  requirePermission: jest.fn(),
+}));
+
+import { requireAuth, requirePermission } from '@/server/auth/api-helpers';
+
+// Helper to create auth context
+function createAuthContext(user: User) {
+  return {
+    user,
+    sessionId: 'test-session',
+    rbac: new RBACService(user),
+  };
+}
 
 describe('/api/classes/[id]/sections', () => {
   const mockGetAuthProvider = getAuthProvider as jest.MockedFunction<typeof getAuthProvider>;
@@ -45,6 +62,10 @@ describe('/api/classes/[id]/sections', () => {
     });
 
     it('should return 401 if not authenticated', async () => {
+      (requireAuth as jest.Mock).mockResolvedValue(
+        NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+      );
+      
       const request = new NextRequest('http://localhost/api/classes/class-1/sections');
       const params = Promise.resolve({ id: 'class-1' });
 
@@ -56,12 +77,14 @@ describe('/api/classes/[id]/sections', () => {
     });
 
     it('should return 401 if session expired', async () => {
+      (requireAuth as jest.Mock).mockResolvedValue(
+        NextResponse.json({ error: 'Session expired' }, { status: 401 })
+      );
+      
       const request = new NextRequest('http://localhost/api/classes/class-1/sections', {
         headers: { Cookie: 'sessionId=invalid-session' },
       });
       const params = Promise.resolve({ id: 'class-1' });
-
-      mockAuthProvider.getSession.mockResolvedValue(null);
 
       const response = await GET(request, { params });
       const data = await response.json();
@@ -71,14 +94,19 @@ describe('/api/classes/[id]/sections', () => {
     });
 
     it('should return 404 if class not found', async () => {
+      const user: User = {
+        id: 'user-1',
+        username: 'instructor',
+        role: 'instructor',
+        createdAt: new Date(),
+      };
+      (requireAuth as jest.Mock).mockResolvedValue(createAuthContext(user));
+      
       const request = new NextRequest('http://localhost/api/classes/class-1/sections', {
         headers: { Cookie: 'sessionId=valid-session' },
       });
       const params = Promise.resolve({ id: 'class-1' });
 
-      mockAuthProvider.getSession.mockResolvedValue({
-        user: { id: 'user-1', role: 'instructor' },
-      } as any);
       mockClassRepo.getClass.mockResolvedValue(null);
 
       const response = await GET(request, { params });
@@ -89,14 +117,19 @@ describe('/api/classes/[id]/sections', () => {
     });
 
     it('should return empty array for class with no sections', async () => {
+      const user: User = {
+        id: 'user-1',
+        username: 'instructor',
+        role: 'instructor',
+        createdAt: new Date(),
+      };
+      (requireAuth as jest.Mock).mockResolvedValue(createAuthContext(user));
+      
       const request = new NextRequest('http://localhost/api/classes/class-1/sections', {
         headers: { Cookie: 'sessionId=valid-session' },
       });
       const params = Promise.resolve({ id: 'class-1' });
 
-      mockAuthProvider.getSession.mockResolvedValue({
-        user: { id: 'user-1', role: 'instructor' },
-      } as any);
       mockClassRepo.getClass.mockResolvedValue({
         id: 'class-1',
         name: 'CS101',
@@ -178,14 +211,19 @@ describe('/api/classes/[id]/sections', () => {
     });
 
     it('should return basic section info for students', async () => {
+      const student: User = {
+        id: 'user-1',
+        username: 'student',
+        role: 'student',
+        createdAt: new Date(),
+      };
+      (requireAuth as jest.Mock).mockResolvedValue(createAuthContext(student));
+      
       const request = new NextRequest('http://localhost/api/classes/class-1/sections', {
         headers: { Cookie: 'sessionId=valid-session' },
       });
       const params = Promise.resolve({ id: 'class-1' });
 
-      mockAuthProvider.getSession.mockResolvedValue({
-        user: { id: 'user-1', role: 'student' },
-      } as any);
       mockClassRepo.getClass.mockResolvedValue({
         id: 'class-1',
         name: 'CS101',
@@ -216,6 +254,14 @@ describe('/api/classes/[id]/sections', () => {
   describe('POST', () => {
     // Existing POST tests can stay as they are
     it('should create a section successfully', async () => {
+      const instructor: User = {
+        id: 'user-1',
+        username: 'instructor',
+        role: 'instructor',
+        createdAt: new Date(),
+      };
+      (requirePermission as jest.Mock).mockResolvedValue(createAuthContext(instructor));
+      
       const mockAuthProvider = {
         getSession: jest.fn(),
       };
@@ -230,9 +276,6 @@ describe('/api/classes/[id]/sections', () => {
       mockGetClassRepository.mockResolvedValue(mockClassRepo as any);
       mockGetSectionRepository.mockResolvedValue(mockSectionRepo as any);
 
-      mockAuthProvider.getSession.mockResolvedValue({
-        user: { id: 'user-1', role: 'instructor' },
-      } as any);
       mockClassRepo.getClass.mockResolvedValue({ id: 'class-1', name: 'CS101' } as any);
       mockSectionRepo.createSection.mockResolvedValue({
         id: 'section-1',

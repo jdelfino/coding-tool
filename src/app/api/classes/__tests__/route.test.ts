@@ -3,7 +3,7 @@
  * Tests GET /api/classes and POST /api/classes endpoints
  */
 
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { GET, POST } from '../route';
 
 // Mock dependencies
@@ -15,8 +15,25 @@ jest.mock('@/server/classes', () => ({
   getClassRepository: jest.fn(),
 }));
 
+jest.mock('@/server/auth/api-helpers', () => ({
+  requireAuth: jest.fn(),
+  requirePermission: jest.fn(),
+}));
+
 import { getAuthProvider } from '@/server/auth';
 import { getClassRepository } from '@/server/classes';
+import { requireAuth, requirePermission } from '@/server/auth/api-helpers';
+import type { User } from '@/server/auth/types';
+import { RBACService } from '@/server/auth/rbac';
+
+// Test helper to create mock auth context
+function createAuthContext(user: User) {
+  return {
+    user,
+    sessionId: 'test-session',
+    rbac: new RBACService(user),
+  };
+}
 
 describe('/api/classes', () => {
   const mockAuthProvider = {
@@ -88,6 +105,10 @@ describe('/api/classes', () => {
 
   describe('POST /api/classes', () => {
     it('should return 401 if not authenticated', async () => {
+      (requirePermission as jest.Mock).mockResolvedValue(
+        NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+      );
+
       const request = new NextRequest('http://localhost/api/classes', {
         method: 'POST',
         body: JSON.stringify({ name: 'CS 101' }),
@@ -101,11 +122,9 @@ describe('/api/classes', () => {
     });
 
     it('should return 403 if user is not an instructor', async () => {
-      const mockSession = {
-        user: { id: 'student-1', username: 'bob@example.com', role: 'student' },
-        sessionId: 'test-session',
-      };
-      mockAuthProvider.getSession.mockResolvedValue(mockSession);
+      (requirePermission as jest.Mock).mockResolvedValue(
+        NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      );
 
       const request = new NextRequest('http://localhost/api/classes', {
         method: 'POST',
@@ -117,15 +136,16 @@ describe('/api/classes', () => {
       const data = await response.json();
 
       expect(response.status).toBe(403);
-      expect(data.error).toBe('Only instructors can create classes');
     });
 
     it('should return 400 if name is missing', async () => {
-      const mockSession = {
-        user: { id: 'instructor-1', username: 'alice@example.com', role: 'instructor' },
-        sessionId: 'test-session',
+      const user: User = {
+        id: 'instructor-1',
+        username: 'alice@example.com',
+        role: 'instructor',
+        createdAt: new Date(),
       };
-      mockAuthProvider.getSession.mockResolvedValue(mockSession);
+      (requirePermission as jest.Mock).mockResolvedValue(createAuthContext(user));
 
       const request = new NextRequest('http://localhost/api/classes', {
         method: 'POST',
@@ -141,11 +161,13 @@ describe('/api/classes', () => {
     });
 
     it('should create class with valid data', async () => {
-      const mockSession = {
-        user: { id: 'instructor-1', username: 'alice@example.com', role: 'instructor' },
-        sessionId: 'test-session',
+      const user: User = {
+        id: 'instructor-1',
+        username: 'alice@example.com',
+        role: 'instructor',
+        createdAt: new Date(),
       };
-      mockAuthProvider.getSession.mockResolvedValue(mockSession);
+      (requirePermission as jest.Mock).mockResolvedValue(createAuthContext(user));
 
       const newClass = {
         id: 'class-1',
@@ -176,11 +198,13 @@ describe('/api/classes', () => {
     });
 
     it('should trim whitespace from inputs', async () => {
-      const mockSession = {
-        user: { id: 'instructor-1', username: 'alice@example.com', role: 'instructor' },
-        sessionId: 'test-session',
+      const user: User = {
+        id: 'instructor-1',
+        username: 'alice@example.com',
+        role: 'instructor',
+        createdAt: new Date(),
       };
-      mockAuthProvider.getSession.mockResolvedValue(mockSession);
+      (requirePermission as jest.Mock).mockResolvedValue(createAuthContext(user));
 
       mockClassRepo.createClass.mockResolvedValue({
         id: 'class-1',
