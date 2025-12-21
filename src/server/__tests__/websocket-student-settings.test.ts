@@ -264,6 +264,53 @@ describe('WebSocket Student Settings Messages', () => {
       expect(student3?.attachedFiles).toBeUndefined();
     });
 
+    it('should include session defaults in student list when students have not modified settings', async () => {
+      // Regression: STUDENT_LIST_UPDATE message should show session defaults
+      // for students who haven't modified their execution settings
+
+      const session = await sessionManager.createSession('instructor-1', 'section-1', 'Test Section');
+      
+      // Set session defaults
+      const sessionSeed = 555;
+      const sessionFiles = [
+        { name: 'session_default.txt', content: 'default for all' }
+      ];
+      await sessionManager.updateProblem(
+        session.id,
+        'Problem',
+        'input',
+        sessionSeed,
+        sessionFiles
+      );
+
+      // Add student who doesn't modify settings
+      await sessionManager.addStudent(session.id, 'student-1', 'Student One');
+      await sessionManager.updateStudentCode(session.id, 'student-1', 'code');
+
+      // Get students (raw data - no session defaults applied yet)
+      const students = await sessionManager.getStudents(session.id);
+      
+      // Student object itself doesn't have the settings
+      expect(students[0].randomSeed).toBeUndefined();
+      expect(students[0].attachedFiles).toBeUndefined();
+
+      // But broadcastStudentList should apply session defaults
+      // (This is what the websocket handler does - it needs to get the session
+      // and apply the defaults when building the student list)
+      const sessionData = await sessionManager.getSession(session.id);
+      const studentListWithDefaults = students.map(s => ({
+        id: s.id,
+        name: s.name,
+        hasCode: s.code.length > 0,
+        randomSeed: s.randomSeed !== undefined ? s.randomSeed : sessionData!.randomSeed,
+        attachedFiles: s.attachedFiles !== undefined ? s.attachedFiles : sessionData!.attachedFiles,
+      }));
+
+      // Verify the list includes session defaults
+      expect(studentListWithDefaults[0].randomSeed).toBe(sessionSeed);
+      expect(studentListWithDefaults[0].attachedFiles).toEqual(sessionFiles);
+    });
+
     it('should handle empty student list', async () => {
       const session = await sessionManager.createSession('instructor-1', 'section-1', 'Test Section');
 

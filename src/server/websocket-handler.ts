@@ -909,13 +909,17 @@ class WebSocketHandler {
   }
 
   private async broadcastStudentList(sessionId: string) {
+    const session = await sessionManagerHolder.instance.getSession(sessionId);
+    if (!session) return;
+    
     const students = await sessionManagerHolder.instance.getStudents(sessionId);
     const studentList = students.map((s: Student) => ({
       id: s.id,
       name: s.name,
       hasCode: s.code.length > 0,
-      randomSeed: s.randomSeed,
-      attachedFiles: s.attachedFiles,
+      // Use student-specific settings if set, otherwise fall back to session defaults
+      randomSeed: s.randomSeed !== undefined ? s.randomSeed : session.randomSeed,
+      attachedFiles: s.attachedFiles !== undefined ? s.attachedFiles : session.attachedFiles,
     }));
 
     this.broadcastToSession(sessionId, {
