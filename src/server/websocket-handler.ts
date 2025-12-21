@@ -250,6 +250,10 @@ class WebSocketHandler {
           joinCode: session.joinCode,
           sectionId: session.sectionId,
           sectionName: session.sectionName,
+          problemText: session.problemText,
+          exampleInput: session.exampleInput,
+          randomSeed: session.randomSeed,
+          attachedFiles: session.attachedFiles,
         },
       });
       console.log('[handleCreateSession] Response sent successfully');

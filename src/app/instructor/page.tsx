@@ -56,6 +56,12 @@ function InstructorPage() {
     studentId: string;
     studentName: string;
   } | null>(null);
+  
+  // Session execution settings
+  const [sessionProblemText, setSessionProblemText] = useState<string>('');
+  const [sessionExampleInput, setSessionExampleInput] = useState<string>('');
+  const [sessionRandomSeed, setSessionRandomSeed] = useState<number | undefined>(undefined);
+  const [sessionAttachedFiles, setSessionAttachedFiles] = useState<Array<{ name: string; content: string }>>([]);
 
   // Construct WebSocket URL
   const [wsUrl, setWsUrl] = useState('');
@@ -86,6 +92,11 @@ function InstructorPage() {
           sectionId: lastMessage.payload.sectionId,
           sectionName: lastMessage.payload.sectionName,
         });
+        // Restore execution settings from session
+        setSessionProblemText(lastMessage.payload.problemText || '');
+        setSessionExampleInput(lastMessage.payload.exampleInput || '');
+        setSessionRandomSeed(lastMessage.payload.randomSeed);
+        setSessionAttachedFiles(lastMessage.payload.attachedFiles || []);
         setViewMode('session');
         setIsCreatingSession(false);
         setError(null);
@@ -261,6 +272,11 @@ function InstructorPage() {
     attachedFiles?: Array<{ name: string; content: string }>
   ) => {
     if (!sessionId) return;
+    // Update local state to keep in sync with server
+    setSessionProblemText(problemText);
+    setSessionExampleInput(exampleInput || '');
+    setSessionRandomSeed(randomSeed);
+    setSessionAttachedFiles(attachedFiles || []);
     sendMessage('UPDATE_PROBLEM', { sessionId, problemText, exampleInput, randomSeed, attachedFiles });
   };
 
@@ -378,6 +394,10 @@ function InstructorPage() {
 
           <ProblemInput
             onUpdateProblem={handleUpdateProblem}
+            initialProblemText={sessionProblemText}
+            initialExampleInput={sessionExampleInput}
+            initialRandomSeed={sessionRandomSeed}
+            initialAttachedFiles={sessionAttachedFiles}
           />
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

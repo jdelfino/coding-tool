@@ -275,4 +275,78 @@ describe('WebSocket Student Settings Messages', () => {
       expect(featured.attachedFiles).toEqual(files);
     });
   });
+
+  describe('SESSION_CREATED message', () => {
+    it('should include execution settings when creating session', async () => {
+      // Bug: When instructor rejoins a session, execution settings were lost
+      // because SESSION_CREATED didn't include problemText, exampleInput, 
+      // randomSeed, or attachedFiles
+
+      const session = await sessionManager.createSession('instructor-1', 'section-1', 'Test Section');
+      
+      // Set problem with execution settings
+      const problemText = 'Calculate fibonacci';
+      const exampleInput = 'n=10';
+      const randomSeed = 42;
+      const attachedFiles = [
+        { name: 'input.txt', content: 'test data' }
+      ];
+      
+      await sessionManager.updateProblem(
+        session.id, 
+        problemText, 
+        exampleInput, 
+        randomSeed, 
+        attachedFiles
+      );
+
+      // Get the updated session (simulating what handleCreateSession does)
+      const updatedSession = await sessionManager.getSession(session.id);
+
+      // Verify session includes all execution settings
+      expect(updatedSession).toBeDefined();
+      expect(updatedSession!.problemText).toBe(problemText);
+      expect(updatedSession!.exampleInput).toBe(exampleInput);
+      expect(updatedSession!.randomSeed).toBe(randomSeed);
+      expect(updatedSession!.attachedFiles).toEqual(attachedFiles);
+    });
+
+    it('should preserve execution settings across session lifecycle', async () => {
+      // Bug scenario: Instructor creates session with problem, disconnects, 
+      // and rejoins. Settings should still be there.
+
+      const session = await sessionManager.createSession('instructor-1', 'section-1', 'Test Section');
+      
+      // Set up problem with all settings
+      await sessionManager.updateProblem(
+        session.id,
+        'Write a function',
+        'input: [1, 2, 3]',
+        999,
+        [{ name: 'data.csv', content: 'col1,col2\n1,2' }]
+      );
+
+      // Simulate reconnection: get session again
+      const reconnectedSession = await sessionManager.getSession(session.id);
+
+      // All settings should be preserved
+      expect(reconnectedSession!.problemText).toBe('Write a function');
+      expect(reconnectedSession!.exampleInput).toBe('input: [1, 2, 3]');
+      expect(reconnectedSession!.randomSeed).toBe(999);
+      expect(reconnectedSession!.attachedFiles).toHaveLength(1);
+      expect(reconnectedSession!.attachedFiles![0].name).toBe('data.csv');
+    });
+
+    it('should handle empty execution settings in SESSION_CREATED', async () => {
+      // Session should work even when created without any problem set
+
+      const session = await sessionManager.createSession('instructor-1', 'section-1', 'Test Section');
+      
+      // Verify defaults
+      expect(session.problemText).toBe('');
+      expect(session.exampleInput).toBeUndefined();
+      expect(session.randomSeed).toBeUndefined();
+      expect(session.attachedFiles).toBeUndefined();
+    });
+  });
 });

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 interface ProblemInputProps {
   onUpdateProblem: (
@@ -9,18 +9,38 @@ interface ProblemInputProps {
     randomSeed?: number,
     attachedFiles?: Array<{ name: string; content: string }>
   ) => void;
+  initialProblemText?: string;
+  initialExampleInput?: string;
+  initialRandomSeed?: number;
+  initialAttachedFiles?: Array<{ name: string; content: string }>;
 }
 
-export default function ProblemInput({ onUpdateProblem }: ProblemInputProps) {
-  const [problemText, setProblemText] = useState('');
-  const [exampleInput, setExampleInput] = useState('');
-  const [showExampleInput, setShowExampleInput] = useState(false);
-  const [randomSeed, setRandomSeed] = useState('');
-  const [showRandomSeed, setShowRandomSeed] = useState(false);
-  const [attachedFiles, setAttachedFiles] = useState<Array<{ name: string; content: string }>>([]);
+export default function ProblemInput({ 
+  onUpdateProblem,
+  initialProblemText = '',
+  initialExampleInput = '',
+  initialRandomSeed,
+  initialAttachedFiles = []
+}: ProblemInputProps) {
+  const [problemText, setProblemText] = useState(initialProblemText);
+  const [exampleInput, setExampleInput] = useState(initialExampleInput);
+  const [showExampleInput, setShowExampleInput] = useState(!!initialExampleInput);
+  const [randomSeed, setRandomSeed] = useState(initialRandomSeed !== undefined ? String(initialRandomSeed) : '');
+  const [showRandomSeed, setShowRandomSeed] = useState(initialRandomSeed !== undefined);
+  const [attachedFiles, setAttachedFiles] = useState<Array<{ name: string; content: string }>>(initialAttachedFiles);
   const [newFileName, setNewFileName] = useState('');
   const [newFileContent, setNewFileContent] = useState('');
   const [fileError, setFileError] = useState('');
+
+  // Sync state when initial values change (e.g., when rejoining a session)
+  useEffect(() => {
+    setProblemText(initialProblemText);
+    setExampleInput(initialExampleInput);
+    setShowExampleInput(!!initialExampleInput);
+    setRandomSeed(initialRandomSeed !== undefined ? String(initialRandomSeed) : '');
+    setShowRandomSeed(initialRandomSeed !== undefined);
+    setAttachedFiles(initialAttachedFiles);
+  }, [initialProblemText, initialExampleInput, initialRandomSeed, initialAttachedFiles]);
 
   const addFile = () => {
     setFileError('');
