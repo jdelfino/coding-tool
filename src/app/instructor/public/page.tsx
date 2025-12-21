@@ -24,6 +24,7 @@ function PublicViewContent() {
   const [hasFeaturedSubmission, setHasFeaturedSubmission] = useState(false);
   const [executionResult, setExecutionResult] = useState<ExecutionResult | null>(null);
   const [isExecuting, setIsExecuting] = useState(false);
+  const [exampleInput, setExampleInput] = useState('');
 
   useEffect(() => {
     if (!sessionId) return;
@@ -66,6 +67,7 @@ function PublicViewContent() {
           
         case MessageType.PROBLEM_UPDATE:
           setProblemText(message.payload.problemText);
+          setExampleInput(message.payload.exampleInput || '');
           break;
           
         case MessageType.ERROR:
@@ -99,7 +101,7 @@ function PublicViewContent() {
     }
   };
 
-  const handleRun = () => {
+  const handleRun = (stdin?: string) => {
     if (!ws || ws.readyState !== WebSocket.OPEN) return;
     
     setIsExecuting(true);
@@ -107,7 +109,7 @@ function PublicViewContent() {
     
     ws.send(JSON.stringify({
       type: MessageType.PUBLIC_EXECUTE_CODE,
-      payload: { code },
+      payload: { code, stdin },
     }));
   };
 
@@ -207,6 +209,7 @@ function PublicViewContent() {
                 onChange={handleCodeChange}
                 onRun={handleRun}
                 isRunning={isExecuting}
+                exampleInput={exampleInput}
               />
             </div>
             <div>

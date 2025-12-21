@@ -9,7 +9,8 @@ import SectionView from './components/SectionView';
 import SessionControls from './components/SessionControls';
 import ProblemInput from './components/ProblemInput';
 import StudentList from './components/StudentList';
-import CodeViewer from './components/CodeViewer';
+import CodeEditor from '@/app/student/components/CodeEditor';
+import OutputPanel from '@/app/student/components/OutputPanel';
 import RevisionViewer from './components/RevisionViewer';
 
 interface Student {
@@ -45,6 +46,7 @@ function InstructorPage() {
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
   const [selectedStudentCode, setSelectedStudentCode] = useState<string>('');
   const [executionResult, setExecutionResult] = useState<any>(null);
+  const [isExecutingCode, setIsExecutingCode] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isCreatingSession, setIsCreatingSession] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
@@ -150,6 +152,7 @@ function InstructorPage() {
 
       case 'EXECUTION_RESULT':
         setExecutionResult(lastMessage.payload);
+        setIsExecutingCode(false);
         break;
 
       case 'PROBLEM_UPDATED':
@@ -247,12 +250,16 @@ function InstructorPage() {
     });
   };
 
-  const handleExecuteStudentCode = () => {
+  const handleExecuteStudentCode = (stdin?: string) => {
     if (!selectedStudentId || !sessionId) return;
+    
+    setIsExecutingCode(true);
+    setExecutionResult(null);
     
     sendMessage('EXECUTE_STUDENT_CODE', {
       sessionId,
       studentId: selectedStudentId,
+      stdin,
     });
   };
 
@@ -358,12 +365,24 @@ function InstructorPage() {
             />
 
             {selectedStudentId && (
-              <CodeViewer
-                studentName={students.find(s => s.id === selectedStudentId)?.name || ''}
-                code={selectedStudentCode}
-                executionResult={executionResult}
-                onRunCode={handleExecuteStudentCode}
-              />
+              <div>
+                <div style={{ marginBottom: '1rem' }}>
+                  <h3 style={{ margin: '0 0 0.5rem 0' }}>
+                    {students.find(s => s.id === selectedStudentId)?.name || 'Student'}'s Code
+                  </h3>
+                </div>
+                <CodeEditor
+                  code={selectedStudentCode}
+                  onChange={() => {}} // Read-only for instructor
+                  onRun={handleExecuteStudentCode}
+                  isRunning={isExecutingCode}
+                />
+                {executionResult && (
+                  <div style={{ marginTop: '1rem' }}>
+                    <OutputPanel result={executionResult} />
+                  </div>
+                )}
+              </div>
             )}
           </div>
 

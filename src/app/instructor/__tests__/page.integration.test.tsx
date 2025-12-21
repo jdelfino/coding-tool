@@ -48,6 +48,28 @@ jest.mock('../components/RevisionViewer', () => ({
   default: () => <div data-testid="revision-viewer">Revision Viewer</div>,
 }));
 
+// Mock CodeEditor and OutputPanel components
+jest.mock('@/app/student/components/CodeEditor', () => ({
+  __esModule: true,
+  default: ({ code, onRun, isRunning }: any) => (
+    <div data-testid="code-editor">
+      <div data-testid="code-content">{code}</div>
+      <button onClick={() => onRun()} disabled={isRunning} data-testid="run-code-button">
+        {isRunning ? '⏳ Running...' : '▶ Run Code'}
+      </button>
+    </div>
+  ),
+}));
+
+jest.mock('@/app/student/components/OutputPanel', () => ({
+  __esModule: true,
+  default: ({ result }: any) => (
+    <div data-testid="output-panel">
+      {result && <div data-testid="execution-result">{JSON.stringify(result)}</div>}
+    </div>
+  ),
+}));
+
 // Mock fetch
 global.fetch = jest.fn();
 

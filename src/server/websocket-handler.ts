@@ -563,7 +563,7 @@ class WebSocketHandler {
     }
 
     try {
-      const { studentId } = payload;
+      const { studentId, stdin } = payload;
       
       if (!studentId || typeof studentId !== 'string') {
         this.sendError(ws, 'Invalid student ID');
@@ -577,7 +577,7 @@ class WebSocketHandler {
         return;
       }
 
-      const result = await executeCodeSafe(code);
+      const result = await executeCodeSafe(code, stdin);
 
       this.send(ws, {
         type: MessageType.EXECUTION_RESULT,
