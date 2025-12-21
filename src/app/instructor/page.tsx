@@ -425,6 +425,7 @@ function InstructorPage() {
                   onChange={() => {}} // Read-only for instructor
                   onRun={handleExecuteStudentCode}
                   isRunning={isExecutingCode}
+                  exampleInput={sessionExampleInput}
                   randomSeed={students.find(s => s.id === selectedStudentId)?.randomSeed}
                   attachedFiles={students.find(s => s.id === selectedStudentId)?.attachedFiles}
                   readOnly

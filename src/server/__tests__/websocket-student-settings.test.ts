@@ -191,6 +191,38 @@ describe('WebSocket Student Settings Messages', () => {
       expect(studentData?.randomSeed).toBeUndefined(); // Both session and student are undefined
       expect(studentData?.attachedFiles).toBeUndefined(); // Both session and student are undefined
     });
+
+    it('should return session defaults in STUDENT_CODE scenario (instructor viewing student)', async () => {
+      // Regression: When instructor clicks "View Code" on a student who hasn't
+      // modified their execution settings, the instructor should see session defaults
+
+      const session = await sessionManager.createSession('instructor-1', 'section-1', 'Test Section');
+      
+      // Instructor sets session defaults
+      const sessionSeed = 777;
+      const sessionFiles = [
+        { name: 'default_data.txt', content: 'default content' }
+      ];
+      await sessionManager.updateProblem(
+        session.id,
+        'Problem text',
+        'example: 5',
+        sessionSeed,
+        sessionFiles
+      );
+
+      // Student joins and writes code but doesn't modify execution settings
+      await sessionManager.addStudent(session.id, 'student-1', 'Student One');
+      await sessionManager.updateStudentCode(session.id, 'student-1', 'student_code');
+
+      // Instructor requests student code (simulating REQUEST_STUDENT_CODE)
+      const studentData = await sessionManager.getStudentData(session.id, 'student-1');
+
+      // This data gets sent in STUDENT_CODE message
+      expect(studentData?.code).toBe('student_code');
+      expect(studentData?.randomSeed).toBe(sessionSeed); // Should see session default
+      expect(studentData?.attachedFiles).toEqual(sessionFiles); // Should see session default
+    });
   });
 
   describe('Student list with execution settings', () => {
