@@ -79,6 +79,118 @@ describe('WebSocket Student Settings Messages', () => {
 
       expect(studentData).toBeUndefined();
     });
+
+    it('should return session defaults when student has not modified execution settings', async () => {
+      // Bug: When student joins but doesn't modify execution settings,
+      // instructor viewing their code should see session defaults, not undefined
+
+      const session = await sessionManager.createSession('instructor-1', 'section-1', 'Test Section');
+      
+      // Set session-level execution settings
+      const sessionSeed = 999;
+      const sessionFiles = [
+        { name: 'session_data.txt', content: 'session default data' }
+      ];
+      await sessionManager.updateProblem(
+        session.id,
+        'Problem with defaults',
+        'example input',
+        sessionSeed,
+        sessionFiles
+      );
+
+      // Student joins and writes code but doesn't modify execution settings
+      await sessionManager.addStudent(session.id, 'student-1', 'Student One');
+      await sessionManager.updateStudentCode(session.id, 'student-1', 'print("using defaults")');
+
+      // Instructor views student code - should see session defaults
+      const studentData = await sessionManager.getStudentData(session.id, 'student-1');
+
+      expect(studentData).toBeDefined();
+      expect(studentData?.code).toBe('print("using defaults")');
+      expect(studentData?.randomSeed).toBe(sessionSeed); // Should get session default
+      expect(studentData?.attachedFiles).toEqual(sessionFiles); // Should get session default
+    });
+
+    it('should return student overrides when student has modified execution settings', async () => {
+      // Student can override session defaults with their own values
+
+      const session = await sessionManager.createSession('instructor-1', 'section-1', 'Test Section');
+      
+      // Set session-level defaults
+      await sessionManager.updateProblem(
+        session.id,
+        'Problem',
+        'example',
+        100, // session seed
+        [{ name: 'session.txt', content: 'session file' }]
+      );
+
+      // Student joins
+      await sessionManager.addStudent(session.id, 'student-1', 'Student One');
+      
+      // Student sets their own execution settings (overrides)
+      const studentSeed = 42;
+      const studentFiles = [{ name: 'student.txt', content: 'student file' }];
+      await sessionManager.updateStudentSettings(session.id, 'student-1', studentSeed, studentFiles);
+      await sessionManager.updateStudentCode(session.id, 'student-1', 'print("overridden")');
+
+      // Instructor views student code - should see student's overrides
+      const studentData = await sessionManager.getStudentData(session.id, 'student-1');
+
+      expect(studentData).toBeDefined();
+      expect(studentData?.randomSeed).toBe(studentSeed); // Student override, not session default
+      expect(studentData?.attachedFiles).toEqual(studentFiles); // Student override, not session default
+    });
+
+    it('should handle mix of session defaults and student overrides', async () => {
+      // Student can override just seed or just files, not necessarily both
+
+      const session = await sessionManager.createSession('instructor-1', 'section-1', 'Test Section');
+      
+      // Set session defaults for both seed and files
+      await sessionManager.updateProblem(
+        session.id,
+        'Problem',
+        'example',
+        200, // session seed
+        [{ name: 'default.txt', content: 'default' }]
+      );
+
+      // Student joins and only overrides seed, not files
+      await sessionManager.addStudent(session.id, 'student-1', 'Student One');
+      await sessionManager.updateStudentSettings(
+        session.id, 
+        'student-1', 
+        777, // override seed
+        undefined // don't override files
+      );
+      await sessionManager.updateStudentCode(session.id, 'student-1', 'code');
+
+      const studentData = await sessionManager.getStudentData(session.id, 'student-1');
+
+      expect(studentData?.randomSeed).toBe(777); // Student override
+      expect(studentData?.attachedFiles).toEqual([{ name: 'default.txt', content: 'default' }]); // Session default
+    });
+
+    it('should handle empty session defaults correctly', async () => {
+      // When session has no execution settings and student hasn't set any
+
+      const session = await sessionManager.createSession('instructor-1', 'section-1', 'Test Section');
+      
+      // Don't set session execution settings (undefined/empty)
+      
+      // Student joins without setting execution settings
+      await sessionManager.addStudent(session.id, 'student-1', 'Student One');
+      await sessionManager.updateStudentCode(session.id, 'student-1', 'code');
+
+      const studentData = await sessionManager.getStudentData(session.id, 'student-1');
+
+      expect(studentData).toBeDefined();
+      expect(studentData?.code).toBe('code');
+      expect(studentData?.randomSeed).toBeUndefined(); // Both session and student are undefined
+      expect(studentData?.attachedFiles).toBeUndefined(); // Both session and student are undefined
+    });
   });
 
   describe('Student list with execution settings', () => {

@@ -312,8 +312,9 @@ export class SessionManager {
     
     return {
       code: student.code,
-      randomSeed: student.randomSeed,
-      attachedFiles: student.attachedFiles,
+      // Use student's specific settings if set, otherwise fall back to session defaults
+      randomSeed: student.randomSeed !== undefined ? student.randomSeed : session.randomSeed,
+      attachedFiles: student.attachedFiles !== undefined ? student.attachedFiles : session.attachedFiles,
     };
   }
 
