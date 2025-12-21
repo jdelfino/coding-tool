@@ -5,6 +5,7 @@ const DEFAULT_TIMEOUT = 10000; // 10 seconds
 
 export async function executeCode(
   code: string,
+  stdin?: string,
   timeout: number = DEFAULT_TIMEOUT
 ): Promise<ExecutionResult> {
   const startTime = Date.now();
@@ -19,6 +20,12 @@ export async function executeCode(
       env: { ...process.env },
       timeout,
     });
+    
+    // Pipe stdin to the process if provided
+    if (stdin !== undefined && stdin !== null) {
+      pythonProcess.stdin.write(stdin);
+      pythonProcess.stdin.end();
+    }
     
     // Set up timeout handler
     const timeoutId = setTimeout(() => {
@@ -54,6 +61,7 @@ export async function executeCode(
           output: stdout,
           error: `Execution timed out after ${timeout}ms`,
           executionTime,
+          stdin,
         });
         return;
       }
@@ -65,6 +73,7 @@ export async function executeCode(
         output: stdout,
         error: stderr,
         executionTime,
+        stdin, // Include stdin in the result
       });
     });
     
@@ -78,6 +87,7 @@ export async function executeCode(
         output: stdout,
         error: `Failed to execute code: ${error.message}`,
         executionTime,
+        stdin,
       });
     });
   });
@@ -98,9 +108,10 @@ export function sanitizeError(error: string): string {
  */
 export async function executeCodeSafe(
   code: string,
+  stdin?: string,
   timeout?: number
 ): Promise<ExecutionResult> {
-  const result = await executeCode(code, timeout);
+  const result = await executeCode(code, stdin, timeout);
   
   if (!result.success && result.error) {
     result.error = sanitizeError(result.error);

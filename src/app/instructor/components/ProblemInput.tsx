@@ -3,14 +3,16 @@
 import React, { useState } from 'react';
 
 interface ProblemInputProps {
-  onUpdateProblem: (problemText: string) => void;
+  onUpdateProblem: (problemText: string, exampleInput?: string) => void;
 }
 
 export default function ProblemInput({ onUpdateProblem }: ProblemInputProps) {
   const [problemText, setProblemText] = useState('');
+  const [exampleInput, setExampleInput] = useState('');
+  const [showExampleInput, setShowExampleInput] = useState(false);
 
   const handleUpdate = () => {
-    onUpdateProblem(problemText);
+    onUpdateProblem(problemText, showExampleInput ? exampleInput : undefined);
   };
 
   return (
@@ -29,6 +31,44 @@ export default function ProblemInput({ onUpdateProblem }: ProblemInputProps) {
           marginBottom: '0.5rem',
         }}
       />
+      
+      {/* Optional Example Input Section */}
+      <div style={{ marginBottom: '0.5rem' }}>
+        <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+          <input
+            type="checkbox"
+            checked={showExampleInput}
+            onChange={(e) => setShowExampleInput(e.target.checked)}
+          />
+          <span>Include example input for students (optional)</span>
+        </label>
+      </div>
+      
+      {showExampleInput && (
+        <div style={{ marginBottom: '0.5rem' }}>
+          <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.9rem', color: '#666' }}>
+            Example Input:
+          </label>
+          <textarea
+            value={exampleInput}
+            onChange={(e) => setExampleInput(e.target.value)}
+            placeholder="Enter example input (one value per line)..."
+            style={{
+              width: '100%',
+              minHeight: '80px',
+              padding: '0.5rem',
+              fontSize: '0.9rem',
+              fontFamily: 'monospace',
+              border: '1px solid #ccc',
+              borderRadius: '4px',
+            }}
+          />
+          <div style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.25rem' }}>
+            This input will be pre-loaded for students when they open the program input section.
+          </div>
+        </div>
+      )}
+      
       <button
         onClick={handleUpdate}
         style={{

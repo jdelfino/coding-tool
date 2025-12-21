@@ -19,6 +19,7 @@ function StudentPage() {
   const [studentId, setStudentId] = useState<string | null>(null);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [problemText, setProblemText] = useState('');
+  const [exampleInput, setExampleInput] = useState<string>('');
   const [code, setCode] = useState('');
   const [executionResult, setExecutionResult] = useState<any>(null);
   const [isRunning, setIsRunning] = useState(false);
@@ -111,6 +112,7 @@ function StudentPage() {
         setStudentId(lastMessage.payload.studentId);
         setCurrentSessionId(lastMessage.payload.sessionId);
         setProblemText(lastMessage.payload.problemText || '');
+        setExampleInput(lastMessage.payload.exampleInput || '');
         // Restore existing code if rejoining (always set, even if empty string)
         setCode(lastMessage.payload.code || '');
         setIsJoining(false);
@@ -120,6 +122,7 @@ function StudentPage() {
 
       case 'PROBLEM_UPDATE':
         setProblemText(lastMessage.payload.problemText);
+        setExampleInput(lastMessage.payload.exampleInput || '');
         break;
 
       case 'EXECUTION_RESULT':
@@ -169,7 +172,7 @@ function StudentPage() {
     refetchSessions();
   };
 
-  const handleRunCode = () => {
+  const handleRunCode = (stdin?: string) => {
     if (!isConnected) {
       setError('Not connected to server. Cannot run code.');
       return;
@@ -182,7 +185,7 @@ function StudentPage() {
     setError(null);
     setIsRunning(true);
     setExecutionResult(null);
-    sendMessage('EXECUTE_CODE', { code });
+    sendMessage('EXECUTE_CODE', { code, stdin });
     
     // Set timeout for execution
     setTimeout(() => {
@@ -504,6 +507,7 @@ function StudentPage() {
         onChange={setCode}
         onRun={handleRunCode}
         isRunning={isRunning}
+        exampleInput={exampleInput}
       />
 
       <OutputPanel result={executionResult} />

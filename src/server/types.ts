@@ -12,6 +12,7 @@ export interface Session {
   id: string;
   joinCode: string;
   problemText: string;
+  exampleInput?: string; // Optional example input for the problem
   students: Map<string, Student>; // All students who have joined (preserves code across disconnects)
   instructorWs?: WebSocket;
   publicViewWs?: WebSocket;
@@ -34,6 +35,7 @@ export interface ExecutionResult {
   output: string;
   error: string;
   executionTime: number;
+  stdin?: string; // Input provided to the program
 }
 
 export enum MessageType {

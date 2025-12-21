@@ -133,12 +133,13 @@ export class SessionManager {
   /**
    * Update problem text for a session
    */
-  async updateProblem(sessionId: string, problemText: string): Promise<boolean> {
+  async updateProblem(sessionId: string, problemText: string, exampleInput?: string): Promise<boolean> {
     if (!this.storage) return false;
     
     try {
       await this.storage.sessions.updateSession(sessionId, {
         problemText,
+        exampleInput,
         lastActivity: new Date(),
       });
       console.log(`Updated problem for session ${sessionId}`);

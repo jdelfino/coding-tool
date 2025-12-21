@@ -330,6 +330,7 @@ class WebSocketHandler {
         sessionId: session.id,
         joinCode: session.joinCode,
         problemText: session.problemText,
+        exampleInput: session.exampleInput,
       },
     });
 
@@ -464,6 +465,7 @@ class WebSocketHandler {
         sessionId: session.id,
         studentId,
         problemText: session.problemText,
+        exampleInput: session.exampleInput,
         code: existingCode || '', // Include existing code if rejoining
       },
     });
@@ -483,7 +485,7 @@ class WebSocketHandler {
       return;
     }
 
-    const { problemText } = payload;
+    const { problemText, exampleInput } = payload;
     
     if (typeof problemText !== 'string') {
       console.error('Invalid problem text type');
@@ -495,18 +497,18 @@ class WebSocketHandler {
       return;
     }
 
-    await sessionManagerHolder.instance.updateProblem(connection.sessionId, problemText);
+    await sessionManagerHolder.instance.updateProblem(connection.sessionId, problemText, exampleInput);
 
     // Broadcast to all students
     this.broadcastToSession(connection.sessionId, {
       type: MessageType.PROBLEM_UPDATE,
-      payload: { problemText },
+      payload: { problemText, exampleInput },
     }, 'student');
     
     // Also broadcast to public views
     this.broadcastToSession(connection.sessionId, {
       type: MessageType.PROBLEM_UPDATE,
-      payload: { problemText },
+      payload: { problemText, exampleInput },
     }, 'public');
   }
 
@@ -534,14 +536,14 @@ class WebSocketHandler {
     }
 
     try {
-      const { code } = payload;
+      const { code, stdin } = payload;
       
       if (!code || typeof code !== 'string') {
         this.sendError(ws, 'Invalid code provided');
         return;
       }
       
-      const result = await executeCodeSafe(code);
+      const result = await executeCodeSafe(code, stdin);
 
       this.send(ws, {
         type: MessageType.EXECUTION_RESULT,
@@ -750,14 +752,14 @@ class WebSocketHandler {
     }
 
     try {
-      const { code } = payload;
+      const { code, stdin } = payload;
       
       if (!code || typeof code !== 'string') {
         this.sendError(ws, 'Invalid code provided');
         return;
       }
       
-      const result = await executeCodeSafe(code);
+      const result = await executeCodeSafe(code, stdin);
 
       this.send(ws, {
         type: MessageType.EXECUTION_RESULT,

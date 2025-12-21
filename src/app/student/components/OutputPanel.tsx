@@ -5,6 +5,7 @@ interface ExecutionResult {
   output: string;
   error: string;
   executionTime: number;
+  stdin?: string; // Input provided to the program
 }
 
 interface OutputPanelProps {
@@ -41,6 +42,25 @@ export default function OutputPanel({ result }: OutputPanelProps) {
     }}>
       <h4 style={{ marginTop: 0 }}>Output</h4>
       
+      {/* Display input if it was provided */}
+      {result.stdin && (
+        <div style={{ marginBottom: '1rem' }}>
+          <strong style={{ color: '#666' }}>Input provided:</strong>
+          <pre style={{ 
+            margin: '0.5rem 0',
+            fontFamily: 'monospace',
+            whiteSpace: 'pre-wrap',
+            wordWrap: 'break-word',
+            backgroundColor: '#f5f5f5',
+            padding: '0.5rem',
+            borderRadius: '4px',
+            border: '1px solid #ccc',
+          }}>
+            {result.stdin}
+          </pre>
+        </div>
+      )}
+
       {result.output && (
         <div style={{ marginBottom: '1rem' }}>
           <pre style={{ 

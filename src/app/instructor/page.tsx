@@ -232,9 +232,9 @@ function InstructorPage() {
     }
   };
 
-  const handleUpdateProblem = (problemText: string) => {
+  const handleUpdateProblem = (problemText: string, exampleInput?: string) => {
     if (!sessionId) return;
-    sendMessage('UPDATE_PROBLEM', { sessionId, problemText });
+    sendMessage('UPDATE_PROBLEM', { sessionId, problemText, exampleInput });
   };
 
   const handleSelectStudent = (studentId: string) => {
