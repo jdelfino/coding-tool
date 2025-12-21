@@ -682,24 +682,27 @@ class WebSocketHandler {
 
   private async handleSelectSubmissionForPublic(connection: Connection, payload: any) {
     // Check if user has permission to manage sessions
-    if (!this.hasPermission(connection, 'session.viewAll') || !connection.sessionId) return;
+    if (!this.hasPermission(connection, 'session.viewAll') || !connection.sessionId) {
+      return;
+    }
 
     const { studentId } = payload;
+    const sessionId = connection.sessionId;
     
     if (studentId) {
       // Set featured submission
-      const success = await sessionManagerHolder.instance.setFeaturedSubmission(connection.sessionId, studentId);
+      const success = await sessionManagerHolder.instance.setFeaturedSubmission(sessionId, studentId);
       if (!success) {
         console.error('Failed to set featured submission');
         return;
       }
     } else {
       // Clear featured submission
-      await sessionManagerHolder.instance.clearFeaturedSubmission(connection.sessionId);
+      await sessionManagerHolder.instance.clearFeaturedSubmission(sessionId);
     }
 
     // Broadcast update to public views
-    await this.broadcastPublicSubmissionUpdate(connection.sessionId);
+    await this.broadcastPublicSubmissionUpdate(sessionId);
   }
 
   private async handleJoinPublicView(ws: WebSocket, connection: Connection, payload: any) {

@@ -17,6 +17,11 @@ export default function SessionControls({
   onEndSession,
   onLeaveSession
 }: SessionControlsProps) {
+  const handleOpenPublicView = () => {
+    const publicViewUrl = `/instructor/public?sessionId=${sessionId}`;
+    window.open(publicViewUrl, '_blank', 'width=1200,height=800');
+  };
+
   return (
     <div className="bg-white border-2 border-blue-200 rounded-xl shadow-lg p-6">
       <div className="flex justify-between items-start mb-4">
@@ -27,6 +32,13 @@ export default function SessionControls({
           )}
         </div>
         <div className="flex gap-2">
+          <button
+            onClick={handleOpenPublicView}
+            className="px-4 py-2 text-sm font-medium text-blue-700 bg-blue-50 border border-blue-300 rounded-lg hover:bg-blue-100 transition-colors"
+            title="Open public view in a new window to display student code to the class"
+          >
+            Open Public View
+          </button>
           <button
             onClick={onLeaveSession}
             className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"

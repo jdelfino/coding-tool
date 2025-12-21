@@ -267,6 +267,14 @@ function InstructorPage() {
     setRevisionViewerState(null);
   };
 
+  const handleShowOnPublicView = (studentId: string) => {
+    if (!sessionId) return;
+    sendMessage('SELECT_SUBMISSION_FOR_PUBLIC', {
+      sessionId,
+      studentId,
+    });
+  };
+
   const handleSignOut = async () => {
     setIsSigningOut(true);
     try {
@@ -345,6 +353,7 @@ function InstructorPage() {
             <StudentList
               students={students}
               onSelectStudent={handleSelectStudent}
+              onShowOnPublicView={handleShowOnPublicView}
               onViewHistory={handleViewRevisions}
             />
 
