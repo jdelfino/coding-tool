@@ -18,7 +18,7 @@ describe('Code execution stdin handling', () => {
       const code = 'name = input("Enter name: ")\nprint(f"Hello, {name}")';
       const stdin = 'Alice\n';
       
-      const result = await codeExecutor.executeCodeSafe(code, stdin);
+      const result = await codeExecutor.executeCodeSafe({ code, stdin });
       
       expect(result).toBeDefined();
       expect(result.success).toBeDefined();
@@ -30,7 +30,7 @@ describe('Code execution stdin handling', () => {
     it('should work without stdin parameter', async () => {
       const code = 'print("Hello, World!")';
       
-      const result = await codeExecutor.executeCodeSafe(code);
+      const result = await codeExecutor.executeCodeSafe({ code });
       
       expect(result).toBeDefined();
       expect(result.success).toBe(true);
@@ -41,7 +41,7 @@ describe('Code execution stdin handling', () => {
       const code = 'name = input()\nage = input()\nprint(f"{name} is {age}")';
       const stdin = 'Alice\n25\n';
       
-      const result = await codeExecutor.executeCodeSafe(code, stdin);
+      const result = await codeExecutor.executeCodeSafe({ code, stdin });
       
       expect(result).toBeDefined();
       // Log the result for debugging
@@ -57,7 +57,7 @@ describe('Code execution stdin handling', () => {
       const code = 'print("No input needed")';
       const stdin = '';
       
-      const result = await codeExecutor.executeCodeSafe(code, stdin);
+      const result = await codeExecutor.executeCodeSafe({ code, stdin });
       
       expect(result).toBeDefined();
       expect(result.success).toBe(true);
@@ -66,9 +66,9 @@ describe('Code execution stdin handling', () => {
   });
 
   describe('Parameter signature verification', () => {
-    it('executeCodeSafe should accept optional stdin parameter', () => {
+    it('executeCodeSafe should accept CodeSubmission parameter', () => {
       // Type checking - this will fail at compile time if signature is wrong
-      const executor: (code: string, stdin?: string, timeout?: number) => Promise<any> = codeExecutor.executeCodeSafe;
+      const executor: (submission: any, timeout?: number) => Promise<any> = codeExecutor.executeCodeSafe;
       expect(executor).toBeDefined();
     });
   });

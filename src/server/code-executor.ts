@@ -1,13 +1,13 @@
 import { spawn } from 'child_process';
-import { ExecutionResult } from './types';
+import { ExecutionResult, CodeSubmission } from './types';
 
 const DEFAULT_TIMEOUT = 10000; // 10 seconds
 
 export async function executeCode(
-  code: string,
-  stdin?: string,
+  submission: CodeSubmission,
   timeout: number = DEFAULT_TIMEOUT
 ): Promise<ExecutionResult> {
+  const { code, stdin } = submission;
   const startTime = Date.now();
   
   return new Promise((resolve) => {
@@ -107,11 +107,10 @@ export function sanitizeError(error: string): string {
  * Execute code with sanitized errors
  */
 export async function executeCodeSafe(
-  code: string,
-  stdin?: string,
+  submission: CodeSubmission,
   timeout?: number
 ): Promise<ExecutionResult> {
-  const result = await executeCode(code, stdin, timeout);
+  const result = await executeCode(submission, timeout);
   
   if (!result.success && result.error) {
     result.error = sanitizeError(result.error);

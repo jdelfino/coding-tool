@@ -1,5 +1,18 @@
 import { WebSocket } from 'ws';
 
+/**
+ * Structured type that holds code and execution parameters
+ * Future fields: randomSeed, inputFiles, testCases, etc.
+ */
+export interface CodeSubmission {
+  code: string;
+  stdin?: string;
+  // Future fields to be added:
+  // randomSeed?: number;
+  // inputFiles?: Array<{ name: string; content: string }>;
+  // testCases?: TestCase[];
+}
+
 export interface Student {
   id: string;
   name: string;

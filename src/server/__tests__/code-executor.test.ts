@@ -25,7 +25,7 @@ describe('code-executor', () => {
         const mockProcess = createMockProcess();
         mockSpawn.mockReturnValue(mockProcess as any);
 
-        const promise = executeCode('print("hello")');
+        const promise = executeCode({ code: 'print("hello")' });
 
         // Simulate process execution
         mockProcess.stdout.emit('data', Buffer.from('hello\n'));
@@ -43,7 +43,7 @@ describe('code-executor', () => {
         const mockProcess = createMockProcess();
         mockSpawn.mockReturnValue(mockProcess as any);
 
-        const promise = executeCode('print("test")');
+        const promise = executeCode({ code: 'print("test")' });
 
         jest.advanceTimersByTime(100);
         mockProcess.stdout.emit('data', Buffer.from('test\n'));
@@ -58,7 +58,7 @@ describe('code-executor', () => {
         const mockProcess = createMockProcess();
         mockSpawn.mockReturnValue(mockProcess as any);
 
-        const promise = executeCode('pass');
+        const promise = executeCode({ code: 'pass' });
 
         mockProcess.emit('close', 0);
 
@@ -76,7 +76,7 @@ describe('code-executor', () => {
         mockSpawn.mockReturnValue(mockProcess as any);
 
         const stdinInput = 'Alice\n25\n';
-        const promise = executeCode('name = input(); age = input(); print(name, age)', stdinInput);
+        const promise = executeCode({ code: 'name = input(); age = input(); print(name, age)', stdin: stdinInput });
 
         // Verify stdin.write was called
         expect(mockProcess.stdin.write).toHaveBeenCalledWith(stdinInput);
@@ -96,7 +96,7 @@ describe('code-executor', () => {
         const mockProcess = createMockProcess();
         mockSpawn.mockReturnValue(mockProcess as any);
 
-        const promise = executeCode('print("test")');
+        const promise = executeCode({ code: 'print("test")' });
 
         expect(mockProcess.stdin.write).not.toHaveBeenCalled();
         expect(mockProcess.stdin.end).not.toHaveBeenCalled();
@@ -111,7 +111,7 @@ describe('code-executor', () => {
         const mockProcess = createMockProcess();
         mockSpawn.mockReturnValue(mockProcess as any);
 
-        const promise = executeCode('print("test")', '');
+        const promise = executeCode({ code: 'print("test")', stdin: '' });
 
         expect(mockProcess.stdin.write).toHaveBeenCalledWith('');
         expect(mockProcess.stdin.end).toHaveBeenCalled();
@@ -128,7 +128,7 @@ describe('code-executor', () => {
         mockSpawn.mockReturnValue(mockProcess as any);
 
         const stdinInput = 'test input';
-        const promise = executeCode('print("ok")', stdinInput);
+        const promise = executeCode({ code: 'print("ok")', stdin: stdinInput });
 
         mockProcess.stdout.emit('data', Buffer.from('ok\n'));
         mockProcess.emit('close', 0);
@@ -144,7 +144,7 @@ describe('code-executor', () => {
         const mockProcess = createMockProcess();
         mockSpawn.mockReturnValue(mockProcess as any);
 
-        const promise = executeCode('raise Exception("error")');
+        const promise = executeCode({ code: 'raise Exception("error")' });
 
         mockProcess.stderr.emit('data', Buffer.from('Exception: error\n'));
         mockProcess.emit('close', 1);
@@ -159,7 +159,7 @@ describe('code-executor', () => {
         const mockProcess = createMockProcess();
         mockSpawn.mockReturnValue(mockProcess as any);
 
-        const promise = executeCode('print("test")');
+        const promise = executeCode({ code: 'print("test")' });
 
         mockProcess.emit('error', new Error('spawn failed'));
 
@@ -174,7 +174,7 @@ describe('code-executor', () => {
         const mockProcess = createMockProcess();
         mockSpawn.mockReturnValue(mockProcess as any);
 
-        const promise = executeCode('import sys; sys.exit(1)');
+        const promise = executeCode({ code: 'import sys; sys.exit(1)' });
 
         mockProcess.emit('close', 1);
 
@@ -187,7 +187,7 @@ describe('code-executor', () => {
         const mockProcess = createMockProcess();
         mockSpawn.mockReturnValue(mockProcess as any);
 
-        const promise = executeCode('import sys; print("warning", file=sys.stderr)');
+        const promise = executeCode({ code: 'import sys; print("warning", file=sys.stderr)' });
 
         mockProcess.stderr.emit('data', Buffer.from('warning\n'));
         mockProcess.emit('close', 0);
@@ -204,7 +204,7 @@ describe('code-executor', () => {
         const mockProcess = createMockProcess();
         mockSpawn.mockReturnValue(mockProcess as any);
 
-        const promise = executeCode('while True: pass', undefined, 1000);
+        const promise = executeCode({ code: 'while True: pass' }, 1000);
 
         jest.advanceTimersByTime(1000);
 
@@ -223,7 +223,7 @@ describe('code-executor', () => {
         const mockProcess = createMockProcess();
         mockSpawn.mockReturnValue(mockProcess as any);
 
-        executeCode('while True: pass');
+        executeCode({ code: 'while True: pass' });
 
         jest.advanceTimersByTime(9999);
         expect(mockProcess.kill).not.toHaveBeenCalled();
@@ -236,7 +236,7 @@ describe('code-executor', () => {
         const mockProcess = createMockProcess();
         mockSpawn.mockReturnValue(mockProcess as any);
 
-        const promise = executeCode('while True: pass', undefined, 1000);
+        const promise = executeCode({ code: 'while True: pass' }, 1000);
 
         jest.advanceTimersByTime(1000);
         expect(mockProcess.kill).toHaveBeenCalledWith('SIGTERM');
@@ -255,7 +255,7 @@ describe('code-executor', () => {
         mockSpawn.mockReturnValue(mockProcess as any);
 
         const stdinInput = 'test';
-        const promise = executeCode('while True: pass', stdinInput, 1000);
+        const promise = executeCode({ code: 'while True: pass', stdin: stdinInput }, 1000);
 
         jest.advanceTimersByTime(1000);
         mockProcess.emit('close', null);
@@ -305,7 +305,7 @@ describe('code-executor', () => {
       const mockProcess = createMockProcess();
       mockSpawn.mockReturnValue(mockProcess as any);
 
-      const promise = executeCodeSafe('raise Exception()');
+      const promise = executeCodeSafe({ code: 'raise Exception()' });
 
       mockProcess.stderr.emit('data', Buffer.from('File "/home/test.py", line 1\nException\n'));
       mockProcess.emit('close', 1);
@@ -321,7 +321,7 @@ describe('code-executor', () => {
       const mockProcess = createMockProcess();
       mockSpawn.mockReturnValue(mockProcess as any);
 
-      const promise = executeCodeSafe('print("hello")');
+      const promise = executeCodeSafe({ code: 'print("hello")' });
 
       mockProcess.stdout.emit('data', Buffer.from('hello\n'));
       mockProcess.emit('close', 0);
@@ -337,7 +337,7 @@ describe('code-executor', () => {
       mockSpawn.mockReturnValue(mockProcess as any);
 
       const stdinInput = 'test input';
-      const promise = executeCodeSafe('print("ok")', stdinInput);
+      const promise = executeCodeSafe({ code: 'print("ok")', stdin: stdinInput });
 
       mockProcess.stdout.emit('data', Buffer.from('ok\n'));
       mockProcess.emit('close', 0);
@@ -352,7 +352,7 @@ describe('code-executor', () => {
       const mockProcess = createMockProcess();
       mockSpawn.mockReturnValue(mockProcess as any);
 
-      executeCodeSafe('while True: pass', undefined, 5000);
+      executeCodeSafe({ code: 'while True: pass' }, 5000);
 
       jest.advanceTimersByTime(4999);
       expect(mockProcess.kill).not.toHaveBeenCalled();

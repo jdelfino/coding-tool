@@ -543,7 +543,7 @@ class WebSocketHandler {
         return;
       }
       
-      const result = await executeCodeSafe(code, stdin);
+      const result = await executeCodeSafe({ code, stdin });
 
       this.send(ws, {
         type: MessageType.EXECUTION_RESULT,
@@ -577,7 +577,7 @@ class WebSocketHandler {
         return;
       }
 
-      const result = await executeCodeSafe(code, stdin);
+      const result = await executeCodeSafe({ code, stdin });
 
       this.send(ws, {
         type: MessageType.EXECUTION_RESULT,
@@ -759,7 +759,7 @@ class WebSocketHandler {
         return;
       }
       
-      const result = await executeCodeSafe(code, stdin);
+      const result = await executeCodeSafe({ code, stdin });
 
       this.send(ws, {
         type: MessageType.EXECUTION_RESULT,
