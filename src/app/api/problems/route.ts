@@ -6,11 +6,9 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '../auth/[...nextauth]/route';
 import { getStorage } from '@/server/persistence';
+import { getAuthProvider } from '@/server/auth';
 import type { ProblemInput } from '@/server/types/problem';
-import type { SessionUser } from '@/server/auth/types';
 
 /**
  * GET /api/problems
@@ -25,8 +23,17 @@ import type { SessionUser } from '@/server/auth/types';
  */
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
+    const sessionId = request.cookies.get('sessionId')?.value;
+    if (!sessionId) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    const authProvider = await getAuthProvider();
+    const session = await authProvider.getSession(sessionId);
+    if (!session) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
@@ -67,15 +74,24 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
+    const sessionId = request.cookies.get('sessionId')?.value;
+    if (!sessionId) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       );
     }
 
-    const user = session.user as SessionUser;
+    const authProvider = await getAuthProvider();
+    const session = await authProvider.getSession(sessionId);
+    if (!session) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    const user = session.user;
 
     // Only instructors and admins can create problems
     if (user.role !== 'instructor' && user.role !== 'admin') {

@@ -7,10 +7,9 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '../../auth/[...nextauth]/route';
 import { getStorage } from '@/server/persistence';
-import type { SessionUser } from '@/server/auth/types';
+import { getAuthProvider } from '@/server/auth';
+import type { User } from '@/server/auth/types';
 
 type Params = {
   params: {
@@ -28,8 +27,17 @@ export async function GET(
   { params }: Params
 ) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
+    const sessionId = request.cookies.get('sessionId')?.value;
+    if (!sessionId) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    const authProvider = await getAuthProvider();
+    const session = await authProvider.getSession(sessionId);
+    if (!session) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
@@ -68,15 +76,24 @@ export async function PATCH(
   { params }: Params
 ) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
+    const sessionId = request.cookies.get('sessionId')?.value;
+    if (!sessionId) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       );
     }
 
-    const user = session.user as SessionUser;
+    const authProvider = await getAuthProvider();
+    const session = await authProvider.getSession(sessionId);
+    if (!session) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    const user = session.user;
     const storage = await getStorage();
 
     // Get existing problem
@@ -136,15 +153,24 @@ export async function DELETE(
   { params }: Params
 ) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
+    const sessionId = request.cookies.get('sessionId')?.value;
+    if (!sessionId) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       );
     }
 
-    const user = session.user as SessionUser;
+    const authProvider = await getAuthProvider();
+    const session = await authProvider.getSession(sessionId);
+    if (!session) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    const user = session.user;
     const storage = await getStorage();
 
     // Get existing problem

@@ -54,7 +54,11 @@ describe('LocalProblemRepository', () => {
       const testCase: TestCase = {
         id: 'test-1',
         name: 'Basic test',
+        problemId: 'test-problem',
         type: 'input-output',
+        description: 'Test basic input/output',
+        visible: true,
+        order: 1,
         config: {
           type: 'input-output',
           data: {
@@ -62,7 +66,6 @@ describe('LocalProblemRepository', () => {
             expectedOutput: '42',
             matchType: 'exact',
           },
-          timeout: 5000,
         },
       };
 
