@@ -666,16 +666,21 @@ class WebSocketHandler {
     if (!this.hasPermission(connection, 'data.viewAll') || !connection.sessionId) return;
 
     const { studentId } = payload;
-    const code = await sessionManagerHolder.instance.getStudentCode(connection.sessionId, studentId);
+    const studentData = await sessionManagerHolder.instance.getStudentData(connection.sessionId, studentId);
     
-    if (code === undefined) {
+    if (!studentData) {
       this.sendError(ws, 'Student not found');
       return;
     }
 
     this.send(ws, {
       type: MessageType.STUDENT_CODE,
-      payload: { studentId, code },
+      payload: { 
+        studentId, 
+        code: studentData.code,
+        randomSeed: studentData.randomSeed,
+        attachedFiles: studentData.attachedFiles,
+      },
     });
   }
 
@@ -903,6 +908,8 @@ class WebSocketHandler {
       id: s.id,
       name: s.name,
       hasCode: s.code.length > 0,
+      randomSeed: s.randomSeed,
+      attachedFiles: s.attachedFiles,
     }));
 
     this.broadcastToSession(sessionId, {

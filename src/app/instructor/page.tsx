@@ -136,7 +136,12 @@ function InstructorPage() {
         setStudents(prev => 
           prev.map(s => 
             s.id === lastMessage.payload.studentId 
-              ? { ...s, hasCode: true }
+              ? { 
+                  ...s, 
+                  hasCode: true,
+                  randomSeed: lastMessage.payload.randomSeed !== undefined ? lastMessage.payload.randomSeed : s.randomSeed,
+                  attachedFiles: lastMessage.payload.attachedFiles !== undefined ? lastMessage.payload.attachedFiles : s.attachedFiles,
+                }
               : s
           )
         );
@@ -149,6 +154,18 @@ function InstructorPage() {
       case 'STUDENT_CODE':
         if (lastMessage.payload.studentId === selectedStudentId) {
           setSelectedStudentCode(lastMessage.payload.code);
+          // Update student's execution settings in the students array
+          setStudents(prev => 
+            prev.map(s => 
+              s.id === lastMessage.payload.studentId
+                ? { 
+                    ...s, 
+                    randomSeed: lastMessage.payload.randomSeed,
+                    attachedFiles: lastMessage.payload.attachedFiles,
+                  }
+                : s
+            )
+          );
         }
         break;
 
