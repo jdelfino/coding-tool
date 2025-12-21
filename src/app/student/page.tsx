@@ -104,6 +104,19 @@ function StudentPage() {
     }
   }, [hasCheckedAutoRejoin, isLoadingSessions, isConnected, sessions, handleRejoinSession]);
 
+  // Handle WebSocket reconnection - rejoin session if we were in one
+  useEffect(() => {
+    // If we reconnected and we have a current session, rejoin it
+    if (isConnected && currentSessionId && joined && !isJoining) {
+      const session = sessions.find(s => s.id === currentSessionId);
+      if (session) {
+        console.log('WebSocket reconnected, rejoining session:', session.joinCode);
+        setJoined(false); // Reset joined state
+        handleRejoinSession(session.id, session.joinCode);
+      }
+    }
+  }, [isConnected]); // Only trigger on isConnected changes
+
   // Handle incoming WebSocket messages
   useEffect(() => {
     if (!lastMessage) return;
@@ -523,11 +536,7 @@ function StudentPage() {
       )}
 
       <ProblemDisplay 
-        problemText={problemText} 
-        randomSeed={randomSeed !== undefined ? randomSeed : sessionRandomSeed}
-        attachedFiles={attachedFiles.length > 0 ? attachedFiles : sessionAttachedFiles}
-        onRandomSeedChange={setRandomSeed}
-        onAttachedFilesChange={setAttachedFiles}
+        problemText={problemText}
       />
 
       <CodeEditor
@@ -536,6 +545,10 @@ function StudentPage() {
         onRun={handleRunCode}
         isRunning={isRunning}
         exampleInput={exampleInput}
+        randomSeed={randomSeed !== undefined ? randomSeed : sessionRandomSeed}
+        onRandomSeedChange={setRandomSeed}
+        attachedFiles={attachedFiles.length > 0 ? attachedFiles : sessionAttachedFiles}
+        onAttachedFilesChange={setAttachedFiles}
       />
 
       <OutputPanel result={executionResult} />

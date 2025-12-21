@@ -404,13 +404,25 @@ export class SessionManager {
   /**
    * Get featured submission data
    */
-  async getFeaturedSubmission(sessionId: string): Promise<{ studentId?: string; code?: string }> {
+  async getFeaturedSubmission(sessionId: string): Promise<{ 
+    studentId?: string; 
+    code?: string;
+    randomSeed?: number;
+    attachedFiles?: Array<{ name: string; content: string }>;
+  }> {
     const session = await this.getSession(sessionId);
     if (!session) return {};
+    
+    // Get the student data if we have a featured student
+    const student = session.featuredStudentId 
+      ? session.students.get(session.featuredStudentId)
+      : null;
     
     return {
       studentId: session.featuredStudentId,
       code: session.featuredCode,
+      randomSeed: student?.randomSeed,
+      attachedFiles: student?.attachedFiles,
     };
   }
 

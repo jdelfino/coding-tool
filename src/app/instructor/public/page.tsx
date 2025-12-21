@@ -25,6 +25,8 @@ function PublicViewContent() {
   const [executionResult, setExecutionResult] = useState<ExecutionResult | null>(null);
   const [isExecuting, setIsExecuting] = useState(false);
   const [exampleInput, setExampleInput] = useState('');
+  const [randomSeed, setRandomSeed] = useState<number | undefined>(undefined);
+  const [attachedFiles, setAttachedFiles] = useState<Array<{ name: string; content: string }>>([]);
 
   useEffect(() => {
     if (!sessionId) return;
@@ -58,6 +60,15 @@ function PublicViewContent() {
           if (message.payload.hasFeaturedSubmission !== undefined) {
             setHasFeaturedSubmission(message.payload.hasFeaturedSubmission);
           }
+          if (message.payload.exampleInput !== undefined) {
+            setExampleInput(message.payload.exampleInput);
+          }
+          if (message.payload.randomSeed !== undefined) {
+            setRandomSeed(message.payload.randomSeed);
+          }
+          if (message.payload.attachedFiles !== undefined) {
+            setAttachedFiles(message.payload.attachedFiles);
+          }
           break;
           
         case MessageType.EXECUTION_RESULT:
@@ -65,9 +76,11 @@ function PublicViewContent() {
           setExecutionResult(message.payload);
           break;
           
-        case MessageType.PROBLEM_UPDATE:
+          case MessageType.PROBLEM_UPDATE:
           setProblemText(message.payload.problemText);
           setExampleInput(message.payload.exampleInput || '');
+          setRandomSeed(message.payload.randomSeed);
+          setAttachedFiles(message.payload.attachedFiles || []);
           break;
           
         case MessageType.ERROR:
@@ -210,6 +223,9 @@ function PublicViewContent() {
                 onRun={handleRun}
                 isRunning={isExecuting}
                 exampleInput={exampleInput}
+                randomSeed={randomSeed}
+                attachedFiles={attachedFiles}
+                readOnly
               />
             </div>
             <div>

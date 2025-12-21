@@ -17,6 +17,8 @@ interface Student {
   id: string;
   name: string;
   hasCode: boolean;
+  randomSeed?: number;
+  attachedFiles?: Array<{ name: string; content: string }>;
 }
 
 type ViewMode = 'classes' | 'sections' | 'session';
@@ -381,6 +383,9 @@ function InstructorPage() {
                   onChange={() => {}} // Read-only for instructor
                   onRun={handleExecuteStudentCode}
                   isRunning={isExecutingCode}
+                  randomSeed={students.find(s => s.id === selectedStudentId)?.randomSeed}
+                  attachedFiles={students.find(s => s.id === selectedStudentId)?.attachedFiles}
+                  readOnly
                 />
                 {executionResult && (
                   <div style={{ marginTop: '1rem' }}>

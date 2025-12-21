@@ -2,18 +2,34 @@
 
 import Editor from '@monaco-editor/react';
 import { useEffect, useRef, useState } from 'react';
+import ExecutionSettings from './ExecutionSettings';
 
 interface CodeEditorProps {
   code: string;
   onChange: (code: string) => void;
   onRun: (stdin?: string) => void;
   isRunning?: boolean;
-  exampleInput?: string; // Example input from problem specification
+  exampleInput?: string;
+  randomSeed?: number;
+  onRandomSeedChange?: (seed: number | undefined) => void;
+  attachedFiles?: Array<{ name: string; content: string }>;
+  onAttachedFilesChange?: (files: Array<{ name: string; content: string }>) => void;
+  readOnly?: boolean;
 }
 
-export default function CodeEditor({ code, onChange, onRun, isRunning = false, exampleInput }: CodeEditorProps) {
+export default function CodeEditor({ 
+  code, 
+  onChange, 
+  onRun, 
+  isRunning = false, 
+  exampleInput,
+  randomSeed,
+  onRandomSeedChange,
+  attachedFiles,
+  onAttachedFilesChange,
+  readOnly = false
+}: CodeEditorProps) {
   const editorRef = useRef<any>(null);
-  const [showInput, setShowInput] = useState(false);
   const [stdin, setStdin] = useState('');
 
   // Initialize stdin with example input if provided
@@ -76,72 +92,16 @@ export default function CodeEditor({ code, onChange, onRun, isRunning = false, e
         }}
       />
 
-      {/* Collapsible Program Input Section */}
-      <div style={{
-        borderTop: '1px solid #ccc',
-        backgroundColor: '#f5f5f5',
-      }}>
-        <button
-          onClick={() => setShowInput(!showInput)}
-          style={{
-            width: '100%',
-            padding: '0.5rem 1rem',
-            backgroundColor: 'transparent',
-            border: 'none',
-            cursor: 'pointer',
-            textAlign: 'left',
-            fontWeight: 'bold',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-          }}
-        >
-          <span style={{ 
-            transition: 'transform 0.2s',
-            transform: showInput ? 'rotate(90deg)' : 'rotate(0deg)',
-          }}>
-            ▶
-          </span>
-          Program Input
-          {stdin && !showInput && (
-            <span style={{ 
-              fontSize: '0.85rem', 
-              color: '#666',
-              fontWeight: 'normal',
-              marginLeft: 'auto',
-            }}>
-              (input provided)
-            </span>
-          )}
-        </button>
-        
-        {showInput && (
-          <div style={{ padding: '0 1rem 1rem 1rem' }}>
-            <textarea
-              value={stdin}
-              onChange={(e) => setStdin(e.target.value)}
-              placeholder={exampleInput ? "Example input loaded. Edit as needed..." : "Enter input for your program (one value per line)"}
-              style={{
-                width: '100%',
-                minHeight: '100px',
-                padding: '0.5rem',
-                fontSize: '0.9rem',
-                fontFamily: 'monospace',
-                border: '1px solid #ccc',
-                borderRadius: '4px',
-                resize: 'vertical',
-              }}
-            />
-            <div style={{ 
-              fontSize: '0.85rem', 
-              color: '#666',
-              marginTop: '0.5rem',
-            }}>
-              This input will be provided to your program via stdin (e.g., for input() calls)
-            </div>
-          </div>
-        )}
-      </div>
+      <ExecutionSettings
+        stdin={stdin}
+        onStdinChange={setStdin}
+        randomSeed={randomSeed}
+        onRandomSeedChange={onRandomSeedChange}
+        attachedFiles={attachedFiles}
+        onAttachedFilesChange={onAttachedFilesChange}
+        exampleInput={exampleInput}
+        readOnly={readOnly}
+      />
     </div>
   );
 }

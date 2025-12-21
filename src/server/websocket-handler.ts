@@ -798,8 +798,11 @@ class WebSocketHandler {
       payload: {
         joinCode: session.joinCode,
         problemText: session.problemText,
+        exampleInput: session.exampleInput,
         code: featured.code || '',
         hasFeaturedSubmission: !!featured.studentId,
+        randomSeed: featured.randomSeed,
+        attachedFiles: featured.attachedFiles,
       },
     });
   }
