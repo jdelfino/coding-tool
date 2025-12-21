@@ -6,26 +6,87 @@ software. You should not create or tolerate significant duplication, architectur
 mess, or poor code organization. Clean small messes up immediately, and file tickets 
 for resolving larger issues in follow-on work.
 
-## ⚠️ MANDATORY: Unit Test Coverage
+# 🚨 CRITICAL: TEST-FIRST DEVELOPMENT 🚨
 
-**ALL code changes MUST include unit test coverage.**
+**STOP! READ THIS BEFORE WRITING ANY CODE:**
 
-- New components → Create corresponding .test.tsx file
-- New functions/classes → Create .test.ts file  
-- Modified code → Update existing tests + add new test cases
-- Bug fix → regression test(s) **must** be added
-- Use mocking/fakes to isolate units under test
-- Tests should be isolated, not integration tests
+## Tests Are NOT Optional
+
+**Every single line of production code MUST have corresponding test coverage.**
+**If you write code without tests, you are doing it WRONG.**
+
+### Non-Negotiable Rules:
+
+1. **TESTS COME FIRST** - Write tests BEFORE implementation when possible
+2. **NO COMMITS WITHOUT TESTS** - If you implemented it, you must test it
+3. **NO EXCEPTIONS** - "I'll add tests later" is NOT acceptable
+4. **CODE + TESTS = ONE ATOMIC COMMIT** - Never commit code without its tests
+
+### When Writing ANY Code:
+
+```
+✅ CORRECT WORKFLOW:
+1. Write test file (.test.ts or .test.tsx)
+2. Write failing tests for new functionality
+3. Implement the functionality
+4. Make tests pass
+5. Refactor if needed
+6. Run ALL tests (`npm test`)
+7. Commit code + tests together
+
+❌ WRONG WORKFLOW:
+1. Implement functionality
+2. Commit
+3. "I'll add tests later" ← THIS IS UNACCEPTABLE
+```
+
+### Test File Requirements:
+
+- **New function/class** → Create corresponding `.test.ts` file
+- **New React component** → Create corresponding `.test.tsx` file  
+- **Modified code** → Update existing tests + add new test cases
+- **Bug fix** → Add regression test(s) that would have caught the bug
+- **Edge cases** → Test error conditions, boundaries, null/undefined
+- **Integration points** → Mock dependencies, test interfaces
+
+### Test Quality Standards:
+
+- ✅ Tests must be isolated (no side effects between tests)
+- ✅ Use descriptive test names: `it('should reject invalid email format')`
+- ✅ Test both happy path AND error cases
+- ✅ Mock external dependencies (file system, network, database)
+- ✅ Tests should run fast (< 1 second per test file)
+- ✅ Aim for 80%+ code coverage on new code
+
+### Before EVERY Commit - Checklist:
+
+```bash
+# 1. Did you write tests? If NO, stop and write them now
+npm test
+
+# 2. Do all tests pass?
+# If NO, fix the failures before committing
+
+# 3. No TypeScript errors?
+npx tsc --noEmit
+
+# 4. Ready to commit
+git add <files>
+git commit -m "..."
+```
 
 ## Commit Checklist
 
 ⚠️ MANDATORY: Before every commit, verify:
 
-- [ ] ✅ Unit tests written for all new/modified code
+- [ ] 🚨 **TESTS WRITTEN** - Unit tests exist for ALL new/modified code (CHECK THIS FIRST)
 - [ ] ✅ All tests passing (`npm test`). Commits should never be made with failing tests.
 - [ ] ✅ No TypeScript errors (`npx tsc --noEmit`). Commits should never be made with TypeScript errors.
+- [ ] ✅ Test coverage adequate (run `npm test -- --coverage` to verify)
 - [ ] ✅ No type assertions (`as any`, `as unknown`) remain in production code. Use proper interfaces instead.
 - [ ] ✅ No optional chaining on required properties (`user?.role` when role is always present).
+
+**If you cannot check the first box, DO NOT COMMIT. Go write the tests first.**
 
 ## Issue Tracking with bd (beads)
 
