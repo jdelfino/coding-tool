@@ -21,9 +21,9 @@ function StudentPage() {
   const [problemText, setProblemText] = useState('');
   const [exampleInput, setExampleInput] = useState<string>('');
   const [randomSeed, setRandomSeed] = useState<number | undefined>(undefined);
-  const [attachedFiles, setAttachedFiles] = useState<Array<{ name: string; content: string }>>([]);
+  const [attachedFiles, setAttachedFiles] = useState<Array<{ name: string; content: string }> | null>(null);
   const [sessionRandomSeed, setSessionRandomSeed] = useState<number | undefined>(undefined);
-  const [sessionAttachedFiles, setSessionAttachedFiles] = useState<Array<{ name: string; content: string }>>([]);
+  const [sessionAttachedFiles, setSessionAttachedFiles] = useState<Array<{ name: string; content: string }> | undefined>(undefined);
   const [code, setCode] = useState('');
   const [executionResult, setExecutionResult] = useState<any>(null);
   const [isRunning, setIsRunning] = useState(false);
@@ -131,10 +131,10 @@ function StudentPage() {
         setProblemText(lastMessage.payload.problemText || '');
         setExampleInput(lastMessage.payload.exampleInput || '');
         setSessionRandomSeed(lastMessage.payload.randomSeed);
-        setSessionAttachedFiles(lastMessage.payload.attachedFiles || []);
+        setSessionAttachedFiles(lastMessage.payload.attachedFiles);
         // Restore student-specific values if rejoining
         setRandomSeed(lastMessage.payload.studentRandomSeed);
-        setAttachedFiles(lastMessage.payload.studentAttachedFiles || []);
+        setAttachedFiles(lastMessage.payload.studentAttachedFiles !== undefined ? lastMessage.payload.studentAttachedFiles : null);
         // Restore existing code if rejoining (always set, even if empty string)
         setCode(lastMessage.payload.code || '');
         setIsJoining(false);
@@ -146,7 +146,7 @@ function StudentPage() {
         setProblemText(lastMessage.payload.problemText);
         setExampleInput(lastMessage.payload.exampleInput || '');
         setSessionRandomSeed(lastMessage.payload.randomSeed);
-        setSessionAttachedFiles(lastMessage.payload.attachedFiles || []);
+        setSessionAttachedFiles(lastMessage.payload.attachedFiles);
         break;
 
       case 'EXECUTION_RESULT':
@@ -178,7 +178,11 @@ function StudentPage() {
   useEffect(() => {
     if (!joined || !studentId) return;
 
-    sendMessage('UPDATE_STUDENT_SETTINGS', { randomSeed, attachedFiles });
+    // Only send if student has explicitly set values (not null = never set)
+    sendMessage('UPDATE_STUDENT_SETTINGS', { 
+      randomSeed, 
+      attachedFiles: attachedFiles !== null ? attachedFiles : undefined 
+    });
   }, [randomSeed, attachedFiles, joined, studentId, sendMessage]);
 
   const handleShowDashboard = () => {
@@ -196,9 +200,9 @@ function StudentPage() {
     setCurrentSessionId(null);
     setProblemText('');
     setRandomSeed(undefined);
-    setAttachedFiles([]);
+    setAttachedFiles(null);
     setSessionRandomSeed(undefined);
-    setSessionAttachedFiles([]);
+    setSessionAttachedFiles(undefined);
     setCode('');
     setExecutionResult(null);
     setView('dashboard');
@@ -547,7 +551,7 @@ function StudentPage() {
         exampleInput={exampleInput}
         randomSeed={randomSeed !== undefined ? randomSeed : sessionRandomSeed}
         onRandomSeedChange={setRandomSeed}
-        attachedFiles={attachedFiles.length > 0 ? attachedFiles : sessionAttachedFiles}
+        attachedFiles={attachedFiles !== null ? attachedFiles : sessionAttachedFiles}
         onAttachedFilesChange={setAttachedFiles}
       />
 
