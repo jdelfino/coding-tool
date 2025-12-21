@@ -210,8 +210,8 @@ describe('DELETE /api/admin/users/[id]', () => {
     });
   });
 
-  describe('Last Instructor Protection', () => {
-    it('should prevent deletion of the last instructor', async () => {
+  describe('Last Admin Protection', () => {
+    it('should prevent deletion of the last admin', async () => {
       const admin: User = {
         id: 'admin1',
         username: 'admin',
@@ -221,28 +221,28 @@ describe('DELETE /api/admin/users/[id]', () => {
       mockRequirePermission.mockResolvedValue(createAuthContext(admin));
       
       const request = createMockRequest('admin-session');
-      const params = Promise.resolve({ id: 'instructor2' });
+      const params = Promise.resolve({ id: 'admin2' });
       
       mockUserRepository.getUser.mockResolvedValue({
-        id: 'instructor2',
-        username: 'instructor2',
-        role: 'instructor',
+        id: 'admin2',
+        username: 'admin2',
+        role: 'admin',
         createdAt: new Date(),
       });
-      // Only one instructor in the system
+      // Only one admin in the system
       mockUserRepository.listUsers.mockResolvedValue([
-        { id: 'instructor2', role: 'instructor', createdAt: new Date() },
+        { id: 'admin2', role: 'admin', createdAt: new Date() },
       ]);
 
       const response = await DELETE(request, { params });
       const data = await response.json();
 
       expect(response.status).toBe(400);
-      expect(data.error).toContain('Cannot delete the last instructor');
+      expect(data.error).toContain('Cannot delete the last admin');
       expect(mockAuthProvider.deleteUser).not.toHaveBeenCalled();
     });
 
-    it('should allow deletion when multiple instructors exist', async () => {
+    it('should allow deletion when multiple admins exist', async () => {
       const admin: User = {
         id: 'admin1',
         username: 'admin',
@@ -252,25 +252,53 @@ describe('DELETE /api/admin/users/[id]', () => {
       mockRequirePermission.mockResolvedValue(createAuthContext(admin));
       
       const request = createMockRequest('admin-session');
-      const params = Promise.resolve({ id: 'instructor2' });
+      const params = Promise.resolve({ id: 'admin2' });
       
       mockUserRepository.getUser.mockResolvedValue({
-        id: 'instructor2',
-        username: 'instructor2',
-        role: 'instructor',
+        id: 'admin2',
+        username: 'admin2',
+        role: 'admin',
         createdAt: new Date(),
       });
       mockUserRepository.listUsers.mockResolvedValue([
-        { id: 'instructor1', role: 'instructor', createdAt: new Date() },
-        { id: 'instructor2', role: 'instructor', createdAt: new Date() },
-        { id: 'instructor3', role: 'instructor', createdAt: new Date() },
+        { id: 'admin1', role: 'admin', createdAt: new Date() },
+        { id: 'admin2', role: 'admin', createdAt: new Date() },
+        { id: 'admin3', role: 'admin', createdAt: new Date() },
       ]);
       mockAuthProvider.deleteUser.mockResolvedValue(undefined);
 
       const response = await DELETE(request, { params });
 
       expect(response.status).toBe(200);
-      expect(mockAuthProvider.deleteUser).toHaveBeenCalledWith('instructor2');
+      expect(mockAuthProvider.deleteUser).toHaveBeenCalledWith('admin2');
+    });
+
+    it('should allow deletion of instructors freely', async () => {
+      const admin: User = {
+        id: 'admin1',
+        username: 'admin',
+        role: 'admin',
+        createdAt: new Date(),
+      };
+      mockRequirePermission.mockResolvedValue(createAuthContext(admin));
+      
+      const request = createMockRequest('admin-session');
+      const params = Promise.resolve({ id: 'instructor1' });
+      
+      mockUserRepository.getUser.mockResolvedValue({
+        id: 'instructor1',
+        username: 'instructor1',
+        role: 'instructor',
+        createdAt: new Date(),
+      });
+      mockAuthProvider.deleteUser.mockResolvedValue(undefined);
+
+      const response = await DELETE(request, { params });
+
+      expect(response.status).toBe(200);
+      expect(mockAuthProvider.deleteUser).toHaveBeenCalledWith('instructor1');
+      // Should not check for last instructor
+      expect(mockUserRepository.listUsers).not.toHaveBeenCalledWith('instructor');
     });
   });
 

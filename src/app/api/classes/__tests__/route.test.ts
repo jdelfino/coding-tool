@@ -119,6 +119,7 @@ describe('/api/classes', () => {
 
       expect(response.status).toBe(401);
       expect(data.error).toBe('Not authenticated');
+      expect(requirePermission).toHaveBeenCalledWith(request, 'session.create');
     });
 
     it('should return 403 if user is not an instructor', async () => {
@@ -136,6 +137,7 @@ describe('/api/classes', () => {
       const data = await response.json();
 
       expect(response.status).toBe(403);
+      expect(requirePermission).toHaveBeenCalledWith(request, 'session.create');
     });
 
     it('should return 400 if name is missing', async () => {
@@ -158,6 +160,7 @@ describe('/api/classes', () => {
 
       expect(response.status).toBe(400);
       expect(data.error).toBe('Class name is required');
+      expect(requirePermission).toHaveBeenCalledWith(request, 'session.create');
     });
 
     it('should create class with valid data', async () => {

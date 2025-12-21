@@ -49,12 +49,12 @@ export async function DELETE(
       );
     }
 
-    // If deleting an instructor, check if they're the last one
-    if (targetUser.role === 'instructor') {
-      const instructors = await userRepo.listUsers('instructor');
-      if (instructors.length <= 1) {
+    // Prevent deletion of the last admin to avoid lockout
+    if (targetUser.role === 'admin') {
+      const admins = await userRepo.listUsers('admin');
+      if (admins.length <= 1) {
         return NextResponse.json(
-          { error: 'Cannot delete the last instructor' },
+          { error: 'Cannot delete the last admin account' },
           { status: 400 }
         );
       }
