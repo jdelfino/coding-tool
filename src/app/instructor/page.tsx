@@ -235,9 +235,14 @@ function InstructorPage() {
     }
   };
 
-  const handleUpdateProblem = (problemText: string, exampleInput?: string) => {
+  const handleUpdateProblem = (
+    problemText: string, 
+    exampleInput?: string,
+    randomSeed?: number,
+    attachedFiles?: Array<{ name: string; content: string }>
+  ) => {
     if (!sessionId) return;
-    sendMessage('UPDATE_PROBLEM', { sessionId, problemText, exampleInput });
+    sendMessage('UPDATE_PROBLEM', { sessionId, problemText, exampleInput, randomSeed, attachedFiles });
   };
 
   const handleSelectStudent = (studentId: string) => {

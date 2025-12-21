@@ -7,10 +7,8 @@ import { WebSocket } from 'ws';
 export interface CodeSubmission {
   code: string;
   stdin?: string;
-  // Future fields to be added:
-  // randomSeed?: number;
-  // inputFiles?: Array<{ name: string; content: string }>;
-  // testCases?: TestCase[];
+  randomSeed?: number;
+  attachedFiles?: Array<{ name: string; content: string }>;
 }
 
 export interface Student {
@@ -19,6 +17,8 @@ export interface Student {
   code: string;
   ws?: WebSocket;
   lastUpdate: Date;
+  randomSeed?: number; // Student's random seed (overrides session default)
+  attachedFiles?: Array<{ name: string; content: string }>; // Student's files (overrides session default)
 }
 
 export interface Session {
@@ -26,6 +26,8 @@ export interface Session {
   joinCode: string;
   problemText: string;
   exampleInput?: string; // Optional example input for the problem
+  randomSeed?: number; // Optional random seed for reproducible random number generation
+  attachedFiles?: Array<{ name: string; content: string }>; // Optional files attached to the problem
   students: Map<string, Student>; // All students who have joined (preserves code across disconnects)
   instructorWs?: WebSocket;
   publicViewWs?: WebSocket;
@@ -56,6 +58,7 @@ export enum MessageType {
   JOIN_SESSION = 'JOIN_SESSION',
   CODE_UPDATE = 'CODE_UPDATE',
   EXECUTE_CODE = 'EXECUTE_CODE',
+  UPDATE_STUDENT_SETTINGS = 'UPDATE_STUDENT_SETTINGS',
   
   // Instructor messages
   CREATE_SESSION = 'CREATE_SESSION',

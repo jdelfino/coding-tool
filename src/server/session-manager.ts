@@ -133,13 +133,21 @@ export class SessionManager {
   /**
    * Update problem text for a session
    */
-  async updateProblem(sessionId: string, problemText: string, exampleInput?: string): Promise<boolean> {
+  async updateProblem(
+    sessionId: string, 
+    problemText: string, 
+    exampleInput?: string,
+    randomSeed?: number,
+    attachedFiles?: Array<{ name: string; content: string }>
+  ): Promise<boolean> {
     if (!this.storage) return false;
     
     try {
       await this.storage.sessions.updateSession(sessionId, {
         problemText,
         exampleInput,
+        randomSeed,
+        attachedFiles,
         lastActivity: new Date(),
       });
       console.log(`Updated problem for session ${sessionId}`);
@@ -245,6 +253,60 @@ export class SessionManager {
       console.error(`Failed to update student code for session ${sessionId}:`, error);
       return false;
     }
+  }
+
+  /**
+   * Update student-specific settings (randomSeed and attachedFiles)
+   */
+  async updateStudentSettings(
+    sessionId: string, 
+    studentId: string, 
+    randomSeed?: number,
+    attachedFiles?: Array<{ name: string; content: string }>
+  ): Promise<boolean> {
+    if (!this.storage) return false;
+    
+    const session = await this.getSession(sessionId);
+    if (!session) return false;
+    
+    const student = session.students.get(studentId);
+    if (!student) return false;
+    
+    student.randomSeed = randomSeed;
+    student.attachedFiles = attachedFiles;
+    student.lastUpdate = new Date();
+    
+    try {
+      await this.storage.sessions.updateSession(sessionId, {
+        students: session.students,
+        lastActivity: new Date(),
+      });
+      return true;
+    } catch (error) {
+      console.error(`Failed to update student settings for session ${sessionId}:`, error);
+      return false;
+    }
+  }
+
+  /**
+   * Get student data including code, randomSeed, and attachedFiles
+   */
+  async getStudentData(sessionId: string, studentId: string): Promise<{
+    code: string;
+    randomSeed?: number;
+    attachedFiles?: Array<{ name: string; content: string }>;
+  } | undefined> {
+    const session = await this.getSession(sessionId);
+    if (!session) return undefined;
+    
+    const student = session.students.get(studentId);
+    if (!student) return undefined;
+    
+    return {
+      code: student.code,
+      randomSeed: student.randomSeed,
+      attachedFiles: student.attachedFiles,
+    };
   }
 
   /**

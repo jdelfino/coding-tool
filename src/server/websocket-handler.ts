@@ -152,6 +152,10 @@ class WebSocketHandler {
         await this.handleCodeUpdate(connection, message.payload);
         break;
         
+      case MessageType.UPDATE_STUDENT_SETTINGS:
+        await this.handleUpdateStudentSettings(connection, message.payload);
+        break;
+        
       case MessageType.EXECUTE_CODE:
         await this.handleExecuteCode(ws, connection, message.payload);
         break;
@@ -450,8 +454,8 @@ class WebSocketHandler {
     connection.studentId = studentId;
 
     // Check if student has existing code (rejoining)
-    const existingCode = await sessionManagerHolder.instance.getStudentCode(session.id, studentId);
-    console.log(`[JOIN_SESSION] existingCode for student ${studentId}:`, existingCode ? `${existingCode.length} chars` : 'none');
+    const studentData = await sessionManagerHolder.instance.getStudentData(session.id, studentId);
+    console.log(`[JOIN_SESSION] student data for ${studentId}:`, studentData ? `${studentData.code.length} chars` : 'none');
 
     const success = await sessionManagerHolder.instance.addStudent(session.id, studentId, studentName.trim());
     if (!success) {
@@ -466,13 +470,17 @@ class WebSocketHandler {
         studentId,
         problemText: session.problemText,
         exampleInput: session.exampleInput,
-        code: existingCode || '', // Include existing code if rejoining
+        randomSeed: session.randomSeed, // Session-level default
+        attachedFiles: session.attachedFiles, // Session-level default
+        code: studentData?.code || '', // Student's code if rejoining
+        studentRandomSeed: studentData?.randomSeed, // Student's specific seed if set
+        studentAttachedFiles: studentData?.attachedFiles, // Student's specific files if set
       },
     });
 
     // Reset revision tracking baseline when student rejoins with existing code
-    if (revisionBufferHolder.instance && existingCode) {
-      revisionBufferHolder.instance.resetStudent(session.id, studentId, existingCode);
+    if (revisionBufferHolder.instance && studentData?.code) {
+      revisionBufferHolder.instance.resetStudent(session.id, studentId, studentData.code);
     }
 
     // Notify instructor of new student
@@ -485,7 +493,7 @@ class WebSocketHandler {
       return;
     }
 
-    const { problemText, exampleInput } = payload;
+    const { problemText, exampleInput, randomSeed, attachedFiles } = payload;
     
     if (typeof problemText !== 'string') {
       console.error('Invalid problem text type');
@@ -497,18 +505,24 @@ class WebSocketHandler {
       return;
     }
 
-    await sessionManagerHolder.instance.updateProblem(connection.sessionId, problemText, exampleInput);
+    await sessionManagerHolder.instance.updateProblem(
+      connection.sessionId, 
+      problemText, 
+      exampleInput,
+      randomSeed,
+      attachedFiles
+    );
 
     // Broadcast to all students
     this.broadcastToSession(connection.sessionId, {
       type: MessageType.PROBLEM_UPDATE,
-      payload: { problemText, exampleInput },
+      payload: { problemText, exampleInput, randomSeed, attachedFiles },
     }, 'student');
     
     // Also broadcast to public views
     this.broadcastToSession(connection.sessionId, {
       type: MessageType.PROBLEM_UPDATE,
-      payload: { problemText, exampleInput },
+      payload: { problemText, exampleInput, randomSeed, attachedFiles },
     }, 'public');
   }
 
@@ -529,6 +543,22 @@ class WebSocketHandler {
     await this.broadcastStudentList(connection.sessionId);
   }
 
+  private async handleUpdateStudentSettings(connection: Connection, payload: any) {
+    if (connection.role !== 'student' || !connection.sessionId || !connection.studentId) {
+      return;
+    }
+
+    const { randomSeed, attachedFiles } = payload;
+    await sessionManagerHolder.instance.updateStudentSettings(
+      connection.sessionId, 
+      connection.studentId, 
+      randomSeed,
+      attachedFiles
+    );
+    
+    console.log(`Updated student ${connection.studentId} settings: seed=${randomSeed}, files=${attachedFiles?.length || 0}`);
+  }
+
   private async handleExecuteCode(ws: WebSocket, connection: Connection, payload: any) {
     if (connection.role !== 'student') {
       this.sendError(ws, 'Only students can execute code');
@@ -543,7 +573,31 @@ class WebSocketHandler {
         return;
       }
       
-      const result = await executeCodeSafe({ code, stdin });
+      // Get student-specific settings
+      const studentData = connection.sessionId && connection.studentId
+        ? await sessionManagerHolder.instance.getStudentData(connection.sessionId, connection.studentId)
+        : null;
+      
+      // Get session defaults
+      const session = connection.sessionId 
+        ? await sessionManagerHolder.instance.getSession(connection.sessionId)
+        : null;
+      
+      // Use student-specific values if set, otherwise fall back to session defaults
+      const randomSeed = studentData?.randomSeed !== undefined 
+        ? studentData.randomSeed 
+        : session?.randomSeed;
+      
+      const attachedFiles = studentData?.attachedFiles && studentData.attachedFiles.length > 0
+        ? studentData.attachedFiles
+        : session?.attachedFiles;
+      
+      const result = await executeCodeSafe({ 
+        code, 
+        stdin,
+        randomSeed,
+        attachedFiles,
+      });
 
       this.send(ws, {
         type: MessageType.EXECUTION_RESULT,
@@ -570,14 +624,32 @@ class WebSocketHandler {
         return;
       }
       
-      const code = await sessionManagerHolder.instance.getStudentCode(connection.sessionId, studentId);
+      // Get student-specific data including code, randomSeed, and attachedFiles
+      const studentData = await sessionManagerHolder.instance.getStudentData(connection.sessionId, studentId);
       
-      if (!code) {
+      if (!studentData || !studentData.code) {
         this.sendError(ws, 'Student code not found or empty');
         return;
       }
 
-      const result = await executeCodeSafe({ code, stdin });
+      // Get session defaults for fallback
+      const session = await sessionManagerHolder.instance.getSession(connection.sessionId);
+      
+      // Use student-specific values if set, otherwise fall back to session defaults
+      const randomSeed = studentData.randomSeed !== undefined 
+        ? studentData.randomSeed 
+        : session?.randomSeed;
+      
+      const attachedFiles = studentData.attachedFiles && studentData.attachedFiles.length > 0
+        ? studentData.attachedFiles
+        : session?.attachedFiles;
+      
+      const result = await executeCodeSafe({ 
+        code: studentData.code, 
+        stdin,
+        randomSeed,
+        attachedFiles,
+      });
 
       this.send(ws, {
         type: MessageType.EXECUTION_RESULT,
@@ -759,7 +831,15 @@ class WebSocketHandler {
         return;
       }
       
-      const result = await executeCodeSafe({ code, stdin });
+      // Get session to access randomSeed and attachedFiles
+      const session = await sessionManagerHolder.instance.getSession(connection.sessionId);
+      
+      const result = await executeCodeSafe({ 
+        code, 
+        stdin,
+        randomSeed: session?.randomSeed,
+        attachedFiles: session?.attachedFiles,
+      });
 
       this.send(ws, {
         type: MessageType.EXECUTION_RESULT,
