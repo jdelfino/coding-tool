@@ -3,15 +3,15 @@
 import React from 'react';
 
 interface InstructorNavProps {
-  currentView: 'classes' | 'sections' | 'problems' | 'session';
-  onNavigate: (view: 'classes' | 'sections' | 'problems') => void;
+  currentView: 'classes' | 'sections' | 'problems' | 'sessions' | 'session';
+  onNavigate: (view: 'classes' | 'problems' | 'sessions') => void;
   disabled?: boolean;
 }
 
 const InstructorNav: React.FC<InstructorNavProps> = ({ currentView, onNavigate, disabled = false }) => {
   const navItems = [
     { id: 'classes' as const, label: 'Classes', icon: '📚' },
-    { id: 'sections' as const, label: 'Sections', icon: '👥' },
+    { id: 'sessions' as const, label: 'Sessions', icon: '🎯' },
     { id: 'problems' as const, label: 'Problems', icon: '💡' },
   ];
 
@@ -19,7 +19,7 @@ const InstructorNav: React.FC<InstructorNavProps> = ({ currentView, onNavigate, 
     <div className="flex items-center gap-2 bg-white rounded-lg shadow-sm p-1 mb-6">
       {navItems.map((item) => {
         const isActive = currentView === item.id;
-        const isDisabled = disabled || (item.id === 'sections' && currentView === 'classes');
+        const isDisabled = disabled;
         
         return (
           <button

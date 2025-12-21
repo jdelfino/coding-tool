@@ -21,7 +21,7 @@ describe('InstructorNav', () => {
     );
 
     expect(screen.getByText('Classes')).toBeInTheDocument();
-    expect(screen.getByText('Sections')).toBeInTheDocument();
+    expect(screen.getByText('Sessions')).toBeInTheDocument();
     expect(screen.getByText('Problems')).toBeInTheDocument();
   });
 
@@ -46,8 +46,8 @@ describe('InstructorNav', () => {
       />
     );
 
-    fireEvent.click(screen.getByText('Problems'));
-    expect(mockOnNavigate).toHaveBeenCalledWith('problems');
+    fireEvent.click(screen.getByText('Sessions'));
+    expect(mockOnNavigate).toHaveBeenCalledWith('sessions');
   });
 
   it('disables navigation when disabled prop is true', () => {
@@ -80,7 +80,7 @@ describe('InstructorNav', () => {
   it('does not show active session indicator for other views', () => {
     render(
       <InstructorNav 
-        currentView="problems" 
+        currentView="sessions" 
         onNavigate={mockOnNavigate}
       />
     );
@@ -88,22 +88,10 @@ describe('InstructorNav', () => {
     expect(screen.queryByText('Active Session')).not.toBeInTheDocument();
   });
 
-  it('disables sections button when on classes view', () => {
+  it('enables all buttons when not disabled', () => {
     render(
       <InstructorNav 
-        currentView="classes" 
-        onNavigate={mockOnNavigate}
-      />
-    );
-
-    const sectionsButton = screen.getByText('Sections').closest('button');
-    expect(sectionsButton).toBeDisabled();
-  });
-
-  it('enables all buttons when appropriate', () => {
-    render(
-      <InstructorNav 
-        currentView="sections" 
+        currentView="sessions" 
         onNavigate={mockOnNavigate}
       />
     );

@@ -22,7 +22,7 @@ interface Student {
   attachedFiles?: Array<{ name: string; content: string }>;
 }
 
-type ViewMode = 'classes' | 'sections' | 'problems' | 'session';
+type ViewMode = 'classes' | 'sections' | 'problems' | 'sessions' | 'session';
 
 interface ClassContext {
   classId: string;
@@ -225,14 +225,14 @@ function InstructorPage() {
     setViewMode('classes');
   };
 
-  const handleNavigate = (view: 'classes' | 'sections' | 'problems') => {
+  const handleNavigate = (view: 'classes' | 'problems' | 'sessions') => {
     if (view === 'problems') {
       setViewMode('problems');
     } else if (view === 'classes') {
       setClassContext(null);
       setViewMode('classes');
-    } else if (view === 'sections' && classContext) {
-      setViewMode('sections');
+    } else if (view === 'sessions') {
+      setViewMode('sessions');
     }
   };
 
@@ -383,6 +383,30 @@ function InstructorPage() {
                 <li>• Create and edit problems</li>
                 <li>• Add test cases</li>
                 <li>• Create sessions from problems</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    if (viewMode === 'sessions') {
+      return (
+        <div className="bg-white rounded-lg shadow-sm p-8 text-center">
+          <div className="max-w-md mx-auto">
+            <span className="text-6xl mb-4 block">🎯</span>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">All Sessions</h2>
+            <p className="text-gray-600 mb-6">
+              View and manage all coding sessions across all your classes and sections.
+            </p>
+            <div className="text-sm text-gray-500 bg-gray-50 rounded-lg p-4">
+              <p className="font-semibold mb-2">Coming soon:</p>
+              <ul className="text-left space-y-1">
+                <li>• View all active sessions</li>
+                <li>• Browse session history</li>
+                <li>• Filter by class or section</li>
+                <li>• Rejoin past sessions</li>
+                <li>• Export session data</li>
               </ul>
             </div>
           </div>

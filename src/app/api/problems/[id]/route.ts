@@ -12,9 +12,9 @@ import { getAuthProvider } from '@/server/auth';
 import type { User } from '@/server/auth/types';
 
 type Params = {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 };
 
 /**
@@ -27,6 +27,7 @@ export async function GET(
   { params }: Params
 ) {
   try {
+    const { id } = await params;
     const sessionId = request.cookies.get('sessionId')?.value;
     if (!sessionId) {
       return NextResponse.json(
@@ -45,7 +46,7 @@ export async function GET(
     }
 
     const storage = await getStorage();
-    const problem = await storage.problems.getById(params.id);
+    const problem = await storage.problems.getById(id);
 
     if (!problem) {
       return NextResponse.json(
@@ -76,6 +77,7 @@ export async function PATCH(
   { params }: Params
 ) {
   try {
+    const { id } = await params;
     const sessionId = request.cookies.get('sessionId')?.value;
     if (!sessionId) {
       return NextResponse.json(
@@ -97,7 +99,7 @@ export async function PATCH(
     const storage = await getStorage();
 
     // Get existing problem
-    const existing = await storage.problems.getById(params.id);
+    const existing = await storage.problems.getById(id);
     if (!existing) {
       return NextResponse.json(
         { error: 'Problem not found' },
@@ -116,7 +118,7 @@ export async function PATCH(
     const updates = await request.json();
 
     // Update problem
-    const problem = await storage.problems.update(params.id, updates);
+    const problem = await storage.problems.update(id, updates);
 
     return NextResponse.json({ problem });
   } catch (error: any) {
@@ -153,6 +155,7 @@ export async function DELETE(
   { params }: Params
 ) {
   try {
+    const { id } = await params;
     const sessionId = request.cookies.get('sessionId')?.value;
     if (!sessionId) {
       return NextResponse.json(
@@ -174,7 +177,7 @@ export async function DELETE(
     const storage = await getStorage();
 
     // Get existing problem
-    const existing = await storage.problems.getById(params.id);
+    const existing = await storage.problems.getById(id);
     if (!existing) {
       return NextResponse.json(
         { error: 'Problem not found' },
@@ -191,7 +194,7 @@ export async function DELETE(
     }
 
     // Delete problem
-    await storage.problems.delete(params.id);
+    await storage.problems.delete(id);
 
     return NextResponse.json({ success: true });
   } catch (error: any) {
