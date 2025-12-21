@@ -360,6 +360,315 @@ describe('code-executor', () => {
       jest.advanceTimersByTime(1);
       expect(mockProcess.kill).toHaveBeenCalled();
     });
+
+    it('should pass through randomSeed parameter', async () => {
+      const mockProcess = createMockProcess();
+      mockSpawn.mockReturnValue(mockProcess as any);
+
+      const promise = executeCodeSafe({ 
+        code: 'import random\nprint(random.random())', 
+        randomSeed: 99 
+      });
+
+      const executedCode = mockSpawn.mock.calls[0][1][1];
+      expect(executedCode).toContain('random.seed(99)');
+
+      mockProcess.stdout.emit('data', Buffer.from('0.5\n'));
+      mockProcess.emit('close', 0);
+
+      await promise;
+    });
+
+    it('should pass through attachedFiles parameter', async () => {
+      const mockProcess = createMockProcess();
+      mockSpawn.mockReturnValue(mockProcess as any);
+
+      const promise = executeCodeSafe({ 
+        code: 'print("ok")', 
+        attachedFiles: [{ name: 'test.txt', content: 'content' }]
+      });
+
+      const spawnOptions = mockSpawn.mock.calls[0][2];
+      expect(spawnOptions).toHaveProperty('cwd');
+
+      mockProcess.stdout.emit('data', Buffer.from('ok\n'));
+      mockProcess.emit('close', 0);
+
+      await promise;
+    });
+  });
+
+  describe('random seed support', () => {
+    it('should inject random seed before student code', async () => {
+      const mockProcess = createMockProcess();
+      mockSpawn.mockReturnValue(mockProcess as any);
+
+      const promise = executeCode({ 
+        code: 'import random\nprint(random.randint(1, 100))',
+        randomSeed: 42
+      });
+
+      // Verify spawn was called with injected seed code
+      expect(mockSpawn).toHaveBeenCalledWith('python3', ['-c', expect.stringContaining('random.seed(42)')], expect.any(Object));
+      
+      const executedCode = mockSpawn.mock.calls[0][1][1];
+      expect(executedCode).toContain('import random\nrandom.seed(42)\n');
+      expect(executedCode).toContain('import random\nprint(random.randint(1, 100))');
+
+      mockProcess.stdout.emit('data', Buffer.from('42\n'));
+      mockProcess.emit('close', 0);
+
+      const result = await promise;
+      expect(result.success).toBe(true);
+    });
+
+    it('should not inject seed when not provided', async () => {
+      const mockProcess = createMockProcess();
+      mockSpawn.mockReturnValue(mockProcess as any);
+
+      const originalCode = 'import random\nprint(random.randint(1, 100))';
+      const promise = executeCode({ code: originalCode });
+
+      expect(mockSpawn).toHaveBeenCalledWith('python3', ['-c', originalCode], expect.any(Object));
+
+      mockProcess.stdout.emit('data', Buffer.from('73\n'));
+      mockProcess.emit('close', 0);
+
+      await promise;
+    });
+
+    it('should handle seed value of 0', async () => {
+      const mockProcess = createMockProcess();
+      mockSpawn.mockReturnValue(mockProcess as any);
+
+      const promise = executeCode({ 
+        code: 'print("test")',
+        randomSeed: 0
+      });
+
+      const executedCode = mockSpawn.mock.calls[0][1][1];
+      expect(executedCode).toContain('random.seed(0)');
+
+      mockProcess.stdout.emit('data', Buffer.from('test\n'));
+      mockProcess.emit('close', 0);
+
+      await promise;
+    });
+
+    it('should inject seed before any student imports', async () => {
+      const mockProcess = createMockProcess();
+      mockSpawn.mockReturnValue(mockProcess as any);
+
+      const promise = executeCode({ 
+        code: 'import os\nimport random\nprint("ok")',
+        randomSeed: 123
+      });
+
+      const executedCode = mockSpawn.mock.calls[0][1][1];
+      // Seed injection should come first
+      expect(executedCode.indexOf('random.seed(123)')).toBeLessThan(executedCode.indexOf('import os'));
+
+      mockProcess.stdout.emit('data', Buffer.from('ok\n'));
+      mockProcess.emit('close', 0);
+
+      await promise;
+    });
+  });
+
+  describe('attached files support', () => {
+    it('should create temp directory and write files', async () => {
+      const mockProcess = createMockProcess();
+      mockSpawn.mockReturnValue(mockProcess as any);
+
+      const promise = executeCode({ 
+        code: 'with open("data.txt") as f: print(f.read())',
+        attachedFiles: [
+          { name: 'data.txt', content: 'Hello, World!' }
+        ]
+      });
+
+      // Verify spawn was called with cwd option
+      expect(mockSpawn).toHaveBeenCalledWith('python3', ['-c', expect.any(String)], 
+        expect.objectContaining({ cwd: expect.stringContaining('coding-tool-') }));
+
+      mockProcess.stdout.emit('data', Buffer.from('Hello, World!\n'));
+      mockProcess.emit('close', 0);
+
+      const result = await promise;
+      expect(result.success).toBe(true);
+      expect(result.output).toBe('Hello, World!\n');
+    });
+
+    it('should handle multiple attached files', async () => {
+      const mockProcess = createMockProcess();
+      mockSpawn.mockReturnValue(mockProcess as any);
+
+      const promise = executeCode({ 
+        code: 'print("ok")',
+        attachedFiles: [
+          { name: 'file1.txt', content: 'Content 1' },
+          { name: 'file2.txt', content: 'Content 2' },
+          { name: 'file3.txt', content: 'Content 3' }
+        ]
+      });
+
+      mockProcess.stdout.emit('data', Buffer.from('ok\n'));
+      mockProcess.emit('close', 0);
+
+      const result = await promise;
+      expect(result.success).toBe(true);
+    });
+
+    it('should sanitize filenames to prevent path traversal', async () => {
+      const mockProcess = createMockProcess();
+      mockSpawn.mockReturnValue(mockProcess as any);
+
+      const promise = executeCode({ 
+        code: 'print("ok")',
+        attachedFiles: [
+          { name: '../../../etc/passwd', content: 'malicious' },
+          { name: 'normal.txt', content: 'safe' }
+        ]
+      });
+
+      // Execution should succeed with sanitized filename
+      mockProcess.stdout.emit('data', Buffer.from('ok\n'));
+      mockProcess.emit('close', 0);
+
+      const result = await promise;
+      expect(result.success).toBe(true);
+    });
+
+    it('should reject files exceeding size limit', async () => {
+      const mockProcess = createMockProcess();
+      mockSpawn.mockReturnValue(mockProcess as any);
+
+      const largeContent = 'x'.repeat(11 * 1024); // 11KB, exceeds 10KB limit
+      const promise = executeCode({ 
+        code: 'print("ok")',
+        attachedFiles: [
+          { name: 'large.txt', content: largeContent }
+        ]
+      });
+
+      const result = await promise;
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('exceeds size limit');
+    });
+
+    it('should reject more than 5 files', async () => {
+      const mockProcess = createMockProcess();
+      mockSpawn.mockReturnValue(mockProcess as any);
+
+      const promise = executeCode({ 
+        code: 'print("ok")',
+        attachedFiles: [
+          { name: 'file1.txt', content: 'content' },
+          { name: 'file2.txt', content: 'content' },
+          { name: 'file3.txt', content: 'content' },
+          { name: 'file4.txt', content: 'content' },
+          { name: 'file5.txt', content: 'content' },
+          { name: 'file6.txt', content: 'content' }
+        ]
+      });
+
+      const result = await promise;
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('Too many files');
+    });
+
+    it('should reject files with missing name or content', async () => {
+      const mockProcess = createMockProcess();
+      mockSpawn.mockReturnValue(mockProcess as any);
+
+      const promise = executeCode({ 
+        code: 'print("ok")',
+        attachedFiles: [
+          { name: '', content: 'content' }
+        ]
+      });
+
+      const result = await promise;
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('name and content are required');
+    });
+
+    it('should cleanup temp directory after successful execution', async () => {
+      const mockProcess = createMockProcess();
+      mockSpawn.mockReturnValue(mockProcess as any);
+
+      const promise = executeCode({ 
+        code: 'print("ok")',
+        attachedFiles: [{ name: 'test.txt', content: 'test' }]
+      });
+
+      mockProcess.stdout.emit('data', Buffer.from('ok\n'));
+      mockProcess.emit('close', 0);
+
+      await promise;
+      
+      // Note: We can't easily test actual file cleanup without mocking fs,
+      // but we verify execution completes without errors
+    });
+
+    it('should cleanup temp directory after error', async () => {
+      const mockProcess = createMockProcess();
+      mockSpawn.mockReturnValue(mockProcess as any);
+
+      const promise = executeCode({ 
+        code: 'raise Exception("error")',
+        attachedFiles: [{ name: 'test.txt', content: 'test' }]
+      });
+
+      mockProcess.stderr.emit('data', Buffer.from('Exception: error\n'));
+      mockProcess.emit('close', 1);
+
+      const result = await promise;
+      expect(result.success).toBe(false);
+      // Cleanup should happen even on error
+    });
+
+    it('should cleanup temp directory after timeout', async () => {
+      const mockProcess = createMockProcess();
+      mockSpawn.mockReturnValue(mockProcess as any);
+
+      const promise = executeCode({ 
+        code: 'while True: pass',
+        attachedFiles: [{ name: 'test.txt', content: 'test' }]
+      }, 1000);
+
+      jest.advanceTimersByTime(1000);
+      mockProcess.emit('close', null);
+
+      const result = await promise;
+      expect(result.success).toBe(false);
+      // Cleanup should happen even on timeout
+    });
+
+    it('should work with both random seed and attached files', async () => {
+      const mockProcess = createMockProcess();
+      mockSpawn.mockReturnValue(mockProcess as any);
+
+      const promise = executeCode({ 
+        code: 'import random\nwith open("data.txt") as f: print(f.read(), random.randint(1,10))',
+        randomSeed: 42,
+        attachedFiles: [{ name: 'data.txt', content: 'Hello' }]
+      });
+
+      // Verify both seed injection and temp directory
+      const executedCode = mockSpawn.mock.calls[0][1][1];
+      expect(executedCode).toContain('random.seed(42)');
+      
+      const spawnOptions = mockSpawn.mock.calls[0][2];
+      expect(spawnOptions).toHaveProperty('cwd');
+      expect(spawnOptions.cwd).toMatch(/coding-tool-/);
+
+      mockProcess.stdout.emit('data', Buffer.from('Hello 5\n'));
+      mockProcess.emit('close', 0);
+
+      const result = await promise;
+      expect(result.success).toBe(true);
+    });
   });
 });
 

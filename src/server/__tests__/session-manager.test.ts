@@ -958,4 +958,182 @@ describe('SessionManager', () => {
       });
     });
   });
+
+  describe('Student Settings Management', () => {
+    it('should update student random seed', async () => {
+      const session = await sessionManager.createSession('instructor-1', 'test-section-id', 'Test Section');
+      await sessionManager.addStudent(session.id, 'student-1', 'Student One');
+
+      await sessionManager.updateStudentSettings(session.id, 'student-1', 42, undefined);
+
+      const studentData = await sessionManager.getStudentData(session.id, 'student-1');
+      expect(studentData?.randomSeed).toBe(42);
+    });
+
+    it('should update student attached files', async () => {
+      const session = await sessionManager.createSession('instructor-1', 'test-section-id', 'Test Section');
+      await sessionManager.addStudent(session.id, 'student-1', 'Student One');
+
+      const files = [
+        { name: 'data.txt', content: 'test content' },
+        { name: 'config.json', content: '{"key": "value"}' }
+      ];
+
+      await sessionManager.updateStudentSettings(session.id, 'student-1', undefined, files);
+
+      const studentData = await sessionManager.getStudentData(session.id, 'student-1');
+      expect(studentData?.attachedFiles).toEqual(files);
+    });
+
+    it('should update both random seed and attached files', async () => {
+      const session = await sessionManager.createSession('instructor-1', 'test-section-id', 'Test Section');
+      await sessionManager.addStudent(session.id, 'student-1', 'Student One');
+
+      const files = [{ name: 'test.txt', content: 'content' }];
+      await sessionManager.updateStudentSettings(session.id, 'student-1', 123, files);
+
+      const studentData = await sessionManager.getStudentData(session.id, 'student-1');
+      expect(studentData?.randomSeed).toBe(123);
+      expect(studentData?.attachedFiles).toEqual(files);
+    });
+
+    it('should allow setting random seed to 0', async () => {
+      const session = await sessionManager.createSession('instructor-1', 'test-section-id', 'Test Section');
+      await sessionManager.addStudent(session.id, 'student-1', 'Student One');
+
+      await sessionManager.updateStudentSettings(session.id, 'student-1', 0, undefined);
+
+      const studentData = await sessionManager.getStudentData(session.id, 'student-1');
+      expect(studentData?.randomSeed).toBe(0);
+    });
+
+    it('should not change random seed when passed undefined', async () => {
+      const session = await sessionManager.createSession('instructor-1', 'test-section-id', 'Test Section');
+      await sessionManager.addStudent(session.id, 'student-1', 'Student One');
+
+      // Set seed
+      await sessionManager.updateStudentSettings(session.id, 'student-1', 42, undefined);
+      const data1 = await sessionManager.getStudentData(session.id, 'student-1');
+      expect(data1?.randomSeed).toBe(42);
+
+      // Update files only - seed should remain
+      await sessionManager.updateStudentSettings(session.id, 'student-1', undefined, [{ name: 'test.txt', content: 'content' }]);
+      const data2 = await sessionManager.getStudentData(session.id, 'student-1');
+      expect(data2?.randomSeed).toBe(42);
+      expect(data2?.attachedFiles).toEqual([{ name: 'test.txt', content: 'content' }]);
+    });
+
+    it('should not change attached files when passed undefined', async () => {
+      const session = await sessionManager.createSession('instructor-1', 'test-section-id', 'Test Section');
+      await sessionManager.addStudent(session.id, 'student-1', 'Student One');
+
+      // Set files
+      const files = [{ name: 'test.txt', content: 'content' }];
+      await sessionManager.updateStudentSettings(session.id, 'student-1', undefined, files);
+      const data1 = await sessionManager.getStudentData(session.id, 'student-1');
+      expect(data1?.attachedFiles).toEqual(files);
+
+      // Update seed only - files should remain
+      await sessionManager.updateStudentSettings(session.id, 'student-1', 99, undefined);
+      const data2 = await sessionManager.getStudentData(session.id, 'student-1');
+      expect(data2?.randomSeed).toBe(99);
+      expect(data2?.attachedFiles).toEqual(files);
+    });
+
+    it('should persist student settings to storage', async () => {
+      const session = await sessionManager.createSession('instructor-1', 'test-section-id', 'Test Section');
+      await sessionManager.addStudent(session.id, 'student-1', 'Student One');
+
+      const files = [{ name: 'test.txt', content: 'content' }];
+      await sessionManager.updateStudentSettings(session.id, 'student-1', 99, files);
+
+      // Retrieve from storage
+      const storedSession = await storage.sessions.getSession(session.id);
+      const storedStudent = storedSession?.students.get('student-1');
+
+      expect(storedStudent?.randomSeed).toBe(99);
+      expect(storedStudent?.attachedFiles).toEqual(files);
+    });
+
+    it('should throw error when session does not exist', async () => {
+      await expect(
+        sessionManager.updateStudentSettings('non-existent', 'student-1', 42, undefined)
+      ).rejects.toThrow('Session not found');
+    });
+
+    it('should throw error when student does not exist', async () => {
+      const session = await sessionManager.createSession('instructor-1', 'test-section-id', 'Test Section');
+
+      await expect(
+        sessionManager.updateStudentSettings(session.id, 'non-existent-student', 42, undefined)
+      ).rejects.toThrow('Student not found');
+    });
+
+    it('should return undefined for non-existent student in getStudentData', async () => {
+      const result = await sessionManager.getStudentData('non-existent-session', 'student-1');
+      expect(result).toBeUndefined();
+    });
+
+    it('should return undefined for non-existent student in existing session', async () => {
+      const session = await sessionManager.createSession('instructor-1', 'test-section-id', 'Test Section');
+
+      const result = await sessionManager.getStudentData(session.id, 'non-existent-student');
+      expect(result).toBeUndefined();
+    });
+
+    it('should return student data with settings fields', async () => {
+      const session = await sessionManager.createSession('instructor-1', 'test-section-id', 'Test Section');
+      await sessionManager.addStudent(session.id, 'student-1', 'Student One');
+
+      const files = [{ name: 'test.txt', content: 'content' }];
+      await sessionManager.updateStudentSettings(session.id, 'student-1', 42, files);
+
+      const studentData = await sessionManager.getStudentData(session.id, 'student-1');
+
+      expect(studentData).toBeDefined();
+      expect(studentData?.code).toBeDefined(); // Empty string initially
+      expect(studentData?.randomSeed).toBe(42);
+      expect(studentData?.attachedFiles).toEqual(files);
+    });
+
+    it('should maintain independent settings for different students', async () => {
+      const session = await sessionManager.createSession('instructor-1', 'test-section-id', 'Test Section');
+      await sessionManager.addStudent(session.id, 'student-1', 'Student One');
+      await sessionManager.addStudent(session.id, 'student-2', 'Student Two');
+
+      await sessionManager.updateStudentSettings(session.id, 'student-1', 42, [{ name: 'file1.txt', content: 'content1' }]);
+      await sessionManager.updateStudentSettings(session.id, 'student-2', 99, [{ name: 'file2.txt', content: 'content2' }]);
+
+      const student1 = await sessionManager.getStudentData(session.id, 'student-1');
+      const student2 = await sessionManager.getStudentData(session.id, 'student-2');
+
+      expect(student1?.randomSeed).toBe(42);
+      expect(student1?.attachedFiles).toEqual([{ name: 'file1.txt', content: 'content1' }]);
+
+      expect(student2?.randomSeed).toBe(99);
+      expect(student2?.attachedFiles).toEqual([{ name: 'file2.txt', content: 'content2' }]);
+    });
+
+    it('should handle updating settings multiple times', async () => {
+      const session = await sessionManager.createSession('instructor-1', 'test-section-id', 'Test Section');
+      await sessionManager.addStudent(session.id, 'student-1', 'Student One');
+
+      // First update
+      await sessionManager.updateStudentSettings(session.id, 'student-1', 10, [{ name: 'file1.txt', content: 'content1' }]);
+      const data1 = await sessionManager.getStudentData(session.id, 'student-1');
+      expect(data1?.randomSeed).toBe(10);
+
+      // Second update - change seed only
+      await sessionManager.updateStudentSettings(session.id, 'student-1', 20, undefined);
+      const data2 = await sessionManager.getStudentData(session.id, 'student-1');
+      expect(data2?.randomSeed).toBe(20);
+      expect(data2?.attachedFiles).toEqual([{ name: 'file1.txt', content: 'content1' }]);
+
+      // Third update - change files only
+      await sessionManager.updateStudentSettings(session.id, 'student-1', undefined, [{ name: 'file2.txt', content: 'content2' }]);
+      const data3 = await sessionManager.getStudentData(session.id, 'student-1');
+      expect(data3?.randomSeed).toBe(20);
+      expect(data3?.attachedFiles).toEqual([{ name: 'file2.txt', content: 'content2' }]);
+    });
+  });
 });

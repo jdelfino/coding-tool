@@ -263,28 +263,36 @@ export class SessionManager {
     studentId: string, 
     randomSeed?: number,
     attachedFiles?: Array<{ name: string; content: string }>
-  ): Promise<boolean> {
-    if (!this.storage) return false;
-    
+  ): Promise<void> {
     const session = await this.getSession(sessionId);
-    if (!session) return false;
+    if (!session) {
+      throw new Error('Session not found');
+    }
     
     const student = session.students.get(studentId);
-    if (!student) return false;
+    if (!student) {
+      throw new Error('Student not found');
+    }
     
-    student.randomSeed = randomSeed;
-    student.attachedFiles = attachedFiles;
+    // Only update fields that are explicitly provided
+    if (randomSeed !== undefined) {
+      student.randomSeed = randomSeed;
+    }
+    if (attachedFiles !== undefined) {
+      student.attachedFiles = attachedFiles;
+    }
     student.lastUpdate = new Date();
     
-    try {
-      await this.storage.sessions.updateSession(sessionId, {
-        students: session.students,
-        lastActivity: new Date(),
-      });
-      return true;
-    } catch (error) {
-      console.error(`Failed to update student settings for session ${sessionId}:`, error);
-      return false;
+    if (this.storage) {
+      try {
+        await this.storage.sessions.updateSession(sessionId, {
+          students: session.students,
+          lastActivity: new Date(),
+        });
+      } catch (error) {
+        console.error(`Failed to persist student settings update for session ${sessionId}:`, error);
+        throw error;
+      }
     }
   }
 
