@@ -6,9 +6,11 @@ software. You should not create or tolerate significant duplication, architectur
 mess, or poor code organization. Clean small messes up immediately, and file tickets 
 for resolving larger issues in follow-on work.
 
-# 🚨 CRITICAL: TEST-FIRST DEVELOPMENT 🚨
+# 🚨🚨🚨 CRITICAL: TEST-FIRST DEVELOPMENT 🚨🚨🚨
 
-**STOP! READ THIS BEFORE WRITING ANY CODE:**
+**⛔️ STOP! READ THIS BEFORE WRITING ANY CODE ⛔️**
+**⛔️ STOP! READ THIS BEFORE EVERY COMMIT ⛔️**
+**⛔️ STOP! READ THIS WHEN MAKING ANY CHANGES ⛔️**
 
 ## Tests Are NOT Optional
 
@@ -21,6 +23,29 @@ for resolving larger issues in follow-on work.
 2. **NO COMMITS WITHOUT TESTS** - If you implemented it, you must test it
 3. **NO EXCEPTIONS** - "I'll add tests later" is NOT acceptable
 4. **CODE + TESTS = ONE ATOMIC COMMIT** - Never commit code without its tests
+5. **MULTIPLE CHANGES = MULTIPLE TEST FILES** - If you make changes in multiple places, write tests for ALL of them
+6. **BEFORE USING git commit** - Re-read this section and verify you have tests for EVERYTHING you changed
+
+### ⛔️ MANDATORY PRE-COMMIT SELF-CHECK ⛔️
+
+Before typing `git add` or `git commit`, answer these questions:
+
+1. **Did I modify ANY production code?** (If YES, continue to #2)
+2. **Did I write tests for EVERY file I modified?** (If NO, STOP and write them NOW)
+3. **Did I run `npm test` and do ALL tests pass?** (If NO, STOP and fix them NOW)
+4. **Did I check `npx tsc --noEmit` for errors?** (If errors exist, STOP and fix them NOW)
+
+**If you cannot answer YES to questions 2-4, you are NOT ready to commit.**
+
+### Common Mistakes That Violate This Policy:
+
+❌ "I added tests for the first change but not the second one"
+❌ "I fixed a small bug, it doesn't need tests"
+❌ "I only changed a message payload, tests aren't needed"
+❌ "The existing tests cover this" (Did you verify? Add explicit tests anyway!)
+❌ "I'll add tests in the next commit"
+
+**ALL OF THESE ARE UNACCEPTABLE. NO EXCEPTIONS. EVER.**
 
 ### When Writing ANY Code:
 
@@ -80,13 +105,14 @@ git commit -m "..."
 ⚠️ MANDATORY: Before every commit, verify:
 
 - [ ] 🚨 **TESTS WRITTEN** - Unit tests exist for ALL new/modified code (CHECK THIS FIRST)
+- [ ] 🚨 **TESTS COVER ALL CHANGES** - If you modified N files, you have tests for N files
 - [ ] ✅ All tests passing (`npm test`). Commits should never be made with failing tests.
 - [ ] ✅ No TypeScript errors (`npx tsc --noEmit`). Commits should never be made with TypeScript errors.
 - [ ] ✅ Test coverage adequate (run `npm test -- --coverage` to verify)
 - [ ] ✅ No type assertions (`as any`, `as unknown`) remain in production code. Use proper interfaces instead.
 - [ ] ✅ No optional chaining on required properties (`user?.role` when role is always present).
 
-**If you cannot check the first box, DO NOT COMMIT. Go write the tests first.**
+**If you cannot check ALL boxes above, DO NOT COMMIT. Period.**
 
 ## Issue Tracking with bd (beads)
 

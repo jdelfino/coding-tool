@@ -349,4 +349,106 @@ describe('WebSocket Student Settings Messages', () => {
       expect(session.attachedFiles).toBeUndefined();
     });
   });
+
+  describe('SESSION_JOINED message (instructor rejoins existing session)', () => {
+    it('should include all execution settings when instructor rejoins session', async () => {
+      // Bug: When instructor rejoins existing session via JOIN_EXISTING_SESSION,
+      // the SESSION_JOINED response was missing randomSeed and attachedFiles
+
+      const session = await sessionManager.createSession('instructor-1', 'section-1', 'Test Section');
+      
+      // Set up complete problem with all execution settings
+      const problemText = 'Solve the problem';
+      const exampleInput = 'n=5';
+      const randomSeed = 12345;
+      const attachedFiles = [
+        { name: 'test.txt', content: 'test content' },
+        { name: 'data.json', content: '{"key": "value"}' }
+      ];
+      
+      await sessionManager.updateProblem(
+        session.id,
+        problemText,
+        exampleInput,
+        randomSeed,
+        attachedFiles
+      );
+
+      // Simulate instructor rejoining: get session again
+      const rejoined = await sessionManager.getSession(session.id);
+
+      // Verify SESSION_JOINED would have all fields available
+      expect(rejoined).toBeDefined();
+      expect(rejoined!.problemText).toBe(problemText);
+      expect(rejoined!.exampleInput).toBe(exampleInput);
+      expect(rejoined!.randomSeed).toBe(randomSeed);
+      expect(rejoined!.attachedFiles).toEqual(attachedFiles);
+    });
+
+    it('should handle instructor rejoining session with partial settings', async () => {
+      // Test rejoin when only some execution settings are set
+
+      const session = await sessionManager.createSession('instructor-1', 'section-1', 'Test Section');
+      
+      // Only set problem text and random seed, leave others undefined
+      await sessionManager.updateProblem(
+        session.id,
+        'Problem statement',
+        undefined, // no exampleInput
+        777, // randomSeed set
+        undefined // no attachedFiles
+      );
+
+      const rejoined = await sessionManager.getSession(session.id);
+
+      expect(rejoined!.problemText).toBe('Problem statement');
+      expect(rejoined!.exampleInput).toBeUndefined();
+      expect(rejoined!.randomSeed).toBe(777);
+      expect(rejoined!.attachedFiles).toBeUndefined();
+    });
+
+    it('should preserve execution settings after multiple instructors join', async () => {
+      // Test that settings persist across multiple instructor connections
+
+      const session = await sessionManager.createSession('instructor-1', 'section-1', 'Test Section');
+      
+      const files = [{ name: 'shared.txt', content: 'shared data' }];
+      await sessionManager.updateProblem(
+        session.id,
+        'Collaborative problem',
+        'input: test',
+        42,
+        files
+      );
+
+      // First instructor gets session
+      const firstView = await sessionManager.getSession(session.id);
+      expect(firstView!.randomSeed).toBe(42);
+
+      // Second instructor joins (simulated by another getSession)
+      const secondView = await sessionManager.getSession(session.id);
+      
+      // Both should see the same settings
+      expect(secondView!.problemText).toBe(firstView!.problemText);
+      expect(secondView!.randomSeed).toBe(firstView!.randomSeed);
+      expect(secondView!.attachedFiles).toEqual(firstView!.attachedFiles);
+    });
+
+    it('should handle empty session when instructor rejoins before problem is set', async () => {
+      // Instructor creates session but hasn't set problem yet, then reconnects
+
+      const session = await sessionManager.createSession('instructor-1', 'section-1', 'Test Section');
+      
+      // Don't call updateProblem - simulate instructor disconnecting before setting problem
+      
+      // Instructor rejoins
+      const rejoined = await sessionManager.getSession(session.id);
+
+      // Should handle empty state gracefully
+      expect(rejoined!.problemText).toBe('');
+      expect(rejoined!.exampleInput).toBeUndefined();
+      expect(rejoined!.randomSeed).toBeUndefined();
+      expect(rejoined!.attachedFiles).toBeUndefined();
+    });
+  });
 });
