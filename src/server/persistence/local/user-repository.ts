@@ -54,7 +54,10 @@ export class LocalUserRepository implements IUserRepository {
   }
 
   async shutdown(): Promise<void> {
-    await this.flush();
+    // Only flush if initialized to avoid errors during shutdown
+    if (this.initialized) {
+      await this.flush();
+    }
     this.users.clear();
     this.usernameIndex.clear();
     this.initialized = false;

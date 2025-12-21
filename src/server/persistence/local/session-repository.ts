@@ -54,8 +54,10 @@ export class LocalSessionRepository implements ISessionRepository {
   }
 
   async shutdown(): Promise<void> {
-    // Flush cache to disk
-    await this.flush();
+    // Flush cache to disk only if initialized
+    if (this.initialized) {
+      await this.flush();
+    }
     this.cache.clear();
     this.initialized = false;
   }

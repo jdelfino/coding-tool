@@ -55,7 +55,10 @@ export class LocalRevisionRepository implements IRevisionRepository {
   }
 
   async shutdown(): Promise<void> {
-    await this.flush();
+    // Only flush if initialized to avoid errors during shutdown
+    if (this.initialized) {
+      await this.flush();
+    }
     this.cache.clear();
     this.initialized = false;
   }
