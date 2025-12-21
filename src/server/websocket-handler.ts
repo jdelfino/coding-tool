@@ -925,8 +925,8 @@ class WebSocketHandler {
       hasCode: s.code.length > 0,
       // Use student-specific settings if set, otherwise fall back to session defaults
       randomSeed: s.randomSeed !== undefined ? s.randomSeed : session.randomSeed,
-      attachedFiles: (s.attachedFiles !== undefined && s.attachedFiles.length > 0)
-        ? s.attachedFiles
+      attachedFiles: s.attachedFiles !== undefined
+        ? s.attachedFiles // explicit override, even if empty array
         : session.attachedFiles,
     }));
 
