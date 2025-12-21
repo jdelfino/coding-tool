@@ -33,13 +33,6 @@ for resolving larger issues in follow-on work.
 ❌ "Frontend change" ← Needs component tests
 ❌ "Changed 3 files, added tests for 1" ← Need tests for ALL 3
 
-## Test Requirements
-
-**Changed:** `src/foo.ts` → **Must create/update:** `src/__tests__/foo.test.ts`
-**Changed:** `src/Bar.tsx` → **Must create/update:** `src/__tests__/Bar.test.tsx`
-
-Every changed file needs corresponding test changes.
-
 ## Workflow
 
 1. Change production file → Write test FIRST
