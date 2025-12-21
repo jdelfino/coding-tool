@@ -15,8 +15,8 @@ import { Problem, StudentProblem, ProblemStats } from '../types/problem';
  */
 export function getProblemStats(problem: Problem): ProblemStats {
   return {
-    testCaseCount: problem.testCases.length,
-    solutionLength: problem.solutionCode.length,
+    testCaseCount: problem.testCases?.length || 0,
+    solutionLength: problem.solutionCode?.length || 0,
     hasStarterCode: !!problem.starterCode && problem.starterCode.length > 0,
   };
 }
@@ -34,9 +34,9 @@ export function sanitizeProblemForStudent(problem: Problem): StudentProblem {
   return {
     id: problem.id,
     title: problem.title,
-    description: problem.description,
+    description: problem.description || '',
     starterCode: problem.starterCode,
-    testCases: problem.testCases.filter(tc => tc.visible),
+    testCases: (problem.testCases || []).filter(tc => tc.visible),
   };
 }
 
@@ -98,7 +98,8 @@ export function compareProblem(
  */
 export function getProblemSummary(problem: Problem, maxLength = 150): string {
   // Remove markdown formatting for summary
-  const plainText = problem.description
+  const description = problem.description || '';
+  const plainText = description
     .replace(/[#*_`]/g, '')
     .replace(/\n+/g, ' ')
     .trim();

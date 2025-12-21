@@ -302,12 +302,27 @@ export class FakeStorageBackend implements IStorageBackend {
   public readonly sessions: FakeSessionRepository;
   public readonly revisions: FakeRevisionRepository;
   public readonly users: FakeUserRepository;
+  public readonly problems: any; // Fake problem repository for tests
   public memberships?: any; // Optional membership repository for tests
 
   constructor() {
     this.sessions = new FakeSessionRepository();
     this.revisions = new FakeRevisionRepository();
     this.users = new FakeUserRepository();
+    this.problems = {
+      initialize: async () => {},
+      shutdown: async () => {},
+      health: async () => true,
+      create: async () => ({ id: 'fake-problem-id' }),
+      getById: async () => null,
+      getAll: async () => [],
+      update: async () => ({ id: 'fake-problem-id' }),
+      delete: async () => {},
+      search: async () => [],
+      getByAuthor: async () => [],
+      getByClass: async () => [],
+      duplicate: async () => ({ id: 'fake-duplicate-id' }),
+    };
   }
 
   async initialize(): Promise<void> {

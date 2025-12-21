@@ -39,17 +39,17 @@ export interface ProblemSchema {
   /** Problem title (3-200 characters) */
   title: string;
   
-  /** Problem description in markdown (1-50000 characters) */
-  description: string;
+  /** Problem description in markdown (optional, 0-50000 characters) */
+  description?: string;
   
   /** Optional starter code template */
   starterCode?: string;
   
-  /** Reference solution code (required) */
-  solutionCode: string;
+  /** Reference solution code (optional) */
+  solutionCode?: string;
   
-  /** Array of test cases */
-  testCases: unknown[];
+  /** Array of test cases (optional) */
+  testCases?: unknown[];
   
   /** Author user ID */
   authorId: string;
@@ -77,22 +77,22 @@ export const PROBLEM_VALIDATION_RULES = {
     required: true,
   },
   description: {
-    minLength: 1,
+    minLength: 0,
     maxLength: 50000,
-    required: true,
+    required: false,
   },
   starterCode: {
     maxLength: 50000,
     required: false,
   },
   solutionCode: {
-    minLength: 1,
+    minLength: 0,
     maxLength: 50000,
-    required: true,
+    required: false,
   },
   testCases: {
-    minCount: 1,
-    required: true,
+    minCount: 0,
+    required: false,
   },
 } as const;
 
@@ -128,14 +128,8 @@ export function validateProblemSchema(problem: Partial<Problem>): ProblemValidat
     });
   }
   
-  // Validate description
-  if (!problem.description || problem.description.trim().length === 0) {
-    errors.push({
-      field: 'description',
-      message: 'Description is required',
-      code: 'REQUIRED_FIELD',
-    });
-  } else if (problem.description.length > PROBLEM_VALIDATION_RULES.description.maxLength) {
+  // Validate description (optional now)
+  if (problem.description && problem.description.length > PROBLEM_VALIDATION_RULES.description.maxLength) {
     errors.push({
       field: 'description',
       message: `Description must be at most ${PROBLEM_VALIDATION_RULES.description.maxLength} characters`,
@@ -143,14 +137,8 @@ export function validateProblemSchema(problem: Partial<Problem>): ProblemValidat
     });
   }
   
-  // Validate solution code
-  if (!problem.solutionCode || problem.solutionCode.trim().length === 0) {
-    errors.push({
-      field: 'solutionCode',
-      message: 'Solution code is required',
-      code: 'REQUIRED_FIELD',
-    });
-  } else if (problem.solutionCode.length > PROBLEM_VALIDATION_RULES.solutionCode.maxLength) {
+  // Validate solution code (optional now)
+  if (problem.solutionCode && problem.solutionCode.length > PROBLEM_VALIDATION_RULES.solutionCode.maxLength) {
     errors.push({
       field: 'solutionCode',
       message: `Solution code must be at most ${PROBLEM_VALIDATION_RULES.solutionCode.maxLength} characters`,
@@ -167,14 +155,8 @@ export function validateProblemSchema(problem: Partial<Problem>): ProblemValidat
     });
   }
   
-  // Validate test cases
-  if (!problem.testCases || problem.testCases.length === 0) {
-    errors.push({
-      field: 'testCases',
-      message: 'At least one test case is required',
-      code: 'MIN_COUNT',
-    });
-  }
+  // Validate test cases (optional now)
+  // No validation required as test cases are now optional
   
   // Validate author ID
   if (!problem.authorId || problem.authorId.trim().length === 0) {

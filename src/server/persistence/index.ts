@@ -10,6 +10,7 @@ import {
   LocalRevisionRepository,
   LocalUserRepository,
 } from './local';
+import { LocalProblemRepository } from './local/problem-repository';
 import {
   ClassRepository,
   SectionRepository,
@@ -19,6 +20,7 @@ import {
   ISessionRepository,
   IRevisionRepository,
   IUserRepository,
+  IProblemRepository,
   IStorageRepository,
 } from './interfaces';
 import type { IClassRepository, ISectionRepository, IMembershipRepository } from '../classes/interfaces';
@@ -31,6 +33,7 @@ export class StorageBackend implements IStorageRepository {
   public readonly sessions: ISessionRepository;
   public readonly revisions: IRevisionRepository;
   public readonly users: IUserRepository;
+  public readonly problems: IProblemRepository;
   public readonly classes?: IClassRepository;
   public readonly sections?: ISectionRepository;
   public readonly memberships?: IMembershipRepository;
@@ -40,6 +43,7 @@ export class StorageBackend implements IStorageRepository {
     this.sessions = new LocalSessionRepository(config);
     this.revisions = new LocalRevisionRepository(config);
     this.users = new LocalUserRepository(config);
+    this.problems = new LocalProblemRepository(config.baseDir || './data');
     
     // Initialize class/section repositories (multi-tenancy)
     const baseDir = config.baseDir || './data';
@@ -63,6 +67,7 @@ export class StorageBackend implements IStorageRepository {
     await Promise.all([
       this.sessions.initialize(),
       this.revisions.initialize(),
+      this.problems.initialize(),
     ]);
     
     // Initialize repositories with optional lifecycle methods
@@ -87,6 +92,7 @@ export class StorageBackend implements IStorageRepository {
     const shutdowns: Promise<void>[] = [
       this.sessions.shutdown(),
       this.revisions.shutdown(),
+      this.problems.shutdown(),
     ];
     
     // Add optional shutdown for users repository

@@ -24,6 +24,7 @@ import {
   StoredProblem,
   StoredRevision,
 } from './types';
+import { Problem, ProblemMetadata, ProblemFilter, ProblemInput } from '../types/problem';
 
 // Re-export IUserRepository for convenience
 export type { IUserRepository };
@@ -143,63 +144,95 @@ export interface ISessionRepository extends IStorageBackend {
  * Manages problem definitions, templates, and metadata.
  */
 export interface IProblemRepository extends IStorageBackend {
-  /**
-   * Save a problem specification
+  /**Create a new problem
    * 
-   * If a problem with the same ID exists, it will be updated.
+   * Generates ID and timestamps automatically.
    * 
-   * @param problem - Problem data to store
-   * @returns The problem ID
+   * @param problem - Problem data without ID and timestamps
+   * @returns The created problem with generated fields
+   * @throws {PersistenceError} if validation fails
    */
-  saveProblem(problem: ProblemSpec): Promise<string>;
+  create(problem: ProblemInput): Promise<Problem>;
 
   /**
    * Retrieve a problem by ID
    * 
-   * @param problemId - Unique problem identifier
+   * @param id - Unique problem identifier
    * @returns The problem data, or null if not found
    */
-  getProblem(problemId: string): Promise<StoredProblem | null>;
+  getById(id: string): Promise<Problem | null>;
+
+  /**
+   * Get all problems with optional filtering
+   * 
+   * Returns lightweight metadata for efficient listing.
+   * 
+   * @param filter - Optional filters
+   * @returns Array of problem metadata
+   */
+  getAll(filter?: ProblemFilter): Promise<ProblemMetadata[]>;
 
   /**
    * Update an existing problem
    * 
-   * @param problemId - Problem to update
+   * Performs partial update - only provided fields are modified.
+   * Updates updatedAt timestamp automatically.
+   * 
+   * @param id - Problem to update
    * @param updates - Partial problem data to update
+   * @returns Updated problem
    * @throws {PersistenceError} with NOT_FOUND if problem doesn't exist
    */
-  updateProblem(problemId: string, updates: Partial<ProblemSpec>): Promise<void>;
+  update(id: string, updates: Partial<Problem>): Promise<Problem>;
 
   /**
    * Delete a problem
    * 
-   * @param problemId - Problem to delete
+   * @param id - Problem to delete
    * @throws {PersistenceError} with NOT_FOUND if problem doesn't exist
    */
-  deleteProblem(problemId: string): Promise<void>;
+  delete(id: string): Promise<void>;
 
   /**
-   * List all problems with optional filtering
+   * Search problems by query string
    * 
-   * @param filters - Optional filters (difficulty, tags, etc.)
-   * @returns Array of problems
+   * Searches in title and description.
+   * 
+   * @param query - Search query
+   * @param filter - Optional additional filters
+   * @returns Array of matching problem metadata
    */
-  listProblems(filters?: {
-    difficulty?: 'beginner' | 'intermediate' | 'advanced';
-    tags?: string[];
-    createdBy?: string;
-    limit?: number;
-    offset?: number;
-  }): Promise<StoredProblem[]>;
+  search(query: string, filter?: ProblemFilter): Promise<ProblemMetadata[]>;
 
   /**
-   * Search problems by title or description
+   * Get problems by author
    * 
-   * @param query - Search query string
-   * @param limit - Maximum results to return
-   * @returns Array of matching problems
+   * @param authorId - Author user ID
+   * @param filter - Optional additional filters
+   * @returns Array of author's problems
    */
-  searchProblems(query: string, limit?: number): Promise<StoredProblem[]>;
+  getByAuthor(authorId: string, filter?: ProblemFilter): Promise<ProblemMetadata[]>;
+
+  /**
+   * Get problems by class
+   * 
+   * @param classId - Class ID
+   * @param filter - Optional additional filters
+   * @returns Array of class problems
+   */
+  getByClass(classId: string, filter?: ProblemFilter): Promise<ProblemMetadata[]>;
+
+  /**
+   * Duplicate a problem with new title
+   * 
+   * Creates a copy with new ID and specified title.
+   * 
+   * @param id - Problem to duplicate
+   * @param newTitle - Title for the duplicate
+   * @returns The duplicated problem
+   * @throws {PersistenceError} with NOT_FOUND if problem doesn't exist
+   */
+  duplicate(id: string, newTitle: string): Promise<Problem>;
 }
 
 /**
@@ -291,6 +324,9 @@ export interface IStorageRepository extends IStorageBackend {
   
   /** User data operations */
   users: IUserRepository;
+
+  /** Problem data operations */
+  problems: IProblemRepository;
 
   /** Class data operations (multi-tenancy) */
   classes?: import('../classes/interfaces').IClassRepository;

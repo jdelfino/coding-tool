@@ -21,17 +21,17 @@ export interface Problem {
   /** Problem title */
   title: string;
   
-  /** Problem description (supports markdown) */
-  description: string;
+  /** Problem description (supports markdown, optional) */
+  description?: string;
   
   /** Optional starter code template for students */
   starterCode?: string;
   
-  /** Reference solution (hidden from students) */
-  solutionCode: string;
+  /** Reference solution (hidden from students, optional) */
+  solutionCode?: string;
   
-  /** Test cases for verifying solutions */
-  testCases: TestCase[];
+  /** Test cases for verifying solutions (optional) */
+  testCases?: TestCase[];
   
   /** User ID of instructor who created this problem */
   authorId: string;
