@@ -173,6 +173,40 @@ describe('WebSocket Student Settings Messages', () => {
       expect(studentData?.attachedFiles).toEqual([{ name: 'default.txt', content: 'default' }]); // Session default
     });
 
+    it('should treat empty attachedFiles array as unset and use session default', async () => {
+      // Bug: If student has attachedFiles = [], it should fall back to session default
+      // not return the empty array
+
+      const session = await sessionManager.createSession('instructor-1', 'section-1', 'Test Section');
+      
+      // Set session defaults
+      const sessionFiles = [{ name: 'session.txt', content: 'session file' }];
+      await sessionManager.updateProblem(
+        session.id,
+        'Problem',
+        'input',
+        100,
+        sessionFiles
+      );
+
+      // Student joins
+      await sessionManager.addStudent(session.id, 'student-1', 'Student One');
+      
+      // Student explicitly sets empty array (removes all files)
+      await sessionManager.updateStudentSettings(
+        session.id,
+        'student-1',
+        undefined,
+        [] // Empty array - student removed all files
+      );
+      await sessionManager.updateStudentCode(session.id, 'student-1', 'code');
+
+      const studentData = await sessionManager.getStudentData(session.id, 'student-1');
+
+      // Empty array should be treated as "not set" and fall back to session default
+      expect(studentData?.attachedFiles).toEqual(sessionFiles);
+    });
+
     it('should handle empty session defaults correctly', async () => {
       // When session has no execution settings and student hasn't set any
 

@@ -169,15 +169,10 @@ function InstructorPage() {
 
       case 'STUDENT_CODE':
         if (lastMessage.payload.studentId === selectedStudentId) {
-          console.log('[STUDENT_CODE] Received:', {
-            studentId: lastMessage.payload.studentId,
-            randomSeed: lastMessage.payload.randomSeed,
-            attachedFiles: lastMessage.payload.attachedFiles,
-          });
           setSelectedStudentCode(lastMessage.payload.code);
           // Update student's execution settings in the students array
-          setStudents(prev => {
-            const updated = prev.map(s => 
+          setStudents(prev => 
+            prev.map(s => 
               s.id === lastMessage.payload.studentId
                 ? { 
                     ...s, 
@@ -185,10 +180,8 @@ function InstructorPage() {
                     attachedFiles: lastMessage.payload.attachedFiles,
                   }
                 : s
-            );
-            console.log('[STUDENT_CODE] Updated students:', updated.find(s => s.id === lastMessage.payload.studentId));
-            return updated;
-          });
+            )
+          );
         }
         break;
 
