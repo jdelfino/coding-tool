@@ -679,6 +679,12 @@ class WebSocketHandler {
       return;
     }
 
+    console.log('[REQUEST_STUDENT_CODE] Sending student data:', {
+      studentId,
+      randomSeed: studentData.randomSeed,
+      attachedFiles: studentData.attachedFiles,
+    });
+
     this.send(ws, {
       type: MessageType.STUDENT_CODE,
       payload: { 
@@ -921,6 +927,15 @@ class WebSocketHandler {
       randomSeed: s.randomSeed !== undefined ? s.randomSeed : session.randomSeed,
       attachedFiles: s.attachedFiles !== undefined ? s.attachedFiles : session.attachedFiles,
     }));
+
+    console.log('[broadcastStudentList] Sending student list:', {
+      sessionId,
+      sessionDefaults: {
+        randomSeed: session.randomSeed,
+        attachedFiles: session.attachedFiles,
+      },
+      students: studentList.map(s => ({ id: s.id, randomSeed: s.randomSeed, attachedFiles: s.attachedFiles })),
+    });
 
     this.broadcastToSession(sessionId, {
       type: MessageType.STUDENT_LIST_UPDATE,
