@@ -339,6 +339,8 @@ class WebSocketHandler {
         joinCode: session.joinCode,
         problemText: session.problemText,
         exampleInput: session.exampleInput,
+        randomSeed: session.randomSeed,
+        attachedFiles: session.attachedFiles,
       },
     });
 

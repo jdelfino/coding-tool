@@ -105,6 +105,11 @@ function InstructorPage() {
       case 'SESSION_JOINED':
         setSessionId(lastMessage.payload.sessionId);
         setJoinCode(lastMessage.payload.joinCode);
+        // Restore execution settings when rejoining existing session
+        setSessionProblemText(lastMessage.payload.problemText || '');
+        setSessionExampleInput(lastMessage.payload.exampleInput || '');
+        setSessionRandomSeed(lastMessage.payload.randomSeed);
+        setSessionAttachedFiles(lastMessage.payload.attachedFiles || []);
         setViewMode('session');
         setError(null);
         break;
