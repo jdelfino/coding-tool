@@ -8,97 +8,45 @@ for resolving larger issues in follow-on work.
 
 # 🚨🚨🚨 CRITICAL: TEST-FIRST DEVELOPMENT 🚨🚨🚨
 
-**⛔️ STOP! READ THIS BEFORE WRITING ANY CODE ⛔️**
-**⛔️ STOP! READ THIS BEFORE EVERY COMMIT ⛔️**
-**⛔️ STOP! READ THIS WHEN MAKING ANY CHANGES ⛔️**
+**⛔️ BEFORE EVERY COMMIT: Did you ADD NEW TESTS for your NEW CODE? ⛔️**
 
-## Tests Are NOT Optional
+## The One Rule
 
-**Every single line of production code MUST have corresponding test coverage.**
-**If you write code without tests, you are doing it WRONG.**
+**CHANGED CODE = NEW TESTS. No commits without new tests for changed code.**
 
-### Non-Negotiable Rules:
+## Pre-Commit Questions
 
-1. **TESTS COME FIRST** - Write tests BEFORE implementation when possible
-2. **NO COMMITS WITHOUT TESTS** - If you implemented it, you must test it
-3. **NO EXCEPTIONS** - "I'll add tests later" is NOT acceptable
-4. **CODE + TESTS = ONE ATOMIC COMMIT** - Never commit code without its tests
-5. **MULTIPLE CHANGES = MULTIPLE TEST FILES** - If you make changes in multiple places, write tests for ALL of them
-6. **BEFORE USING git commit** - Re-read this section and verify you have tests for EVERYTHING you changed
+1. **Did I change production code?** → Must add tests
+2. **Do existing tests pass?** → NOT ENOUGH. Did you add NEW tests?
+3. **Did I add NEW tests for EVERY file I changed?** → If NO, STOP
+4. **Do ALL tests pass (including new ones)?** → Run `npm test`
+5. **Any TypeScript errors?** → Run `npx tsc --noEmit`
 
-### ⛔️ MANDATORY PRE-COMMIT SELF-CHECK ⛔️
+**"All existing tests pass" ≠ "I added tests for my changes"**
 
-Before typing `git add` or `git commit`, answer these questions:
+## Common Violations
 
-1. **Did I modify ANY production code?** (If YES, continue to #2)
-2. **Did I write tests for EVERY file I modified?** (If NO, STOP and write them NOW)
-3. **Did I run `npm test` and do ALL tests pass?** (If NO, STOP and fix them NOW)
-4. **Did I check `npx tsc --noEmit` for errors?** (If errors exist, STOP and fix them NOW)
+❌ "Tests already pass" ← Did you ADD tests for YOUR changes?
+❌ "It's a small change" ← Still needs tests
+❌ "Bug fix only" ← Needs regression test
+❌ "I updated existing tests" ← Did you ADD new tests too?
+❌ "Frontend change" ← Needs component tests
+❌ "Changed 3 files, added tests for 1" ← Need tests for ALL 3
 
-**If you cannot answer YES to questions 2-4, you are NOT ready to commit.**
+## Test Requirements
 
-### Common Mistakes That Violate This Policy:
+**Changed:** `src/foo.ts` → **Must create/update:** `src/__tests__/foo.test.ts`
+**Changed:** `src/Bar.tsx` → **Must create/update:** `src/__tests__/Bar.test.tsx`
 
-❌ "I added tests for the first change but not the second one"
-❌ "I fixed a small bug, it doesn't need tests"
-❌ "I only changed a message payload, tests aren't needed"
-❌ "The existing tests cover this" (Did you verify? Add explicit tests anyway!)
-❌ "I'll add tests in the next commit"
+Every changed file needs corresponding test changes.
 
-**ALL OF THESE ARE UNACCEPTABLE. NO EXCEPTIONS. EVER.**
+## Workflow
 
-### When Writing ANY Code:
-
-```
-✅ CORRECT WORKFLOW:
-1. Write test file (.test.ts or .test.tsx)
-2. Write failing tests for new functionality
-3. Implement the functionality
-4. Make tests pass
-5. Refactor if needed
-6. Run ALL tests (`npm test`)
-7. Commit code + tests together
-
-❌ WRONG WORKFLOW:
-1. Implement functionality
-2. Commit
-3. "I'll add tests later" ← THIS IS UNACCEPTABLE
-```
-
-### Test File Requirements:
-
-- **New function/class** → Create corresponding `.test.ts` file
-- **New React component** → Create corresponding `.test.tsx` file  
-- **Modified code** → Update existing tests + add new test cases
-- **Bug fix** → Add regression test(s) that would have caught the bug
-- **Edge cases** → Test error conditions, boundaries, null/undefined
-- **Integration points** → Mock dependencies, test interfaces
-
-### Test Quality Standards:
-
-- ✅ Tests must be isolated (no side effects between tests)
-- ✅ Use descriptive test names: `it('should reject invalid email format')`
-- ✅ Test both happy path AND error cases
-- ✅ Mock external dependencies (file system, network, database)
-- ✅ Tests should run fast (< 1 second per test file)
-- ✅ Aim for 80%+ code coverage on new code
-
-### Before EVERY Commit - Checklist:
-
-```bash
-# 1. Did you write tests? If NO, stop and write them now
-npm test
-
-# 2. Do all tests pass?
-# If NO, fix the failures before committing
-
-# 3. No TypeScript errors?
-npx tsc --noEmit
-
-# 4. Ready to commit
-git add <files>
-git commit -m "..."
-```
+1. Change production file → Write test FIRST
+2. Run tests (they fail)
+3. Implement fix
+4. Run tests (they pass)
+5. Commit BOTH production + test files together
 
 ## Commit Checklist
 
