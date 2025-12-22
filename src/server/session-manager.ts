@@ -1,5 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
 import { Session, Student } from './types';
+import { Problem } from './types/problem';
 import { IStorageRepository, getStorage } from './persistence';
 
 export class SessionManager {
@@ -67,16 +68,21 @@ export class SessionManager {
    * Create a new session within a section
    * @param creatorId - User ID of the instructor creating the session
    * @param sectionId - Section ID this session belongs to (required)
-   * @param sectionName - Section name for display (required)
+   * @param problem - Optional problem to clone into session
    */
-  async createSession(creatorId: string, sectionId: string, sectionName: string): Promise<Session> {
+  async createSession(
+    creatorId: string, 
+    sectionId: string, 
+    sectionName: string,
+    problem?: Problem
+  ): Promise<Session> {
     const sessionId = uuidv4();
     const joinCode = this.generateJoinCode();
     
     const session: Session = {
       id: sessionId,
       joinCode,
-      problemText: '',
+      problem: problem ? this.cloneProblem(problem) : undefined, // ✅ Use clean problem sub-object
       students: new Map(),
       createdAt: new Date(),
       lastActivity: new Date(),
@@ -99,8 +105,22 @@ export class SessionManager {
     
     this.sessionsByJoinCode.set(joinCode, sessionId);
     
-    console.log(`Created session ${sessionId} with join code ${joinCode}${sectionId ? ` for section ${sectionId}` : ''}`);
+    console.log(`Created session ${sessionId} with join code ${joinCode}${sectionId ? ` for section ${sectionId}` : ''}${problem ? ` with problem "${problem.title}"` : ''}`);
     return session;
+  }
+
+  /**
+   * Clone a problem for use in a session
+   * Creates a deep copy to avoid modifying the original
+  /**
+   * Clone a problem for use in a session
+   * Creates a deep copy to avoid modifying the original
+   */
+  private cloneProblem(problem: Problem): Problem {
+    return {
+      ...problem,
+      testCases: problem.testCases ? [...problem.testCases.map(tc => ({ ...tc }))] : undefined,
+    };
   }
 
   /**
@@ -131,29 +151,42 @@ export class SessionManager {
   }
 
   /**
-   * Update problem text for a session
+   * Update session with a problem object
+   * Creates a minimal Problem from text if needed, or uses full Problem object
    */
-  async updateProblem(
-    sessionId: string, 
-    problemText: string, 
-    exampleInput?: string,
-    randomSeed?: number,
-    attachedFiles?: Array<{ name: string; content: string }>
-  ): Promise<boolean> {
+  async updateSessionProblem(sessionId: string, problemData: Problem | { text: string }): Promise<boolean> {
     if (!this.storage) return false;
     
     try {
+      const session = await this.getSession(sessionId);
+      if (!session) return false;
+      
+      let problem: Problem;
+      
+      if ('text' in problemData) {
+        // Create minimal problem from text (for legacy UPDATE_PROBLEM messages)
+        problem = {
+          id: session.problem?.id || `session-problem-${sessionId}`,
+          title: problemData.text.split('\n')[0].substring(0, 100) || 'Untitled Problem',
+          description: problemData.text,
+          authorId: session.creatorId,
+          isPublic: false,
+          createdAt: session.problem?.createdAt || new Date(),
+          updatedAt: new Date(),
+        };
+      } else {
+        // Use full problem object
+        problem = this.cloneProblem(problemData);
+      }
+      
       await this.storage.sessions.updateSession(sessionId, {
-        problemText,
-        exampleInput,
-        randomSeed,
-        attachedFiles,
+        problem,
         lastActivity: new Date(),
       });
-      console.log(`Updated problem for session ${sessionId}`);
+      console.log(`Updated session ${sessionId} with problem "${problem.title}"`);
       return true;
     } catch (error) {
-      console.error(`Failed to update problem for session ${sessionId}:`, error);
+      console.error(`Failed to update session problem ${sessionId}:`, error);
       return false;
     }
   }

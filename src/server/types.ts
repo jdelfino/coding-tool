@@ -1,4 +1,5 @@
 import { WebSocket } from 'ws';
+import { Problem } from './types/problem';
 
 /**
  * Structured type that holds code and execution parameters
@@ -24,10 +25,10 @@ export interface Student {
 export interface Session {
   id: string;
   joinCode: string;
-  problemText: string;
-  exampleInput?: string; // Optional example input for the problem
-  randomSeed?: number; // Optional random seed for reproducible random number generation
-  attachedFiles?: Array<{ name: string; content: string }>; // Optional files attached to the problem
+  
+  // ✅ Clean, modular problem sub-object
+  problem?: Problem; // Optional: session may have no problem initially
+  
   students: Map<string, Student>; // All students who have joined (preserves code across disconnects)
   instructorWs?: WebSocket;
   publicViewWs?: WebSocket;

@@ -250,10 +250,7 @@ class WebSocketHandler {
           joinCode: session.joinCode,
           sectionId: session.sectionId,
           sectionName: session.sectionName,
-          problemText: session.problemText,
-          exampleInput: session.exampleInput,
-          randomSeed: session.randomSeed,
-          attachedFiles: session.attachedFiles,
+          problem: session.problem,
         },
       });
       console.log('[handleCreateSession] Response sent successfully');
@@ -499,37 +496,51 @@ class WebSocketHandler {
       return;
     }
 
-    const { problemText, exampleInput, randomSeed, attachedFiles } = payload;
+    const { problemText, problem } = payload;
     
-    if (typeof problemText !== 'string') {
-      console.error('Invalid problem text type');
-      return;
+    // Support both legacy problemText and new problem object
+    if (problem) {
+      // New format: full problem object
+      await sessionManagerHolder.instance.updateSessionProblem(connection.sessionId, problem);
+      
+      // Broadcast to all students and public views
+      this.broadcastToSession(connection.sessionId, {
+        type: MessageType.PROBLEM_UPDATE,
+        payload: { problem },
+      }, 'student');
+      
+      this.broadcastToSession(connection.sessionId, {
+        type: MessageType.PROBLEM_UPDATE,
+        payload: { problem },
+      }, 'public');
+    } else if (problemText) {
+      // Legacy format: just text
+      if (typeof problemText !== 'string') {
+        console.error('Invalid problem text type');
+        return;
+      }
+      
+      if (problemText.length > 10000) {
+        console.error('Problem text too long');
+        return;
+      }
+      
+      await sessionManagerHolder.instance.updateSessionProblem(connection.sessionId, { text: problemText });
+      
+      // Get updated session to broadcast full problem
+      const session = await sessionManagerHolder.instance.getSession(connection.sessionId);
+      if (session) {
+        this.broadcastToSession(connection.sessionId, {
+          type: MessageType.PROBLEM_UPDATE,
+          payload: { problem: session.problem },
+        }, 'student');
+        
+        this.broadcastToSession(connection.sessionId, {
+          type: MessageType.PROBLEM_UPDATE,
+          payload: { problem: session.problem },
+        }, 'public');
+      }
     }
-    
-    if (problemText.length > 10000) {
-      console.error('Problem text too long');
-      return;
-    }
-
-    await sessionManagerHolder.instance.updateProblem(
-      connection.sessionId, 
-      problemText, 
-      exampleInput,
-      randomSeed,
-      attachedFiles
-    );
-
-    // Broadcast to all students
-    this.broadcastToSession(connection.sessionId, {
-      type: MessageType.PROBLEM_UPDATE,
-      payload: { problemText, exampleInput, randomSeed, attachedFiles },
-    }, 'student');
-    
-    // Also broadcast to public views
-    this.broadcastToSession(connection.sessionId, {
-      type: MessageType.PROBLEM_UPDATE,
-      payload: { problemText, exampleInput, randomSeed, attachedFiles },
-    }, 'public');
   }
 
   private async handleCodeUpdate(connection: Connection, payload: any) {
