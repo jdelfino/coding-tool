@@ -28,7 +28,7 @@ function ProblemsPage() {
 
   if (showCreator) {
     return (
-      <ProtectedRoute requiredPermission="problems.create">
+      <ProtectedRoute requiredRole="instructor">
         <div className="min-h-screen bg-gray-50 p-6">
           <div className="max-w-4xl mx-auto">
             <div className="mb-6">
@@ -53,7 +53,7 @@ function ProblemsPage() {
   }
 
   return (
-    <ProtectedRoute requiredPermission="problems.read">
+    <ProtectedRoute requiredRole="instructor">
       <div className="min-h-screen bg-gray-50 p-6">
         <div className="max-w-7xl mx-auto">
           <ProblemLibrary onCreateNew={() => setShowCreator(true)} />
