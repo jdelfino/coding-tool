@@ -8,6 +8,16 @@
 import { TestCase } from '../testing/types';
 
 /**
+ * Execution settings for running code
+ * Can be defined in a Problem (defaults), Session (session overrides), or Student (student overrides)
+ */
+export interface ExecutionSettings {
+  stdin?: string; // Standard input for the program
+  randomSeed?: number; // Seed for reproducible random number generation
+  attachedFiles?: Array<{ name: string; content: string }>; // Files available to the program
+}
+
+/**
  * A programming problem/exercise
  * 
  * Problems can be created offline, stored persistently, and loaded
@@ -32,6 +42,9 @@ export interface Problem {
   
   /** Test cases for verifying solutions (optional) */
   testCases?: TestCase[];
+  
+  /** Default execution settings (can be overridden by session or students) */
+  executionSettings?: ExecutionSettings;
   
   /** User ID of instructor who created this problem */
   authorId: string;

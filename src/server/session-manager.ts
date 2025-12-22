@@ -1,6 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
 import { Session, Student } from './types';
-import { Problem } from './types/problem';
+import { Problem, ExecutionSettings } from './types/problem';
 import { IStorageRepository, getStorage } from './persistence';
 
 export class SessionManager {
@@ -154,7 +154,11 @@ export class SessionManager {
    * Update session with a problem object
    * Creates a minimal Problem from text if needed, or uses full Problem object
    */
-  async updateSessionProblem(sessionId: string, problemData: Problem | { text: string }): Promise<boolean> {
+  async updateSessionProblem(
+    sessionId: string, 
+    problemData: Problem | { text: string },
+    executionSettings?: ExecutionSettings
+  ): Promise<boolean> {
     if (!this.storage) return false;
     
     try {
@@ -181,6 +185,7 @@ export class SessionManager {
       
       await this.storage.sessions.updateSession(sessionId, {
         problem,
+        executionSettings,
         lastActivity: new Date(),
       });
       console.log(`Updated session ${sessionId} with problem "${problem.title}"`);
@@ -294,8 +299,7 @@ export class SessionManager {
   async updateStudentSettings(
     sessionId: string, 
     studentId: string, 
-    randomSeed?: number,
-    attachedFiles?: Array<{ name: string; content: string }>
+    executionSettings: ExecutionSettings
   ): Promise<void> {
     const session = await this.getSession(sessionId);
     if (!session) {
@@ -307,13 +311,11 @@ export class SessionManager {
       throw new Error('Student not found');
     }
     
-    // Only update fields that are explicitly provided
-    if (randomSeed !== undefined) {
-      student.randomSeed = randomSeed;
-    }
-    if (attachedFiles !== undefined) {
-      student.attachedFiles = attachedFiles;
-    }
+    // Merge with existing settings (allows partial updates)
+    student.executionSettings = {
+      ...student.executionSettings,
+      ...executionSettings
+    };
     student.lastUpdate = new Date();
     
     if (this.storage) {
@@ -334,8 +336,7 @@ export class SessionManager {
    */
   async getStudentData(sessionId: string, studentId: string): Promise<{
     code: string;
-    randomSeed?: number;
-    attachedFiles?: Array<{ name: string; content: string }>;
+    executionSettings?: ExecutionSettings;
   } | undefined> {
     const session = await this.getSession(sessionId);
     if (!session) return undefined;
@@ -343,13 +344,28 @@ export class SessionManager {
     const student = session.students.get(studentId);
     if (!student) return undefined;
     
+    // Merge execution settings: problem defaults → session overrides → student overrides
+    const problemSettings = session.problem?.executionSettings;
+    const sessionSettings = session.executionSettings;
+    const studentSettings = student.executionSettings;
+    
+    // Build merged execution settings
+    const mergedSettings: ExecutionSettings = {
+      stdin: studentSettings?.stdin ?? sessionSettings?.stdin ?? problemSettings?.stdin,
+      randomSeed: studentSettings?.randomSeed ?? sessionSettings?.randomSeed ?? problemSettings?.randomSeed,
+      attachedFiles: studentSettings?.attachedFiles !== undefined
+        ? studentSettings.attachedFiles // explicit student override, even if empty array
+        : sessionSettings?.attachedFiles ?? problemSettings?.attachedFiles,
+    };
+    
+    // Only include executionSettings if at least one field is defined
+    const hasSettings = mergedSettings.stdin !== undefined || 
+                       mergedSettings.randomSeed !== undefined || 
+                       mergedSettings.attachedFiles !== undefined;
+    
     return {
       code: student.code,
-      // Use student's specific settings if set, otherwise fall back to session defaults
-      randomSeed: student.randomSeed !== undefined ? student.randomSeed : session.randomSeed,
-      attachedFiles: student.attachedFiles !== undefined
-        ? student.attachedFiles // explicit override, even if empty array
-        : session.attachedFiles,
+      executionSettings: hasSettings ? mergedSettings : undefined,
     };
   }
 
@@ -443,8 +459,7 @@ export class SessionManager {
   async getFeaturedSubmission(sessionId: string): Promise<{ 
     studentId?: string; 
     code?: string;
-    randomSeed?: number;
-    attachedFiles?: Array<{ name: string; content: string }>;
+    executionSettings?: ExecutionSettings;
   }> {
     const session = await this.getSession(sessionId);
     if (!session) return {};
@@ -457,8 +472,7 @@ export class SessionManager {
     return {
       studentId: session.featuredStudentId,
       code: session.featuredCode,
-      randomSeed: student?.randomSeed,
-      attachedFiles: student?.attachedFiles,
+      executionSettings: student?.executionSettings,
     };
   }
 

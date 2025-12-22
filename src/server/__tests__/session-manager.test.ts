@@ -45,7 +45,7 @@ describe('SessionManager', () => {
       expect(session).toBeDefined();
       expect(session.id).toBe('session-0');
       expect(session.joinCode).toMatch(/^[A-Z0-9]{6}$/);
-      expect(session.problemText).toBe('');
+      expect(session.problem).toBeUndefined(); // No problem initially
       expect(session.students).toBeInstanceOf(Map);
       expect(session.students.size).toBe(0);
       expect(session.status).toBe('active');
@@ -95,7 +95,7 @@ describe('SessionManager', () => {
     it('should validate initial session state', async () => {
       const session = await sessionManager.createSession('instructor-1', 'test-section-id', 'Test Section');
 
-      expect(session.problemText).toBe('');
+      expect(session.problem).toBeUndefined();
       expect(session.participants).toEqual([]);
       expect(session.status).toBe('active');
       expect(session.createdAt).toBeInstanceOf(Date);
@@ -261,28 +261,29 @@ describe('SessionManager', () => {
 
     it('should update problem text', async () => {
       const problemText = 'Write a function to reverse a string';
-      const result = await sessionManager.updateProblem(session.id, problemText);
+      const result = await sessionManager.updateSessionProblem(session.id, { text: problemText });
 
       expect(result).toBe(true);
 
       const updated = await sessionManager.getSession(session.id);
-      expect(updated?.problemText).toBe(problemText);
+      expect(updated?.problem).toBeDefined();
+      expect(updated?.problem?.description).toBe(problemText);
     });
 
     it('should clear problem text', async () => {
-      await sessionManager.updateProblem(session.id, 'Some problem');
-      await sessionManager.updateProblem(session.id, '');
+      await sessionManager.updateSessionProblem(session.id, { text: 'Some problem' });
+      await sessionManager.updateSessionProblem(session.id, { text: '' });
 
       const updated = await sessionManager.getSession(session.id);
-      expect(updated?.problemText).toBe('');
+      expect(updated?.problem?.description).toBe('');
     });
 
     it('should persist problem updates', async () => {
       const problemText = 'Calculate factorial';
-      await sessionManager.updateProblem(session.id, problemText);
+      await sessionManager.updateSessionProblem(session.id, { text: problemText });
 
       const stored = await storage.sessions.getSession(session.id);
-      expect(stored?.problemText).toBe(problemText);
+      expect(stored?.problem?.description).toBe(problemText);
     });
 
     it('should update last activity on problem change', async () => {
@@ -291,16 +292,16 @@ describe('SessionManager', () => {
       // Wait a bit to ensure different timestamp
       await new Promise(resolve => setTimeout(resolve, 10));
       
-      await sessionManager.updateProblem(session.id, 'New problem');
+      await sessionManager.updateSessionProblem(session.id, { text: 'New problem' });
 
       const updated = await sessionManager.getSession(session.id);
       expect(updated?.lastActivity.getTime()).toBeGreaterThan(before.getTime());
     });
 
     it('should succeed even for non-existent session (no existence check)', async () => {
-      // Note: updateProblem doesn't validate session existence, just attempts update
-      const result = await sessionManager.updateProblem('invalid-id', 'Problem');
-      expect(result).toBe(true);
+      // Note: updateSessionProblem doesn't validate session existence, just attempts update
+      const result = await sessionManager.updateSessionProblem('invalid-id', { text: 'Problem' });
+      expect(result).toBe(false); // Should return false for non-existent session
     });
   });
 
@@ -448,7 +449,7 @@ describe('SessionManager', () => {
       const initialActivity = session.lastActivity;
 
       await new Promise(resolve => setTimeout(resolve, 10));
-      await sessionManager.updateProblem(session.id, 'New problem');
+      await sessionManager.updateSessionProblem(session.id, { text: 'New problem' });
 
       const updated = await sessionManager.getSession(session.id);
       expect(updated?.lastActivity.getTime()).toBeGreaterThan(initialActivity.getTime());
@@ -607,14 +608,13 @@ describe('SessionManager', () => {
       
       storage.sessions.updateSession = jest.fn().mockRejectedValue(new Error('Update failed'));
 
-      const result = await sessionManager.updateProblem(session.id, 'New problem');
+      const result = await sessionManager.updateSessionProblem(session.id, { text: 'New problem' });
       expect(result).toBe(false);
     });
 
     it('should handle missing session gracefully', async () => {
-      // Note: updateProblem doesn't validate session existence
-      const result = await sessionManager.updateProblem('invalid-id', 'Problem');
-      expect(result).toBe(true);
+      const result = await sessionManager.updateSessionProblem('invalid-id', { text: 'Problem' });
+      expect(result).toBe(false);
     });
 
     it('should handle invalid session IDs', async () => {
@@ -648,10 +648,10 @@ describe('SessionManager', () => {
 
     it('should persist updates to storage', async () => {
       const session = await sessionManager.createSession('test-instructor', 'test-section-id', 'Test Section');
-      await sessionManager.updateProblem(session.id, 'Test problem');
+      await sessionManager.updateSessionProblem(session.id, { text: 'Test problem' });
 
       const stored = await storage.sessions.getSession(session.id);
-      expect(stored?.problemText).toBe('Test problem');
+      expect(stored?.problem?.description).toBe('Test problem');
     });
 
     it('should load sessions on initialize', async () => {
@@ -769,10 +769,10 @@ describe('SessionManager', () => {
       const session = await sessionManager.createSession('test-instructor', 'test-section-id', 'Test Section');
       const longText = 'x'.repeat(10000);
 
-      await sessionManager.updateProblem(session.id, longText);
+      await sessionManager.updateSessionProblem(session.id, { text: longText });
 
       const updated = await sessionManager.getSession(session.id);
-      expect(updated?.problemText).toBe(longText);
+      expect(updated?.problem?.description).toBe(longText);
     });
 
     it('should handle special characters in student names', async () => {
@@ -798,7 +798,7 @@ describe('SessionManager', () => {
       const session = await sessionManager.createSession('test-instructor', 'test-section-id', 'Test Section');
 
       // These should not throw
-      await sessionManager.updateProblem(session.id, '');
+      await sessionManager.updateSessionProblem(session.id, { text: '' });
       await sessionManager.updateStudentCode(session.id, 'student-1', '');
     });
 
@@ -806,7 +806,7 @@ describe('SessionManager', () => {
       const managerNoStorage = new SessionManager();
 
       // Operations should return false/empty without storage
-      const result = await managerNoStorage.updateProblem('id', 'text');
+      const result = await managerNoStorage.updateSessionProblem('id', { text: 'text' });
       expect(result).toBe(false);
 
       const sessions = await managerNoStorage.listSessions();
@@ -964,10 +964,10 @@ describe('SessionManager', () => {
       const session = await sessionManager.createSession('instructor-1', 'test-section-id', 'Test Section');
       await sessionManager.addStudent(session.id, 'student-1', 'Student One');
 
-      await sessionManager.updateStudentSettings(session.id, 'student-1', 42, undefined);
+      await sessionManager.updateStudentSettings(session.id, 'student-1', { randomSeed: 42 });
 
       const studentData = await sessionManager.getStudentData(session.id, 'student-1');
-      expect(studentData?.randomSeed).toBe(42);
+      expect(studentData?.executionSettings?.randomSeed).toBe(42);
     });
 
     it('should update student attached files', async () => {
@@ -979,10 +979,10 @@ describe('SessionManager', () => {
         { name: 'config.json', content: '{"key": "value"}' }
       ];
 
-      await sessionManager.updateStudentSettings(session.id, 'student-1', undefined, files);
+      await sessionManager.updateStudentSettings(session.id, 'student-1', { attachedFiles: files });
 
       const studentData = await sessionManager.getStudentData(session.id, 'student-1');
-      expect(studentData?.attachedFiles).toEqual(files);
+      expect(studentData?.executionSettings?.attachedFiles).toEqual(files);
     });
 
     it('should update both random seed and attached files', async () => {
@@ -990,21 +990,21 @@ describe('SessionManager', () => {
       await sessionManager.addStudent(session.id, 'student-1', 'Student One');
 
       const files = [{ name: 'test.txt', content: 'content' }];
-      await sessionManager.updateStudentSettings(session.id, 'student-1', 123, files);
+      await sessionManager.updateStudentSettings(session.id, 'student-1', { randomSeed: 123, attachedFiles: files });
 
       const studentData = await sessionManager.getStudentData(session.id, 'student-1');
-      expect(studentData?.randomSeed).toBe(123);
-      expect(studentData?.attachedFiles).toEqual(files);
+      expect(studentData?.executionSettings?.randomSeed).toBe(123);
+      expect(studentData?.executionSettings?.attachedFiles).toEqual(files);
     });
 
     it('should allow setting random seed to 0', async () => {
       const session = await sessionManager.createSession('instructor-1', 'test-section-id', 'Test Section');
       await sessionManager.addStudent(session.id, 'student-1', 'Student One');
 
-      await sessionManager.updateStudentSettings(session.id, 'student-1', 0, undefined);
+      await sessionManager.updateStudentSettings(session.id, 'student-1', { randomSeed: 0 });
 
       const studentData = await sessionManager.getStudentData(session.id, 'student-1');
-      expect(studentData?.randomSeed).toBe(0);
+      expect(studentData?.executionSettings?.randomSeed).toBe(0);
     });
 
     it('should not change random seed when passed undefined', async () => {
@@ -1012,15 +1012,15 @@ describe('SessionManager', () => {
       await sessionManager.addStudent(session.id, 'student-1', 'Student One');
 
       // Set seed
-      await sessionManager.updateStudentSettings(session.id, 'student-1', 42, undefined);
+      await sessionManager.updateStudentSettings(session.id, 'student-1', { randomSeed: 42 });
       const data1 = await sessionManager.getStudentData(session.id, 'student-1');
-      expect(data1?.randomSeed).toBe(42);
+      expect(data1?.executionSettings?.randomSeed).toBe(42);
 
       // Update files only - seed should remain
-      await sessionManager.updateStudentSettings(session.id, 'student-1', undefined, [{ name: 'test.txt', content: 'content' }]);
+      await sessionManager.updateStudentSettings(session.id, 'student-1', { attachedFiles: [{ name: 'test.txt', content: 'content' }] });
       const data2 = await sessionManager.getStudentData(session.id, 'student-1');
-      expect(data2?.randomSeed).toBe(42);
-      expect(data2?.attachedFiles).toEqual([{ name: 'test.txt', content: 'content' }]);
+      expect(data2?.executionSettings?.randomSeed).toBe(42);
+      expect(data2?.executionSettings?.attachedFiles).toEqual([{ name: 'test.txt', content: 'content' }]);
     });
 
     it('should not change attached files when passed undefined', async () => {
@@ -1029,15 +1029,15 @@ describe('SessionManager', () => {
 
       // Set files
       const files = [{ name: 'test.txt', content: 'content' }];
-      await sessionManager.updateStudentSettings(session.id, 'student-1', undefined, files);
+      await sessionManager.updateStudentSettings(session.id, 'student-1', { attachedFiles: files });
       const data1 = await sessionManager.getStudentData(session.id, 'student-1');
-      expect(data1?.attachedFiles).toEqual(files);
+      expect(data1?.executionSettings?.attachedFiles).toEqual(files);
 
       // Update seed only - files should remain
-      await sessionManager.updateStudentSettings(session.id, 'student-1', 99, undefined);
+      await sessionManager.updateStudentSettings(session.id, 'student-1', { randomSeed: 99 });
       const data2 = await sessionManager.getStudentData(session.id, 'student-1');
-      expect(data2?.randomSeed).toBe(99);
-      expect(data2?.attachedFiles).toEqual(files);
+      expect(data2?.executionSettings?.randomSeed).toBe(99);
+      expect(data2?.executionSettings?.attachedFiles).toEqual(files);
     });
 
     it('should persist student settings to storage', async () => {
@@ -1045,19 +1045,19 @@ describe('SessionManager', () => {
       await sessionManager.addStudent(session.id, 'student-1', 'Student One');
 
       const files = [{ name: 'test.txt', content: 'content' }];
-      await sessionManager.updateStudentSettings(session.id, 'student-1', 99, files);
+      await sessionManager.updateStudentSettings(session.id, 'student-1', { randomSeed: 99, attachedFiles: files });
 
       // Retrieve from storage
       const storedSession = await storage.sessions.getSession(session.id);
       const storedStudent = storedSession?.students.get('student-1');
 
-      expect(storedStudent?.randomSeed).toBe(99);
-      expect(storedStudent?.attachedFiles).toEqual(files);
+      expect(storedStudent?.executionSettings?.randomSeed).toBe(99);
+      expect(storedStudent?.executionSettings?.attachedFiles).toEqual(files);
     });
 
     it('should throw error when session does not exist', async () => {
       await expect(
-        sessionManager.updateStudentSettings('non-existent', 'student-1', 42, undefined)
+        sessionManager.updateStudentSettings('non-existent', 'student-1', { randomSeed: 42 })
       ).rejects.toThrow('Session not found');
     });
 
@@ -1065,7 +1065,7 @@ describe('SessionManager', () => {
       const session = await sessionManager.createSession('instructor-1', 'test-section-id', 'Test Section');
 
       await expect(
-        sessionManager.updateStudentSettings(session.id, 'non-existent-student', 42, undefined)
+        sessionManager.updateStudentSettings(session.id, 'non-existent-student', { randomSeed: 42 })
       ).rejects.toThrow('Student not found');
     });
 
@@ -1086,14 +1086,14 @@ describe('SessionManager', () => {
       await sessionManager.addStudent(session.id, 'student-1', 'Student One');
 
       const files = [{ name: 'test.txt', content: 'content' }];
-      await sessionManager.updateStudentSettings(session.id, 'student-1', 42, files);
+      await sessionManager.updateStudentSettings(session.id, 'student-1', { randomSeed: 42, attachedFiles: files });
 
       const studentData = await sessionManager.getStudentData(session.id, 'student-1');
 
       expect(studentData).toBeDefined();
       expect(studentData?.code).toBeDefined(); // Empty string initially
-      expect(studentData?.randomSeed).toBe(42);
-      expect(studentData?.attachedFiles).toEqual(files);
+      expect(studentData?.executionSettings?.randomSeed).toBe(42);
+      expect(studentData?.executionSettings?.attachedFiles).toEqual(files);
     });
 
     it('should maintain independent settings for different students', async () => {
@@ -1101,17 +1101,17 @@ describe('SessionManager', () => {
       await sessionManager.addStudent(session.id, 'student-1', 'Student One');
       await sessionManager.addStudent(session.id, 'student-2', 'Student Two');
 
-      await sessionManager.updateStudentSettings(session.id, 'student-1', 42, [{ name: 'file1.txt', content: 'content1' }]);
-      await sessionManager.updateStudentSettings(session.id, 'student-2', 99, [{ name: 'file2.txt', content: 'content2' }]);
+      await sessionManager.updateStudentSettings(session.id, 'student-1', { randomSeed: 42, attachedFiles: [{ name: 'file1.txt', content: 'content1' }] });
+      await sessionManager.updateStudentSettings(session.id, 'student-2', { randomSeed: 99, attachedFiles: [{ name: 'file2.txt', content: 'content2' }] });
 
       const student1 = await sessionManager.getStudentData(session.id, 'student-1');
       const student2 = await sessionManager.getStudentData(session.id, 'student-2');
 
-      expect(student1?.randomSeed).toBe(42);
-      expect(student1?.attachedFiles).toEqual([{ name: 'file1.txt', content: 'content1' }]);
+      expect(student1?.executionSettings?.randomSeed).toBe(42);
+      expect(student1?.executionSettings?.attachedFiles).toEqual([{ name: 'file1.txt', content: 'content1' }]);
 
-      expect(student2?.randomSeed).toBe(99);
-      expect(student2?.attachedFiles).toEqual([{ name: 'file2.txt', content: 'content2' }]);
+      expect(student2?.executionSettings?.randomSeed).toBe(99);
+      expect(student2?.executionSettings?.attachedFiles).toEqual([{ name: 'file2.txt', content: 'content2' }]);
     });
 
     it('should handle updating settings multiple times', async () => {
@@ -1119,21 +1119,21 @@ describe('SessionManager', () => {
       await sessionManager.addStudent(session.id, 'student-1', 'Student One');
 
       // First update
-      await sessionManager.updateStudentSettings(session.id, 'student-1', 10, [{ name: 'file1.txt', content: 'content1' }]);
+      await sessionManager.updateStudentSettings(session.id, 'student-1', { randomSeed: 10, attachedFiles: [{ name: 'file1.txt', content: 'content1' }] });
       const data1 = await sessionManager.getStudentData(session.id, 'student-1');
-      expect(data1?.randomSeed).toBe(10);
+      expect(data1?.executionSettings?.randomSeed).toBe(10);
 
       // Second update - change seed only
-      await sessionManager.updateStudentSettings(session.id, 'student-1', 20, undefined);
+      await sessionManager.updateStudentSettings(session.id, 'student-1', { randomSeed: 20 });
       const data2 = await sessionManager.getStudentData(session.id, 'student-1');
-      expect(data2?.randomSeed).toBe(20);
-      expect(data2?.attachedFiles).toEqual([{ name: 'file1.txt', content: 'content1' }]);
+      expect(data2?.executionSettings?.randomSeed).toBe(20);
+      expect(data2?.executionSettings?.attachedFiles).toEqual([{ name: 'file1.txt', content: 'content1' }]);
 
       // Third update - change files only
-      await sessionManager.updateStudentSettings(session.id, 'student-1', undefined, [{ name: 'file2.txt', content: 'content2' }]);
+      await sessionManager.updateStudentSettings(session.id, 'student-1', { attachedFiles: [{ name: 'file2.txt', content: 'content2' }] });
       const data3 = await sessionManager.getStudentData(session.id, 'student-1');
-      expect(data3?.randomSeed).toBe(20);
-      expect(data3?.attachedFiles).toEqual([{ name: 'file2.txt', content: 'content2' }]);
+      expect(data3?.executionSettings?.randomSeed).toBe(20);
+      expect(data3?.executionSettings?.attachedFiles).toEqual([{ name: 'file2.txt', content: 'content2' }]);
     });
   });
 });

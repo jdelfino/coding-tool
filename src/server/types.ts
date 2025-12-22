@@ -1,9 +1,8 @@
 import { WebSocket } from 'ws';
-import { Problem } from './types/problem';
+import { Problem, ExecutionSettings } from './types/problem';
 
 /**
  * Structured type that holds code and execution parameters
- * Future fields: randomSeed, inputFiles, testCases, etc.
  */
 export interface CodeSubmission {
   code: string;
@@ -18,8 +17,8 @@ export interface Student {
   code: string;
   ws?: WebSocket;
   lastUpdate: Date;
-  randomSeed?: number; // Student's random seed (overrides session default)
-  attachedFiles?: Array<{ name: string; content: string }>; // Student's files (overrides session default)
+  // Execution settings (overrides session/problem defaults)
+  executionSettings?: ExecutionSettings;
 }
 
 export interface Session {
@@ -28,6 +27,9 @@ export interface Session {
   
   // ✅ Clean, modular problem sub-object
   problem?: Problem; // Optional: session may have no problem initially
+  
+  // Execution settings (session-level overrides of problem defaults, students can override further)
+  executionSettings?: ExecutionSettings;
   
   students: Map<string, Student>; // All students who have joined (preserves code across disconnects)
   instructorWs?: WebSocket;

@@ -38,7 +38,7 @@ describe('WebSocket Student Settings Messages', () => {
         { name: 'data.txt', content: 'test data' },
         { name: 'config.json', content: '{"key": "value"}' }
       ];
-      await sessionManager.updateStudentSettings(session.id, 'student-1', randomSeed, attachedFiles);
+      await sessionManager.updateStudentSettings(session.id, 'student-1', { randomSeed, attachedFiles });
 
       // Update student code
       await sessionManager.updateStudentCode(session.id, 'student-1', 'print("hello")');
@@ -49,8 +49,8 @@ describe('WebSocket Student Settings Messages', () => {
       // Verify all fields are present
       expect(studentData).toBeDefined();
       expect(studentData?.code).toBe('print("hello")');
-      expect(studentData?.randomSeed).toBe(42);
-      expect(studentData?.attachedFiles).toEqual(attachedFiles);
+      expect(studentData?.executionSettings?.randomSeed).toBe(42);
+      expect(studentData?.executionSettings?.attachedFiles).toEqual(attachedFiles);
     });
 
     it('should handle student with no execution settings', async () => {
@@ -62,8 +62,8 @@ describe('WebSocket Student Settings Messages', () => {
 
       expect(studentData).toBeDefined();
       expect(studentData?.code).toBe('print("hello")');
-      expect(studentData?.randomSeed).toBeUndefined();
-      expect(studentData?.attachedFiles).toBeUndefined();
+      expect(studentData?.executionSettings?.randomSeed).toBeUndefined();
+      expect(studentData?.executionSettings?.attachedFiles).toBeUndefined();
     });
 
     it('should return undefined for non-existent student', async () => {
@@ -91,12 +91,10 @@ describe('WebSocket Student Settings Messages', () => {
       const sessionFiles = [
         { name: 'session_data.txt', content: 'session default data' }
       ];
-      await sessionManager.updateProblem(
+      await sessionManager.updateSessionProblem(
         session.id,
-        'Problem with defaults',
-        'example input',
-        sessionSeed,
-        sessionFiles
+        { text: 'Problem with defaults' },
+        { stdin: 'example input', randomSeed: sessionSeed, attachedFiles: sessionFiles }
       );
 
       // Student joins and writes code but doesn't modify execution settings
@@ -108,8 +106,8 @@ describe('WebSocket Student Settings Messages', () => {
 
       expect(studentData).toBeDefined();
       expect(studentData?.code).toBe('print("using defaults")');
-      expect(studentData?.randomSeed).toBe(sessionSeed); // Should get session default
-      expect(studentData?.attachedFiles).toEqual(sessionFiles); // Should get session default
+      expect(studentData?.executionSettings?.randomSeed).toBe(sessionSeed); // Should get session default
+      expect(studentData?.executionSettings?.attachedFiles).toEqual(sessionFiles); // Should get session default
     });
 
     it('should return student overrides when student has modified execution settings', async () => {
@@ -118,12 +116,10 @@ describe('WebSocket Student Settings Messages', () => {
       const session = await sessionManager.createSession('instructor-1', 'section-1', 'Test Section');
       
       // Set session-level defaults
-      await sessionManager.updateProblem(
+      await sessionManager.updateSessionProblem(
         session.id,
-        'Problem',
-        'example',
-        100, // session seed
-        [{ name: 'session.txt', content: 'session file' }]
+        { text: 'Problem' },
+        { stdin: 'example', randomSeed: 100, attachedFiles: [{ name: 'session.txt', content: 'session file' }] }
       );
 
       // Student joins
@@ -132,15 +128,15 @@ describe('WebSocket Student Settings Messages', () => {
       // Student sets their own execution settings (overrides)
       const studentSeed = 42;
       const studentFiles = [{ name: 'student.txt', content: 'student file' }];
-      await sessionManager.updateStudentSettings(session.id, 'student-1', studentSeed, studentFiles);
+      await sessionManager.updateStudentSettings(session.id, 'student-1', { randomSeed: studentSeed, attachedFiles: studentFiles });
       await sessionManager.updateStudentCode(session.id, 'student-1', 'print("overridden")');
 
       // Instructor views student code - should see student's overrides
       const studentData = await sessionManager.getStudentData(session.id, 'student-1');
 
       expect(studentData).toBeDefined();
-      expect(studentData?.randomSeed).toBe(studentSeed); // Student override, not session default
-      expect(studentData?.attachedFiles).toEqual(studentFiles); // Student override, not session default
+      expect(studentData?.executionSettings?.randomSeed).toBe(studentSeed); // Student override, not session default
+      expect(studentData?.executionSettings?.attachedFiles).toEqual(studentFiles); // Student override, not session default
     });
 
     it('should handle mix of session defaults and student overrides', async () => {
@@ -149,12 +145,10 @@ describe('WebSocket Student Settings Messages', () => {
       const session = await sessionManager.createSession('instructor-1', 'section-1', 'Test Section');
       
       // Set session defaults for both seed and files
-      await sessionManager.updateProblem(
+      await sessionManager.updateSessionProblem(
         session.id,
-        'Problem',
-        'example',
-        200, // session seed
-        [{ name: 'default.txt', content: 'default' }]
+        { text: 'Problem' },
+        { stdin: 'example', randomSeed: 200, attachedFiles: [{ name: 'default.txt', content: 'default' }] }
       );
 
       // Student joins and only overrides seed, not files
@@ -162,15 +156,14 @@ describe('WebSocket Student Settings Messages', () => {
       await sessionManager.updateStudentSettings(
         session.id, 
         'student-1', 
-        777, // override seed
-        undefined // don't override files
+        { randomSeed: 777 } // override seed only
       );
       await sessionManager.updateStudentCode(session.id, 'student-1', 'code');
 
       const studentData = await sessionManager.getStudentData(session.id, 'student-1');
 
-      expect(studentData?.randomSeed).toBe(777); // Student override
-      expect(studentData?.attachedFiles).toEqual([{ name: 'default.txt', content: 'default' }]); // Session default
+      expect(studentData?.executionSettings?.randomSeed).toBe(777); // Student override
+      expect(studentData?.executionSettings?.attachedFiles).toEqual([{ name: 'default.txt', content: 'default' }]); // Session default
     });
 
 
@@ -180,12 +173,10 @@ describe('WebSocket Student Settings Messages', () => {
       const session = await sessionManager.createSession('instructor-1', 'section-1', 'Test Section');
       // Set session defaults
       const sessionFiles = [{ name: 'session.txt', content: 'session file' }];
-      await sessionManager.updateProblem(
+      await sessionManager.updateSessionProblem(
         session.id,
-        'Problem',
-        'input',
-        100,
-        sessionFiles
+        { text: 'Problem' },
+        { stdin: 'input', randomSeed: 100, attachedFiles: sessionFiles }
       );
       // Student joins
       await sessionManager.addStudent(session.id, 'student-1', 'Student One');
@@ -193,13 +184,12 @@ describe('WebSocket Student Settings Messages', () => {
       await sessionManager.updateStudentSettings(
         session.id,
         'student-1',
-        undefined,
-        [] // Empty array - student removed all files
+        { attachedFiles: [] } // Empty array - student removed all files
       );
       await sessionManager.updateStudentCode(session.id, 'student-1', 'code');
       const studentData = await sessionManager.getStudentData(session.id, 'student-1');
       // Should be empty array, not session default
-      expect(studentData?.attachedFiles).toEqual([]);
+      expect(studentData?.executionSettings?.attachedFiles).toEqual([]);
     });
 
     it('should handle empty session defaults correctly', async () => {
@@ -217,8 +207,8 @@ describe('WebSocket Student Settings Messages', () => {
 
       expect(studentData).toBeDefined();
       expect(studentData?.code).toBe('code');
-      expect(studentData?.randomSeed).toBeUndefined(); // Both session and student are undefined
-      expect(studentData?.attachedFiles).toBeUndefined(); // Both session and student are undefined
+      expect(studentData?.executionSettings?.randomSeed).toBeUndefined(); // Both session and student are undefined
+      expect(studentData?.executionSettings?.attachedFiles).toBeUndefined(); // Both session and student are undefined
     });
 
     it('should return session defaults in STUDENT_CODE scenario (instructor viewing student)', async () => {
@@ -232,12 +222,10 @@ describe('WebSocket Student Settings Messages', () => {
       const sessionFiles = [
         { name: 'default_data.txt', content: 'default content' }
       ];
-      await sessionManager.updateProblem(
+      await sessionManager.updateSessionProblem(
         session.id,
-        'Problem text',
-        'example: 5',
-        sessionSeed,
-        sessionFiles
+        { text: 'Problem text' },
+        { stdin: 'example: 5', randomSeed: sessionSeed, attachedFiles: sessionFiles }
       );
 
       // Student joins and writes code but doesn't modify execution settings
@@ -249,8 +237,8 @@ describe('WebSocket Student Settings Messages', () => {
 
       // This data gets sent in STUDENT_CODE message
       expect(studentData?.code).toBe('student_code');
-      expect(studentData?.randomSeed).toBe(sessionSeed); // Should see session default
-      expect(studentData?.attachedFiles).toEqual(sessionFiles); // Should see session default
+      expect(studentData?.executionSettings?.randomSeed).toBe(sessionSeed); // Should see session default
+      expect(studentData?.executionSettings?.attachedFiles).toEqual(sessionFiles); // Should see session default
     });
   });
 
@@ -260,14 +248,16 @@ describe('WebSocket Student Settings Messages', () => {
       
       // Add multiple students with different settings
       await sessionManager.addStudent(session.id, 'student-1', 'Alice');
-      await sessionManager.updateStudentSettings(session.id, 'student-1', 42, [
-        { name: 'data1.txt', content: 'content1' }
-      ]);
+      await sessionManager.updateStudentSettings(session.id, 'student-1', { 
+        randomSeed: 42,
+        attachedFiles: [{ name: 'data1.txt', content: 'content1' }]
+      });
 
       await sessionManager.addStudent(session.id, 'student-2', 'Bob');
-      await sessionManager.updateStudentSettings(session.id, 'student-2', 99, [
-        { name: 'data2.txt', content: 'content2' }
-      ]);
+      await sessionManager.updateStudentSettings(session.id, 'student-2', {
+        randomSeed: 99,
+        attachedFiles: [{ name: 'data2.txt', content: 'content2' }]
+      });
 
       await sessionManager.addStudent(session.id, 'student-3', 'Charlie');
       // student-3 has no custom settings
@@ -279,18 +269,18 @@ describe('WebSocket Student Settings Messages', () => {
 
       // Verify student 1 has settings
       const student1 = students.find(s => s.id === 'student-1');
-      expect(student1?.randomSeed).toBe(42);
-      expect(student1?.attachedFiles).toEqual([{ name: 'data1.txt', content: 'content1' }]);
+      expect(student1?.executionSettings?.randomSeed).toBe(42);
+      expect(student1?.executionSettings?.attachedFiles).toEqual([{ name: 'data1.txt', content: 'content1' }]);
 
       // Verify student 2 has different settings
       const student2 = students.find(s => s.id === 'student-2');
-      expect(student2?.randomSeed).toBe(99);
-      expect(student2?.attachedFiles).toEqual([{ name: 'data2.txt', content: 'content2' }]);
+      expect(student2?.executionSettings?.randomSeed).toBe(99);
+      expect(student2?.executionSettings?.attachedFiles).toEqual([{ name: 'data2.txt', content: 'content2' }]);
 
       // Verify student 3 has no settings
       const student3 = students.find(s => s.id === 'student-3');
-      expect(student3?.randomSeed).toBeUndefined();
-      expect(student3?.attachedFiles).toBeUndefined();
+      expect(student3?.executionSettings?.randomSeed).toBeUndefined();
+      expect(student3?.executionSettings?.attachedFiles).toBeUndefined();
     });
 
     it('should include session defaults in student list when students have not modified settings', async () => {
@@ -304,12 +294,10 @@ describe('WebSocket Student Settings Messages', () => {
       const sessionFiles = [
         { name: 'session_default.txt', content: 'default for all' }
       ];
-      await sessionManager.updateProblem(
+      await sessionManager.updateSessionProblem(
         session.id,
-        'Problem',
-        'input',
-        sessionSeed,
-        sessionFiles
+        { text: 'Problem' },
+        { stdin: 'input', randomSeed: sessionSeed, attachedFiles: sessionFiles }
       );
 
       // Add student who doesn't modify settings
@@ -320,8 +308,8 @@ describe('WebSocket Student Settings Messages', () => {
       const students = await sessionManager.getStudents(session.id);
       
       // Student object itself doesn't have the settings
-      expect(students[0].randomSeed).toBeUndefined();
-      expect(students[0].attachedFiles).toBeUndefined();
+      expect(students[0].executionSettings?.randomSeed).toBeUndefined();
+      expect(students[0].executionSettings?.attachedFiles).toBeUndefined();
 
       // But broadcastStudentList should apply session defaults
       // (This is what the websocket handler does - it needs to get the session
@@ -331,8 +319,8 @@ describe('WebSocket Student Settings Messages', () => {
         id: s.id,
         name: s.name,
         hasCode: s.code.length > 0,
-        randomSeed: s.randomSeed !== undefined ? s.randomSeed : sessionData!.randomSeed,
-        attachedFiles: s.attachedFiles !== undefined ? s.attachedFiles : sessionData!.attachedFiles,
+        randomSeed: s.executionSettings?.randomSeed !== undefined ? s.executionSettings?.randomSeed : sessionData!.executionSettings?.randomSeed,
+        attachedFiles: s.executionSettings?.attachedFiles !== undefined ? s.executionSettings?.attachedFiles : sessionData!.executionSettings?.attachedFiles,
       }));
 
       // Verify the list includes session defaults
@@ -353,28 +341,29 @@ describe('WebSocket Student Settings Messages', () => {
       await sessionManager.addStudent(session.id, 'student-1', 'Student One');
 
       // Set initial settings
-      await sessionManager.updateStudentSettings(session.id, 'student-1', 10, [
-        { name: 'file1.txt', content: 'content1' }
-      ]);
+      await sessionManager.updateStudentSettings(session.id, 'student-1', {
+        randomSeed: 10,
+        attachedFiles: [{ name: 'file1.txt', content: 'content1' }]
+      });
 
       let students = await sessionManager.getStudents(session.id);
-      expect(students[0].randomSeed).toBe(10);
+      expect(students[0].executionSettings?.randomSeed).toBe(10);
 
       // Update only seed
-      await sessionManager.updateStudentSettings(session.id, 'student-1', 20, undefined);
+      await sessionManager.updateStudentSettings(session.id, 'student-1', { randomSeed: 20 });
 
       students = await sessionManager.getStudents(session.id);
-      expect(students[0].randomSeed).toBe(20);
-      expect(students[0].attachedFiles).toEqual([{ name: 'file1.txt', content: 'content1' }]);
+      expect(students[0].executionSettings?.randomSeed).toBe(20);
+      expect(students[0].executionSettings?.attachedFiles).toEqual([{ name: 'file1.txt', content: 'content1' }]);
 
       // Update only files
-      await sessionManager.updateStudentSettings(session.id, 'student-1', undefined, [
-        { name: 'file2.txt', content: 'content2' }
-      ]);
+      await sessionManager.updateStudentSettings(session.id, 'student-1', {
+        attachedFiles: [{ name: 'file2.txt', content: 'content2' }]
+      });
 
       students = await sessionManager.getStudents(session.id);
-      expect(students[0].randomSeed).toBe(20);
-      expect(students[0].attachedFiles).toEqual([{ name: 'file2.txt', content: 'content2' }]);
+      expect(students[0].executionSettings?.randomSeed).toBe(20);
+      expect(students[0].executionSettings?.attachedFiles).toEqual([{ name: 'file2.txt', content: 'content2' }]);
     });
   });
 
@@ -384,9 +373,10 @@ describe('WebSocket Student Settings Messages', () => {
       await sessionManager.addStudent(session.id, 'student-1', 'Student One');
 
       // Set student's execution settings
-      await sessionManager.updateStudentSettings(session.id, 'student-1', 42, [
-        { name: 'data.txt', content: 'test data' }
-      ]);
+      await sessionManager.updateStudentSettings(session.id, 'student-1', {
+        randomSeed: 42,
+        attachedFiles: [{ name: 'data.txt', content: 'test data' }]
+      });
       await sessionManager.updateStudentCode(session.id, 'student-1', 'print("featured")');
 
       // Select as featured
@@ -397,8 +387,8 @@ describe('WebSocket Student Settings Messages', () => {
 
       expect(featured.studentId).toBe('student-1');
       expect(featured.code).toBe('print("featured")');
-      expect(featured.randomSeed).toBe(42);
-      expect(featured.attachedFiles).toEqual([{ name: 'data.txt', content: 'test data' }]);
+      expect(featured.executionSettings?.randomSeed).toBe(42);
+      expect(featured.executionSettings?.attachedFiles).toEqual([{ name: 'data.txt', content: 'test data' }]);
     });
 
     it('should handle featured submission with no execution settings', async () => {
@@ -411,8 +401,8 @@ describe('WebSocket Student Settings Messages', () => {
 
       expect(featured.studentId).toBe('student-1');
       expect(featured.code).toBe('print("featured")');
-      expect(featured.randomSeed).toBeUndefined();
-      expect(featured.attachedFiles).toBeUndefined();
+      expect(featured.executionSettings?.randomSeed).toBeUndefined();
+      expect(featured.executionSettings?.attachedFiles).toBeUndefined();
     });
 
     it('should return empty object when no featured submission', async () => {
@@ -440,9 +430,10 @@ describe('WebSocket Student Settings Messages', () => {
       await sessionManager.addStudent(session.id, 'student-1', 'Student One');
       
       await sessionManager.updateStudentCode(session.id, 'student-1', 'print("test")');
-      await sessionManager.updateStudentSettings(session.id, 'student-1', 123, [
-        { name: 'input.txt', content: 'test input' }
-      ]);
+      await sessionManager.updateStudentSettings(session.id, 'student-1', {
+        randomSeed: 123,
+        attachedFiles: [{ name: 'input.txt', content: 'test input' }]
+      });
 
       // This is what the fixed handleRequestStudentCode now uses
       const data = await sessionManager.getStudentData(session.id, 'student-1');
@@ -450,9 +441,9 @@ describe('WebSocket Student Settings Messages', () => {
       // All three fields must be present
       expect(data).toBeDefined();
       expect(data?.code).toBe('print("test")');
-      expect(data?.randomSeed).toBe(123);
-      expect(data?.attachedFiles).toHaveLength(1);
-      expect(data?.attachedFiles?.[0].name).toBe('input.txt');
+      expect(data?.executionSettings?.randomSeed).toBe(123);
+      expect(data?.executionSettings?.attachedFiles).toHaveLength(1);
+      expect(data?.executionSettings?.attachedFiles?.[0].name).toBe('input.txt');
     });
 
     it('REGRESSION: Student list must include execution settings fields', async () => {
@@ -461,9 +452,10 @@ describe('WebSocket Student Settings Messages', () => {
 
       const session = await sessionManager.createSession('instructor-1', 'section-1', 'Test Section');
       await sessionManager.addStudent(session.id, 'student-1', 'Student One');
-      await sessionManager.updateStudentSettings(session.id, 'student-1', 456, [
-        { name: 'config.yaml', content: 'key: value' }
-      ]);
+      await sessionManager.updateStudentSettings(session.id, 'student-1', {
+        randomSeed: 456,
+        attachedFiles: [{ name: 'config.yaml', content: 'key: value' }]
+      });
 
       const students = await sessionManager.getStudents(session.id);
       const student = students[0];
@@ -471,9 +463,9 @@ describe('WebSocket Student Settings Messages', () => {
       // The bug was these fields were missing in the student list
       expect(student.id).toBeDefined();
       expect(student.name).toBeDefined();
-      expect(student.randomSeed).toBe(456);
-      expect(student.attachedFiles).toBeDefined();
-      expect(student.attachedFiles).toHaveLength(1);
+      expect(student.executionSettings?.randomSeed).toBe(456);
+      expect(student.executionSettings?.attachedFiles).toBeDefined();
+      expect(student.executionSettings?.attachedFiles).toHaveLength(1);
     });
 
     it('REGRESSION: Featured submission must include student execution settings', async () => {
@@ -484,15 +476,18 @@ describe('WebSocket Student Settings Messages', () => {
       await sessionManager.addStudent(session.id, 'student-1', 'Student One');
       
       const files = [{ name: 'test.txt', content: 'public test' }];
-      await sessionManager.updateStudentSettings(session.id, 'student-1', 789, files);
+      await sessionManager.updateStudentSettings(session.id, 'student-1', {
+        randomSeed: 789,
+        attachedFiles: files
+      });
       await sessionManager.updateStudentCode(session.id, 'student-1', 'public code');
       await sessionManager.setFeaturedSubmission(session.id, 'student-1');
 
       const featured = await sessionManager.getFeaturedSubmission(session.id);
 
       // The bug was these fields were missing for public view
-      expect(featured.randomSeed).toBe(789);
-      expect(featured.attachedFiles).toEqual(files);
+      expect(featured.executionSettings?.randomSeed).toBe(789);
+      expect(featured.executionSettings?.attachedFiles).toEqual(files);
     });
   });
 
@@ -512,12 +507,10 @@ describe('WebSocket Student Settings Messages', () => {
         { name: 'input.txt', content: 'test data' }
       ];
       
-      await sessionManager.updateProblem(
+      await sessionManager.updateSessionProblem(
         session.id, 
-        problemText, 
-        exampleInput, 
-        randomSeed, 
-        attachedFiles
+        { text: problemText }, 
+        { stdin: exampleInput, randomSeed, attachedFiles }
       );
 
       // Get the updated session (simulating what handleCreateSession does)
@@ -525,10 +518,10 @@ describe('WebSocket Student Settings Messages', () => {
 
       // Verify session includes all execution settings
       expect(updatedSession).toBeDefined();
-      expect(updatedSession!.problemText).toBe(problemText);
-      expect(updatedSession!.exampleInput).toBe(exampleInput);
-      expect(updatedSession!.randomSeed).toBe(randomSeed);
-      expect(updatedSession!.attachedFiles).toEqual(attachedFiles);
+      expect(updatedSession!.problem?.description).toBe(problemText);
+      expect(updatedSession!.executionSettings?.stdin).toBe(exampleInput);
+      expect(updatedSession!.executionSettings?.randomSeed).toBe(randomSeed);
+      expect(updatedSession!.executionSettings?.attachedFiles).toEqual(attachedFiles);
     });
 
     it('should preserve execution settings across session lifecycle', async () => {
@@ -538,23 +531,21 @@ describe('WebSocket Student Settings Messages', () => {
       const session = await sessionManager.createSession('instructor-1', 'section-1', 'Test Section');
       
       // Set up problem with all settings
-      await sessionManager.updateProblem(
+      await sessionManager.updateSessionProblem(
         session.id,
-        'Write a function',
-        'input: [1, 2, 3]',
-        999,
-        [{ name: 'data.csv', content: 'col1,col2\n1,2' }]
+        { text: 'Write a function' },
+        { stdin: 'input: [1, 2, 3]', randomSeed: 999, attachedFiles: [{ name: 'data.csv', content: 'col1,col2\n1,2' }] }
       );
 
       // Simulate reconnection: get session again
       const reconnectedSession = await sessionManager.getSession(session.id);
 
       // All settings should be preserved
-      expect(reconnectedSession!.problemText).toBe('Write a function');
-      expect(reconnectedSession!.exampleInput).toBe('input: [1, 2, 3]');
-      expect(reconnectedSession!.randomSeed).toBe(999);
-      expect(reconnectedSession!.attachedFiles).toHaveLength(1);
-      expect(reconnectedSession!.attachedFiles![0].name).toBe('data.csv');
+      expect(reconnectedSession!.problem?.description).toBe('Write a function');
+      expect(reconnectedSession!.executionSettings?.stdin).toBe('input: [1, 2, 3]');
+      expect(reconnectedSession!.executionSettings?.randomSeed).toBe(999);
+      expect(reconnectedSession!.executionSettings?.attachedFiles).toHaveLength(1);
+      expect(reconnectedSession!.executionSettings?.attachedFiles![0].name).toBe('data.csv');
     });
 
     it('should handle empty execution settings in SESSION_CREATED', async () => {
@@ -563,10 +554,10 @@ describe('WebSocket Student Settings Messages', () => {
       const session = await sessionManager.createSession('instructor-1', 'section-1', 'Test Section');
       
       // Verify defaults
-      expect(session.problemText).toBe('');
-      expect(session.exampleInput).toBeUndefined();
-      expect(session.randomSeed).toBeUndefined();
-      expect(session.attachedFiles).toBeUndefined();
+      expect(session.problem?.description).toBeUndefined();
+      expect(session.executionSettings?.stdin).toBeUndefined();
+      expect(session.executionSettings?.randomSeed).toBeUndefined();
+      expect(session.executionSettings?.attachedFiles).toBeUndefined();
     });
   });
 
@@ -586,12 +577,10 @@ describe('WebSocket Student Settings Messages', () => {
         { name: 'data.json', content: '{"key": "value"}' }
       ];
       
-      await sessionManager.updateProblem(
+      await sessionManager.updateSessionProblem(
         session.id,
-        problemText,
-        exampleInput,
-        randomSeed,
-        attachedFiles
+        { text: problemText },
+        { stdin: exampleInput, randomSeed, attachedFiles }
       );
 
       // Simulate instructor rejoining: get session again
@@ -599,10 +588,10 @@ describe('WebSocket Student Settings Messages', () => {
 
       // Verify SESSION_JOINED would have all fields available
       expect(rejoined).toBeDefined();
-      expect(rejoined!.problemText).toBe(problemText);
-      expect(rejoined!.exampleInput).toBe(exampleInput);
-      expect(rejoined!.randomSeed).toBe(randomSeed);
-      expect(rejoined!.attachedFiles).toEqual(attachedFiles);
+      expect(rejoined!.problem?.description).toBe(problemText);
+      expect(rejoined!.executionSettings?.stdin).toBe(exampleInput);
+      expect(rejoined!.executionSettings?.randomSeed).toBe(randomSeed);
+      expect(rejoined!.executionSettings?.attachedFiles).toEqual(attachedFiles);
     });
 
     it('should handle instructor rejoining session with partial settings', async () => {
@@ -611,20 +600,18 @@ describe('WebSocket Student Settings Messages', () => {
       const session = await sessionManager.createSession('instructor-1', 'section-1', 'Test Section');
       
       // Only set problem text and random seed, leave others undefined
-      await sessionManager.updateProblem(
+      await sessionManager.updateSessionProblem(
         session.id,
-        'Problem statement',
-        undefined, // no exampleInput
-        777, // randomSeed set
-        undefined // no attachedFiles
+        { text: 'Problem statement' },
+        { randomSeed: 777 } // only randomSeed set
       );
 
       const rejoined = await sessionManager.getSession(session.id);
 
-      expect(rejoined!.problemText).toBe('Problem statement');
-      expect(rejoined!.exampleInput).toBeUndefined();
-      expect(rejoined!.randomSeed).toBe(777);
-      expect(rejoined!.attachedFiles).toBeUndefined();
+      expect(rejoined!.problem?.description).toBe('Problem statement');
+      expect(rejoined!.executionSettings?.stdin).toBeUndefined();
+      expect(rejoined!.executionSettings?.randomSeed).toBe(777);
+      expect(rejoined!.executionSettings?.attachedFiles).toBeUndefined();
     });
 
     it('should preserve execution settings after multiple instructors join', async () => {
@@ -633,25 +620,23 @@ describe('WebSocket Student Settings Messages', () => {
       const session = await sessionManager.createSession('instructor-1', 'section-1', 'Test Section');
       
       const files = [{ name: 'shared.txt', content: 'shared data' }];
-      await sessionManager.updateProblem(
+      await sessionManager.updateSessionProblem(
         session.id,
-        'Collaborative problem',
-        'input: test',
-        42,
-        files
+        { text: 'Collaborative problem' },
+        { stdin: 'input: test', randomSeed: 42, attachedFiles: files }
       );
 
       // First instructor gets session
       const firstView = await sessionManager.getSession(session.id);
-      expect(firstView!.randomSeed).toBe(42);
+      expect(firstView!.executionSettings?.randomSeed).toBe(42);
 
       // Second instructor joins (simulated by another getSession)
       const secondView = await sessionManager.getSession(session.id);
       
       // Both should see the same settings
-      expect(secondView!.problemText).toBe(firstView!.problemText);
-      expect(secondView!.randomSeed).toBe(firstView!.randomSeed);
-      expect(secondView!.attachedFiles).toEqual(firstView!.attachedFiles);
+      expect(secondView!.problem?.description).toBe(firstView!.problem?.description);
+      expect(secondView!.executionSettings?.randomSeed).toBe(firstView!.executionSettings?.randomSeed);
+      expect(secondView!.executionSettings?.attachedFiles).toEqual(firstView!.executionSettings?.attachedFiles);
     });
 
     it('should handle empty session when instructor rejoins before problem is set', async () => {
@@ -665,10 +650,10 @@ describe('WebSocket Student Settings Messages', () => {
       const rejoined = await sessionManager.getSession(session.id);
 
       // Should handle empty state gracefully
-      expect(rejoined!.problemText).toBe('');
-      expect(rejoined!.exampleInput).toBeUndefined();
-      expect(rejoined!.randomSeed).toBeUndefined();
-      expect(rejoined!.attachedFiles).toBeUndefined();
+      expect(rejoined!.problem?.description).toBeUndefined();
+      expect(rejoined!.executionSettings?.stdin).toBeUndefined();
+      expect(rejoined!.executionSettings?.randomSeed).toBeUndefined();
+      expect(rejoined!.executionSettings?.attachedFiles).toBeUndefined();
     });
   });
 });
