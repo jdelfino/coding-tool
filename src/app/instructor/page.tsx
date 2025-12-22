@@ -227,7 +227,8 @@ function InstructorPage() {
 
   const handleNavigate = (view: 'classes' | 'problems' | 'sessions') => {
     if (view === 'problems') {
-      setViewMode('problems');
+      // Navigate to the problems page
+      window.location.href = '/instructor/problems';
     } else if (view === 'classes') {
       setClassContext(null);
       setViewMode('classes');
@@ -367,27 +368,12 @@ function InstructorPage() {
       );
     }
 
+    // Problems view redirects to dedicated problems page
     if (viewMode === 'problems') {
-      return (
-        <div className="bg-white rounded-lg shadow-sm p-8 text-center">
-          <div className="max-w-md mx-auto">
-            <span className="text-6xl mb-4 block">💡</span>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Problems Dashboard</h2>
-            <p className="text-gray-600 mb-6">
-              Problem library and management interface will be implemented here.
-            </p>
-            <div className="text-sm text-gray-500 bg-gray-50 rounded-lg p-4">
-              <p className="font-semibold mb-2">Coming soon:</p>
-              <ul className="text-left space-y-1">
-                <li>• View all your problems</li>
-                <li>• Create and edit problems</li>
-                <li>• Add test cases</li>
-                <li>• Create sessions from problems</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      );
+      // This should not be reachable since handleNavigate redirects
+      // but keeping as fallback
+      window.location.href = '/instructor/problems';
+      return null;
     }
 
     if (viewMode === 'sessions') {
