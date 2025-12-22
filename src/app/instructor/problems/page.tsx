@@ -1,66 +1,30 @@
 'use client';
 
 /**
- * Instructor Problems Page
+ * Instructor Problems Page - Redirect to main instructor page
  * 
- * Main page for managing programming problems.
- * Displays the problem library with search, filtering, and CRUD operations.
+ * This page redirects to /instructor with the problems view active.
+ * The problems functionality is embedded in the main instructor page.
  */
 
-import React, { useState } from 'react';
-import { ProtectedRoute } from '@/components/ProtectedRoute';
-import ProblemLibrary from '../components/ProblemLibrary';
-import ProblemCreator from '../components/ProblemCreator';
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
-function ProblemsPage() {
-  const [showCreator, setShowCreator] = useState(false);
+export default function ProblemsRedirectPage() {
+  const router = useRouter();
 
-  const handleProblemCreated = (problemId: string) => {
-    console.log('Problem created:', problemId);
-    setShowCreator(false);
-    // Reload will happen via ProblemLibrary when it remounts
-    window.location.reload();
-  };
-
-  const handleCancel = () => {
-    setShowCreator(false);
-  };
-
-  if (showCreator) {
-    return (
-      <ProtectedRoute requiredRole="instructor">
-        <div className="min-h-screen bg-gray-50 p-6">
-          <div className="max-w-4xl mx-auto">
-            <div className="mb-6">
-              <button
-                onClick={handleCancel}
-                className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
-                Back to Problem Library
-              </button>
-            </div>
-            <ProblemCreator
-              onProblemCreated={handleProblemCreated}
-              onCancel={handleCancel}
-            />
-          </div>
-        </div>
-      </ProtectedRoute>
-    );
-  }
+  useEffect(() => {
+    // Redirect to main instructor page
+    // The problems view will be shown via the navigation tabs
+    router.replace('/instructor');
+  }, [router]);
 
   return (
-    <ProtectedRoute requiredRole="instructor">
-      <div className="min-h-screen bg-gray-50 p-6">
-        <div className="max-w-7xl mx-auto">
-          <ProblemLibrary onCreateNew={() => setShowCreator(true)} />
-        </div>
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="text-center">
+        <div className="animate-spin w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full mx-auto mb-4"></div>
+        <p className="text-gray-600">Redirecting to instructor dashboard...</p>
       </div>
-    </ProtectedRoute>
+    </div>
   );
 }
-
-export default ProblemsPage;

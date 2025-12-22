@@ -13,6 +13,7 @@ import CodeEditor from '@/app/student/components/CodeEditor';
 import OutputPanel from '@/app/student/components/OutputPanel';
 import RevisionViewer from './components/RevisionViewer';
 import InstructorNav from './components/InstructorNav';
+import ProblemLibrary from './components/ProblemLibrary';
 
 interface Student {
   id: string;
@@ -227,8 +228,7 @@ function InstructorPage() {
 
   const handleNavigate = (view: 'classes' | 'problems' | 'sessions') => {
     if (view === 'problems') {
-      // Navigate to the problems page
-      window.location.href = '/instructor/problems';
+      setViewMode('problems');
     } else if (view === 'classes') {
       setClassContext(null);
       setViewMode('classes');
@@ -370,10 +370,9 @@ function InstructorPage() {
 
     // Problems view redirects to dedicated problems page
     if (viewMode === 'problems') {
-      // This should not be reachable since handleNavigate redirects
-      // but keeping as fallback
-      window.location.href = '/instructor/problems';
-      return null;
+      return (
+        <ProblemLibrary />
+      );
     }
 
     if (viewMode === 'sessions') {
