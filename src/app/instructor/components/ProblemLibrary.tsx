@@ -24,9 +24,10 @@ interface Problem {
 
 interface ProblemLibraryProps {
   onCreateNew?: () => void;
+  onEdit?: (problemId: string) => void;
 }
 
-export default function ProblemLibrary({ onCreateNew }: ProblemLibraryProps) {
+export default function ProblemLibrary({ onCreateNew, onEdit }: ProblemLibraryProps) {
   const { user } = useAuth();
   const [problems, setProblems] = useState<Problem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -115,8 +116,12 @@ export default function ProblemLibrary({ onCreateNew }: ProblemLibraryProps) {
   };
 
   const handleEdit = (problemId: string) => {
-    // Navigate to problem edit page
-    window.location.href = `/instructor/problems/${problemId}/edit`;
+    if (onEdit) {
+      onEdit(problemId);
+    } else {
+      // Fallback to navigation for backward compatibility
+      window.location.href = `/instructor/problems/${problemId}/edit`;
+    }
   };
 
   const handleDelete = async (problemId: string, title: string) => {

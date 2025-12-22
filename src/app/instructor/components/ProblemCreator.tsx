@@ -3,7 +3,7 @@
 /**
  * Problem Creator Component
  * 
- * Allows instructors to create new programming problems with:
+ * Allows instructors to create or edit programming problems with:
  * - Title and description
  * - Starter code template
  * - Solution code (optional, for reference)
@@ -11,16 +11,18 @@
  * - Visibility settings (public/class-specific)
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { ProblemInput } from '@/server/types/problem';
 
 interface ProblemCreatorProps {
+  problemId?: string | null;
   onProblemCreated?: (problemId: string) => void;
   onCancel?: () => void;
   classId?: string | null;
 }
 
 export default function ProblemCreator({
+  problemId = null,
   onProblemCreated,
   onCancel,
   classId = null,
@@ -31,7 +33,38 @@ export default function ProblemCreator({
   const [solutionCode, setSolutionCode] = useState('');
   const [isPublic, setIsPublic] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const isEditMode = !!problemId;
+
+  // Load problem data when editing
+  useEffect(() => {
+    if (problemId) {
+      loadProblem(problemId);
+    }
+  }, [problemId]);
+
+  const loadProblem = async (id: string) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await fetch(`/api/problems/${id}`);
+      if (!response.ok) {
+        throw new Error('Failed to load problem');
+      }
+      const { problem } = await response.json();
+      setTitle(problem.title || '');
+      setDescription(problem.description || '');
+      setStarterCode(problem.starterCode || '');
+      setSolutionCode(problem.solutionCode || '');
+      setIsPublic(problem.isPublic || false);
+    } catch (err: any) {
+      setError(err.message || 'Failed to load problem');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,30 +88,43 @@ export default function ProblemCreator({
         classId: classId || undefined,
       };
 
-      const response = await fetch('/api/problems', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(problemInput),
-      });
+      let response;
+      if (isEditMode) {
+        // Update existing problem
+        response = await fetch(`/api/problems/${problemId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(problemInput),
+        });
+      } else {
+        // Create new problem
+        response = await fetch('/api/problems', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(problemInput),
+        });
+      }
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.error || 'Failed to create problem');
+        throw new Error(data.error || `Failed to ${isEditMode ? 'update' : 'create'} problem`);
       }
 
       const { problem } = await response.json();
       
-      // Reset form
-      setTitle('');
-      setDescription('');
-      setStarterCode('');
-      setSolutionCode('');
-      setIsPublic(false);
+      if (!isEditMode) {
+        // Reset form only when creating
+        setTitle('');
+        setDescription('');
+        setStarterCode('');
+        setSolutionCode('');
+        setIsPublic(false);
+      }
 
       // Notify parent
       onProblemCreated?.(problem.id);
     } catch (err: any) {
-      setError(err.message || 'Failed to create problem');
+      setError(err.message || `Failed to ${isEditMode ? 'update' : 'create'} problem`);
     } finally {
       setIsSubmitting(false);
     }
@@ -86,7 +132,13 @@ export default function ProblemCreator({
 
   return (
     <div className="max-w-4xl mx-auto p-6 bg-white rounded-lg shadow-md">
-      <h2 className="text-2xl font-bold mb-6">Create New Problem</h2>
+      <h2 className="text-2xl font-bold mb-6">{isEditMode ? 'Edit Problem' : 'Create New Problem'}</h2>
+
+      {isLoading && (
+        <div className="mb-4 p-3 bg-blue-100 border border-blue-400 text-blue-700 rounded">
+          Loading problem...
+        </div>
+      )}
 
       {error && (
         <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
@@ -201,17 +253,19 @@ export default function ProblemCreator({
           )}
           <button
             type="submit"
-            disabled={isSubmitting || !title.trim()}
+            disabled={isSubmitting || isLoading || !title.trim()}
             className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isSubmitting ? 'Creating...' : 'Create Problem'}
+            {isSubmitting ? (isEditMode ? 'Updating...' : 'Creating...') : (isEditMode ? 'Update Problem' : 'Create Problem')}
           </button>
         </div>
       </form>
 
       <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-md">
         <p className="text-sm text-blue-800">
-          <strong>Note:</strong> After creating the problem, you can add test cases in the next step.
+          <strong>Note:</strong> {isEditMode 
+            ? 'Test cases are managed separately and are not affected by this update.' 
+            : 'After creating the problem, you can add test cases in the next step.'}
         </p>
       </div>
     </div>

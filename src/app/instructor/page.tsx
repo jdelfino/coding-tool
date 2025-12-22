@@ -44,6 +44,7 @@ function InstructorPage() {
   const [classContext, setClassContext] = useState<ClassContext | null>(null);
   const [sessionContext, setSessionContext] = useState<SessionContext | null>(null);
   const [problemSubView, setProblemSubView] = useState<'library' | 'creator'>('library');
+  const [editingProblemId, setEditingProblemId] = useState<string | null>(null);
   
   // Session state
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -232,6 +233,7 @@ function InstructorPage() {
     if (view === 'problems') {
       setViewMode('problems');
       setProblemSubView('library'); // Reset to library view when navigating to problems
+      setEditingProblemId(null); // Clear any editing state
     } else if (view === 'classes') {
       setClassContext(null);
       setViewMode('classes');
@@ -377,7 +379,10 @@ function InstructorPage() {
         return (
           <div className="max-w-4xl mx-auto">
             <button
-              onClick={() => setProblemSubView('library')}
+              onClick={() => {
+                setProblemSubView('library');
+                setEditingProblemId(null);
+              }}
               className="mb-4 text-blue-600 hover:text-blue-700 flex items-center gap-2"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -386,18 +391,32 @@ function InstructorPage() {
               Back to Problem Library
             </button>
             <ProblemCreator
+              problemId={editingProblemId}
               onProblemCreated={(id) => {
                 console.log('Problem created:', id);
                 setProblemSubView('library');
+                setEditingProblemId(null);
               }}
-              onCancel={() => setProblemSubView('library')}
+              onCancel={() => {
+                setProblemSubView('library');
+                setEditingProblemId(null);
+              }}
             />
           </div>
         );
       }
 
       return (
-        <ProblemLibrary onCreateNew={() => setProblemSubView('creator')} />
+        <ProblemLibrary 
+          onCreateNew={() => {
+            setEditingProblemId(null);
+            setProblemSubView('creator');
+          }}
+          onEdit={(problemId) => {
+            setEditingProblemId(problemId);
+            setProblemSubView('creator');
+          }}
+        />
       );
     }
 
