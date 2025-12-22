@@ -14,6 +14,7 @@ import OutputPanel from '@/app/student/components/OutputPanel';
 import RevisionViewer from './components/RevisionViewer';
 import InstructorNav from './components/InstructorNav';
 import ProblemLibrary from './components/ProblemLibrary';
+import ProblemCreator from './components/ProblemCreator';
 
 interface Student {
   id: string;
@@ -42,6 +43,7 @@ function InstructorPage() {
   const [viewMode, setViewMode] = useState<ViewMode>('classes');
   const [classContext, setClassContext] = useState<ClassContext | null>(null);
   const [sessionContext, setSessionContext] = useState<SessionContext | null>(null);
+  const [problemSubView, setProblemSubView] = useState<'library' | 'creator'>('library');
   
   // Session state
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -229,6 +231,7 @@ function InstructorPage() {
   const handleNavigate = (view: 'classes' | 'problems' | 'sessions') => {
     if (view === 'problems') {
       setViewMode('problems');
+      setProblemSubView('library'); // Reset to library view when navigating to problems
     } else if (view === 'classes') {
       setClassContext(null);
       setViewMode('classes');
@@ -368,10 +371,33 @@ function InstructorPage() {
       );
     }
 
-    // Problems view redirects to dedicated problems page
+    // Problems view with library/creator sub-views
     if (viewMode === 'problems') {
+      if (problemSubView === 'creator') {
+        return (
+          <div className="max-w-4xl mx-auto">
+            <button
+              onClick={() => setProblemSubView('library')}
+              className="mb-4 text-blue-600 hover:text-blue-700 flex items-center gap-2"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
+              Back to Problem Library
+            </button>
+            <ProblemCreator
+              onProblemCreated={(id) => {
+                console.log('Problem created:', id);
+                setProblemSubView('library');
+              }}
+              onCancel={() => setProblemSubView('library')}
+            />
+          </div>
+        );
+      }
+
       return (
-        <ProblemLibrary />
+        <ProblemLibrary onCreateNew={() => setProblemSubView('creator')} />
       );
     }
 
