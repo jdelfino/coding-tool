@@ -4,43 +4,45 @@ import React, { useState, useEffect } from 'react';
 
 interface ProblemInputProps {
   onUpdateProblem: (
-    problemText: string, 
-    exampleInput?: string,
-    randomSeed?: number,
-    attachedFiles?: Array<{ name: string; content: string }>
+    problem: { title: string; description: string; starterCode: string },
+    executionSettings?: {
+      stdin?: string;
+      randomSeed?: number;
+      attachedFiles?: Array<{ name: string; content: string }>;
+    }
   ) => void;
-  initialProblemText?: string;
-  initialExampleInput?: string;
-  initialRandomSeed?: number;
-  initialAttachedFiles?: Array<{ name: string; content: string }>;
+  initialProblem?: { title: string; description: string; starterCode: string } | null;
+  initialExecutionSettings?: {
+    stdin?: string;
+    randomSeed?: number;
+    attachedFiles?: Array<{ name: string; content: string }>;
+  };
 }
 
 export default function ProblemInput({ 
   onUpdateProblem,
-  initialProblemText = '',
-  initialExampleInput = '',
-  initialRandomSeed,
-  initialAttachedFiles = []
+  initialProblem = null,
+  initialExecutionSettings = {}
 }: ProblemInputProps) {
-  const [problemText, setProblemText] = useState(initialProblemText);
-  const [exampleInput, setExampleInput] = useState(initialExampleInput);
-  const [showExampleInput, setShowExampleInput] = useState(!!initialExampleInput);
-  const [randomSeed, setRandomSeed] = useState(initialRandomSeed !== undefined ? String(initialRandomSeed) : '');
-  const [showRandomSeed, setShowRandomSeed] = useState(initialRandomSeed !== undefined);
-  const [attachedFiles, setAttachedFiles] = useState<Array<{ name: string; content: string }>>(initialAttachedFiles);
+  const [problemText, setProblemText] = useState(initialProblem?.description || '');
+  const [exampleInput, setExampleInput] = useState(initialExecutionSettings.stdin || '');
+  const [showExampleInput, setShowExampleInput] = useState(!!initialExecutionSettings.stdin);
+  const [randomSeed, setRandomSeed] = useState(initialExecutionSettings.randomSeed !== undefined ? String(initialExecutionSettings.randomSeed) : '');
+  const [showRandomSeed, setShowRandomSeed] = useState(initialExecutionSettings.randomSeed !== undefined);
+  const [attachedFiles, setAttachedFiles] = useState<Array<{ name: string; content: string }>>(initialExecutionSettings.attachedFiles || []);
   const [newFileName, setNewFileName] = useState('');
   const [newFileContent, setNewFileContent] = useState('');
   const [fileError, setFileError] = useState('');
 
   // Sync state when initial values change (e.g., when rejoining a session)
   useEffect(() => {
-    setProblemText(initialProblemText);
-    setExampleInput(initialExampleInput);
-    setShowExampleInput(!!initialExampleInput);
-    setRandomSeed(initialRandomSeed !== undefined ? String(initialRandomSeed) : '');
-    setShowRandomSeed(initialRandomSeed !== undefined);
-    setAttachedFiles(initialAttachedFiles);
-  }, [initialProblemText, initialExampleInput, initialRandomSeed, initialAttachedFiles]);
+    setProblemText(initialProblem?.description || '');
+    setExampleInput(initialExecutionSettings?.stdin || '');
+    setShowExampleInput(!!initialExecutionSettings?.stdin);
+    setRandomSeed(initialExecutionSettings?.randomSeed !== undefined ? String(initialExecutionSettings.randomSeed) : '');
+    setShowRandomSeed(initialExecutionSettings?.randomSeed !== undefined);
+    setAttachedFiles(initialExecutionSettings?.attachedFiles || []);
+  }, [initialProblem, initialExecutionSettings]);
 
   const addFile = () => {
     setFileError('');
@@ -88,12 +90,17 @@ export default function ProblemInput({
 
   const handleUpdate = () => {
     const seed = showRandomSeed && randomSeed ? parseInt(randomSeed, 10) : undefined;
-    onUpdateProblem(
-      problemText, 
-      showExampleInput ? exampleInput : undefined,
-      seed,
-      attachedFiles.length > 0 ? attachedFiles : undefined
-    );
+    const problem = {
+      title: '', // TODO: Add title input field
+      description: problemText,
+      starterCode: '', // TODO: Add starter code input field
+    };
+    const executionSettings = {
+      stdin: showExampleInput ? exampleInput : undefined,
+      randomSeed: seed,
+      attachedFiles: attachedFiles.length > 0 ? attachedFiles : undefined,
+    };
+    onUpdateProblem(problem, executionSettings);
   };
 
   return (

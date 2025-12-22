@@ -63,10 +63,12 @@ function InstructorPage() {
   } | null>(null);
   
   // Session execution settings
-  const [sessionProblemText, setSessionProblemText] = useState<string>('');
-  const [sessionExampleInput, setSessionExampleInput] = useState<string>('');
-  const [sessionRandomSeed, setSessionRandomSeed] = useState<number | undefined>(undefined);
-  const [sessionAttachedFiles, setSessionAttachedFiles] = useState<Array<{ name: string; content: string }>>([]);
+  const [sessionProblem, setSessionProblem] = useState<{ title: string; description: string; starterCode: string } | null>(null);
+  const [sessionExecutionSettings, setSessionExecutionSettings] = useState<{
+    stdin?: string;
+    randomSeed?: number;
+    attachedFiles?: Array<{ name: string; content: string }>;
+  }>({});
 
   // Construct WebSocket URL
   const [wsUrl, setWsUrl] = useState('');
@@ -98,10 +100,8 @@ function InstructorPage() {
           sectionName: lastMessage.payload.sectionName,
         });
         // Restore execution settings from session
-        setSessionProblemText(lastMessage.payload.problemText || '');
-        setSessionExampleInput(lastMessage.payload.exampleInput || '');
-        setSessionRandomSeed(lastMessage.payload.randomSeed);
-        setSessionAttachedFiles(lastMessage.payload.attachedFiles || []);
+        setSessionProblem(lastMessage.payload.problem || null);
+        setSessionExecutionSettings(lastMessage.payload.executionSettings || {});
         setViewMode('session');
         setIsCreatingSession(false);
         setError(null);
@@ -111,10 +111,8 @@ function InstructorPage() {
         setSessionId(lastMessage.payload.sessionId);
         setJoinCode(lastMessage.payload.joinCode);
         // Restore execution settings when rejoining existing session
-        setSessionProblemText(lastMessage.payload.problemText || '');
-        setSessionExampleInput(lastMessage.payload.exampleInput || '');
-        setSessionRandomSeed(lastMessage.payload.randomSeed);
-        setSessionAttachedFiles(lastMessage.payload.attachedFiles || []);
+        setSessionProblem(lastMessage.payload.problem || null);
+        setSessionExecutionSettings(lastMessage.payload.executionSettings || {});
         setViewMode('session');
         setError(null);
         break;
@@ -181,8 +179,7 @@ function InstructorPage() {
               s.id === lastMessage.payload.studentId
                 ? { 
                     ...s, 
-                    randomSeed: lastMessage.payload.randomSeed,
-                    attachedFiles: lastMessage.payload.attachedFiles,
+                    executionSettings: lastMessage.payload.executionSettings,
                   }
                 : s
             )
@@ -289,18 +286,18 @@ function InstructorPage() {
   };
 
   const handleUpdateProblem = (
-    problemText: string, 
-    exampleInput?: string,
-    randomSeed?: number,
-    attachedFiles?: Array<{ name: string; content: string }>
+    problem: { title: string; description: string; starterCode: string },
+    executionSettings?: {
+      stdin?: string;
+      randomSeed?: number;
+      attachedFiles?: Array<{ name: string; content: string }>;
+    }
   ) => {
     if (!sessionId) return;
     // Update local state to keep in sync with server
-    setSessionProblemText(problemText);
-    setSessionExampleInput(exampleInput || '');
-    setSessionRandomSeed(randomSeed);
-    setSessionAttachedFiles(attachedFiles || []);
-    sendMessage('UPDATE_PROBLEM', { sessionId, problemText, exampleInput, randomSeed, attachedFiles });
+    setSessionProblem(problem);
+    setSessionExecutionSettings(executionSettings || {});
+    sendMessage('UPDATE_PROBLEM', { sessionId, problem, executionSettings });
   };
 
   const handleSelectStudent = (studentId: string) => {
@@ -488,10 +485,8 @@ function InstructorPage() {
 
           <ProblemInput
             onUpdateProblem={handleUpdateProblem}
-            initialProblemText={sessionProblemText}
-            initialExampleInput={sessionExampleInput}
-            initialRandomSeed={sessionRandomSeed}
-            initialAttachedFiles={sessionAttachedFiles}
+            initialProblem={sessionProblem}
+            initialExecutionSettings={sessionExecutionSettings}
           />
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -514,9 +509,9 @@ function InstructorPage() {
                   onChange={() => {}} // Read-only for instructor
                   onRun={handleExecuteStudentCode}
                   isRunning={isExecutingCode}
-                  exampleInput={sessionExampleInput}
-                  randomSeed={students.find(s => s.id === selectedStudentId)?.randomSeed}
-                  attachedFiles={students.find(s => s.id === selectedStudentId)?.attachedFiles}
+                  exampleInput={sessionExecutionSettings.stdin}
+                  randomSeed={students.find(s => s.id === selectedStudentId)?.executionSettings?.randomSeed}
+                  attachedFiles={students.find(s => s.id === selectedStudentId)?.executionSettings?.attachedFiles}
                   readOnly
                 />
                 {executionResult && (

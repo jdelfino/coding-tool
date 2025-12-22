@@ -18,12 +18,16 @@ function StudentPage() {
   const [joined, setJoined] = useState(false);
   const [studentId, setStudentId] = useState<string | null>(null);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
-  const [problemText, setProblemText] = useState('');
-  const [exampleInput, setExampleInput] = useState<string>('');
-  const [randomSeed, setRandomSeed] = useState<number | undefined>(undefined);
-  const [attachedFiles, setAttachedFiles] = useState<Array<{ name: string; content: string }> | null>(null);
-  const [sessionRandomSeed, setSessionRandomSeed] = useState<number | undefined>(undefined);
-  const [sessionAttachedFiles, setSessionAttachedFiles] = useState<Array<{ name: string; content: string }> | undefined>(undefined);
+  const [problem, setProblem] = useState<{ title: string; description: string; starterCode: string } | null>(null);
+  const [sessionExecutionSettings, setSessionExecutionSettings] = useState<{
+    stdin?: string;
+    randomSeed?: number;
+    attachedFiles?: Array<{ name: string; content: string }>;
+  }>({});
+  const [studentExecutionSettings, setStudentExecutionSettings] = useState<{
+    randomSeed?: number;
+    attachedFiles?: Array<{ name: string; content: string }>;
+  } | null>(null);
   const [code, setCode] = useState('');
   const [executionResult, setExecutionResult] = useState<any>(null);
   const [isRunning, setIsRunning] = useState(false);
@@ -128,13 +132,10 @@ function StudentPage() {
         setJoined(true);
         setStudentId(lastMessage.payload.studentId);
         setCurrentSessionId(lastMessage.payload.sessionId);
-        setProblemText(lastMessage.payload.problemText || '');
-        setExampleInput(lastMessage.payload.exampleInput || '');
-        setSessionRandomSeed(lastMessage.payload.randomSeed);
-        setSessionAttachedFiles(lastMessage.payload.attachedFiles);
+        setProblem(lastMessage.payload.problem || null);
+        setSessionExecutionSettings(lastMessage.payload.sessionExecutionSettings || {});
         // Restore student-specific values if rejoining
-        setRandomSeed(lastMessage.payload.studentRandomSeed);
-        setAttachedFiles(lastMessage.payload.studentAttachedFiles !== undefined ? lastMessage.payload.studentAttachedFiles : null);
+        setStudentExecutionSettings(lastMessage.payload.studentExecutionSettings || null);
         // Restore existing code if rejoining (always set, even if empty string)
         setCode(lastMessage.payload.code || '');
         setIsJoining(false);
@@ -143,10 +144,8 @@ function StudentPage() {
         break;
 
       case 'PROBLEM_UPDATE':
-        setProblemText(lastMessage.payload.problemText);
-        setExampleInput(lastMessage.payload.exampleInput || '');
-        setSessionRandomSeed(lastMessage.payload.randomSeed);
-        setSessionAttachedFiles(lastMessage.payload.attachedFiles);
+        setProblem(lastMessage.payload.problem || null);
+        setSessionExecutionSettings(lastMessage.payload.executionSettings || {});
         break;
 
       case 'EXECUTION_RESULT':
@@ -198,11 +197,9 @@ function StudentPage() {
     setJoined(false);
     setStudentId(null);
     setCurrentSessionId(null);
-    setProblemText('');
-    setRandomSeed(undefined);
-    setAttachedFiles(null);
-    setSessionRandomSeed(undefined);
-    setSessionAttachedFiles(undefined);
+    setProblem(null);
+    setSessionExecutionSettings({});
+    setStudentExecutionSettings(null);
     setCode('');
     setExecutionResult(null);
     setView('dashboard');
@@ -540,7 +537,7 @@ function StudentPage() {
       )}
 
       <ProblemDisplay 
-        problemText={problemText}
+        problemText={problem?.description || ''}
       />
 
       <CodeEditor
@@ -548,11 +545,11 @@ function StudentPage() {
         onChange={setCode}
         onRun={handleRunCode}
         isRunning={isRunning}
-        exampleInput={exampleInput}
-        randomSeed={randomSeed !== undefined ? randomSeed : sessionRandomSeed}
-        onRandomSeedChange={setRandomSeed}
-        attachedFiles={attachedFiles !== null ? attachedFiles : sessionAttachedFiles}
-        onAttachedFilesChange={setAttachedFiles}
+        exampleInput={sessionExecutionSettings.stdin}
+        randomSeed={studentExecutionSettings?.randomSeed !== undefined ? studentExecutionSettings.randomSeed : sessionExecutionSettings.randomSeed}
+        onRandomSeedChange={(seed) => setStudentExecutionSettings(prev => ({ ...prev, randomSeed: seed }))}
+        attachedFiles={studentExecutionSettings?.attachedFiles !== undefined ? studentExecutionSettings.attachedFiles : sessionExecutionSettings.attachedFiles}
+        onAttachedFilesChange={(files) => setStudentExecutionSettings(prev => ({ ...prev, attachedFiles: files }))}
       />
 
       <OutputPanel result={executionResult} />
