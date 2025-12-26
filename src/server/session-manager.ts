@@ -76,6 +76,17 @@ export class SessionManager {
     sectionName: string,
     problem?: Problem
   ): Promise<Session> {
+    // Ensure storage is initialized (auto-init for API routes)
+    const storage = await this.ensureStorage();
+    
+    // Enforce single active session per user
+    const existingActiveSessions = await this.getActiveSessionsForUser(creatorId);
+    if (existingActiveSessions.length > 0) {
+      throw new Error(
+        `Cannot create session: User already has ${existingActiveSessions.length} active session(s). End your current session before starting a new one.`
+      );
+    }
+    
     const sessionId = uuidv4();
     const joinCode = this.generateJoinCode();
     
@@ -92,9 +103,6 @@ export class SessionManager {
       sectionId,
       sectionName,
     };
-    
-    // Ensure storage is initialized (auto-init for API routes)
-    const storage = await this.ensureStorage();
     
     // Persist to storage
     try {
@@ -171,6 +179,20 @@ export class SessionManager {
     const session = await storage.sessions.getSession(sessionId);
     console.log(`[SessionManager.getSession] Storage returned: ${session ? 'Found' : 'Not found'}`);
     return session;
+  }
+
+  /**
+   * Get all active sessions for a user (by creator ID)
+   */
+  async getActiveSessionsForUser(creatorId: string): Promise<Session[]> {
+    // Ensure storage is initialized
+    const storage = await this.ensureStorage();
+    
+    // Get all sessions and filter by creator and active status
+    const allSessions = await storage.sessions.listAllSessions();
+    return allSessions.filter(
+      session => session.creatorId === creatorId && session.status === 'active'
+    );
   }
 
   /**

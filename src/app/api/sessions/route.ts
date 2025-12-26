@@ -121,6 +121,17 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Error creating session:', error);
+    
+    // Handle single-session enforcement error
+    if (error instanceof Error && error.message.includes('Cannot create session: User already has')) {
+      return NextResponse.json(
+        { 
+          error: error.message,
+        },
+        { status: 400 }
+      );
+    }
+    
     return NextResponse.json(
       { 
         error: 'Failed to create session',
