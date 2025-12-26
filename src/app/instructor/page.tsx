@@ -15,6 +15,7 @@ import RevisionViewer from './components/RevisionViewer';
 import InstructorNav from './components/InstructorNav';
 import ProblemLibrary from './components/ProblemLibrary';
 import ProblemCreator from './components/ProblemCreator';
+import ProblemLoader from './components/ProblemLoader';
 
 interface Student {
   id: string;
@@ -66,6 +67,7 @@ function InstructorPage() {
     studentId: string;
     studentName: string;
   } | null>(null);
+  const [showProblemLoader, setShowProblemLoader] = useState(false);
   
   // Session execution settings
   const [sessionProblem, setSessionProblem] = useState<{ title: string; description: string; starterCode: string } | null>(null);
@@ -290,6 +292,22 @@ function InstructorPage() {
     }
   };
 
+  const handleOpenProblemLoader = () => {
+    setShowProblemLoader(true);
+  };
+
+  const handleCloseProblemLoader = () => {
+    setShowProblemLoader(false);
+  };
+
+  const handleProblemLoaded = (problemId: string) => {
+    console.log('Problem loaded:', problemId);
+    // The problem will be broadcast via WebSocket PROBLEM_UPDATE message
+    // which will update the session state automatically
+    setShowProblemLoader(false);
+    // Could optionally show a success toast notification here
+  };
+
   const handleUpdateProblem = (
     problem: { title: string; description: string; starterCode: string },
     executionSettings?: {
@@ -486,6 +504,7 @@ function InstructorPage() {
             sectionName={sessionContext?.sectionName}
             onEndSession={handleEndSession}
             onLeaveSession={handleLeaveSession}
+            onLoadProblem={handleOpenProblemLoader}
           />
 
           <ProblemInput
@@ -536,6 +555,14 @@ function InstructorPage() {
               sendMessage={sendMessage}
               lastMessage={lastMessage}
               onClose={handleCloseRevisionViewer}
+            />
+          )}
+          
+          {showProblemLoader && (
+            <ProblemLoader
+              sessionId={sessionId}
+              onProblemLoaded={handleProblemLoaded}
+              onClose={handleCloseProblemLoader}
             />
           )}
         </div>
