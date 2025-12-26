@@ -151,7 +151,23 @@ function InstructorPage() {
 
       case 'SESSION_ENDED':
         if (lastMessage.payload.sessionId === sessionId) {
-          handleLeaveSession();
+          // Clear session state
+          setSessionId(null);
+          setJoinCode(null);
+          setStudents([]);
+          setSelectedStudentId(null);
+          setSelectedStudentCode('');
+          setExecutionResult(null);
+          setRevisionViewerState(null);
+          setSessionProblem(null);
+          setSessionExecutionSettings({});
+          
+          // Navigate to dashboard based on context
+          if (classContext) {
+            setViewMode('sections');
+          } else {
+            setViewMode('classes');
+          }
         }
         break;
 

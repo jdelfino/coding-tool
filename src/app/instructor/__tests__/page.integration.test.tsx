@@ -776,4 +776,173 @@ describe('InstructorPage - Integration Tests', () => {
       expect(mockPush).not.toHaveBeenCalled();
     });
   });
+
+  describe('Session Ending', () => {
+    it('should navigate instructor to dashboard when session ends', async () => {
+      (useAuth as jest.Mock).mockReturnValue({
+        user: { id: 'instructor1', username: 'TestInstructor', role: 'instructor' },
+        loading: false,
+        signIn: jest.fn(),
+        signOut: mockSignOut,
+      });
+
+      let lastMessageValue = null;
+      (useWebSocket as jest.Mock).mockReturnValue({
+        isConnected: true,
+        connectionStatus: 'connected',
+        connectionError: null,
+        lastMessage: lastMessageValue,
+        sendMessage: mockSendMessage,
+      });
+
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ classes: [] }),
+      });
+
+      const { rerender } = render(<InstructorPage />);
+
+      // Wait for initial render
+      await waitFor(() => {
+        expect(screen.getByText('Instructor Dashboard')).toBeInTheDocument();
+      });
+
+      // Simulate creating a session
+      lastMessageValue = {
+        type: 'SESSION_CREATED',
+        payload: {
+          sessionId: 'session1',
+          joinCode: 'ABC123',
+          problem: null,
+          executionSettings: {},
+        },
+      };
+      (useWebSocket as jest.Mock).mockReturnValue({
+        isConnected: true,
+        connectionStatus: 'connected',
+        connectionError: null,
+        lastMessage: lastMessageValue,
+        sendMessage: mockSendMessage,
+      });
+      rerender(<InstructorPage />);
+
+      // Verify we're in session view
+      await waitFor(() => {
+        const joinCodeElement = screen.queryByText(/ABC123/);
+        expect(joinCodeElement).toBeInTheDocument();
+      });
+
+      // Simulate session ended
+      lastMessageValue = {
+        type: 'SESSION_ENDED',
+        payload: { sessionId: 'session1' },
+      };
+      (useWebSocket as jest.Mock).mockReturnValue({
+        isConnected: true,
+        connectionStatus: 'connected',
+        connectionError: null,
+        lastMessage: lastMessageValue,
+        sendMessage: mockSendMessage,
+      });
+      rerender(<InstructorPage />);
+
+      // Verify instructor is back at dashboard (not in session)
+      await waitFor(() => {
+        expect(screen.queryByText(/ABC123/)).not.toBeInTheDocument();
+      });
+
+      // Should see dashboard navigation
+      await waitFor(() => {
+        expect(screen.getByText('Classes')).toBeInTheDocument();
+      });
+    });
+
+    it('should clear session state when session ends', async () => {
+      (useAuth as jest.Mock).mockReturnValue({
+        user: { id: 'instructor1', username: 'TestInstructor', role: 'instructor' },
+        loading: false,
+        signIn: jest.fn(),
+        signOut: mockSignOut,
+      });
+
+      let lastMessageValue = null;
+      (useWebSocket as jest.Mock).mockReturnValue({
+        isConnected: true,
+        connectionStatus: 'connected',
+        connectionError: null,
+        lastMessage: lastMessageValue,
+        sendMessage: mockSendMessage,
+      });
+
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ classes: [] }),
+      });
+
+      const { rerender } = render(<InstructorPage />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Instructor Dashboard')).toBeInTheDocument();
+      });
+
+      // Create session with students
+      lastMessageValue = {
+        type: 'SESSION_CREATED',
+        payload: {
+          sessionId: 'session1',
+          joinCode: 'ABC123',
+          problem: null,
+          executionSettings: {},
+        },
+      };
+      (useWebSocket as jest.Mock).mockReturnValue({
+        isConnected: true,
+        connectionStatus: 'connected',
+        connectionError: null,
+        lastMessage: lastMessageValue,
+        sendMessage: mockSendMessage,
+      });
+      rerender(<InstructorPage />);
+
+      await waitFor(() => {
+        expect(screen.queryByText(/ABC123/)).toBeInTheDocument();
+      });
+
+      // Add a student
+      lastMessageValue = {
+        type: 'STUDENT_LIST_UPDATE',
+        payload: {
+          students: [{ id: 'student1', username: 'Student1', code: 'print("hi")' }],
+        },
+      };
+      (useWebSocket as jest.Mock).mockReturnValue({
+        isConnected: true,
+        connectionStatus: 'connected',
+        connectionError: null,
+        lastMessage: lastMessageValue,
+        sendMessage: mockSendMessage,
+      });
+      rerender(<InstructorPage />);
+
+      // End session
+      lastMessageValue = {
+        type: 'SESSION_ENDED',
+        payload: { sessionId: 'session1' },
+      };
+      (useWebSocket as jest.Mock).mockReturnValue({
+        isConnected: true,
+        connectionStatus: 'connected',
+        connectionError: null,
+        lastMessage: lastMessageValue,
+        sendMessage: mockSendMessage,
+      });
+      rerender(<InstructorPage />);
+
+      // Verify we're back at dashboard with no session state
+      await waitFor(() => {
+        expect(screen.queryByText(/ABC123/)).not.toBeInTheDocument();
+      });
+      expect(screen.queryByText('Student1')).not.toBeInTheDocument();
+    });
+  });
 });

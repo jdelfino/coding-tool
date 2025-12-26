@@ -11,6 +11,7 @@ import StudentDashboard from './components/StudentDashboard';
 import ProblemDisplay from './components/ProblemDisplay';
 import CodeEditor from './components/CodeEditor';
 import OutputPanel from './components/OutputPanel';
+import SessionEndedNotification from './components/SessionEndedNotification';
 
 function StudentPage() {
   const { user, signOut } = useAuth();
@@ -36,6 +37,7 @@ function StudentPage() {
   const [isJoining, setIsJoining] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [hasCheckedAutoRejoin, setHasCheckedAutoRejoin] = useState(false);
+  const [sessionEnded, setSessionEnded] = useState(false);
 
   // Construct WebSocket URL - only initialize on client side
   const [wsUrl, setWsUrl] = useState('');
@@ -154,6 +156,14 @@ function StudentPage() {
         setIsRunning(false);
         break;
 
+      case 'SESSION_ENDED':
+        // Session ended by instructor - show notification but keep student in session
+        if (lastMessage.payload.sessionId === currentSessionId) {
+          setSessionEnded(true);
+          // Don't automatically kick them out - let them see their work
+        }
+        break;
+
       case 'ERROR':
         const errorMsg = lastMessage.payload.error || 'An error occurred';
         setError(errorMsg);
@@ -205,10 +215,15 @@ function StudentPage() {
     setStudentExecutionSettings(null);
     setCode('');
     setExecutionResult(null);
+    setSessionEnded(false);
     setView('dashboard');
     
     // Refresh sessions
     refetchSessions();
+  };
+
+  const handleDismissEndedNotification = () => {
+    setSessionEnded(false);
   };
 
   const handleLoadStarterCode = useCallback((starterCode: string) => {
@@ -548,6 +563,14 @@ function StudentPage() {
             ✕
           </button>
         </div>
+      )}
+
+      {/* Session Ended Notification */}
+      {sessionEnded && (
+        <SessionEndedNotification 
+          onDismiss={handleDismissEndedNotification}
+          onLeaveToDashboard={handleLeaveSession}
+        />
       )}
 
       <ProblemDisplay 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Problem } from '@/server/types/problem';
 
 interface ProblemDisplayProps {
