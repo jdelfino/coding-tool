@@ -130,14 +130,33 @@ export class SessionManager {
    * Get a session by join code
    */
   async getSessionByJoinCode(joinCode: string): Promise<Session | null> {
-    const sessionId = this.sessionsByJoinCode.get(joinCode.toUpperCase());
-    if (!sessionId) return null;
+    const upperJoinCode = joinCode.toUpperCase();
     
     // Ensure storage is initialized (auto-init for API routes)
     const storage = await this.ensureStorage();
     
-    const session = await storage.sessions.getSession(sessionId);
-    return session;
+    // First check in-memory index
+    const sessionId = this.sessionsByJoinCode.get(upperJoinCode);
+    if (sessionId) {
+      const session = await storage.sessions.getSession(sessionId);
+      return session;
+    }
+    
+    // Not in index - search all sessions in storage (handles cross-process session creation)
+    console.log(`[SessionManager.getSessionByJoinCode] Join code ${upperJoinCode} not in index, searching storage...`);
+    const allSessions = await storage.sessions.listAllSessions();
+    
+    for (const session of allSessions) {
+      if (session.joinCode === upperJoinCode) {
+        // Update our index for future lookups
+        this.sessionsByJoinCode.set(upperJoinCode, session.id);
+        console.log(`[SessionManager.getSessionByJoinCode] Found session ${session.id} in storage, updated index`);
+        return session;
+      }
+    }
+    
+    console.log(`[SessionManager.getSessionByJoinCode] Session not found for join code ${upperJoinCode}`);
+    return null;
   }
 
   /**
