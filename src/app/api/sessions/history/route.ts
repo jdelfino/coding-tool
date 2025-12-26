@@ -8,6 +8,11 @@ import { requireAuth } from '@/server/auth/api-helpers';
  * Get session history for the current user
  * - Instructors see sessions they created
  * - Students see sessions they participated in
+ * 
+ * Query Parameters:
+ * - status: 'active' | 'completed' | 'all' (default: 'all')
+ * - classId: filter by class ID
+ * - search: search by section name or join code
  */
 export async function GET(request: NextRequest) {
   try {
@@ -34,8 +39,40 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Get query parameters
+    const { searchParams } = new URL(request.url);
+    const statusFilter = searchParams.get('status') || 'all';
+    const classIdFilter = searchParams.get('classId');
+    const searchQuery = searchParams.get('search')?.toLowerCase();
+
+    // Apply filters
+    let filteredSessions = sessions;
+
+    // Filter by status
+    if (statusFilter === 'active') {
+      filteredSessions = filteredSessions.filter(s => s.status === 'active');
+    } else if (statusFilter === 'completed') {
+      filteredSessions = filteredSessions.filter(s => s.status === 'completed');
+    }
+
+    // Filter by classId (would need section to class mapping - defer for now)
+    // We could add classId to session model in the future
+
+    // Filter by search query (section name or join code)
+    if (searchQuery) {
+      filteredSessions = filteredSessions.filter(s => 
+        s.sectionName.toLowerCase().includes(searchQuery) ||
+        s.joinCode.toLowerCase().includes(searchQuery)
+      );
+    }
+
+    // Sort by lastActivity (most recent first)
+    filteredSessions.sort((a, b) => 
+      b.lastActivity.getTime() - a.lastActivity.getTime()
+    );
+
     // Convert sessions to serializable format (Maps can't be JSON stringified)
-    const sessionData = sessions.map(session => ({
+    const sessionData = filteredSessions.map(session => ({
       id: session.id,
       joinCode: session.joinCode,
       problemTitle: session.problem?.title || 'Untitled Session',

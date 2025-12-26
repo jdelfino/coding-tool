@@ -17,6 +17,7 @@ import InstructorNav from './components/InstructorNav';
 import ProblemLibrary from './components/ProblemLibrary';
 import ProblemCreator from './components/ProblemCreator';
 import ProblemLoader from './components/ProblemLoader';
+import SessionsList from './components/SessionsList';
 
 interface Student {
   id: string;
@@ -535,25 +536,28 @@ function InstructorPage() {
 
     if (viewMode === 'sessions') {
       return (
-        <div className="bg-white rounded-lg shadow-sm p-8 text-center">
-          <div className="max-w-md mx-auto">
-            <span className="text-6xl mb-4 block">🎯</span>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">All Sessions</h2>
-            <p className="text-gray-600 mb-6">
-              View and manage all coding sessions across all your classes and sections.
-            </p>
-            <div className="text-sm text-gray-500 bg-gray-50 rounded-lg p-4">
-              <p className="font-semibold mb-2">Coming soon:</p>
-              <ul className="text-left space-y-1">
-                <li>• View all active sessions</li>
-                <li>• Browse session history</li>
-                <li>• Filter by class or section</li>
-                <li>• Rejoin past sessions</li>
-                <li>• Export session data</li>
-              </ul>
-            </div>
-          </div>
-        </div>
+        <SessionsList
+          onRejoinSession={(sessionId) => {
+            // Send JOIN_SESSION message via WebSocket
+            if (isConnected) {
+              // First, join the session via WebSocket
+              sendMessage('JOIN_SESSION', { sessionId });
+              // Then navigate to session view
+              setViewMode('session');
+              setSessionId(sessionId);
+            } else {
+              alert('WebSocket not connected. Please refresh the page.');
+            }
+          }}
+          onEndSession={async (sessionId) => {
+            // Send END_SESSION message via WebSocket
+            if (isConnected) {
+              sendMessage('END_SESSION', { sessionId });
+            } else {
+              alert('Failed to end session: WebSocket not connected');
+            }
+          }}
+        />
       );
     }
 
