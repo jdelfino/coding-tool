@@ -18,6 +18,7 @@ import ProblemLibrary from './components/ProblemLibrary';
 import ProblemCreator from './components/ProblemCreator';
 import ProblemLoader from './components/ProblemLoader';
 import SessionsList from './components/SessionsList';
+import SessionDetails from './components/SessionDetails';
 
 interface Student {
   id: string;
@@ -32,7 +33,7 @@ interface Student {
   };
 }
 
-type ViewMode = 'classes' | 'sections' | 'problems' | 'sessions' | 'session';
+type ViewMode = 'classes' | 'sections' | 'problems' | 'sessions' | 'session' | 'details';
 
 interface ClassContext {
   classId: string;
@@ -55,6 +56,7 @@ function InstructorPage() {
   const [sessionContext, setSessionContext] = useState<SessionContext | null>(null);
   const [problemSubView, setProblemSubView] = useState<'library' | 'creator'>('library');
   const [editingProblemId, setEditingProblemId] = useState<string | null>(null);
+  const [detailsSessionId, setDetailsSessionId] = useState<string | null>(null);
   
   // Session state
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -556,6 +558,23 @@ function InstructorPage() {
             } else {
               alert('Failed to end session: WebSocket not connected');
             }
+          }}
+          onViewDetails={(sessionId) => {
+            // Navigate to details view for completed sessions
+            setDetailsSessionId(sessionId);
+            setViewMode('details');
+          }}
+        />
+      );
+    }
+
+    if (viewMode === 'details' && detailsSessionId) {
+      return (
+        <SessionDetails
+          sessionId={detailsSessionId}
+          onClose={() => {
+            setViewMode('sessions');
+            setDetailsSessionId(null);
           }}
         />
       );

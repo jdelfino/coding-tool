@@ -21,9 +21,10 @@ interface SessionData {
 interface SessionsListProps {
   onRejoinSession?: (sessionId: string) => void;
   onEndSession?: (sessionId: string) => void;
+  onViewDetails?: (sessionId: string) => void;
 }
 
-export default function SessionsList({ onRejoinSession, onEndSession }: SessionsListProps) {
+export default function SessionsList({ onRejoinSession, onEndSession, onViewDetails }: SessionsListProps) {
   const router = useRouter();
   const [sessions, setSessions] = useState<SessionData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -286,7 +287,7 @@ export default function SessionsList({ onRejoinSession, onEndSession }: Sessions
                 
                 <div className="flex sm:flex-col sm:justify-center">
                   <button
-                    onClick={() => router.push(`/instructor?sessionId=${session.id}`)}
+                    onClick={() => onViewDetails ? onViewDetails(session.id) : router.push(`/instructor?sessionId=${session.id}`)}
                     className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors whitespace-nowrap"
                   >
                     View Details

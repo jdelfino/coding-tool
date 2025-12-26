@@ -3,7 +3,7 @@
 import React from 'react';
 
 interface InstructorNavProps {
-  currentView: 'classes' | 'sections' | 'problems' | 'sessions' | 'session';
+  currentView: 'classes' | 'sections' | 'problems' | 'sessions' | 'session' | 'details';
   onNavigate: (view: 'classes' | 'problems' | 'sessions') => void;
   activeSessionId: string | null;
   onReturnToSession?: () => void;
