@@ -96,11 +96,15 @@ export class SessionManager {
     // Persist to storage if available
     if (this.storage) {
       try {
+        console.log(`[SessionManager.createSession] About to persist session ${sessionId} to storage`);
         await this.storage.sessions.createSession(session);
+        console.log(`[SessionManager.createSession] Successfully persisted session ${sessionId} to storage`);
       } catch (error) {
         console.error('Failed to persist session to storage:', error);
         throw error;
       }
+    } else {
+      console.warn(`[SessionManager.createSession] No storage available for session ${sessionId}`);
     }
     
     this.sessionsByJoinCode.set(joinCode, sessionId);
@@ -142,11 +146,14 @@ export class SessionManager {
    * Get a session by ID
    */
   async getSession(sessionId: string): Promise<Session | null> {
+    console.log(`[SessionManager.getSession] Looking up session ${sessionId}, storage=${!!this.storage}`);
     if (this.storage) {
       const session = await this.storage.sessions.getSession(sessionId);
+      console.log(`[SessionManager.getSession] Storage returned: ${session ? 'Found' : 'Not found'}`);
       return session;
     }
     
+    console.log(`[SessionManager.getSession] No storage available`);
     return null;
   }
 

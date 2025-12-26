@@ -41,11 +41,15 @@ export class LocalSessionRepository implements ISessionRepository {
    * Reload sessions from disk (for cross-process consistency)
    */
   private async reloadFromDisk(): Promise<void> {
+    console.log(`[SessionRepository.reloadFromDisk] Loading from ${this.filePath}`);
     // Load existing sessions into cache
     const sessions = await readJsonFile<Record<string, StoredSession>>(
       this.filePath,
       {}
     );
+    
+    const sessionIds = Object.keys(sessions);
+    console.log(`[SessionRepository.reloadFromDisk] Loaded ${sessionIds.length} sessions from disk: ${sessionIds.join(', ')}`);
     
     this.cache.clear();
     for (const [id, session] of Object.entries(sessions)) {
@@ -81,6 +85,7 @@ export class LocalSessionRepository implements ISessionRepository {
   }
 
   async createSession(session: Session): Promise<string> {
+    console.log(`[SessionRepository.createSession] Creating session ${session.id}`);
     const stored: StoredSession = {
       ...session,
       _metadata: createMetadata(),
@@ -94,15 +99,20 @@ export class LocalSessionRepository implements ISessionRepository {
     }
     
     this.cache.set(session.id, stored);
+    console.log(`[SessionRepository.createSession] Added to cache, about to flush`);
     await this.flush();
+    console.log(`[SessionRepository.createSession] Flushed to disk successfully`);
     
     return session.id;
   }
 
   async getSession(sessionId: string): Promise<StoredSession | null> {
+    console.log(`[SessionRepository.getSession] Looking up session ${sessionId}`);
     // Reload from disk to get latest data from other processes (e.g., WebSocket updates)
     await this.reloadFromDisk();
-    return this.cache.get(sessionId) || null;
+    const result = this.cache.get(sessionId) || null;
+    console.log(`[SessionRepository.getSession] Cache lookup result: ${result ? 'Found' : 'Not found'}, cache size: ${this.cache.size}`);
+    return result;
   }
 
   async updateSession(sessionId: string, updates: Partial<Session>): Promise<void> {
