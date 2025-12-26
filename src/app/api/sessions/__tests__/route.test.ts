@@ -239,11 +239,16 @@ describe('POST /api/sessions', () => {
   });
 
   it('returns 403 when user is not an instructor in the section', async () => {
+    const sectionWithDifferentInstructor = {
+      ...mockSection,
+      instructorIds: ['other-instructor'], // User not in instructorIds
+    };
+    
     mockAuthProvider.getSession.mockResolvedValue({ user: mockUser });
-    mockStorage.sections.getSection.mockResolvedValue(mockSection);
+    mockStorage.sections.getSection.mockResolvedValue(sectionWithDifferentInstructor);
     mockStorage.memberships.getMembership.mockResolvedValue({
       ...mockMembership,
-      role: 'student',
+      role: 'student', // And has student role
     });
 
     const request = new NextRequest('http://localhost/api/sessions', {
@@ -285,5 +290,84 @@ describe('POST /api/sessions', () => {
 
     expect(response.status).toBe(404);
     expect(data.error).toBe('Problem not found');
+  });
+
+  it('creates a session when user is in instructorIds but has no membership', async () => {
+    // This tests the scenario where the instructor created the section
+    // and is in instructorIds array but has no membership record
+    mockAuthProvider.getSession.mockResolvedValue({ user: mockUser });
+    mockStorage.sections.getSection.mockResolvedValue(mockSection);
+    mockStorage.memberships.getMembership.mockResolvedValue(null); // No membership
+    mockSessionManager.createSession.mockResolvedValue(mockSession);
+
+    const request = new NextRequest('http://localhost/api/sessions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Cookie: 'sessionId=test-session-id',
+      },
+      body: JSON.stringify({ sectionId: 'section-1' }),
+    });
+
+    const response = await POST(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(201);
+    expect(data.success).toBe(true);
+    expect(data.session.id).toBe('session-1');
+  });
+
+  it('creates a session when user has instructor membership but not in instructorIds', async () => {
+    // Edge case: user has membership but not in instructorIds (shouldn't normally happen)
+    const sectionWithoutUser = {
+      ...mockSection,
+      instructorIds: ['other-instructor'],
+    };
+    
+    mockAuthProvider.getSession.mockResolvedValue({ user: mockUser });
+    mockStorage.sections.getSection.mockResolvedValue(sectionWithoutUser);
+    mockStorage.memberships.getMembership.mockResolvedValue(mockMembership);
+    mockSessionManager.createSession.mockResolvedValue(mockSession);
+
+    const request = new NextRequest('http://localhost/api/sessions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Cookie: 'sessionId=test-session-id',
+      },
+      body: JSON.stringify({ sectionId: 'section-1' }),
+    });
+
+    const response = await POST(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(201);
+    expect(data.success).toBe(true);
+  });
+
+  it('returns 403 when user is neither in instructorIds nor has instructor membership', async () => {
+    const sectionWithoutUser = {
+      ...mockSection,
+      instructorIds: ['other-instructor'],
+    };
+    
+    mockAuthProvider.getSession.mockResolvedValue({ user: mockUser });
+    mockStorage.sections.getSection.mockResolvedValue(sectionWithoutUser);
+    mockStorage.memberships.getMembership.mockResolvedValue(null); // No membership
+
+    const request = new NextRequest('http://localhost/api/sessions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Cookie: 'sessionId=test-session-id',
+      },
+      body: JSON.stringify({ sectionId: 'section-1' }),
+    });
+
+    const response = await POST(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(403);
+    expect(data.error).toContain('must be an instructor');
   });
 });

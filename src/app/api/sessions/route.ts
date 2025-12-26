@@ -72,8 +72,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify user is an instructor in this section
+    // Check both membership table and section's instructorIds array
+    const isInstructor = section.instructorIds.includes(user.id);
     const membership = await storage.memberships.getMembership(user.id, sectionId);
-    if (!membership || membership.role !== 'instructor') {
+    const hasInstructorMembership = membership?.role === 'instructor';
+    
+    if (!isInstructor && !hasInstructorMembership) {
       return NextResponse.json(
         { error: 'Forbidden: You must be an instructor in this section' },
         { status: 403 }
