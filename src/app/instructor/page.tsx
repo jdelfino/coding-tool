@@ -116,6 +116,11 @@ function InstructorPage() {
     }
   }, [searchParams, isConnected, sessionId, router, sendMessage]);
 
+  // Debug: Log state changes
+  useEffect(() => {
+    console.log('[State] sessionId:', sessionId, 'viewMode:', viewMode, 'joinCode:', joinCode);
+  }, [sessionId, viewMode, joinCode]);
+
   // Handle incoming WebSocket messages
   useEffect(() => {
     if (!lastMessage) return;
@@ -150,9 +155,11 @@ function InstructorPage() {
         break;
 
       case 'SESSION_ENDED':
+        console.log('[SESSION_ENDED] Message received:', lastMessage.payload);
+        console.log('[SESSION_ENDED] Current sessionId:', sessionId);
         if (lastMessage.payload.sessionId === sessionId) {
-          console.log('[SESSION_ENDED] Received for current session, clearing state');
-          // Clear session state
+          console.log('[SESSION_ENDED] Received for current session, clearing ALL state');
+          // Clear ALL session-related state
           setSessionId(null);
           setJoinCode(null);
           setStudents([]);
@@ -162,11 +169,15 @@ function InstructorPage() {
           setRevisionViewerState(null);
           setSessionProblem(null);
           setSessionExecutionSettings({});
+          setSessionContext(null);
           
           // Navigate to dashboard based on context
           const targetView = classContext ? 'sections' : 'classes';
-          console.log('[SESSION_ENDED] Navigating to:', targetView);
+          console.log('[SESSION_ENDED] Setting viewMode to:', targetView);
           setViewMode(targetView);
+          console.log('[SESSION_ENDED] State clearing complete');
+        } else {
+          console.log('[SESSION_ENDED] Ignoring - different session');
         }
         break;
 
@@ -329,17 +340,24 @@ function InstructorPage() {
   };
 
   const handleEndSession = () => {
-    if (!sessionId) return;
+    if (!sessionId) {
+      console.log('[handleEndSession] No sessionId, returning');
+      return;
+    }
     
     if (confirm('Are you sure you want to end this session? Students will be disconnected.')) {
-      console.log('[handleEndSession] Ending session:', sessionId);
+      console.log('[handleEndSession] User confirmed, ending session:', sessionId);
+      console.log('[handleEndSession] Current viewMode:', viewMode);
+      console.log('[handleEndSession] classContext:', classContext);
+      
       sendMessage('END_SESSION', { sessionId });
       
       // Determine navigation target
       const targetView = classContext ? 'sections' : 'classes';
-      console.log('[handleEndSession] Navigating to:', targetView);
+      console.log('[handleEndSession] Target viewMode:', targetView);
       
-      // Clear all session state when ending
+      // Clear ALL session-related state immediately
+      console.log('[handleEndSession] Clearing session state...');
       setSessionId(null);
       setJoinCode(null);
       setStudents([]);
@@ -349,9 +367,14 @@ function InstructorPage() {
       setRevisionViewerState(null);
       setSessionProblem(null);
       setSessionExecutionSettings({});
+      setSessionContext(null);
       
       // Navigate based on context
+      console.log('[handleEndSession] Setting viewMode to:', targetView);
       setViewMode(targetView);
+      console.log('[handleEndSession] handleEndSession complete');
+    } else {
+      console.log('[handleEndSession] User cancelled');
     }
   };
 
