@@ -38,7 +38,8 @@ export async function GET(request: NextRequest) {
     const sessionData = sessions.map(session => ({
       id: session.id,
       joinCode: session.joinCode,
-      problemText: session.problemText,
+      problemTitle: session.problem?.title || 'Untitled Session',
+      problemDescription: session.problem?.description,
       createdAt: session.createdAt.toISOString(),
       lastActivity: session.lastActivity.toISOString(),
       creatorId: session.creatorId,

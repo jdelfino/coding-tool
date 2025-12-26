@@ -909,18 +909,16 @@ class WebSocketHandler {
       id: s.id,
       name: s.name,
       hasCode: s.code.length > 0,
-      // Use student-specific settings if set, otherwise fall back to session defaults
-      randomSeed: s.randomSeed !== undefined ? s.randomSeed : session.randomSeed,
-      attachedFiles: s.attachedFiles !== undefined
-        ? s.attachedFiles // explicit override, even if empty array
-        : session.attachedFiles,
+      // Use student-specific settings if set, otherwise fall back to session/problem defaults
+      randomSeed: s.executionSettings?.randomSeed ?? session.executionSettings?.randomSeed ?? session.problem?.executionSettings?.randomSeed,
+      attachedFiles: s.executionSettings?.attachedFiles ?? session.executionSettings?.attachedFiles ?? session.problem?.executionSettings?.attachedFiles,
     }));
 
     console.log('[broadcastStudentList] Sending student list:', {
       sessionId,
       sessionDefaults: {
-        randomSeed: session.randomSeed,
-        attachedFiles: session.attachedFiles,
+        randomSeed: session.executionSettings?.randomSeed,
+        attachedFiles: session.executionSettings?.attachedFiles,
       },
       students: studentList.map(s => ({ id: s.id, randomSeed: s.randomSeed, attachedFiles: s.attachedFiles })),
     });

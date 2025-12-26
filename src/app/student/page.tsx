@@ -175,14 +175,16 @@ function StudentPage() {
 
   // Send student settings updates (randomSeed and attachedFiles)
   useEffect(() => {
-    if (!joined || !studentId) return;
+    if (!joined || !studentId || !studentExecutionSettings) return;
 
     // Only send if student has explicitly set values (not null = never set)
     sendMessage('UPDATE_STUDENT_SETTINGS', { 
-      randomSeed, 
-      attachedFiles: attachedFiles !== null ? attachedFiles : undefined 
+      executionSettings: {
+        randomSeed: studentExecutionSettings.randomSeed,
+        attachedFiles: studentExecutionSettings.attachedFiles !== undefined ? studentExecutionSettings.attachedFiles : undefined 
+      }
     });
-  }, [randomSeed, attachedFiles, joined, studentId, sendMessage]);
+  }, [studentExecutionSettings, joined, studentId, sendMessage]);
 
   const handleShowDashboard = () => {
     setView('dashboard');

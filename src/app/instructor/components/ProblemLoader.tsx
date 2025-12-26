@@ -73,8 +73,24 @@ export default function ProblemLoader({
     setError(null);
 
     try {
-      // TODO: Implement session problem loading endpoint
-      // For now, just notify parent
+      const response = await fetch(`/api/sessions/${sessionId}/load-problem`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          problemId: selectedProblem.id,
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to load problem');
+      }
+
+      const data = await response.json();
+      
+      // Notify parent component of success
       onProblemLoaded?.(selectedProblem.id);
       onClose?.();
     } catch (err: any) {

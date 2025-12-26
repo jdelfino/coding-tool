@@ -88,7 +88,7 @@ export default function SectionCard({ section, getActiveSessions }: SectionCardP
                 >
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-900 truncate">
-                      {session.problemText || 'Coding Session'}
+                      {session.problem?.title || 'Coding Session'}
                     </p>
                     <p className="text-xs text-gray-500">
                       {session.students?.size || 0} student{session.students?.size !== 1 ? 's' : ''} joined

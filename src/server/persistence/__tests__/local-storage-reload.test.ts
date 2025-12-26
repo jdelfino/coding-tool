@@ -42,7 +42,14 @@ describe('LocalSessionRepository - Cross-Process Data Reloading', () => {
     const session: Session = {
       id: 'session-123',
       joinCode: 'ABC123',
-      problemText: 'Test problem',
+      problem: {
+        id: 'problem-1',
+        title: 'Test problem',
+        authorId: 'instructor-1',
+        isPublic: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
       students: new Map(),
       createdAt: new Date(),
       lastActivity: new Date(),
@@ -68,7 +75,14 @@ describe('LocalSessionRepository - Cross-Process Data Reloading', () => {
     const session: Session = {
       id: 'session-456',
       joinCode: 'DEF456',
-      problemText: 'Original problem',
+      problem: {
+        id: 'problem-2',
+        title: 'Original problem',
+        authorId: 'instructor-2',
+        isPublic: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
       students: new Map(),
       createdAt: new Date(),
       lastActivity: new Date(),
@@ -82,14 +96,21 @@ describe('LocalSessionRepository - Cross-Process Data Reloading', () => {
 
     // Repository 1 updates the session
     await repository1.updateSession('session-456', {
-      problemText: 'Updated problem',
+      problem: {
+        id: 'problem-2',
+        title: 'Updated problem',
+        authorId: 'instructor-2',
+        isPublic: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
     });
 
     // Repository 2 should see the updated session
     const retrievedSession = await repository2.getSession('session-456');
     
     expect(retrievedSession).not.toBeNull();
-    expect(retrievedSession?.problemText).toBe('Updated problem');
+    expect(retrievedSession?.problem?.title).toBe('Updated problem');
   });
 
   it('should see student additions made by another repository instance', async () => {
@@ -97,7 +118,14 @@ describe('LocalSessionRepository - Cross-Process Data Reloading', () => {
     const session: Session = {
       id: 'session-789',
       joinCode: 'GHI789',
-      problemText: 'Test problem',
+      problem: {
+        id: 'problem-3',
+        title: 'Test problem',
+        authorId: 'instructor-3',
+        isPublic: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
       students: new Map(),
       createdAt: new Date(),
       lastActivity: new Date(),
@@ -135,7 +163,14 @@ describe('LocalSessionRepository - Cross-Process Data Reloading', () => {
     const session: Session = {
       id: 'session-delete',
       joinCode: 'DEL123',
-      problemText: 'To be deleted',
+      problem: {
+        id: 'problem-4',
+        title: 'To be deleted',
+        authorId: 'instructor-4',
+        isPublic: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
       students: new Map(),
       createdAt: new Date(),
       lastActivity: new Date(),
@@ -164,7 +199,14 @@ describe('LocalSessionRepository - Cross-Process Data Reloading', () => {
     const session1: Session = {
       id: 'session-list-1',
       joinCode: 'LIST01',
-      problemText: 'Problem 1',
+      problem: {
+        id: 'problem-5',
+        title: 'Problem 1',
+        authorId: 'instructor-5',
+        isPublic: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
       students: new Map(),
       createdAt: new Date(),
       lastActivity: new Date(),
@@ -177,7 +219,14 @@ describe('LocalSessionRepository - Cross-Process Data Reloading', () => {
     const session2: Session = {
       id: 'session-list-2',
       joinCode: 'LIST02',
-      problemText: 'Problem 2',
+      problem: {
+        id: 'problem-6',
+        title: 'Problem 2',
+        authorId: 'instructor-6',
+        isPublic: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
       students: new Map(),
       createdAt: new Date(),
       lastActivity: new Date(),

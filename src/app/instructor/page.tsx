@@ -20,8 +20,13 @@ interface Student {
   id: string;
   name: string;
   hasCode: boolean;
-  randomSeed?: number;
-  attachedFiles?: Array<{ name: string; content: string }>;
+  randomSeed?: number; // For backward compatibility, kept here for display
+  attachedFiles?: Array<{ name: string; content: string }>; // For backward compatibility
+  executionSettings?: {
+    randomSeed?: number;
+    stdin?: string;
+    attachedFiles?: Array<{ name: string; content: string }>;
+  };
 }
 
 type ViewMode = 'classes' | 'sections' | 'problems' | 'sessions' | 'session';
