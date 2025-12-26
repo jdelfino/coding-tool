@@ -8,8 +8,10 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useRouter } from 'next/navigation';
 import ProblemSearch from './ProblemSearch';
 import ProblemCard from './ProblemCard';
+import CreateSessionFromProblemModal from './CreateSessionFromProblemModal';
 
 interface Problem {
   id: string;
@@ -29,6 +31,7 @@ interface ProblemLibraryProps {
 
 export default function ProblemLibrary({ onCreateNew, onEdit }: ProblemLibraryProps) {
   const { user } = useAuth();
+  const router = useRouter();
   const [problems, setProblems] = useState<Problem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -39,6 +42,10 @@ export default function ProblemLibrary({ onCreateNew, onEdit }: ProblemLibraryPr
   const [sortBy, setSortBy] = useState<'title' | 'created' | 'updated'>('created');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
+
+  // Session creation modal state
+  const [showSessionModal, setShowSessionModal] = useState(false);
+  const [selectedProblemForSession, setSelectedProblemForSession] = useState<{ id: string; title: string } | null>(null);
 
   useEffect(() => {
     loadProblems();
@@ -144,9 +151,27 @@ export default function ProblemLibrary({ onCreateNew, onEdit }: ProblemLibraryPr
   };
 
   const handleCreateSession = (problemId: string) => {
-    // Navigate to instructor dashboard with session creation context
-    // This could be enhanced to open a modal or navigate with state
-    alert(`Creating session for problem ${problemId}.\n\nThis feature will be fully implemented when session creation is integrated with problems.`);
+    const problem = problems.find(p => p.id === problemId);
+    if (!problem) {
+      alert('Problem not found');
+      return;
+    }
+
+    setSelectedProblemForSession({ id: problem.id, title: problem.title });
+    setShowSessionModal(true);
+  };
+
+  const handleSessionCreated = (sessionId: string, joinCode: string) => {
+    setShowSessionModal(false);
+    setSelectedProblemForSession(null);
+    
+    // Navigate to instructor page with session context
+    router.push(`/instructor?sessionId=${sessionId}&joinCode=${joinCode}`);
+  };
+
+  const handleCloseSessionModal = () => {
+    setShowSessionModal(false);
+    setSelectedProblemForSession(null);
   };
 
   if (loading) {
@@ -259,6 +284,16 @@ export default function ProblemLibrary({ onCreateNew, onEdit }: ProblemLibraryPr
             />
           ))}
         </div>
+      )}
+
+      {/* Session Creation Modal */}
+      {showSessionModal && selectedProblemForSession && (
+        <CreateSessionFromProblemModal
+          problemId={selectedProblemForSession.id}
+          problemTitle={selectedProblemForSession.title}
+          onClose={handleCloseSessionModal}
+          onSuccess={handleSessionCreated}
+        />
       )}
     </div>
   );
