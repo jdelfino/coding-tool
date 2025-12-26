@@ -9,12 +9,10 @@ import SessionEndedNotification from '../SessionEndedNotification';
 
 describe('SessionEndedNotification', () => {
   it('renders notification with correct message', () => {
-    const mockDismiss = jest.fn();
     const mockLeaveToDashboard = jest.fn();
 
     render(
       <SessionEndedNotification 
-        onDismiss={mockDismiss}
         onLeaveToDashboard={mockLeaveToDashboard}
       />
     );
@@ -24,31 +22,11 @@ describe('SessionEndedNotification', () => {
     expect(screen.getByText(/You can still view your code and output/)).toBeInTheDocument();
   });
 
-  it('calls onDismiss when dismiss button is clicked', () => {
-    const mockDismiss = jest.fn();
-    const mockLeaveToDashboard = jest.fn();
-
-    render(
-      <SessionEndedNotification 
-        onDismiss={mockDismiss}
-        onLeaveToDashboard={mockLeaveToDashboard}
-      />
-    );
-
-    const dismissButton = screen.getByRole('button', { name: /dismiss/i });
-    fireEvent.click(dismissButton);
-
-    expect(mockDismiss).toHaveBeenCalledTimes(1);
-    expect(mockLeaveToDashboard).not.toHaveBeenCalled();
-  });
-
   it('calls onLeaveToDashboard when "Go to Dashboard" button is clicked', () => {
-    const mockDismiss = jest.fn();
     const mockLeaveToDashboard = jest.fn();
 
     render(
       <SessionEndedNotification 
-        onDismiss={mockDismiss}
         onLeaveToDashboard={mockLeaveToDashboard}
       />
     );
@@ -57,16 +35,13 @@ describe('SessionEndedNotification', () => {
     fireEvent.click(dashboardButton);
 
     expect(mockLeaveToDashboard).toHaveBeenCalledTimes(1);
-    expect(mockDismiss).not.toHaveBeenCalled();
   });
 
   it('displays warning icon', () => {
-    const mockDismiss = jest.fn();
     const mockLeaveToDashboard = jest.fn();
 
     const { container } = render(
       <SessionEndedNotification 
-        onDismiss={mockDismiss}
         onLeaveToDashboard={mockLeaveToDashboard}
       />
     );
@@ -74,5 +49,20 @@ describe('SessionEndedNotification', () => {
     // Check for SVG icon presence
     const svgIcon = container.querySelector('svg');
     expect(svgIcon).toBeInTheDocument();
+  });
+
+  it('renders as an inline banner (not fixed position)', () => {
+    const mockLeaveToDashboard = jest.fn();
+
+    const { container } = render(
+      <SessionEndedNotification 
+        onLeaveToDashboard={mockLeaveToDashboard}
+      />
+    );
+
+    // Check that the outer div does not have fixed positioning
+    const outerDiv = container.firstChild as HTMLElement;
+    expect(outerDiv).not.toHaveClass('fixed');
+    expect(outerDiv).toHaveClass('mb-4');
   });
 });

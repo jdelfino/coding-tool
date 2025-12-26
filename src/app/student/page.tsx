@@ -222,10 +222,6 @@ function StudentPage() {
     refetchSessions();
   };
 
-  const handleDismissEndedNotification = () => {
-    setSessionEnded(false);
-  };
-
   const handleLoadStarterCode = useCallback((starterCode: string) => {
     if (code.trim().length > 0) {
       // Ask for confirmation if there's existing code
@@ -568,7 +564,6 @@ function StudentPage() {
       {/* Session Ended Notification */}
       {sessionEnded && (
         <SessionEndedNotification 
-          onDismiss={handleDismissEndedNotification}
           onLeaveToDashboard={handleLeaveSession}
         />
       )}

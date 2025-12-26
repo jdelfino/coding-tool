@@ -151,6 +151,7 @@ function InstructorPage() {
 
       case 'SESSION_ENDED':
         if (lastMessage.payload.sessionId === sessionId) {
+          console.log('[SESSION_ENDED] Received for current session, clearing state');
           // Clear session state
           setSessionId(null);
           setJoinCode(null);
@@ -163,11 +164,9 @@ function InstructorPage() {
           setSessionExecutionSettings({});
           
           // Navigate to dashboard based on context
-          if (classContext) {
-            setViewMode('sections');
-          } else {
-            setViewMode('classes');
-          }
+          const targetView = classContext ? 'sections' : 'classes';
+          console.log('[SESSION_ENDED] Navigating to:', targetView);
+          setViewMode(targetView);
         }
         break;
 
@@ -333,7 +332,12 @@ function InstructorPage() {
     if (!sessionId) return;
     
     if (confirm('Are you sure you want to end this session? Students will be disconnected.')) {
+      console.log('[handleEndSession] Ending session:', sessionId);
       sendMessage('END_SESSION', { sessionId });
+      
+      // Determine navigation target
+      const targetView = classContext ? 'sections' : 'classes';
+      console.log('[handleEndSession] Navigating to:', targetView);
       
       // Clear all session state when ending
       setSessionId(null);
@@ -347,11 +351,7 @@ function InstructorPage() {
       setSessionExecutionSettings({});
       
       // Navigate based on context
-      if (classContext) {
-        setViewMode('sections');
-      } else {
-        setViewMode('classes');
-      }
+      setViewMode(targetView);
     }
   };
 
