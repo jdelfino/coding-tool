@@ -11,7 +11,7 @@
  * - Visibility settings (public/class-specific)
  */
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import type { ProblemInput } from '@/server/types/problem';
 
 interface ProblemCreatorProps {

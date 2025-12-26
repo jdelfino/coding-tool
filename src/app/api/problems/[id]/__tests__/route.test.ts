@@ -1,0 +1,411 @@
+/**
+ * Tests for /api/problems/[id] endpoints
+ * 
+ * Tests:
+ * - GET /api/problems/[id] - Retrieve specific problem
+ * - PATCH /api/problems/[id] - Update problem
+ * - DELETE /api/problems/[id] - Delete problem
+ * 
+ * Coverage:
+ * - Authentication checks
+ * - Authorization (author/admin only for updates/deletes)
+ * - Not found scenarios
+ * - Successful operations
+ * - Error handling
+ */
+
+import { NextRequest } from 'next/server';
+import { GET, PATCH, DELETE } from '../route';
+import { getStorage } from '@/server/persistence';
+import { getAuthProvider } from '@/server/auth';
+
+// Mock dependencies
+jest.mock('@/server/persistence');
+jest.mock('@/server/auth');
+
+const mockGetStorage = getStorage as jest.MockedFunction<typeof getStorage>;
+const mockGetAuthProvider = getAuthProvider as jest.MockedFunction<typeof getAuthProvider>;
+
+describe('/api/problems/[id]', () => {
+  const mockProblem = {
+    id: 'problem-123',
+    title: 'Test Problem',
+    description: 'Test description',
+    starterCode: 'def solution():\n    pass',
+    solutionCode: 'def solution():\n    return 42',
+    testCases: [],
+    isPublic: false,
+    authorId: 'user-1',
+    classId: 'class-1',
+    createdAt: new Date('2025-01-01'),
+    updatedAt: new Date('2025-01-01'),
+  };
+
+  const mockUser = {
+    id: 'user-1',
+    username: 'instructor1',
+    email: 'instructor1@test.com',
+    role: 'instructor' as const,
+    createdAt: new Date('2025-01-01'),
+  };
+
+  const mockSession = {
+    id: 'session-123',
+    user: mockUser,
+    expiresAt: new Date('2025-12-31'),
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  describe('GET /api/problems/[id]', () => {
+    it('should return 401 when not authenticated', async () => {
+      const request = new NextRequest('http://localhost/api/problems/problem-123');
+      const params = { params: Promise.resolve({ id: 'problem-123' }) };
+
+      const response = await GET(request, params);
+      const data = await response.json();
+
+      expect(response.status).toBe(401);
+      expect(data.error).toBe('Unauthorized');
+    });
+
+    it('should return 401 when session is invalid', async () => {
+      mockGetAuthProvider.mockResolvedValue({
+        getSession: jest.fn().mockResolvedValue(null),
+      } as any);
+
+      const request = new NextRequest('http://localhost/api/problems/problem-123', {
+        headers: { Cookie: 'sessionId=invalid' },
+      });
+      const params = { params: Promise.resolve({ id: 'problem-123' }) };
+
+      const response = await GET(request, params);
+      const data = await response.json();
+
+      expect(response.status).toBe(401);
+      expect(data.error).toBe('Unauthorized');
+    });
+
+    it('should return 404 when problem not found', async () => {
+      mockGetAuthProvider.mockResolvedValue({
+        getSession: jest.fn().mockResolvedValue(mockSession),
+      } as any);
+
+      mockGetStorage.mockResolvedValue({
+        problems: {
+          getById: jest.fn().mockResolvedValue(null),
+        },
+      } as any);
+
+      const request = new NextRequest('http://localhost/api/problems/problem-123', {
+        headers: { Cookie: 'sessionId=valid' },
+      });
+      const params = { params: Promise.resolve({ id: 'problem-123' }) };
+
+      const response = await GET(request, params);
+      const data = await response.json();
+
+      expect(response.status).toBe(404);
+      expect(data.error).toBe('Problem not found');
+    });
+
+    it('should return problem when found', async () => {
+      mockGetAuthProvider.mockResolvedValue({
+        getSession: jest.fn().mockResolvedValue(mockSession),
+      } as any);
+
+      mockGetStorage.mockResolvedValue({
+        problems: {
+          getById: jest.fn().mockResolvedValue(mockProblem),
+        },
+      } as any);
+
+      const request = new NextRequest('http://localhost/api/problems/problem-123', {
+        headers: { Cookie: 'sessionId=valid' },
+      });
+      const params = { params: Promise.resolve({ id: 'problem-123' }) };
+
+      const response = await GET(request, params);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.problem).toMatchObject({
+        id: 'problem-123',
+        title: 'Test Problem',
+      });
+    });
+  });
+
+  describe('PATCH /api/problems/[id]', () => {
+    it('should return 401 when not authenticated', async () => {
+      const request = new NextRequest('http://localhost/api/problems/problem-123', {
+        method: 'PATCH',
+        body: JSON.stringify({ title: 'Updated' }),
+      });
+      const params = { params: Promise.resolve({ id: 'problem-123' }) };
+
+      const response = await PATCH(request, params);
+      const data = await response.json();
+
+      expect(response.status).toBe(401);
+      expect(data.error).toBe('Unauthorized');
+    });
+
+    it('should return 404 when problem not found', async () => {
+      mockGetAuthProvider.mockResolvedValue({
+        getSession: jest.fn().mockResolvedValue(mockSession),
+      } as any);
+
+      mockGetStorage.mockResolvedValue({
+        problems: {
+          getById: jest.fn().mockResolvedValue(null),
+        },
+      } as any);
+
+      const request = new NextRequest('http://localhost/api/problems/problem-123', {
+        method: 'PATCH',
+        headers: { Cookie: 'sessionId=valid' },
+        body: JSON.stringify({ title: 'Updated' }),
+      });
+      const params = { params: Promise.resolve({ id: 'problem-123' }) };
+
+      const response = await PATCH(request, params);
+      const data = await response.json();
+
+      expect(response.status).toBe(404);
+      expect(data.error).toBe('Problem not found');
+    });
+
+    it('should return 403 when user is not author or admin', async () => {
+      const otherUser = { ...mockUser, id: 'user-2' };
+      mockGetAuthProvider.mockResolvedValue({
+        getSession: jest.fn().mockResolvedValue({ ...mockSession, user: otherUser }),
+      } as any);
+
+      mockGetStorage.mockResolvedValue({
+        problems: {
+          getById: jest.fn().mockResolvedValue(mockProblem),
+        },
+      } as any);
+
+      const request = new NextRequest('http://localhost/api/problems/problem-123', {
+        method: 'PATCH',
+        headers: { Cookie: 'sessionId=valid' },
+        body: JSON.stringify({ title: 'Updated' }),
+      });
+      const params = { params: Promise.resolve({ id: 'problem-123' }) };
+
+      const response = await PATCH(request, params);
+      const data = await response.json();
+
+      expect(response.status).toBe(403);
+      expect(data.error).toContain('Forbidden');
+    });
+
+    it('should allow author to update their own problem', async () => {
+      const updatedProblem = { ...mockProblem, title: 'Updated Problem' };
+
+      mockGetAuthProvider.mockResolvedValue({
+        getSession: jest.fn().mockResolvedValue(mockSession),
+      } as any);
+
+      mockGetStorage.mockResolvedValue({
+        problems: {
+          getById: jest.fn().mockResolvedValue(mockProblem),
+          update: jest.fn().mockResolvedValue(updatedProblem),
+        },
+      } as any);
+
+      const request = new NextRequest('http://localhost/api/problems/problem-123', {
+        method: 'PATCH',
+        headers: { Cookie: 'sessionId=valid' },
+        body: JSON.stringify({ title: 'Updated Problem' }),
+      });
+      const params = { params: Promise.resolve({ id: 'problem-123' }) };
+
+      const response = await PATCH(request, params);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.problem.title).toBe('Updated Problem');
+    });
+
+    it('should allow admin to update any problem', async () => {
+      const adminUser = { ...mockUser, id: 'admin-1', role: 'admin' as const };
+      const updatedProblem = { ...mockProblem, title: 'Updated by Admin' };
+
+      mockGetAuthProvider.mockResolvedValue({
+        getSession: jest.fn().mockResolvedValue({ ...mockSession, user: adminUser }),
+      } as any);
+
+      mockGetStorage.mockResolvedValue({
+        problems: {
+          getById: jest.fn().mockResolvedValue(mockProblem),
+          update: jest.fn().mockResolvedValue(updatedProblem),
+        },
+      } as any);
+
+      const request = new NextRequest('http://localhost/api/problems/problem-123', {
+        method: 'PATCH',
+        headers: { Cookie: 'sessionId=valid' },
+        body: JSON.stringify({ title: 'Updated by Admin' }),
+      });
+      const params = { params: Promise.resolve({ id: 'problem-123' }) };
+
+      const response = await PATCH(request, params);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.problem.title).toBe('Updated by Admin');
+    });
+
+    it('should handle validation errors from storage', async () => {
+      mockGetAuthProvider.mockResolvedValue({
+        getSession: jest.fn().mockResolvedValue(mockSession),
+      } as any);
+
+      const validationError = new Error('Invalid title');
+      (validationError as any).code = 'INVALID_DATA';
+      (validationError as any).details = { field: 'title' };
+
+      mockGetStorage.mockResolvedValue({
+        problems: {
+          getById: jest.fn().mockResolvedValue(mockProblem),
+          update: jest.fn().mockRejectedValue(validationError),
+        },
+      } as any);
+
+      const request = new NextRequest('http://localhost/api/problems/problem-123', {
+        method: 'PATCH',
+        headers: { Cookie: 'sessionId=valid' },
+        body: JSON.stringify({ title: '' }),
+      });
+      const params = { params: Promise.resolve({ id: 'problem-123' }) };
+
+      const response = await PATCH(request, params);
+      const data = await response.json();
+
+      expect(response.status).toBe(400);
+      expect(data.error).toBe('Invalid title');
+      expect(data.details).toEqual({ field: 'title' });
+    });
+  });
+
+  describe('DELETE /api/problems/[id]', () => {
+    it('should return 401 when not authenticated', async () => {
+      const request = new NextRequest('http://localhost/api/problems/problem-123', {
+        method: 'DELETE',
+      });
+      const params = { params: Promise.resolve({ id: 'problem-123' }) };
+
+      const response = await DELETE(request, params);
+      const data = await response.json();
+
+      expect(response.status).toBe(401);
+      expect(data.error).toBe('Unauthorized');
+    });
+
+    it('should return 404 when problem not found', async () => {
+      mockGetAuthProvider.mockResolvedValue({
+        getSession: jest.fn().mockResolvedValue(mockSession),
+      } as any);
+
+      mockGetStorage.mockResolvedValue({
+        problems: {
+          getById: jest.fn().mockResolvedValue(null),
+        },
+      } as any);
+
+      const request = new NextRequest('http://localhost/api/problems/problem-123', {
+        method: 'DELETE',
+        headers: { Cookie: 'sessionId=valid' },
+      });
+      const params = { params: Promise.resolve({ id: 'problem-123' }) };
+
+      const response = await DELETE(request, params);
+      const data = await response.json();
+
+      expect(response.status).toBe(404);
+      expect(data.error).toBe('Problem not found');
+    });
+
+    it('should return 403 when user is not author or admin', async () => {
+      const otherUser = { ...mockUser, id: 'user-2' };
+      mockGetAuthProvider.mockResolvedValue({
+        getSession: jest.fn().mockResolvedValue({ ...mockSession, user: otherUser }),
+      } as any);
+
+      mockGetStorage.mockResolvedValue({
+        problems: {
+          getById: jest.fn().mockResolvedValue(mockProblem),
+        },
+      } as any);
+
+      const request = new NextRequest('http://localhost/api/problems/problem-123', {
+        method: 'DELETE',
+        headers: { Cookie: 'sessionId=valid' },
+      });
+      const params = { params: Promise.resolve({ id: 'problem-123' }) };
+
+      const response = await DELETE(request, params);
+      const data = await response.json();
+
+      expect(response.status).toBe(403);
+      expect(data.error).toContain('Forbidden');
+    });
+
+    it('should allow author to delete their own problem', async () => {
+      mockGetAuthProvider.mockResolvedValue({
+        getSession: jest.fn().mockResolvedValue(mockSession),
+      } as any);
+
+      mockGetStorage.mockResolvedValue({
+        problems: {
+          getById: jest.fn().mockResolvedValue(mockProblem),
+          delete: jest.fn().mockResolvedValue(undefined),
+        },
+      } as any);
+
+      const request = new NextRequest('http://localhost/api/problems/problem-123', {
+        method: 'DELETE',
+        headers: { Cookie: 'sessionId=valid' },
+      });
+      const params = { params: Promise.resolve({ id: 'problem-123' }) };
+
+      const response = await DELETE(request, params);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.success).toBe(true);
+    });
+
+    it('should allow admin to delete any problem', async () => {
+      const adminUser = { ...mockUser, id: 'admin-1', role: 'admin' as const };
+
+      mockGetAuthProvider.mockResolvedValue({
+        getSession: jest.fn().mockResolvedValue({ ...mockSession, user: adminUser }),
+      } as any);
+
+      mockGetStorage.mockResolvedValue({
+        problems: {
+          getById: jest.fn().mockResolvedValue(mockProblem),
+          delete: jest.fn().mockResolvedValue(undefined),
+        },
+      } as any);
+
+      const request = new NextRequest('http://localhost/api/problems/problem-123', {
+        method: 'DELETE',
+        headers: { Cookie: 'sessionId=valid' },
+      });
+      const params = { params: Promise.resolve({ id: 'problem-123' }) };
+
+      const response = await DELETE(request, params);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.success).toBe(true);
+    });
+  });
+});
