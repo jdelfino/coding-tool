@@ -159,6 +159,10 @@ function InstructorPage() {
         console.log('[SESSION_ENDED] Current sessionId:', sessionId);
         if (lastMessage.payload.sessionId === sessionId) {
           console.log('[SESSION_ENDED] Received for current session, clearing ALL state');
+          
+          // Clear URL parameter to prevent auto-rejoin
+          router.replace('/instructor');
+          
           // Clear ALL session-related state
           setSessionId(null);
           setJoinCode(null);
@@ -351,6 +355,9 @@ function InstructorPage() {
       console.log('[handleEndSession] classContext:', classContext);
       
       sendMessage('END_SESSION', { sessionId });
+      
+      // Clear URL parameter immediately to prevent auto-rejoin
+      router.replace('/instructor');
       
       // Determine navigation target
       const targetView = classContext ? 'sections' : 'classes';

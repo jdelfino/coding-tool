@@ -304,6 +304,13 @@ class WebSocketHandler {
       return;
     }
 
+    // Don't allow rejoining completed/ended sessions
+    if (session.status === 'completed') {
+      console.log('[handleJoinExistingSession] Session has ended:', sessionId);
+      this.sendError(ws, 'This session has ended and cannot be rejoined');
+      return;
+    }
+
     // Validate access if session is scoped to a section
     if (session.sectionId && connection.userId) {
       const sectionRepo = await getSectionRepository();
