@@ -93,18 +93,17 @@ export class SessionManager {
       sectionName,
     };
     
-    // Persist to storage if available
-    if (this.storage) {
-      try {
-        console.log(`[SessionManager.createSession] About to persist session ${sessionId} to storage`);
-        await this.storage.sessions.createSession(session);
-        console.log(`[SessionManager.createSession] Successfully persisted session ${sessionId} to storage`);
-      } catch (error) {
-        console.error('Failed to persist session to storage:', error);
-        throw error;
-      }
-    } else {
-      console.warn(`[SessionManager.createSession] No storage available for session ${sessionId}`);
+    // Ensure storage is initialized (auto-init for API routes)
+    const storage = await this.ensureStorage();
+    
+    // Persist to storage
+    try {
+      console.log(`[SessionManager.createSession] About to persist session ${sessionId} to storage`);
+      await storage.sessions.createSession(session);
+      console.log(`[SessionManager.createSession] Successfully persisted session ${sessionId} to storage`);
+    } catch (error) {
+      console.error('Failed to persist session to storage:', error);
+      throw error;
     }
     
     this.sessionsByJoinCode.set(joinCode, sessionId);
@@ -134,12 +133,11 @@ export class SessionManager {
     const sessionId = this.sessionsByJoinCode.get(joinCode.toUpperCase());
     if (!sessionId) return null;
     
-    if (this.storage) {
-      const session = await this.storage.sessions.getSession(sessionId);
-      return session;
-    }
+    // Ensure storage is initialized (auto-init for API routes)
+    const storage = await this.ensureStorage();
     
-    return null;
+    const session = await storage.sessions.getSession(sessionId);
+    return session;
   }
 
   /**
@@ -147,14 +145,13 @@ export class SessionManager {
    */
   async getSession(sessionId: string): Promise<Session | null> {
     console.log(`[SessionManager.getSession] Looking up session ${sessionId}, storage=${!!this.storage}`);
-    if (this.storage) {
-      const session = await this.storage.sessions.getSession(sessionId);
-      console.log(`[SessionManager.getSession] Storage returned: ${session ? 'Found' : 'Not found'}`);
-      return session;
-    }
     
-    console.log(`[SessionManager.getSession] No storage available`);
-    return null;
+    // Ensure storage is initialized (auto-init for API routes)
+    const storage = await this.ensureStorage();
+    
+    const session = await storage.sessions.getSession(sessionId);
+    console.log(`[SessionManager.getSession] Storage returned: ${session ? 'Found' : 'Not found'}`);
+    return session;
   }
 
   /**
