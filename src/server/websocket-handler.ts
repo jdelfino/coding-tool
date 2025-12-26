@@ -287,13 +287,19 @@ class WebSocketHandler {
   private async handleJoinExistingSession(ws: WebSocket, connection: Connection, payload: any) {
     const { sessionId } = payload;
     
+    console.log('[handleJoinExistingSession] Attempting to join session:', sessionId, 'for user:', connection.userId);
+    
     if (!sessionId || typeof sessionId !== 'string') {
+      console.log('[handleJoinExistingSession] Invalid session ID');
       this.sendError(ws, 'Invalid session ID');
       return;
     }
 
     const session = await sessionManagerHolder.instance.getSession(sessionId);
+    console.log('[handleJoinExistingSession] Session lookup result:', session ? 'Found' : 'Not found');
+    
     if (!session) {
+      console.log('[handleJoinExistingSession] Session not found:', sessionId);
       this.sendError(ws, 'Session not found');
       return;
     }

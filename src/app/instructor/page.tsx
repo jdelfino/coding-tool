@@ -94,16 +94,27 @@ function InstructorPage() {
   
   const { isConnected, connectionStatus, connectionError, lastMessage, sendMessage } = useWebSocket(wsUrl);
 
-  // Auto-join session from URL params (e.g., after creating session from problem)
+  //Auto-join session from URL params (e.g., after creating session from problem)
   useEffect(() => {
     const sessionIdParam = searchParams.get('sessionId');
     if (sessionIdParam && isConnected && !sessionId) {
-      console.log('[Auto-join] Joining session from URL:', sessionIdParam);
-      handleJoinSession(sessionIdParam);
-      // Clear URL params after joining
-      router.replace('/instructor');
+      console.log('[Auto-join] Attempting to join session from URL:', sessionIdParam);
+      
+      if (!isConnected) {
+        console.log('[Auto-join] WebSocket not connected, skipping');
+        return;
+      }
+      
+      console.log('[Auto-join] Sending JOIN_EXISTING_SESSION message');
+      sendMessage('JOIN_EXISTING_SESSION', { sessionId: sessionIdParam });
+      
+      // Clear URL params after initiating join
+      const timer = setTimeout(() => {
+        router.replace('/instructor');
+      }, 500); // Delay to ensure message is sent
+      return () => clearTimeout(timer);
     }
-  }, [searchParams, isConnected, sessionId]);
+  }, [searchParams, isConnected, sessionId, router, sendMessage]);
 
   // Handle incoming WebSocket messages
   useEffect(() => {
