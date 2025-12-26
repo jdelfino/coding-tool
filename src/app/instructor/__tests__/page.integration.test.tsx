@@ -22,10 +22,14 @@ jest.mock('@/components/ProtectedRoute', () => ({
 
 // Mock next/navigation for router.push tracking
 const mockPush = jest.fn();
+const mockReplace = jest.fn();
+const mockSearchParams = new URLSearchParams();
 jest.mock('next/navigation', () => ({
   useRouter: () => ({
     push: mockPush,
+    replace: mockReplace,
   }),
+  useSearchParams: () => mockSearchParams,
 }));
 
 // Mock react-syntax-highlighter to avoid import issues

@@ -165,8 +165,8 @@ export default function ProblemLibrary({ onCreateNew, onEdit }: ProblemLibraryPr
     setShowSessionModal(false);
     setSelectedProblemForSession(null);
     
-    // Navigate to instructor page with session context
-    router.push(`/instructor?sessionId=${sessionId}&joinCode=${joinCode}`);
+    // Navigate to instructor page - it will auto-join the session
+    router.push(`/instructor?sessionId=${sessionId}`);
   };
 
   const handleCloseSessionModal = () => {

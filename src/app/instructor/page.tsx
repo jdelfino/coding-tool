@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { useAuth } from '@/contexts/AuthContext';
@@ -44,6 +45,8 @@ interface SessionContext {
 
 function InstructorPage() {
   const { user, signOut } = useAuth();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   
   // Navigation state
   const [viewMode, setViewMode] = useState<ViewMode>('classes');
@@ -90,6 +93,17 @@ function InstructorPage() {
   }, []);
   
   const { isConnected, connectionStatus, connectionError, lastMessage, sendMessage } = useWebSocket(wsUrl);
+
+  // Auto-join session from URL params (e.g., after creating session from problem)
+  useEffect(() => {
+    const sessionIdParam = searchParams.get('sessionId');
+    if (sessionIdParam && isConnected && !sessionId) {
+      console.log('[Auto-join] Joining session from URL:', sessionIdParam);
+      handleJoinSession(sessionIdParam);
+      // Clear URL params after joining
+      router.replace('/instructor');
+    }
+  }, [searchParams, isConnected, sessionId]);
 
   // Handle incoming WebSocket messages
   useEffect(() => {
