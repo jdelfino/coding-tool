@@ -298,14 +298,19 @@ function InstructorPage() {
   };
 
   const handleLeaveSession = () => {
-    setSessionId(null);
-    setJoinCode(null);
-    setStudents([]);
+    // Navigate away from session view without ending the session
+    // Session continues running in the background
     setSelectedStudentId(null);
     setSelectedStudentCode('');
     setExecutionResult(null);
     setRevisionViewerState(null);
-    setViewMode('sections');
+    
+    // Navigate based on context
+    if (classContext) {
+      setViewMode('sections');
+    } else {
+      setViewMode('classes');
+    }
   };
 
   const handleEndSession = () => {
@@ -313,7 +318,24 @@ function InstructorPage() {
     
     if (confirm('Are you sure you want to end this session? Students will be disconnected.')) {
       sendMessage('END_SESSION', { sessionId });
-      handleLeaveSession();
+      
+      // Clear all session state when ending
+      setSessionId(null);
+      setJoinCode(null);
+      setStudents([]);
+      setSelectedStudentId(null);
+      setSelectedStudentCode('');
+      setExecutionResult(null);
+      setRevisionViewerState(null);
+      setSessionProblem(null);
+      setSessionExecutionSettings({});
+      
+      // Navigate based on context
+      if (classContext) {
+        setViewMode('sections');
+      } else {
+        setViewMode('classes');
+      }
     }
   };
 
@@ -644,7 +666,8 @@ function InstructorPage() {
           <InstructorNav 
             currentView={viewMode}
             onNavigate={handleNavigate}
-            disabled={viewMode === 'session'}
+            activeSessionId={sessionId}
+            onReturnToSession={() => setViewMode('session')}
           />
 
           {connectionError && (

@@ -7,9 +7,11 @@ import InstructorNav from '../InstructorNav';
 
 describe('InstructorNav', () => {
   const mockOnNavigate = jest.fn();
+  const mockOnReturnToSession = jest.fn();
 
   beforeEach(() => {
     mockOnNavigate.mockClear();
+    mockOnReturnToSession.mockClear();
   });
 
   it('renders all navigation items', () => {
@@ -17,6 +19,7 @@ describe('InstructorNav', () => {
       <InstructorNav 
         currentView="classes" 
         onNavigate={mockOnNavigate}
+        activeSessionId={null}
       />
     );
 
@@ -30,6 +33,7 @@ describe('InstructorNav', () => {
       <InstructorNav 
         currentView="problems" 
         onNavigate={mockOnNavigate}
+        activeSessionId={null}
       />
     );
 
@@ -43,6 +47,7 @@ describe('InstructorNav', () => {
       <InstructorNav 
         currentView="classes" 
         onNavigate={mockOnNavigate}
+        activeSessionId={null}
       />
     );
 
@@ -50,49 +55,70 @@ describe('InstructorNav', () => {
     expect(mockOnNavigate).toHaveBeenCalledWith('sessions');
   });
 
-  it('disables navigation when disabled prop is true', () => {
+  it('allows navigation when in session view', () => {
     render(
       <InstructorNav 
         currentView="session" 
         onNavigate={mockOnNavigate}
-        disabled
+        activeSessionId="test-session"
+        onReturnToSession={mockOnReturnToSession}
       />
     );
 
     const classesButton = screen.getByText('Classes').closest('button');
-    expect(classesButton).toBeDisabled();
+    expect(classesButton).not.toBeDisabled();
 
     fireEvent.click(classesButton!);
-    expect(mockOnNavigate).not.toHaveBeenCalled();
+    expect(mockOnNavigate).toHaveBeenCalledWith('classes');
   });
 
-  it('shows active session indicator when in session view', () => {
+  it('shows "In Session" indicator when viewing active session', () => {
     render(
       <InstructorNav 
         currentView="session" 
         onNavigate={mockOnNavigate}
+        activeSessionId="test-session"
+        onReturnToSession={mockOnReturnToSession}
       />
     );
 
-    expect(screen.getByText('Active Session')).toBeInTheDocument();
+    expect(screen.getByText('In Session')).toBeInTheDocument();
+    expect(screen.queryByText('Return to Session')).not.toBeInTheDocument();
   });
 
-  it('does not show active session indicator for other views', () => {
+  it('shows "Return to Session" indicator when navigated away from session', () => {
+    render(
+      <InstructorNav 
+        currentView="classes" 
+        onNavigate={mockOnNavigate}
+        activeSessionId="test-session"
+        onReturnToSession={mockOnReturnToSession}
+      />
+    );
+
+    expect(screen.getByText('Return to Session')).toBeInTheDocument();
+    expect(screen.queryByText('In Session')).not.toBeInTheDocument();
+  });
+
+  it('does not show session indicator when no active session', () => {
     render(
       <InstructorNav 
         currentView="sessions" 
         onNavigate={mockOnNavigate}
+        activeSessionId={null}
       />
     );
 
-    expect(screen.queryByText('Active Session')).not.toBeInTheDocument();
+    expect(screen.queryByText('In Session')).not.toBeInTheDocument();
+    expect(screen.queryByText('Return to Session')).not.toBeInTheDocument();
   });
 
-  it('enables all buttons when not disabled', () => {
+  it('enables all buttons by default', () => {
     render(
       <InstructorNav 
         currentView="sessions" 
         onNavigate={mockOnNavigate}
+        activeSessionId={null}
       />
     );
 
@@ -101,5 +127,21 @@ describe('InstructorNav', () => {
     
     expect(classesButton).not.toBeDisabled();
     expect(problemsButton).not.toBeDisabled();
+  });
+
+  it('calls onReturnToSession when clicking return to session button', () => {
+    render(
+      <InstructorNav 
+        currentView="classes" 
+        onNavigate={mockOnNavigate}
+        activeSessionId="test-session"
+        onReturnToSession={mockOnReturnToSession}
+      />
+    );
+
+    const returnButton = screen.getByText('Return to Session');
+    fireEvent.click(returnButton);
+    
+    expect(mockOnReturnToSession).toHaveBeenCalledTimes(1);
   });
 });
