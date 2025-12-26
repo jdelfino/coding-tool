@@ -12,6 +12,21 @@
 
 import { SessionManager } from '../session-manager';
 import { FakeStorageBackend } from './test-utils/fake-storage';
+import { Problem } from '../types/problem';
+
+// Helper to create test Problem objects
+function createTestProblem(overrides?: Partial<Problem>): Problem {
+  return {
+    id: 'test-problem-1',
+    title: 'Test Problem',
+    description: 'Write a function to solve this problem',
+    authorId: 'test-instructor',
+    isPublic: false,
+    createdAt: new Date('2025-01-01'),
+    updatedAt: new Date('2025-01-01'),
+    ...overrides,
+  };
+}
 
 describe('WebSocket Student Settings Messages', () => {
   let sessionManager: SessionManager;
@@ -93,7 +108,7 @@ describe('WebSocket Student Settings Messages', () => {
       ];
       await sessionManager.updateSessionProblem(
         session.id,
-        { text: 'Problem with defaults' },
+        createTestProblem({ description: 'Problem with defaults' }),
         { stdin: 'example input', randomSeed: sessionSeed, attachedFiles: sessionFiles }
       );
 
@@ -118,7 +133,7 @@ describe('WebSocket Student Settings Messages', () => {
       // Set session-level defaults
       await sessionManager.updateSessionProblem(
         session.id,
-        { text: 'Problem' },
+        createTestProblem({ description: 'Problem' }),
         { stdin: 'example', randomSeed: 100, attachedFiles: [{ name: 'session.txt', content: 'session file' }] }
       );
 
@@ -147,7 +162,7 @@ describe('WebSocket Student Settings Messages', () => {
       // Set session defaults for both seed and files
       await sessionManager.updateSessionProblem(
         session.id,
-        { text: 'Problem' },
+        createTestProblem({ description: 'Problem' }),
         { stdin: 'example', randomSeed: 200, attachedFiles: [{ name: 'default.txt', content: 'default' }] }
       );
 
@@ -175,7 +190,7 @@ describe('WebSocket Student Settings Messages', () => {
       const sessionFiles = [{ name: 'session.txt', content: 'session file' }];
       await sessionManager.updateSessionProblem(
         session.id,
-        { text: 'Problem' },
+        createTestProblem({ description: 'Problem' }),
         { stdin: 'input', randomSeed: 100, attachedFiles: sessionFiles }
       );
       // Student joins
@@ -224,7 +239,7 @@ describe('WebSocket Student Settings Messages', () => {
       ];
       await sessionManager.updateSessionProblem(
         session.id,
-        { text: 'Problem text' },
+        createTestProblem({ description: 'Problem text' }),
         { stdin: 'example: 5', randomSeed: sessionSeed, attachedFiles: sessionFiles }
       );
 
@@ -296,7 +311,7 @@ describe('WebSocket Student Settings Messages', () => {
       ];
       await sessionManager.updateSessionProblem(
         session.id,
-        { text: 'Problem' },
+        createTestProblem({ description: 'Problem' }),
         { stdin: 'input', randomSeed: sessionSeed, attachedFiles: sessionFiles }
       );
 
@@ -509,7 +524,7 @@ describe('WebSocket Student Settings Messages', () => {
       
       await sessionManager.updateSessionProblem(
         session.id, 
-        { text: problemText }, 
+        createTestProblem({ description: problemText }), 
         { stdin: exampleInput, randomSeed, attachedFiles }
       );
 
@@ -533,7 +548,7 @@ describe('WebSocket Student Settings Messages', () => {
       // Set up problem with all settings
       await sessionManager.updateSessionProblem(
         session.id,
-        { text: 'Write a function' },
+        createTestProblem({ description: 'Write a function' }),
         { stdin: 'input: [1, 2, 3]', randomSeed: 999, attachedFiles: [{ name: 'data.csv', content: 'col1,col2\n1,2' }] }
       );
 
@@ -579,7 +594,7 @@ describe('WebSocket Student Settings Messages', () => {
       
       await sessionManager.updateSessionProblem(
         session.id,
-        { text: problemText },
+        createTestProblem({ description: problemText }),
         { stdin: exampleInput, randomSeed, attachedFiles }
       );
 
@@ -602,7 +617,7 @@ describe('WebSocket Student Settings Messages', () => {
       // Only set problem text and random seed, leave others undefined
       await sessionManager.updateSessionProblem(
         session.id,
-        { text: 'Problem statement' },
+        createTestProblem({ description: 'Problem statement' }),
         { randomSeed: 777 } // only randomSeed set
       );
 
@@ -622,7 +637,7 @@ describe('WebSocket Student Settings Messages', () => {
       const files = [{ name: 'shared.txt', content: 'shared data' }];
       await sessionManager.updateSessionProblem(
         session.id,
-        { text: 'Collaborative problem' },
+        createTestProblem({ description: 'Collaborative problem' }),
         { stdin: 'input: test', randomSeed: 42, attachedFiles: files }
       );
 

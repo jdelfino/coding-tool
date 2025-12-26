@@ -13,11 +13,26 @@
 import { SessionManager } from '../session-manager';
 import { FakeStorageBackend } from './test-utils/fake-storage';
 import { Session, Student } from '../types';
+import { Problem } from '../types/problem';
 import { v4 as uuidv4 } from 'uuid';
 
 // Mock uuid to make tests deterministic
 jest.mock('uuid');
 const mockUuid = uuidv4 as jest.MockedFunction<typeof uuidv4>;
+
+// Helper to create test Problem objects
+function createTestProblem(overrides?: Partial<Problem>): Problem {
+  return {
+    id: 'test-problem-1',
+    title: 'Test Problem',
+    description: 'Write a function to solve this problem',
+    authorId: 'test-instructor',
+    isPublic: false,
+    createdAt: new Date('2025-01-01'),
+    updatedAt: new Date('2025-01-01'),
+    ...overrides,
+  };
+}
 
 describe('SessionManager', () => {
   let sessionManager: SessionManager;
@@ -259,31 +274,42 @@ describe('SessionManager', () => {
       session = await sessionManager.createSession('test-instructor', 'test-section-id', 'Test Section');
     });
 
-    it('should update problem text', async () => {
-      const problemText = 'Write a function to reverse a string';
-      const result = await sessionManager.updateSessionProblem(session.id, { text: problemText });
+    it('should update problem with full Problem object', async () => {
+      const problem = createTestProblem({
+        title: 'Reverse String',
+        description: 'Write a function to reverse a string',
+      });
+      const result = await sessionManager.updateSessionProblem(session.id, problem);
 
       expect(result).toBe(true);
 
       const updated = await sessionManager.getSession(session.id);
       expect(updated?.problem).toBeDefined();
-      expect(updated?.problem?.description).toBe(problemText);
+      expect(updated?.problem?.title).toBe('Reverse String');
+      expect(updated?.problem?.description).toBe('Write a function to reverse a string');
     });
 
-    it('should clear problem text', async () => {
-      await sessionManager.updateSessionProblem(session.id, { text: 'Some problem' });
-      await sessionManager.updateSessionProblem(session.id, { text: '' });
+    it('should update problem with new content', async () => {
+      const problem1 = createTestProblem({ description: 'Some problem' });
+      await sessionManager.updateSessionProblem(session.id, problem1);
+      
+      const problem2 = createTestProblem({ description: '' });
+      await sessionManager.updateSessionProblem(session.id, problem2);
 
       const updated = await sessionManager.getSession(session.id);
       expect(updated?.problem?.description).toBe('');
     });
 
     it('should persist problem updates', async () => {
-      const problemText = 'Calculate factorial';
-      await sessionManager.updateSessionProblem(session.id, { text: problemText });
+      const problem = createTestProblem({
+        title: 'Factorial',
+        description: 'Calculate factorial',
+      });
+      await sessionManager.updateSessionProblem(session.id, problem);
 
       const stored = await storage.sessions.getSession(session.id);
-      expect(stored?.problem?.description).toBe(problemText);
+      expect(stored?.problem?.description).toBe('Calculate factorial');
+      expect(stored?.problem?.title).toBe('Factorial');
     });
 
     it('should update last activity on problem change', async () => {
@@ -292,15 +318,16 @@ describe('SessionManager', () => {
       // Wait a bit to ensure different timestamp
       await new Promise(resolve => setTimeout(resolve, 10));
       
-      await sessionManager.updateSessionProblem(session.id, { text: 'New problem' });
+      const problem = createTestProblem({ description: 'New problem' });
+      await sessionManager.updateSessionProblem(session.id, problem);
 
       const updated = await sessionManager.getSession(session.id);
       expect(updated?.lastActivity.getTime()).toBeGreaterThan(before.getTime());
     });
 
-    it('should succeed even for non-existent session (no existence check)', async () => {
-      // Note: updateSessionProblem doesn't validate session existence, just attempts update
-      const result = await sessionManager.updateSessionProblem('invalid-id', { text: 'Problem' });
+    it('should return false for non-existent session', async () => {
+      const problem = createTestProblem();
+      const result = await sessionManager.updateSessionProblem('invalid-id', problem);
       expect(result).toBe(false); // Should return false for non-existent session
     });
   });
@@ -449,7 +476,8 @@ describe('SessionManager', () => {
       const initialActivity = session.lastActivity;
 
       await new Promise(resolve => setTimeout(resolve, 10));
-      await sessionManager.updateSessionProblem(session.id, { text: 'New problem' });
+      const problem = createTestProblem({ description: 'New problem' });
+      await sessionManager.updateSessionProblem(session.id, problem);
 
       const updated = await sessionManager.getSession(session.id);
       expect(updated?.lastActivity.getTime()).toBeGreaterThan(initialActivity.getTime());
@@ -608,12 +636,14 @@ describe('SessionManager', () => {
       
       storage.sessions.updateSession = jest.fn().mockRejectedValue(new Error('Update failed'));
 
-      const result = await sessionManager.updateSessionProblem(session.id, { text: 'New problem' });
+      const problem = createTestProblem({ description: 'New problem' });
+      const result = await sessionManager.updateSessionProblem(session.id, problem);
       expect(result).toBe(false);
     });
 
     it('should handle missing session gracefully', async () => {
-      const result = await sessionManager.updateSessionProblem('invalid-id', { text: 'Problem' });
+      const problem = createTestProblem();
+      const result = await sessionManager.updateSessionProblem('invalid-id', problem);
       expect(result).toBe(false);
     });
 
@@ -648,7 +678,8 @@ describe('SessionManager', () => {
 
     it('should persist updates to storage', async () => {
       const session = await sessionManager.createSession('test-instructor', 'test-section-id', 'Test Section');
-      await sessionManager.updateSessionProblem(session.id, { text: 'Test problem' });
+      const problem = createTestProblem({ description: 'Test problem' });
+      await sessionManager.updateSessionProblem(session.id, problem);
 
       const stored = await storage.sessions.getSession(session.id);
       expect(stored?.problem?.description).toBe('Test problem');
@@ -765,11 +796,12 @@ describe('SessionManager', () => {
   });
 
   describe('Edge Cases', () => {
-    it('should handle very long problem text', async () => {
+    it('should handle very long problem descriptions', async () => {
       const session = await sessionManager.createSession('test-instructor', 'test-section-id', 'Test Section');
       const longText = 'x'.repeat(10000);
+      const problem = createTestProblem({ description: longText });
 
-      await sessionManager.updateSessionProblem(session.id, { text: longText });
+      await sessionManager.updateSessionProblem(session.id, problem);
 
       const updated = await sessionManager.getSession(session.id);
       expect(updated?.problem?.description).toBe(longText);
@@ -794,11 +826,12 @@ describe('SessionManager', () => {
       expect(students[0].name).toBe('');
     });
 
-    it('should handle null/undefined values gracefully', async () => {
+    it('should handle empty values gracefully', async () => {
       const session = await sessionManager.createSession('test-instructor', 'test-section-id', 'Test Section');
 
       // These should not throw
-      await sessionManager.updateSessionProblem(session.id, { text: '' });
+      const problem = createTestProblem({ description: '' });
+      await sessionManager.updateSessionProblem(session.id, problem);
       await sessionManager.updateStudentCode(session.id, 'student-1', '');
     });
 
@@ -806,7 +839,8 @@ describe('SessionManager', () => {
       const managerNoStorage = new SessionManager();
 
       // Operations should return false/empty without storage
-      const result = await managerNoStorage.updateSessionProblem('id', { text: 'text' });
+      const problem = createTestProblem();
+      const result = await managerNoStorage.updateSessionProblem('id', problem);
       expect(result).toBe(false);
 
       const sessions = await managerNoStorage.listSessions();

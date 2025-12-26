@@ -152,11 +152,10 @@ export class SessionManager {
 
   /**
    * Update session with a problem object
-   * Creates a minimal Problem from text if needed, or uses full Problem object
    */
   async updateSessionProblem(
     sessionId: string, 
-    problemData: Problem | { text: string },
+    problem: Problem,
     executionSettings?: ExecutionSettings
   ): Promise<boolean> {
     if (!this.storage) return false;
@@ -165,30 +164,15 @@ export class SessionManager {
       const session = await this.getSession(sessionId);
       if (!session) return false;
       
-      let problem: Problem;
-      
-      if ('text' in problemData) {
-        // Create minimal problem from text (for legacy UPDATE_PROBLEM messages)
-        problem = {
-          id: session.problem?.id || `session-problem-${sessionId}`,
-          title: problemData.text.split('\n')[0].substring(0, 100) || 'Untitled Problem',
-          description: problemData.text,
-          authorId: session.creatorId,
-          isPublic: false,
-          createdAt: session.problem?.createdAt || new Date(),
-          updatedAt: new Date(),
-        };
-      } else {
-        // Use full problem object
-        problem = this.cloneProblem(problemData);
-      }
+      // Clone the problem to avoid mutation
+      const clonedProblem = this.cloneProblem(problem);
       
       await this.storage.sessions.updateSession(sessionId, {
-        problem,
+        problem: clonedProblem,
         executionSettings,
         lastActivity: new Date(),
       });
-      console.log(`Updated session ${sessionId} with problem "${problem.title}"`);
+      console.log(`Updated session ${sessionId} with problem "${clonedProblem.title}"`);
       return true;
     } catch (error) {
       console.error(`Failed to update session problem ${sessionId}:`, error);
