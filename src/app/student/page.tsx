@@ -5,6 +5,7 @@ import { useWebSocket } from '@/hooks/useWebSocket';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSessionHistory, SessionHistory } from '@/hooks/useSessionHistory';
+import { Problem } from '@/server/types/problem';
 import JoinForm from './components/JoinForm';
 import StudentDashboard from './components/StudentDashboard';
 import ProblemDisplay from './components/ProblemDisplay';
@@ -18,7 +19,7 @@ function StudentPage() {
   const [joined, setJoined] = useState(false);
   const [studentId, setStudentId] = useState<string | null>(null);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
-  const [problem, setProblem] = useState<{ title: string; description: string; starterCode: string } | null>(null);
+  const [problem, setProblem] = useState<Problem | null>(null);
   const [sessionExecutionSettings, setSessionExecutionSettings] = useState<{
     stdin?: string;
     randomSeed?: number;
@@ -209,6 +210,17 @@ function StudentPage() {
     // Refresh sessions
     refetchSessions();
   };
+
+  const handleLoadStarterCode = useCallback((starterCode: string) => {
+    if (code.trim().length > 0) {
+      // Ask for confirmation if there's existing code
+      if (confirm('This will replace your current code. Are you sure?')) {
+        setCode(starterCode);
+      }
+    } else {
+      setCode(starterCode);
+    }
+  }, [code]);
 
   const handleRunCode = (stdin?: string) => {
     if (!isConnected) {
@@ -539,7 +551,8 @@ function StudentPage() {
       )}
 
       <ProblemDisplay 
-        problemText={problem?.description || ''}
+        problem={problem}
+        onLoadStarterCode={handleLoadStarterCode}
       />
 
       <CodeEditor
