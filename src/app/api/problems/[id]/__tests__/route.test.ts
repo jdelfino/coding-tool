@@ -34,7 +34,6 @@ describe('/api/problems/[id]', () => {
     starterCode: 'def solution():\n    pass',
     solutionCode: 'def solution():\n    return 42',
     testCases: [],
-    isPublic: false,
     authorId: 'user-1',
     classId: 'class-1',
     createdAt: new Date('2025-01-01'),

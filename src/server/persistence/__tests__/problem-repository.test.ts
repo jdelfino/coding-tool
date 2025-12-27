@@ -36,7 +36,6 @@ describe('LocalProblemRepository', () => {
         solutionCode: 'def solution(): return 42',
         testCases: [],
         authorId: 'user-123',
-        isPublic: false,
         classId: undefined,
       };
 
@@ -76,7 +75,6 @@ describe('LocalProblemRepository', () => {
         solutionCode: '',
         testCases: [testCase],
         authorId: 'user-123',
-        isPublic: false,
         classId: undefined,
       };
 
@@ -94,7 +92,6 @@ describe('LocalProblemRepository', () => {
         solutionCode: '',
         testCases: [],
         authorId: 'user-123',
-        isPublic: false,
         classId: undefined,
       };
 
@@ -111,7 +108,6 @@ describe('LocalProblemRepository', () => {
         solutionCode: '',
         testCases: [],
         authorId: 'user-123',
-        isPublic: false,
         classId: undefined,
       };
 
@@ -143,7 +139,6 @@ describe('LocalProblemRepository', () => {
         solutionCode: '',
         testCases: [],
         authorId: 'user-123',
-        isPublic: false,
         classId: undefined,
       };
 
@@ -154,7 +149,6 @@ describe('LocalProblemRepository', () => {
         solutionCode: '',
         testCases: [],
         authorId: 'user-456',
-        isPublic: true,
         classId: undefined,
       };
 
@@ -173,7 +167,6 @@ describe('LocalProblemRepository', () => {
         solutionCode: '',
         testCases: [],
         authorId: 'user-123',
-        isPublic: false,
         classId: undefined,
       };
 
@@ -184,7 +177,6 @@ describe('LocalProblemRepository', () => {
         solutionCode: '',
         testCases: [],
         authorId: 'user-456',
-        isPublic: true,
         classId: undefined,
       };
 
@@ -204,7 +196,6 @@ describe('LocalProblemRepository', () => {
         solutionCode: '',
         testCases: [],
         authorId: 'user-123',
-        isPublic: false,
         classId: 'class-1',
       };
 
@@ -215,7 +206,6 @@ describe('LocalProblemRepository', () => {
         solutionCode: '',
         testCases: [],
         authorId: 'user-123',
-        isPublic: false,
         classId: 'class-2',
       };
 
@@ -235,7 +225,6 @@ describe('LocalProblemRepository', () => {
         solutionCode: '',
         testCases: [],
         authorId: 'user-123',
-        isPublic: false,
         classId: undefined,
       };
 
@@ -246,7 +235,6 @@ describe('LocalProblemRepository', () => {
         solutionCode: '',
         testCases: [],
         authorId: 'user-123',
-        isPublic: false,
         classId: undefined,
       };
 
@@ -268,7 +256,6 @@ describe('LocalProblemRepository', () => {
         solutionCode: '',
         testCases: [],
         authorId: 'user-123',
-        isPublic: false,
         classId: undefined,
       };
 
@@ -300,7 +287,6 @@ describe('LocalProblemRepository', () => {
         solutionCode: '',
         testCases: [],
         authorId: 'user-123',
-        isPublic: false,
         classId: undefined,
       };
 
@@ -321,7 +307,6 @@ describe('LocalProblemRepository', () => {
         solutionCode: '',
         testCases: [],
         authorId: 'user-123',
-        isPublic: false,
         classId: undefined,
       };
 
@@ -347,7 +332,6 @@ describe('LocalProblemRepository', () => {
         solutionCode: '',
         testCases: [],
         authorId: 'user-123',
-        isPublic: false,
         classId: undefined,
       };
 
@@ -369,7 +353,6 @@ describe('LocalProblemRepository', () => {
         solutionCode: '',
         testCases: [],
         authorId: 'user-123',
-        isPublic: true,
         classId: undefined,
       });
 
@@ -380,7 +363,6 @@ describe('LocalProblemRepository', () => {
         solutionCode: '',
         testCases: [],
         authorId: 'user-123',
-        isPublic: true,
         classId: undefined,
       });
 
@@ -391,7 +373,6 @@ describe('LocalProblemRepository', () => {
         solutionCode: '',
         testCases: [],
         authorId: 'user-456',
-        isPublic: false,
         classId: undefined,
       });
     });
@@ -428,7 +409,6 @@ describe('LocalProblemRepository', () => {
         solutionCode: '',
         testCases: [],
         authorId: 'user-123',
-        isPublic: false,
         classId: undefined,
       });
 
@@ -439,7 +419,6 @@ describe('LocalProblemRepository', () => {
         solutionCode: '',
         testCases: [],
         authorId: 'user-456',
-        isPublic: false,
         classId: undefined,
       });
 
@@ -458,7 +437,6 @@ describe('LocalProblemRepository', () => {
         solutionCode: '',
         testCases: [],
         authorId: 'user-123',
-        isPublic: false,
         classId: 'class-1',
       });
 
@@ -469,7 +447,6 @@ describe('LocalProblemRepository', () => {
         solutionCode: '',
         testCases: [],
         authorId: 'user-123',
-        isPublic: false,
         classId: 'class-2',
       });
 
@@ -488,7 +465,6 @@ describe('LocalProblemRepository', () => {
         solutionCode: 'original solution',
         testCases: [],
         authorId: 'user-123',
-        isPublic: true,
         classId: 'class-1',
       });
 
@@ -500,7 +476,6 @@ describe('LocalProblemRepository', () => {
       expect(duplicate.starterCode).toBe('original code');
       expect(duplicate.solutionCode).toBe('original solution');
       expect(duplicate.authorId).toBe('user-123');
-      expect(duplicate.isPublic).toBe(false); // Duplicates are private
       expect(duplicate.classId).toBe('class-1');
     });
 

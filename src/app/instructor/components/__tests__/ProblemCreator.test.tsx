@@ -76,7 +76,6 @@ describe('ProblemCreator Component', () => {
         description: 'Test description',
         starterCode: 'def solution():\n    pass',
         solutionCode: 'def solution():\n    return 42',
-        isPublic: false,
       };
 
       (global.fetch as jest.Mock).mockResolvedValueOnce({
@@ -113,7 +112,6 @@ describe('ProblemCreator Component', () => {
             starterCode: 'def solution():\n    pass',
             solutionCode: 'def solution():\n    return 42',
             testCases: [],
-            isPublic: false,
             classId: undefined,
           }),
         });
@@ -150,7 +148,6 @@ describe('ProblemCreator Component', () => {
       description: 'Original description',
       starterCode: 'def original():\n    pass',
       solutionCode: 'def original():\n    return 1',
-      isPublic: false,
       authorId: 'user-1',
     };
 
@@ -469,6 +466,5 @@ const mockExistingProblem = {
   description: 'Original description',
   starterCode: 'def original():\n    pass',
   solutionCode: 'def original():\n    return 1',
-  isPublic: false,
   authorId: 'user-1',
 };

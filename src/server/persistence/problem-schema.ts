@@ -25,7 +25,6 @@ import { Problem, ProblemValidationError } from '../types/problem';
  *     {"type": "io", "input": "5", "expected": "120", ...}
  *   ],
  *   "authorId": "instructor-123",
- *   "isPublic": true,
  *   "classId": null,
  *   "createdAt": "2025-12-21T12:00:00Z",
  *   "updatedAt": "2025-12-21T12:00:00Z"
@@ -53,9 +52,6 @@ export interface ProblemSchema {
   
   /** Author user ID */
   authorId: string;
-  
-  /** Public sharing flag */
-  isPublic: boolean;
   
   /** Optional class ID */
   classId?: string;
@@ -198,7 +194,6 @@ export function serializeProblem(problem: Problem): ProblemSchema {
     solutionCode: problem.solutionCode,
     testCases: problem.testCases,
     authorId: problem.authorId,
-    isPublic: problem.isPublic,
     classId: problem.classId,
     createdAt: problem.createdAt.toISOString(),
     updatedAt: problem.updatedAt.toISOString(),
@@ -223,7 +218,6 @@ export function deserializeProblem(schema: ProblemSchema): Problem {
     solutionCode: schema.solutionCode,
     testCases: schema.testCases as any[], // Type-checked by validation
     authorId: schema.authorId,
-    isPublic: schema.isPublic,
     classId: schema.classId,
     createdAt: new Date(schema.createdAt),
     updatedAt: new Date(schema.updatedAt),

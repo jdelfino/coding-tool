@@ -27,7 +27,6 @@ function createTestProblem(overrides?: Partial<Problem>): Problem {
     title: 'Test Problem',
     description: 'Write a function to solve this problem',
     authorId: 'test-instructor',
-    isPublic: false,
     createdAt: new Date('2025-01-01'),
     updatedAt: new Date('2025-01-01'),
     ...overrides,

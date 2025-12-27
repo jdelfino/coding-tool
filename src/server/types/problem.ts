@@ -49,9 +49,6 @@ export interface Problem {
   /** User ID of instructor who created this problem */
   authorId: string;
   
-  /** Whether problem is shareable across instructors */
-  isPublic: boolean;
-  
   /** Optional: scope problem to specific class */
   classId?: string;
   
@@ -83,9 +80,6 @@ export interface ProblemMetadata {
   
   /** Author's display name or username */
   authorName: string;
-  
-  /** Whether publicly shared */
-  isPublic: boolean;
   
   /** Class ID if scoped to a class */
   classId?: string;

@@ -111,7 +111,6 @@ export async function POST(request: NextRequest) {
       solutionCode: body.solutionCode || '',
       testCases: body.testCases || [],
       authorId: user.id,
-      isPublic: body.isPublic || false,
       classId: body.classId || null,
     };
 

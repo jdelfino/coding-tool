@@ -13,7 +13,6 @@ describe('ProblemCard', () => {
     title: 'Test Problem',
     description: 'This is a test problem description',
     testCases: [{ id: '1' }, { id: '2' }],
-    isPublic: true,
     createdAt: '2025-01-01T00:00:00.000Z',
     updatedAt: '2025-01-02T00:00:00.000Z',
     authorId: 'user-123',

@@ -94,7 +94,6 @@ export default function ProblemCreator({
         starterCode: starterCode.trim(),
         solutionCode: solutionCode.trim(),
         testCases: [], // Test cases added separately
-        isPublic: false, // Always private - no public library yet
         classId: classId || undefined,
       };
       

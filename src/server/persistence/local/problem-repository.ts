@@ -245,7 +245,6 @@ export class LocalProblemRepository implements IProblemRepository {
       solutionCode: original.solutionCode,
       testCases: original.testCases,
       authorId: original.authorId,
-      isPublic: false, // Duplicates are private by default
       classId: original.classId,
     };
 
@@ -338,7 +337,6 @@ export class LocalProblemRepository implements IProblemRepository {
       testCaseCount: problem.testCases?.length || 0,
       createdAt: problem.createdAt,
       authorName: problem.authorId, // TODO: Resolve actual author name
-      isPublic: problem.isPublic,
       classId: problem.classId,
     };
 
@@ -368,10 +366,6 @@ export class LocalProblemRepository implements IProblemRepository {
 
     if (filter.classId) {
       filtered = filtered.filter(p => p.classId === filter.classId);
-    }
-
-    if (filter.includePublic === false) {
-      filtered = filtered.filter(p => !p.isPublic);
     }
 
     return filtered;

@@ -63,7 +63,6 @@ describe('POST /api/sessions/:sessionId/load-problem', () => {
     starterCode: 'def fizzbuzz(n):\n    pass',
     testCases: [],
     authorId: 'instructor-1',
-    isPublic: false,
     createdAt: new Date('2025-01-01'),
     updatedAt: new Date('2025-01-01'),
     executionSettings: {
@@ -139,26 +138,6 @@ describe('POST /api/sessions/:sessionId/load-problem', () => {
       );
     });
 
-    it('should allow loading a public problem by any instructor', async () => {
-      const publicProblem = { ...mockProblem, isPublic: true, authorId: 'other-instructor' };
-      
-      mockAuthProvider.getSession.mockResolvedValue({
-        id: 'auth-session-123',
-        user: mockInstructor,
-      });
-      mockStorage.problems.getById.mockResolvedValue(publicProblem);
-      (sessionManagerHolder.instance.getSession as jest.Mock).mockResolvedValue(mockSession);
-      (sessionManagerHolder.instance.updateSessionProblem as jest.Mock).mockResolvedValue(true);
-
-      const request = createRequest({ problemId: 'problem-123' });
-      const response = await POST(request, {
-        params: Promise.resolve({ sessionId: 'session-123' }),
-      });
-
-      expect(response.status).toBe(200);
-      const data = await response.json();
-      expect(data.success).toBe(true);
-    });
   });
 
   describe('Authentication errors', () => {
@@ -288,7 +267,6 @@ describe('POST /api/sessions/:sessionId/load-problem', () => {
     it('should return 403 when instructor tries to access private problem of another instructor', async () => {
       const privateProblem = { 
         ...mockProblem, 
-        isPublic: false, 
         authorId: 'other-instructor' 
       };
       mockStorage.problems.getById.mockResolvedValue(privateProblem);

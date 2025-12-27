@@ -13,7 +13,6 @@ interface Problem {
   title: string;
   description?: string;
   testCases?: any[];
-  isPublic: boolean;
   createdAt: string;
   updatedAt: string;
   authorId: string;

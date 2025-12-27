@@ -35,7 +35,6 @@ describe('GET /api/sessions/history', () => {
         starterCode: '',
         solutionCode: '',
         testCases: [],
-        isPublic: false,
         authorId: 'user-1',
         createdAt: new Date('2024-01-01'),
         updatedAt: new Date('2024-01-01'),

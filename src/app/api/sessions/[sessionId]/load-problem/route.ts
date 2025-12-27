@@ -99,11 +99,9 @@ export async function POST(
     }
 
     // Verify instructor has access to this problem
-    // Allow if: problem is public, or instructor is the author
+    // Only the author can load their own problems
     // TODO: Add class-based permission check when class scoping is implemented
-    const hasAccess = 
-      problem.isPublic || 
-      problem.authorId === authSession.user.id;
+    const hasAccess = problem.authorId === authSession.user.id;
 
     if (!hasAccess) {
       return NextResponse.json(

@@ -34,7 +34,6 @@ describe('/api/problems', () => {
       starterCode: 'def solution():\n    pass',
       solutionCode: 'def solution():\n    return 42',
       testCases: [],
-      isPublic: true,
       authorId: 'user-1',
       classId: 'class-1',
       createdAt: new Date('2025-01-01'),
@@ -47,7 +46,6 @@ describe('/api/problems', () => {
       starterCode: '',
       solutionCode: '',
       testCases: [],
-      isPublic: false,
       authorId: 'user-2',
       classId: 'class-2',
       createdAt: new Date('2025-01-02'),
@@ -289,7 +287,6 @@ describe('/api/problems', () => {
       starterCode: 'def solution():\n    pass',
       solutionCode: 'def solution():\n    return 42',
       testCases: [],
-      isPublic: false,
       classId: 'class-1',
     };
 
@@ -393,7 +390,6 @@ describe('/api/problems', () => {
         starterCode: '',
         solutionCode: '',
         testCases: [],
-        isPublic: false,
         authorId: 'user-1',
         classId: null,
         createdAt: new Date(),
