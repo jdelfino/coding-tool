@@ -50,8 +50,9 @@ function InstructorPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   
-  // Navigation state
-  const [viewMode, setViewMode] = useState<ViewMode>('classes');
+  // Navigation state - initialize viewMode from URL if present
+  const initialView = (searchParams.get('view') as ViewMode) || 'classes';
+  const [viewMode, setViewMode] = useState<ViewMode>(initialView);
   const [classContext, setClassContext] = useState<ClassContext | null>(null);
   const [sessionContext, setSessionContext] = useState<SessionContext | null>(null);
   const [problemSubView, setProblemSubView] = useState<'library' | 'creator'>('library');
@@ -99,6 +100,15 @@ function InstructorPage() {
   }, []);
   
   const { isConnected, connectionStatus, connectionError, lastMessage, sendMessage } = useWebSocket(wsUrl);
+
+  // Update URL when viewMode changes to preserve on refresh
+  useEffect(() => {
+    if (viewMode && viewMode !== 'session') {
+      const url = new URL(window.location.href);
+      url.searchParams.set('view', viewMode);
+      router.replace(url.pathname + url.search, { scroll: false });
+    }
+  }, [viewMode, router]);
 
   //Auto-join session from URL params (e.g., after creating session from problem)
   useEffect(() => {
@@ -365,8 +375,9 @@ function InstructorPage() {
       // Clear URL parameter immediately to prevent auto-rejoin
       router.replace('/instructor');
       
-      // Determine navigation target
-      const targetView = classContext ? 'sections' : 'classes';
+      // Determine navigation target based on where we came from
+      // If we're in the sessions view, stay there; otherwise navigate based on context
+      const targetView = viewMode === 'sessions' ? 'sessions' : (classContext ? 'sections' : 'classes');
       console.log('[handleEndSession] Target viewMode:', targetView);
       
       // Clear ALL session-related state immediately
