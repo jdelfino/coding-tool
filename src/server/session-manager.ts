@@ -93,7 +93,7 @@ export class SessionManager {
     const session: Session = {
       id: sessionId,
       joinCode,
-      problem: problem ? this.cloneProblem(problem) : undefined, // ✅ Use clean problem sub-object
+      problem: problem ? this.cloneProblem(problem) : this.createEmptyProblem(creatorId),
       students: new Map(),
       createdAt: new Date(),
       lastActivity: new Date(),
@@ -118,6 +118,24 @@ export class SessionManager {
     
     console.log(`Created session ${sessionId} with join code ${joinCode}${sectionId ? ` for section ${sectionId}` : ''}${problem ? ` with problem "${problem.title}"` : ''}`);
     return session;
+  }
+
+  /**
+   * Create an empty problem for a new session
+   */
+  private createEmptyProblem(authorId: string): Problem {
+    return {
+      id: uuidv4(),
+      title: 'Untitled Session',
+      description: '',
+      starterCode: '',
+      testCases: [],
+      executionSettings: undefined,
+      authorId,
+      classId: undefined,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
   }
 
   /**
@@ -215,9 +233,13 @@ export class SessionManager {
       // Clone the problem to avoid mutation
       const clonedProblem = this.cloneProblem(problem);
       
+      // Merge executionSettings into the cloned problem
+      if (executionSettings !== undefined) {
+        clonedProblem.executionSettings = executionSettings;
+      }
+      
       await this.storage.sessions.updateSession(sessionId, {
         problem: clonedProblem,
-        executionSettings,
         lastActivity: new Date(),
       });
       console.log(`Updated session ${sessionId} with problem "${clonedProblem.title}"`);
@@ -376,18 +398,19 @@ export class SessionManager {
     const student = session.students.get(studentId);
     if (!student) return undefined;
     
-    // Merge execution settings: problem defaults → session overrides → student overrides
-    const problemSettings = session.problem?.executionSettings;
-    const sessionSettings = session.executionSettings;
+    // Merge execution settings: problem defaults → student overrides
+    const problemSettings = session.problem.executionSettings;
     const studentSettings = student.executionSettings;
     
     // Build merged execution settings
     const mergedSettings: ExecutionSettings = {
-      stdin: studentSettings?.stdin ?? sessionSettings?.stdin ?? problemSettings?.stdin,
-      randomSeed: studentSettings?.randomSeed ?? sessionSettings?.randomSeed ?? problemSettings?.randomSeed,
+      stdin: studentSettings?.stdin ?? problemSettings?.stdin,
+      randomSeed: studentSettings?.randomSeed !== undefined 
+        ? studentSettings.randomSeed 
+        : problemSettings?.randomSeed,
       attachedFiles: studentSettings?.attachedFiles !== undefined
         ? studentSettings.attachedFiles // explicit student override, even if empty array
-        : sessionSettings?.attachedFiles ?? problemSettings?.attachedFiles,
+        : problemSettings?.attachedFiles,
     };
     
     // Only include executionSettings if at least one field is defined

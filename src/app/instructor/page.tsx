@@ -152,9 +152,9 @@ function InstructorPage() {
           sectionId: lastMessage.payload.sectionId,
           sectionName: lastMessage.payload.sectionName,
         });
-        // Restore execution settings from session
+        // Restore execution settings from problem
         setSessionProblem(lastMessage.payload.problem || null);
-        setSessionExecutionSettings(lastMessage.payload.executionSettings || {});
+        setSessionExecutionSettings(lastMessage.payload.problem?.executionSettings || {});
         setViewMode('session');
         setIsCreatingSession(false);
         setError(null);
@@ -163,9 +163,9 @@ function InstructorPage() {
       case 'SESSION_JOINED':
         setSessionId(lastMessage.payload.sessionId);
         setJoinCode(lastMessage.payload.joinCode);
-        // Restore execution settings when rejoining existing session
+        // Restore execution settings from problem
         setSessionProblem(lastMessage.payload.problem || null);
-        setSessionExecutionSettings(lastMessage.payload.executionSettings || {});
+        setSessionExecutionSettings(lastMessage.payload.problem?.executionSettings || {});
         setViewMode('session');
         setError(null);
         break;

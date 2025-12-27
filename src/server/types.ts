@@ -25,11 +25,8 @@ export interface Session {
   id: string;
   joinCode: string;
   
-  // ✅ Clean, modular problem sub-object
-  problem?: Problem; // Optional: session may have no problem initially
-  
-  // Execution settings (session-level overrides of problem defaults, students can override further)
-  executionSettings?: ExecutionSettings;
+  // Problem object for the session (executionSettings stored within problem.executionSettings)
+  problem: Problem;
   
   students: Map<string, Student>; // All students who have joined (preserves code across disconnects)
   instructorWs?: WebSocket;

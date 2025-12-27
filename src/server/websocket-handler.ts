@@ -251,7 +251,7 @@ class WebSocketHandler {
           sectionId: session.sectionId,
           sectionName: session.sectionName,
           problem: session.problem,
-          executionSettings: session.executionSettings,
+          executionSettings: session.problem.executionSettings,
         },
       });
       console.log('[handleCreateSession] Response sent successfully');
@@ -349,7 +349,7 @@ class WebSocketHandler {
         sessionId: session.id,
         joinCode: session.joinCode,
         problem: session.problem,
-        executionSettings: session.executionSettings,
+        executionSettings: session.problem.executionSettings,
       },
     });
 
@@ -484,7 +484,7 @@ class WebSocketHandler {
         sessionId: session.id,
         studentId,
         problem: session.problem,
-        sessionExecutionSettings: session.executionSettings, // Session-level defaults
+        sessionExecutionSettings: session.problem.executionSettings, // Session-level defaults
         code: studentData?.code || '', // Student's code if rejoining
         studentExecutionSettings: studentData?.executionSettings, // Student's specific settings if set
       },
@@ -595,11 +595,11 @@ class WebSocketHandler {
       // Use student-specific values if set, otherwise fall back to session defaults
       const randomSeed = studentData?.executionSettings?.randomSeed !== undefined 
         ? studentData.executionSettings.randomSeed 
-        : session?.executionSettings?.randomSeed;
+        : session?.problem.executionSettings?.randomSeed;
       
       const attachedFiles = studentData?.executionSettings?.attachedFiles && studentData.executionSettings.attachedFiles.length > 0
         ? studentData.executionSettings.attachedFiles
-        : session?.executionSettings?.attachedFiles;
+        : session?.problem.executionSettings?.attachedFiles;
       
       const result = await executeCodeSafe({ 
         code, 
@@ -647,11 +647,11 @@ class WebSocketHandler {
       // Use student-specific values if set, otherwise fall back to session defaults
       const randomSeed = studentData.executionSettings?.randomSeed !== undefined 
         ? studentData.executionSettings.randomSeed 
-        : session?.executionSettings?.randomSeed;
+        : session?.problem.executionSettings?.randomSeed;
       
       const attachedFiles = studentData.executionSettings?.attachedFiles && studentData.executionSettings.attachedFiles.length > 0
         ? studentData.executionSettings.attachedFiles
-        : session?.executionSettings?.attachedFiles;
+        : session?.problem.executionSettings?.attachedFiles;
       
       const result = await executeCodeSafe({ 
         code: studentData.code, 
@@ -816,7 +816,7 @@ class WebSocketHandler {
       payload: {
         joinCode: session.joinCode,
         problem: session.problem,
-        executionSettings: featured.executionSettings || session.executionSettings,
+        executionSettings: featured.executionSettings || session.problem.executionSettings,
         code: featured.code || '',
         hasFeaturedSubmission: !!featured.studentId,
       },
@@ -856,8 +856,8 @@ class WebSocketHandler {
       const result = await executeCodeSafe({ 
         code, 
         stdin,
-        randomSeed: session?.executionSettings?.randomSeed,
-        attachedFiles: session?.executionSettings?.attachedFiles,
+        randomSeed: session?.problem?.executionSettings?.randomSeed,
+        attachedFiles: session?.problem?.executionSettings?.attachedFiles,
       });
 
       this.send(ws, {
@@ -881,7 +881,7 @@ class WebSocketHandler {
       payload: {
         joinCode: session.joinCode,
         problem: session.problem,
-        executionSettings: featured.executionSettings || session.executionSettings,
+        executionSettings: featured.executionSettings || session.problem.executionSettings,
         code: featured.code || '',
         hasFeaturedSubmission: !!featured.studentId,
       },
@@ -923,16 +923,16 @@ class WebSocketHandler {
       id: s.id,
       name: s.name,
       hasCode: s.code.length > 0,
-      // Use student-specific settings if set, otherwise fall back to session/problem defaults
-      randomSeed: s.executionSettings?.randomSeed ?? session.executionSettings?.randomSeed ?? session.problem?.executionSettings?.randomSeed,
-      attachedFiles: s.executionSettings?.attachedFiles ?? session.executionSettings?.attachedFiles ?? session.problem?.executionSettings?.attachedFiles,
+      // Use student-specific settings if set, otherwise fall back to problem defaults
+      randomSeed: s.executionSettings?.randomSeed ?? session.problem.executionSettings?.randomSeed,
+      attachedFiles: s.executionSettings?.attachedFiles ?? session.problem.executionSettings?.attachedFiles,
     }));
 
     console.log('[broadcastStudentList] Sending student list:', {
       sessionId,
-      sessionDefaults: {
-        randomSeed: session.executionSettings?.randomSeed,
-        attachedFiles: session.executionSettings?.attachedFiles,
+      problemDefaults: {
+        randomSeed: session.problem.executionSettings?.randomSeed,
+        attachedFiles: session.problem.executionSettings?.attachedFiles,
       },
       students: studentList.map(s => ({ id: s.id, randomSeed: s.randomSeed, attachedFiles: s.attachedFiles })),
     });

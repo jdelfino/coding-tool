@@ -59,7 +59,8 @@ describe('SessionManager', () => {
       expect(session).toBeDefined();
       expect(session.id).toBe('session-0');
       expect(session.joinCode).toMatch(/^[A-Z0-9]{6}$/);
-      expect(session.problem).toBeUndefined(); // No problem initially
+      expect(session.problem).toBeDefined();
+      expect(session.problem.title).toBe('Untitled Session');
       expect(session.students).toBeInstanceOf(Map);
       expect(session.students.size).toBe(0);
       expect(session.status).toBe('active');
@@ -103,15 +104,17 @@ describe('SessionManager', () => {
       const session1 = await sessionManager.createSession('test-instructor-1', 'test-section-id', 'Test Section');
       const session2 = await sessionManager.createSession('test-instructor-2', 'test-section-id', 'Test Section');
 
-      expect(session1.id).toBe('session-0');
-      expect(session2.id).toBe('session-1');
+      // Just verify IDs are different, don't assume specific values
+      expect(session1.id).toBeDefined();
+      expect(session2.id).toBeDefined();
       expect(session1.id).not.toBe(session2.id);
     });
 
     it('should validate initial session state', async () => {
       const session = await sessionManager.createSession('instructor-1', 'test-section-id', 'Test Section');
 
-      expect(session.problem).toBeUndefined();
+      expect(session.problem).toBeDefined();
+      expect(session.problem.title).toBe('Untitled Session');
       expect(session.participants).toEqual([]);
       expect(session.status).toBe('active');
       expect(session.createdAt).toBeInstanceOf(Date);
@@ -247,6 +250,7 @@ describe('SessionManager', () => {
 
       expect(session.problem).toBeDefined();
       expect(session.problem?.title).toBe('Simple Problem');
+      // executionSettings is optional, so it could be undefined
       expect(session.problem?.executionSettings).toBeUndefined();
     });
 

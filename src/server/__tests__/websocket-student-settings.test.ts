@@ -333,8 +333,8 @@ describe('WebSocket Student Settings Messages', () => {
         id: s.id,
         name: s.name,
         hasCode: s.code.length > 0,
-        randomSeed: s.executionSettings?.randomSeed !== undefined ? s.executionSettings?.randomSeed : sessionData!.executionSettings?.randomSeed,
-        attachedFiles: s.executionSettings?.attachedFiles !== undefined ? s.executionSettings?.attachedFiles : sessionData!.executionSettings?.attachedFiles,
+        randomSeed: s.executionSettings?.randomSeed !== undefined ? s.executionSettings?.randomSeed : sessionData!.problem.executionSettings?.randomSeed,
+        attachedFiles: s.executionSettings?.attachedFiles !== undefined ? s.executionSettings?.attachedFiles : sessionData!.problem.executionSettings?.attachedFiles,
       }));
 
       // Verify the list includes session defaults
@@ -530,12 +530,12 @@ describe('WebSocket Student Settings Messages', () => {
       // Get the updated session (simulating what handleCreateSession does)
       const updatedSession = await sessionManager.getSession(session.id);
 
-      // Verify session includes all execution settings
+      // Verify session includes all execution settings in problem
       expect(updatedSession).toBeDefined();
-      expect(updatedSession!.problem?.description).toBe(problemText);
-      expect(updatedSession!.executionSettings?.stdin).toBe(exampleInput);
-      expect(updatedSession!.executionSettings?.randomSeed).toBe(randomSeed);
-      expect(updatedSession!.executionSettings?.attachedFiles).toEqual(attachedFiles);
+      expect(updatedSession!.problem.description).toBe(problemText);
+      expect(updatedSession!.problem.executionSettings?.stdin).toBe(exampleInput);
+      expect(updatedSession!.problem.executionSettings?.randomSeed).toBe(randomSeed);
+      expect(updatedSession!.problem.executionSettings?.attachedFiles).toEqual(attachedFiles);
     });
 
     it('should preserve execution settings across session lifecycle', async () => {
@@ -554,12 +554,12 @@ describe('WebSocket Student Settings Messages', () => {
       // Simulate reconnection: get session again
       const reconnectedSession = await sessionManager.getSession(session.id);
 
-      // All settings should be preserved
-      expect(reconnectedSession!.problem?.description).toBe('Write a function');
-      expect(reconnectedSession!.executionSettings?.stdin).toBe('input: [1, 2, 3]');
-      expect(reconnectedSession!.executionSettings?.randomSeed).toBe(999);
-      expect(reconnectedSession!.executionSettings?.attachedFiles).toHaveLength(1);
-      expect(reconnectedSession!.executionSettings?.attachedFiles![0].name).toBe('data.csv');
+      // All settings should be preserved in problem
+      expect(reconnectedSession!.problem.description).toBe('Write a function');
+      expect(reconnectedSession!.problem.executionSettings?.stdin).toBe('input: [1, 2, 3]');
+      expect(reconnectedSession!.problem.executionSettings?.randomSeed).toBe(999);
+      expect(reconnectedSession!.problem.executionSettings?.attachedFiles).toHaveLength(1);
+      expect(reconnectedSession!.problem.executionSettings?.attachedFiles![0].name).toBe('data.csv');
     });
 
     it('should handle empty execution settings in SESSION_CREATED', async () => {
@@ -567,11 +567,10 @@ describe('WebSocket Student Settings Messages', () => {
 
       const session = await sessionManager.createSession('instructor-1', 'section-1', 'Test Section');
       
-      // Verify defaults
-      expect(session.problem?.description).toBeUndefined();
-      expect(session.executionSettings?.stdin).toBeUndefined();
-      expect(session.executionSettings?.randomSeed).toBeUndefined();
-      expect(session.executionSettings?.attachedFiles).toBeUndefined();
+      // Verify session has an empty problem
+      expect(session.problem).toBeDefined();
+      expect(session.problem.title).toBe('Untitled Session');
+      expect(session.problem.executionSettings).toBeUndefined();
     });
   });
 
@@ -602,10 +601,10 @@ describe('WebSocket Student Settings Messages', () => {
 
       // Verify SESSION_JOINED would have all fields available
       expect(rejoined).toBeDefined();
-      expect(rejoined!.problem?.description).toBe(problemText);
-      expect(rejoined!.executionSettings?.stdin).toBe(exampleInput);
-      expect(rejoined!.executionSettings?.randomSeed).toBe(randomSeed);
-      expect(rejoined!.executionSettings?.attachedFiles).toEqual(attachedFiles);
+      expect(rejoined!.problem.description).toBe(problemText);
+      expect(rejoined!.problem.executionSettings?.stdin).toBe(exampleInput);
+      expect(rejoined!.problem.executionSettings?.randomSeed).toBe(randomSeed);
+      expect(rejoined!.problem.executionSettings?.attachedFiles).toEqual(attachedFiles);
     });
 
     it('should handle instructor rejoining session with partial settings', async () => {
@@ -622,10 +621,10 @@ describe('WebSocket Student Settings Messages', () => {
 
       const rejoined = await sessionManager.getSession(session.id);
 
-      expect(rejoined!.problem?.description).toBe('Problem statement');
-      expect(rejoined!.executionSettings?.stdin).toBeUndefined();
-      expect(rejoined!.executionSettings?.randomSeed).toBe(777);
-      expect(rejoined!.executionSettings?.attachedFiles).toBeUndefined();
+      expect(rejoined!.problem.description).toBe('Problem statement');
+      expect(rejoined!.problem.executionSettings?.stdin).toBeUndefined();
+      expect(rejoined!.problem.executionSettings?.randomSeed).toBe(777);
+      expect(rejoined!.problem.executionSettings?.attachedFiles).toBeUndefined();
     });
 
     it('should preserve execution settings after multiple instructors join', async () => {
@@ -642,15 +641,15 @@ describe('WebSocket Student Settings Messages', () => {
 
       // First instructor gets session
       const firstView = await sessionManager.getSession(session.id);
-      expect(firstView!.executionSettings?.randomSeed).toBe(42);
+      expect(firstView!.problem.executionSettings?.randomSeed).toBe(42);
 
       // Second instructor joins (simulated by another getSession)
       const secondView = await sessionManager.getSession(session.id);
       
       // Both should see the same settings
-      expect(secondView!.problem?.description).toBe(firstView!.problem?.description);
-      expect(secondView!.executionSettings?.randomSeed).toBe(firstView!.executionSettings?.randomSeed);
-      expect(secondView!.executionSettings?.attachedFiles).toEqual(firstView!.executionSettings?.attachedFiles);
+      expect(secondView!.problem.description).toBe(firstView!.problem.description);
+      expect(secondView!.problem.executionSettings?.randomSeed).toBe(firstView!.problem.executionSettings?.randomSeed);
+      expect(secondView!.problem.executionSettings?.attachedFiles).toEqual(firstView!.problem.executionSettings?.attachedFiles);
     });
 
     it('should handle empty session when instructor rejoins before problem is set', async () => {
@@ -663,11 +662,10 @@ describe('WebSocket Student Settings Messages', () => {
       // Instructor rejoins
       const rejoined = await sessionManager.getSession(session.id);
 
-      // Should handle empty state gracefully
-      expect(rejoined!.problem?.description).toBeUndefined();
-      expect(rejoined!.executionSettings?.stdin).toBeUndefined();
-      expect(rejoined!.executionSettings?.randomSeed).toBeUndefined();
-      expect(rejoined!.executionSettings?.attachedFiles).toBeUndefined();
+      // Should handle empty state gracefully (session has empty problem)
+      expect(rejoined!.problem).toBeDefined();
+      expect(rejoined!.problem.title).toBe('Untitled Session');
+      expect(rejoined!.problem.executionSettings).toBeUndefined();
     });
   });
 });
