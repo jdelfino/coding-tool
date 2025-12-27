@@ -8,7 +8,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import ClassList from './components/ClassList';
 import SectionView from './components/SectionView';
 import SessionControls from './components/SessionControls';
-import ProblemInput from './components/ProblemInput';
 import StudentList from './components/StudentList';
 import CodeEditor from '@/app/student/components/CodeEditor';
 import OutputPanel from '@/app/student/components/OutputPanel';
@@ -19,6 +18,7 @@ import ProblemCreator from './components/ProblemCreator';
 import ProblemLoader from './components/ProblemLoader';
 import SessionsList from './components/SessionsList';
 import SessionDetails from './components/SessionDetails';
+import SessionProblemEditor from './components/SessionProblemEditor';
 
 interface Student {
   id: string;
@@ -623,7 +623,7 @@ function InstructorPage() {
             onLoadProblem={handleOpenProblemLoader}
           />
 
-          <ProblemInput
+          <SessionProblemEditor
             onUpdateProblem={handleUpdateProblem}
             initialProblem={sessionProblem}
             initialExecutionSettings={sessionExecutionSettings}

@@ -681,9 +681,9 @@ describe('InstructorPage - Integration Tests', () => {
         expect(screen.getByText(/Alice's Code/i)).toBeInTheDocument();
       });
 
-      // Click the Run Code button
-      const runButton = screen.getByText(/▶ Run Code/i);
-      fireEvent.click(runButton);
+      // Click the Run Code button in the student's code section (second one, first is in problem editor)
+      const runButtons = screen.getAllByText(/▶ Run Code/i);
+      fireEvent.click(runButtons[runButtons.length - 1]); // Select last button (student code viewer)
 
       // Should send EXECUTE_STUDENT_CODE message
       expect(mockSendMessage).toHaveBeenCalledWith('EXECUTE_STUDENT_CODE', {
