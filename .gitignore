@@ -11,3 +11,13 @@ dist
 /data
 coverage
 tsconfig.tsbuildinfo
+
+# Playwright
+/test-results/
+/playwright-report/
+/playwright/.cache/
+
+# Temporary files
+all_solutions_combined.txt
+test_data/
+history/
