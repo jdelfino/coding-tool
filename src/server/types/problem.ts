@@ -22,7 +22,7 @@ export interface ExecutionSettings {
  * 
  * Problems can be created offline, stored persistently, and loaded
  * into active coding sessions. Each problem includes a description,
- * optional starter code, test cases, and a reference solution.
+ * optional starter code, and test cases.
  */
 export interface Problem {
   /** Unique identifier */
@@ -36,9 +36,6 @@ export interface Problem {
   
   /** Optional starter code template for students */
   starterCode?: string;
-  
-  /** Reference solution (hidden from students, optional) */
-  solutionCode?: string;
   
   /** Test cases for verifying solutions (optional) */
   testCases?: TestCase[];
@@ -125,7 +122,7 @@ export interface ProblemValidationError {
 /**
  * Problem sanitized for student view
  * 
- * Removes solution code and other instructor-only information.
+ * Removes instructor-only information.
  */
 export interface StudentProblem {
   /** Problem ID */
@@ -155,9 +152,6 @@ export type ProblemInput = Omit<Problem, 'id' | 'createdAt' | 'updatedAt'>;
 export interface ProblemStats {
   /** Number of test cases */
   testCaseCount: number;
-  
-  /** Length of solution code */
-  solutionLength: number;
   
   /** Whether problem has starter code */
   hasStarterCode: boolean;

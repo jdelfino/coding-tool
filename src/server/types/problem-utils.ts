@@ -16,7 +16,6 @@ import { Problem, StudentProblem, ProblemStats } from '../types/problem';
 export function getProblemStats(problem: Problem): ProblemStats {
   return {
     testCaseCount: problem.testCases?.length || 0,
-    solutionLength: problem.solutionCode?.length || 0,
     hasStarterCode: !!problem.starterCode && problem.starterCode.length > 0,
   };
 }
@@ -24,10 +23,10 @@ export function getProblemStats(problem: Problem): ProblemStats {
 /**
  * Sanitize problem for student view
  * 
- * Removes solution code and any instructor-only information.
+ * Removes any instructor-only information.
  * Only shows visible test cases.
  * 
- * @param problem - Full problem with solution
+ * @param problem - Full problem
  * @returns Student-safe problem view
  */
 export function sanitizeProblemForStudent(problem: Problem): StudentProblem {
@@ -50,7 +49,6 @@ export function isProblemComplete(problem: Partial<Problem>): boolean {
   return !!(
     problem.title &&
     problem.description &&
-    problem.solutionCode &&
     problem.testCases &&
     problem.testCases.length > 0 &&
     problem.authorId

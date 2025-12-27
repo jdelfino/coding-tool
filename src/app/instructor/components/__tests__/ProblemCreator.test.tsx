@@ -3,7 +3,7 @@
  * 
  * Tests both create and edit modes with all fields:
  * - Loading existing problem data
- * - Editing all fields (title, description, starterCode, solutionCode)
+ * - Editing all fields (title, description, starterCode)
  * - Form submission and validation
  * - Error handling
  * - Cancel functionality
@@ -51,7 +51,6 @@ describe('ProblemCreator Component', () => {
       expect(screen.getByLabelText(/Title/)).toHaveValue('');
       expect(screen.getByLabelText(/Description/)).toHaveValue('');
       expect(screen.getByLabelText(/Starter Code/)).toHaveValue('');
-      expect(screen.getByLabelText(/Solution Code/)).toHaveValue('');
       expect(screen.getByText('Create Problem')).toBeInTheDocument();
     });
 
@@ -75,7 +74,6 @@ describe('ProblemCreator Component', () => {
         title: 'Test Problem',
         description: 'Test description',
         starterCode: 'def solution():\n    pass',
-        solutionCode: 'def solution():\n    return 42',
       };
 
       (global.fetch as jest.Mock).mockResolvedValueOnce({
@@ -95,9 +93,6 @@ describe('ProblemCreator Component', () => {
       fireEvent.change(screen.getByLabelText(/Starter Code/), {
         target: { value: 'def solution():\n    pass' },
       });
-      fireEvent.change(screen.getByLabelText(/Solution Code/), {
-        target: { value: 'def solution():\n    return 42' },
-      });
 
       // Submit
       fireEvent.click(screen.getByText('Create Problem'));
@@ -110,7 +105,6 @@ describe('ProblemCreator Component', () => {
             title: 'Test Problem',
             description: 'Test description',
             starterCode: 'def solution():\n    pass',
-            solutionCode: 'def solution():\n    return 42',
             testCases: [],
             classId: undefined,
           }),
@@ -147,7 +141,6 @@ describe('ProblemCreator Component', () => {
       title: 'Existing Problem',
       description: 'Original description',
       starterCode: 'def original():\n    pass',
-      solutionCode: 'def original():\n    return 1',
       authorId: 'user-1',
     };
 
@@ -175,7 +168,6 @@ describe('ProblemCreator Component', () => {
       expect(screen.getByLabelText(/Title/)).toHaveValue('Existing Problem');
       expect(screen.getByLabelText(/Description/)).toHaveValue('Original description');
       expect(screen.getByLabelText(/Starter Code/)).toHaveValue('def original():\n    pass');
-      expect(screen.getByLabelText(/Solution Code/)).toHaveValue('def original():\n    return 1');
       expect(screen.getByText('Update Problem')).toBeInTheDocument();
     });
 
@@ -339,9 +331,8 @@ describe('ProblemCreator Component', () => {
     it('should pass execution settings to CodeEditor components', () => {
       render(<ProblemCreator />);
       
-      // Verify CodeEditor components are rendered
+      // Verify CodeEditor component is rendered
       expect(screen.getByTestId('code-editor-Starter Code')).toBeInTheDocument();
-      expect(screen.getByTestId('code-editor-Solution Code')).toBeInTheDocument();
       
       // Note: stdin, Random Seed, and Attached Files are now in CodeEditor's ExecutionSettings
       // These are tested in the CodeEditor component tests
@@ -414,9 +405,8 @@ describe('ProblemCreator Component', () => {
       render(<ProblemCreator problemId="problem-456" />);
 
       await waitFor(() => {
-        // Verify CodeEditor components are rendered
+        // Verify CodeEditor component is rendered
         expect(screen.getByTestId('code-editor-Starter Code')).toBeInTheDocument();
-        expect(screen.getByTestId('code-editor-Solution Code')).toBeInTheDocument();
         // Note: Execution settings (stdin, random seed, attached files) are passed as props
         // to CodeEditor and managed by ExecutionSettings component
       });
@@ -465,6 +455,5 @@ const mockExistingProblem = {
   title: 'Existing Problem',
   description: 'Original description',
   starterCode: 'def original():\n    pass',
-  solutionCode: 'def original():\n    return 1',
   authorId: 'user-1',
 };

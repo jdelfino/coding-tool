@@ -32,7 +32,6 @@ describe('/api/problems/[id]', () => {
     title: 'Test Problem',
     description: 'Test description',
     starterCode: 'def solution():\n    pass',
-    solutionCode: 'def solution():\n    return 42',
     testCases: [],
     authorId: 'user-1',
     classId: 'class-1',

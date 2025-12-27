@@ -33,7 +33,6 @@ describe('GET /api/sessions/history', () => {
         title: 'Test Problem 1',
         description: 'Test description',
         starterCode: '',
-        solutionCode: '',
         testCases: [],
         authorId: 'user-1',
         createdAt: new Date('2024-01-01'),

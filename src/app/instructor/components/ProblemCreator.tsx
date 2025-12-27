@@ -6,7 +6,6 @@
  * Allows instructors to create or edit programming problems with:
  * - Title and description
  * - Starter code template (with Monaco editor and run capability)
- * - Solution code (with Monaco editor and run capability)
  * - Test cases (added separately via test case UI)
  * - Visibility settings (public/class-specific)
  */
@@ -31,12 +30,11 @@ export default function ProblemCreator({
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [starterCode, setStarterCode] = useState('');
-  const [solutionCode, setSolutionCode] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
-  // Execution settings - shared between starter and solution
+  // Execution settings
   const [stdin, setStdin] = useState('');
   const [randomSeed, setRandomSeed] = useState<number | undefined>(undefined);
   const [attachedFiles, setAttachedFiles] = useState<Array<{ name: string; content: string }>>([]);
@@ -62,7 +60,6 @@ export default function ProblemCreator({
       setTitle(problem.title || '');
       setDescription(problem.description || '');
       setStarterCode(problem.starterCode || '');
-      setSolutionCode(problem.solutionCode || '');
       
       // Load execution settings
       const execSettings = problem.executionSettings;
@@ -92,7 +89,6 @@ export default function ProblemCreator({
         title: title.trim(),
         description: description.trim(),
         starterCode: starterCode.trim(),
-        solutionCode: solutionCode.trim(),
         testCases: [], // Test cases added separately
         classId: classId || undefined,
       };
@@ -136,7 +132,6 @@ export default function ProblemCreator({
         setTitle('');
         setDescription('');
         setStarterCode('');
-        setSolutionCode('');
         setStdin('');
         setRandomSeed(undefined);
         setAttachedFiles([]);
@@ -221,28 +216,6 @@ export default function ProblemCreator({
           />
           <p className="mt-2 text-xs text-gray-500">
             Template code shown to students. Click "Run Code" to test it before saving.
-          </p>
-        </div>
-
-        {/* Solution Code */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Solution Code (Optional)
-          </label>
-          <CodeEditor
-            code={solutionCode}
-            onChange={setSolutionCode}
-            useApiExecution={true}
-            title="Solution Code"
-            exampleInput={stdin}
-            onStdinChange={setStdin}
-            randomSeed={randomSeed}
-            onRandomSeedChange={setRandomSeed}
-            attachedFiles={attachedFiles}
-            onAttachedFilesChange={setAttachedFiles}
-          />
-          <p className="mt-2 text-xs text-gray-500">
-            Reference solution (not shown to students). Click "Run Code" to verify it works correctly.
           </p>
         </div>
 

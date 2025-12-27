@@ -54,7 +54,6 @@ describe('POST /api/sessions', () => {
     title: 'Test Problem',
     description: 'Test description',
     starterCode: 'def test():\n    pass',
-    solutionCode: '',
     testCases: [],
     authorId: 'user-1',
     createdAt: new Date('2024-01-01'),

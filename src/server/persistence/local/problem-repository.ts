@@ -242,7 +242,6 @@ export class LocalProblemRepository implements IProblemRepository {
       title: newTitle,
       description: original.description,
       starterCode: original.starterCode,
-      solutionCode: original.solutionCode,
       testCases: original.testCases,
       authorId: original.authorId,
       classId: original.classId,

@@ -108,7 +108,6 @@ export async function POST(request: NextRequest) {
       title: body.title,
       description: body.description || '',
       starterCode: body.starterCode || '',
-      solutionCode: body.solutionCode || '',
       testCases: body.testCases || [],
       authorId: user.id,
       classId: body.classId || null,

@@ -20,7 +20,6 @@ import { Problem, ProblemValidationError } from '../types/problem';
  *   "title": "Factorial Function",
  *   "description": "# Problem\n\nWrite a function that computes factorial...",
  *   "starterCode": "def factorial(n):\n    pass",
- *   "solutionCode": "def factorial(n):\n    if n <= 1: return 1\n    return n * factorial(n-1)",
  *   "testCases": [
  *     {"type": "io", "input": "5", "expected": "120", ...}
  *   ],
@@ -43,9 +42,6 @@ export interface ProblemSchema {
   
   /** Optional starter code template */
   starterCode?: string;
-  
-  /** Reference solution code (optional) */
-  solutionCode?: string;
   
   /** Array of test cases (optional) */
   testCases?: unknown[];
@@ -78,11 +74,6 @@ export const PROBLEM_VALIDATION_RULES = {
     required: false,
   },
   starterCode: {
-    maxLength: 50000,
-    required: false,
-  },
-  solutionCode: {
-    minLength: 0,
     maxLength: 50000,
     required: false,
   },
@@ -129,15 +120,6 @@ export function validateProblemSchema(problem: Partial<Problem>): ProblemValidat
     errors.push({
       field: 'description',
       message: `Description must be at most ${PROBLEM_VALIDATION_RULES.description.maxLength} characters`,
-      code: 'MAX_LENGTH',
-    });
-  }
-  
-  // Validate solution code (optional now)
-  if (problem.solutionCode && problem.solutionCode.length > PROBLEM_VALIDATION_RULES.solutionCode.maxLength) {
-    errors.push({
-      field: 'solutionCode',
-      message: `Solution code must be at most ${PROBLEM_VALIDATION_RULES.solutionCode.maxLength} characters`,
       code: 'MAX_LENGTH',
     });
   }
@@ -191,7 +173,6 @@ export function serializeProblem(problem: Problem): ProblemSchema {
     title: problem.title,
     description: problem.description,
     starterCode: problem.starterCode,
-    solutionCode: problem.solutionCode,
     testCases: problem.testCases,
     authorId: problem.authorId,
     classId: problem.classId,
@@ -215,7 +196,6 @@ export function deserializeProblem(schema: ProblemSchema): Problem {
     title: schema.title,
     description: schema.description,
     starterCode: schema.starterCode,
-    solutionCode: schema.solutionCode,
     testCases: schema.testCases as any[], // Type-checked by validation
     authorId: schema.authorId,
     classId: schema.classId,
