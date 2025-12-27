@@ -246,7 +246,10 @@ function StudentPage() {
     setError(null);
     setIsRunning(true);
     setExecutionResult(null);
-    sendMessage('EXECUTE_CODE', { code, stdin });
+    sendMessage('EXECUTE_CODE', { 
+      code, 
+      executionSettings: { stdin }
+    });
     
     // Set timeout for execution
     setTimeout(() => {

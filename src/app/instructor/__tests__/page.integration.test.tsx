@@ -717,6 +717,7 @@ describe('InstructorPage - Integration Tests', () => {
       expect(mockSendMessage).toHaveBeenCalledWith('EXECUTE_STUDENT_CODE', {
         sessionId: 'test-session-id',
         studentId: 'student-1',
+        executionSettings: { stdin: undefined },
       });
     });
   });

@@ -460,7 +460,7 @@ function InstructorPage() {
     sendMessage('EXECUTE_STUDENT_CODE', {
       sessionId,
       studentId: selectedStudentId,
-      stdin,
+      executionSettings: { stdin },
     });
   };
 

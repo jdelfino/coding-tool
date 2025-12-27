@@ -122,7 +122,10 @@ function PublicViewContent() {
     
     ws.send(JSON.stringify({
       type: MessageType.PUBLIC_EXECUTE_CODE,
-      payload: { code, stdin },
+      payload: { 
+        code, 
+        executionSettings: { stdin }
+      },
     }));
   };
 

@@ -589,7 +589,7 @@ class WebSocketHandler {
     }
 
     try {
-      const { code, stdin } = payload;
+      const { code, executionSettings: payloadSettings } = payload;
       
       if (!code || typeof code !== 'string') {
         this.sendError(ws, 'Invalid code provided');
@@ -606,16 +606,14 @@ class WebSocketHandler {
         ? await sessionManagerHolder.instance.getSession(connection.sessionId)
         : null;
       
-      // Merge student and session execution settings
+      // Merge payload settings (highest priority), student settings, then session defaults
       const executionSettings = this.getEffectiveExecutionSettings(
-        studentData?.executionSettings,
-        session?.problem.executionSettings
+        payloadSettings,
+        this.getEffectiveExecutionSettings(
+          studentData?.executionSettings,
+          session?.problem.executionSettings
+        )
       );
-      
-      // Override stdin if provided in payload
-      if (stdin !== undefined) {
-        executionSettings.stdin = stdin;
-      }
       
       const result = await executeCodeSafe({ 
         code, 
@@ -640,7 +638,7 @@ class WebSocketHandler {
     }
 
     try {
-      const { studentId, stdin } = payload;
+      const { studentId, executionSettings: payloadSettings } = payload;
       
       if (!studentId || typeof studentId !== 'string') {
         this.sendError(ws, 'Invalid student ID');
@@ -658,16 +656,14 @@ class WebSocketHandler {
       // Get session defaults for fallback
       const session = await sessionManagerHolder.instance.getSession(connection.sessionId);
       
-      // Merge student and session execution settings
+      // Merge payload settings (highest priority), student settings, then session defaults
       const executionSettings = this.getEffectiveExecutionSettings(
-        studentData.executionSettings,
-        session?.problem.executionSettings
+        payloadSettings,
+        this.getEffectiveExecutionSettings(
+          studentData.executionSettings,
+          session?.problem.executionSettings
+        )
       );
-      
-      // Override stdin if provided in payload
-      if (stdin !== undefined) {
-        executionSettings.stdin = stdin;
-      }
       
       const result = await executeCodeSafe({ 
         code: studentData.code, 
@@ -857,7 +853,7 @@ class WebSocketHandler {
     }
 
     try {
-      const { code, stdin } = payload;
+      const { code, executionSettings: payloadSettings } = payload;
       
       if (!code || typeof code !== 'string') {
         this.sendError(ws, 'Invalid code provided');
@@ -867,13 +863,11 @@ class WebSocketHandler {
       // Get session to access executionSettings
       const session = await sessionManagerHolder.instance.getSession(connection.sessionId);
       
-      // Use session execution settings
-      const executionSettings = session?.problem?.executionSettings || {};
-      
-      // Override stdin if provided in payload
-      if (stdin !== undefined) {
-        executionSettings.stdin = stdin;
-      }
+      // Merge payload settings with session defaults
+      const executionSettings = this.getEffectiveExecutionSettings(
+        payloadSettings,
+        session?.problem?.executionSettings
+      );
       
       const result = await executeCodeSafe({ 
         code, 
