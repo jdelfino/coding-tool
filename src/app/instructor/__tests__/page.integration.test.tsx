@@ -32,10 +32,38 @@ jest.mock('next/navigation', () => ({
   useSearchParams: () => mockSearchParams,
 }));
 
-// Mock ProblemInput to avoid React import issues
+// Mock ProblemInput to avoid React import issues, but render attached files for testing
 jest.mock('../components/ProblemInput', () => ({
   __esModule: true,
-  default: () => <div data-testid="problem-input">Problem Input</div>,
+  default: ({ initialExecutionSettings }: any) => (
+    <div data-testid="problem-input">
+      Problem Input
+      {initialExecutionSettings?.attachedFiles && initialExecutionSettings.attachedFiles.length > 0 && (
+        <div data-testid="attached-files">
+          {initialExecutionSettings.attachedFiles.map((file: any) => (
+            <div key={file.name} data-testid={`file-${file.name}`}>{file.name}</div>
+          ))}
+        </div>
+      )}
+    </div>
+  ),
+}));
+
+// Mock SessionProblemEditor to render attached files for testing
+jest.mock('../components/SessionProblemEditor', () => ({
+  __esModule: true,
+  default: ({ initialExecutionSettings }: any) => (
+    <div data-testid="session-problem-editor">
+      Session Problem Editor
+      {initialExecutionSettings?.attachedFiles && initialExecutionSettings.attachedFiles.length > 0 && (
+        <div data-testid="attached-files">
+          {initialExecutionSettings.attachedFiles.map((file: any) => (
+            <div key={file.name} data-testid={`file-${file.name}`}>{file.name}</div>
+          ))}
+        </div>
+      )}
+    </div>
+  ),
 }));
 
 // Mock RevisionViewer to avoid complex dependencies
@@ -982,6 +1010,7 @@ describe('InstructorPage - Integration Tests', () => {
             // No executionSettings on problem
           },
           executionSettings: {
+            attachedFiles: [{ name: 'test.txt', content: 'test content' }],
             stdin: 'test input',
             randomSeed: 42,
           },
@@ -998,8 +1027,10 @@ describe('InstructorPage - Integration Tests', () => {
         expect(screen.getByText('XYZ789')).toBeInTheDocument();
       });
 
-      // Verify session is rendered (executionSettings are internal state)
-      expect(screen.getByText('Test Section')).toBeInTheDocument();
+      // Verify execution settings are loaded (check for attached files in ProblemInput)
+      await waitFor(() => {
+        expect(screen.getByTestId('file-test.txt')).toBeInTheDocument();
+      });
     });
 
     it('should fallback to problem.executionSettings when top-level is missing', async () => {
@@ -1043,6 +1074,7 @@ describe('InstructorPage - Integration Tests', () => {
             title: 'Test Problem 2',
             description: 'Test 2',
             executionSettings: {
+              attachedFiles: [{ name: 'fallback.txt', content: 'fallback content' }],
               stdin: 'fallback input',
               randomSeed: 99,
             },
@@ -1061,8 +1093,10 @@ describe('InstructorPage - Integration Tests', () => {
         expect(screen.getByText('ABC456')).toBeInTheDocument();
       });
 
-      // Verify session is rendered (executionSettings are internal state)
-      expect(screen.getByText('Another Section')).toBeInTheDocument();
+      // Verify execution settings are loaded from problem (check for attached files)
+      await waitFor(() => {
+        expect(screen.getByTestId('file-fallback.txt')).toBeInTheDocument();
+      });
     });
 
     it('should use empty object when no executionSettings exist anywhere', async () => {
@@ -1121,8 +1155,8 @@ describe('InstructorPage - Integration Tests', () => {
         expect(screen.getByText('DEF789')).toBeInTheDocument();
       });
 
-      // Session should render without errors
-      expect(screen.getByText('Third Section')).toBeInTheDocument();
+      // Session should render without errors (no attached files section shown)
+      expect(screen.queryByTestId('attached-files')).not.toBeInTheDocument();
     });
   });
 });
