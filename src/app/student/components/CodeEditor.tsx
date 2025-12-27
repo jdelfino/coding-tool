@@ -17,6 +17,7 @@ interface CodeEditorProps {
   onRun?: (stdin?: string) => void;
   isRunning?: boolean;
   exampleInput?: string;
+  onStdinChange?: (stdin: string) => void;
   randomSeed?: number;
   onRandomSeedChange?: (seed: number | undefined) => void;
   attachedFiles?: Array<{ name: string; content: string }>;
@@ -34,6 +35,7 @@ export default function CodeEditor({
   onRun, 
   isRunning = false, 
   exampleInput,
+  onStdinChange,
   randomSeed,
   onRandomSeedChange,
   attachedFiles,
@@ -48,6 +50,12 @@ export default function CodeEditor({
   const [stdin, setStdin] = useState('');
   const [localIsRunning, setLocalIsRunning] = useState(false);
   const [localExecutionResult, setLocalExecutionResult] = useState<ExecutionResult | null>(null);
+
+  // Wrapper to call both internal state and parent callback
+  const handleStdinChange = (value: string) => {
+    setStdin(value);
+    onStdinChange?.(value);
+  };
 
   // Use local state for API execution, or passed props for WebSocket execution
   const effectiveIsRunning = useApiExecution ? localIsRunning : isRunning;
@@ -252,7 +260,7 @@ export default function CodeEditor({
 
       <ExecutionSettings
         stdin={stdin}
-        onStdinChange={setStdin}
+        onStdinChange={handleStdinChange}
         randomSeed={randomSeed}
         onRandomSeedChange={onRandomSeedChange}
         attachedFiles={attachedFiles}

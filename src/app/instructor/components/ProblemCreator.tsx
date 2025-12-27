@@ -216,11 +216,12 @@ export default function ProblemCreator({
             onChange={setStarterCode}
             useApiExecution={true}
             title="Starter Code"
+            exampleInput={stdin}
+            onStdinChange={setStdin}
             randomSeed={randomSeed}
             onRandomSeedChange={setRandomSeed}
             attachedFiles={attachedFiles}
             onAttachedFilesChange={setAttachedFiles}
-            exampleInput={stdin}
           />
           <p className="mt-2 text-xs text-gray-500">
             Template code shown to students. Click "Run Code" to test it before saving.
@@ -237,41 +238,16 @@ export default function ProblemCreator({
             onChange={setSolutionCode}
             useApiExecution={true}
             title="Solution Code"
+            exampleInput={stdin}
+            onStdinChange={setStdin}
             randomSeed={randomSeed}
             onRandomSeedChange={setRandomSeed}
             attachedFiles={attachedFiles}
             onAttachedFilesChange={setAttachedFiles}
-            exampleInput={stdin}
           />
           <p className="mt-2 text-xs text-gray-500">
             Reference solution (not shown to students). Click "Run Code" to verify it works correctly.
           </p>
-        </div>
-
-        {/* Execution Settings Section */}
-        <div className="pt-4 border-t">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Execution Settings (Optional)</h3>
-          <p className="text-sm text-gray-600 mb-4">
-            These settings apply when testing code above. They will also be used as defaults when students work on this problem.
-          </p>
-
-          {/* Standard Input (stdin) */}
-          <div className="mb-4">
-            <label htmlFor="stdin" className="block text-sm font-medium text-gray-700 mb-2">
-              Standard Input (stdin)
-            </label>
-            <textarea
-              id="stdin"
-              value={stdin}
-              onChange={(e) => setStdin(e.target.value)}
-              placeholder="Input data for the program (if needed)..."
-              rows={4}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
-            />
-            <p className="mt-1 text-xs text-gray-500">
-              Input data that will be provided to the program via stdin when running code above
-            </p>
-          </div>
         </div>
 
         {/* Visibility */}
