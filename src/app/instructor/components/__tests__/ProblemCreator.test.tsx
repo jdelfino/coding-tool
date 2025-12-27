@@ -355,6 +355,200 @@ describe('ProblemCreator Component', () => {
       });
     });
   });
+  
+  describe('Execution Settings', () => {
+    it('should render execution settings fields', () => {
+      render(<ProblemCreator />);
+      
+      expect(screen.getByLabelText(/Standard Input \(stdin\)/)).toBeInTheDocument();
+      expect(screen.getByLabelText(/Random Seed/)).toBeInTheDocument();
+      expect(screen.getByText(/Attached Files/)).toBeInTheDocument();
+    });
+
+    it('should include execution settings in create request', async () => {
+      const onProblemCreated = jest.fn();
+      const mockProblem = {
+        id: 'problem-789',
+        title: 'Test Problem',
+      };
+
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ problem: mockProblem }),
+      });
+
+      render(<ProblemCreator onProblemCreated={onProblemCreated} />);
+      
+      // Fill in basic fields
+      fireEvent.change(screen.getByLabelText(/Title/), {
+        target: { value: 'Test Problem' },
+      });
+
+      // Fill in execution settings
+      fireEvent.change(screen.getByLabelText(/Standard Input \(stdin\)/), {
+        target: { value: '5\n10' },
+      });
+      fireEvent.change(screen.getByLabelText(/Random Seed/), {
+        target: { value: '42' },
+      });
+
+      // Submit
+      fireEvent.click(screen.getByText('Create Problem'));
+
+      await waitFor(() => {
+        expect(global.fetch).toHaveBeenCalledWith('/api/problems', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: expect.stringContaining('"executionSettings"'),
+        });
+      });
+
+      // Verify the execution settings are properly formatted
+      const callArgs = (global.fetch as jest.Mock).mock.calls[0];
+      const body = JSON.parse(callArgs[1].body);
+      expect(body.executionSettings.stdin).toBe('5\n10');
+      expect(body.executionSettings.randomSeed).toBe(42);
+    });
+
+    it('should handle attached files', async () => {
+      const onProblemCreated = jest.fn();
+      const mockProblem = { id: 'problem-890' };
+
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ problem: mockProblem }),
+      });
+
+      render(<ProblemCreator onProblemCreated={onProblemCreated} />);
+      
+      fireEvent.change(screen.getByLabelText(/Title/), {
+        target: { value: 'Test Problem' },
+      });
+
+      // Add a file
+      const fileNameInput = screen.getByPlaceholderText(/File name/);
+      const fileContentInput = screen.getByPlaceholderText(/File content/);
+      
+      fireEvent.change(fileNameInput, { target: { value: 'data.txt' } });
+      fireEvent.change(fileContentInput, { target: { value: 'test content' } });
+      fireEvent.click(screen.getByText('+ Add File'));
+
+      // Verify file appears in list
+      await waitFor(() => {
+        expect(screen.getByText('data.txt')).toBeInTheDocument();
+      });
+
+      // Submit
+      fireEvent.click(screen.getByText('Create Problem'));
+
+      await waitFor(() => {
+        const callArgs = (global.fetch as jest.Mock).mock.calls[0];
+        const body = JSON.parse(callArgs[1].body);
+        expect(body.executionSettings.attachedFiles).toEqual([
+          { name: 'data.txt', content: 'test content' }
+        ]);
+      });
+    });
+
+    it('should validate file name and content before adding', () => {
+      render(<ProblemCreator />);
+
+      // Try to add file without name
+      const fileContentInput = screen.getByPlaceholderText(/File content/);
+      fireEvent.change(fileContentInput, { target: { value: 'content' } });
+      fireEvent.click(screen.getByText('+ Add File'));
+
+      // Error should appear
+      expect(screen.getByText(/Please provide both file name and content/)).toBeInTheDocument();
+    });
+
+    it('should allow removing attached files', async () => {
+      render(<ProblemCreator />);
+
+      // Add a file
+      const fileNameInput = screen.getByPlaceholderText(/File name/);
+      const fileContentInput = screen.getByPlaceholderText(/File content/);
+      
+      fireEvent.change(fileNameInput, { target: { value: 'data.txt' } });
+      fireEvent.change(fileContentInput, { target: { value: 'test content' } });
+      fireEvent.click(screen.getByText('+ Add File'));
+
+      // Verify file appears
+      await waitFor(() => {
+        expect(screen.getByText('data.txt')).toBeInTheDocument();
+      });
+
+      // Remove file
+      fireEvent.click(screen.getByText('Remove'));
+
+      // Verify file is gone
+      await waitFor(() => {
+        expect(screen.queryByText('data.txt')).not.toBeInTheDocument();
+      });
+    });
+
+    it('should load execution settings when editing', async () => {
+      const problemWithExecSettings = {
+        ...mockExistingProblem,
+        executionSettings: {
+          stdin: '1\n2\n3\n',
+          randomSeed: 99,
+          attachedFiles: [
+            { name: 'input.txt', content: 'file content here' }
+          ],
+        },
+      };
+
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ problem: problemWithExecSettings }),
+      });
+
+      render(<ProblemCreator problemId="problem-456" />);
+
+      await waitFor(() => {
+        expect(screen.getByLabelText(/Standard Input \(stdin\)/)).toHaveValue('1\n2\n3\n');
+        expect(screen.getByLabelText(/Random Seed/)).toHaveValue(99);
+        expect(screen.getByText('input.txt')).toBeInTheDocument();
+      });
+    });
+
+    it('should reset execution settings after successful create', async () => {
+      const mockProblem = { id: 'problem-reset' };
+
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ problem: mockProblem }),
+      });
+
+      render(<ProblemCreator />);
+      
+      // Fill in fields
+      fireEvent.change(screen.getByLabelText(/Title/), {
+        target: { value: 'Test' },
+      });
+      fireEvent.change(screen.getByLabelText(/Standard Input \(stdin\)/), {
+        target: { value: 'some input' },
+      });
+      fireEvent.change(screen.getByLabelText(/Random Seed/), {
+        target: { value: '123' },
+      });
+
+      // Submit
+      fireEvent.click(screen.getByText('Create Problem'));
+
+      // Wait for success
+      await waitFor(() => {
+        expect(global.fetch).toHaveBeenCalled();
+      });
+
+      // Verify fields are reset
+      await waitFor(() => {
+        expect(screen.getByLabelText(/Standard Input \(stdin\)/)).toHaveValue('');
+        expect(screen.getByLabelText(/Random Seed/)).toHaveValue(null);
+      });
+    });
+  });
 });
 
 const mockExistingProblem = {

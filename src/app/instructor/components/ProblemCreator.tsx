@@ -35,6 +35,11 @@ export default function ProblemCreator({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // Execution settings
+  const [stdin, setStdin] = useState('');
+  const [randomSeed, setRandomSeed] = useState<string>('');
+  const [attachedFiles, setAttachedFiles] = useState<Array<{ name: string; content: string }>>([]);
 
   const isEditMode = !!problemId;
 
@@ -59,6 +64,12 @@ export default function ProblemCreator({
       setStarterCode(problem.starterCode || '');
       setSolutionCode(problem.solutionCode || '');
       setIsPublic(problem.isPublic || false);
+      
+      // Load execution settings
+      const execSettings = problem.executionSettings;
+      setStdin(execSettings?.stdin || '');
+      setRandomSeed(execSettings?.randomSeed !== undefined ? String(execSettings.randomSeed) : '');
+      setAttachedFiles(execSettings?.attachedFiles || []);
     } catch (err: any) {
       setError(err.message || 'Failed to load problem');
     } finally {
@@ -87,6 +98,16 @@ export default function ProblemCreator({
         isPublic,
         classId: classId || undefined,
       };
+      
+      // Only include executionSettings if at least one field is set
+      const execSettings: any = {};
+      if (stdin.trim()) execSettings.stdin = stdin.trim();
+      if (randomSeed.trim()) execSettings.randomSeed = parseInt(randomSeed.trim(), 10);
+      if (attachedFiles.length > 0) execSettings.attachedFiles = attachedFiles;
+      
+      if (Object.keys(execSettings).length > 0) {
+        problemInput.executionSettings = execSettings;
+      }
 
       let response;
       if (isEditMode) {
@@ -119,6 +140,9 @@ export default function ProblemCreator({
         setStarterCode('');
         setSolutionCode('');
         setIsPublic(false);
+        setStdin('');
+        setRandomSeed('');
+        setAttachedFiles([]);
       }
 
       // Notify parent
@@ -215,6 +239,121 @@ export default function ProblemCreator({
           <p className="mt-1 text-xs text-gray-500">
             Reference solution (not shown to students)
           </p>
+        </div>
+
+        {/* Execution Settings Section */}
+        <div className="pt-4 border-t">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Execution Settings (Optional)</h3>
+          <p className="text-sm text-gray-600 mb-4">
+            Configure default execution settings for this problem. These can be overridden at the session or student level.
+          </p>
+
+          {/* Standard Input (stdin) */}
+          <div className="mb-4">
+            <label htmlFor="stdin" className="block text-sm font-medium text-gray-700 mb-2">
+              Standard Input (stdin)
+            </label>
+            <textarea
+              id="stdin"
+              value={stdin}
+              onChange={(e) => setStdin(e.target.value)}
+              placeholder="Input data for the program (if needed)..."
+              rows={4}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+            />
+            <p className="mt-1 text-xs text-gray-500">
+              Input data that will be provided to the program via stdin
+            </p>
+          </div>
+
+          {/* Random Seed */}
+          <div className="mb-4">
+            <label htmlFor="randomSeed" className="block text-sm font-medium text-gray-700 mb-2">
+              Random Seed
+            </label>
+            <input
+              id="randomSeed"
+              type="number"
+              value={randomSeed}
+              onChange={(e) => setRandomSeed(e.target.value)}
+              placeholder="e.g., 42"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <p className="mt-1 text-xs text-gray-500">
+              Seed for deterministic random number generation (for reproducible testing)
+            </p>
+          </div>
+
+          {/* Attached Files */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Attached Files
+            </label>
+            
+            {/* File list */}
+            {attachedFiles.length > 0 && (
+              <div className="mb-2 space-y-2">
+                {attachedFiles.map((file, index) => (
+                  <div key={index} className="flex items-start space-x-2 p-2 bg-gray-50 border border-gray-200 rounded">
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium text-gray-900 truncate">{file.name}</div>
+                      <div className="text-xs text-gray-500 font-mono truncate">{file.content.substring(0, 60)}...</div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const newFiles = attachedFiles.filter((_, i) => i !== index);
+                        setAttachedFiles(newFiles);
+                      }}
+                      className="flex-shrink-0 text-red-600 hover:text-red-800 text-sm"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Add file form */}
+            <div className="space-y-2">
+              <input
+                id="newFileName"
+                type="text"
+                placeholder="File name (e.g., data.txt)"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              />
+              <textarea
+                id="newFileContent"
+                placeholder="File content..."
+                rows={3}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  const nameInput = document.getElementById('newFileName') as HTMLInputElement;
+                  const contentInput = document.getElementById('newFileContent') as HTMLTextAreaElement;
+                  
+                  if (nameInput.value.trim() && contentInput.value.trim()) {
+                    setAttachedFiles([
+                      ...attachedFiles,
+                      { name: nameInput.value.trim(), content: contentInput.value }
+                    ]);
+                    nameInput.value = '';
+                    contentInput.value = '';
+                  } else {
+                    setError('Please provide both file name and content');
+                  }
+                }}
+                className="px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 rounded hover:bg-blue-100"
+              >
+                + Add File
+              </button>
+            </div>
+            <p className="mt-1 text-xs text-gray-500">
+              Additional files that will be available to the program during execution
+            </p>
+          </div>
         </div>
 
         {/* Visibility */}
