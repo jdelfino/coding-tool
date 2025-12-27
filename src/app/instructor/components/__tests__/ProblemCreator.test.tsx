@@ -19,6 +19,24 @@ import ProblemCreator from '../ProblemCreator';
 // Mock fetch globally
 global.fetch = jest.fn();
 
+// Mock CodeEditor component
+jest.mock('@/app/student/components/CodeEditor', () => {
+  return function MockCodeEditor({ code, onChange, title, useApiExecution }: any) {
+    return (
+      <div data-testid={`code-editor-${title}`}>
+        <label htmlFor={`code-${title}`}>{title}</label>
+        <textarea
+          id={`code-${title}`}
+          aria-label={title}
+          value={code}
+          onChange={(e) => onChange(e.target.value)}
+          data-use-api={useApiExecution}
+        />
+      </div>
+    );
+  };
+});
+
 describe('ProblemCreator Component', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -361,8 +379,7 @@ describe('ProblemCreator Component', () => {
       render(<ProblemCreator />);
       
       expect(screen.getByLabelText(/Standard Input \(stdin\)/)).toBeInTheDocument();
-      expect(screen.getByLabelText(/Random Seed/)).toBeInTheDocument();
-      expect(screen.getByText(/Attached Files/)).toBeInTheDocument();
+      // Note: Random Seed and Attached Files are now in CodeEditor's ExecutionSettings
     });
 
     it('should include execution settings in create request', async () => {
@@ -384,12 +401,9 @@ describe('ProblemCreator Component', () => {
         target: { value: 'Test Problem' },
       });
 
-      // Fill in execution settings
+      // Fill in stdin (the only execution setting in the form)
       fireEvent.change(screen.getByLabelText(/Standard Input \(stdin\)/), {
         target: { value: '5\n10' },
-      });
-      fireEvent.change(screen.getByLabelText(/Random Seed/), {
-        target: { value: '42' },
       });
 
       // Submit
@@ -407,85 +421,14 @@ describe('ProblemCreator Component', () => {
       const callArgs = (global.fetch as jest.Mock).mock.calls[0];
       const body = JSON.parse(callArgs[1].body);
       expect(body.executionSettings.stdin).toBe('5\n10');
-      expect(body.executionSettings.randomSeed).toBe(42);
+      // Note: randomSeed is now managed by CodeEditor component
     });
 
-    it('should handle attached files', async () => {
-      const onProblemCreated = jest.fn();
-      const mockProblem = { id: 'problem-890' };
+    // Note: Attached files test removed because file attachment UI is now
+    // part of CodeEditor's ExecutionSettings component and tested separately
 
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ problem: mockProblem }),
-      });
-
-      render(<ProblemCreator onProblemCreated={onProblemCreated} />);
-      
-      fireEvent.change(screen.getByLabelText(/Title/), {
-        target: { value: 'Test Problem' },
-      });
-
-      // Add a file
-      const fileNameInput = screen.getByPlaceholderText(/File name/);
-      const fileContentInput = screen.getByPlaceholderText(/File content/);
-      
-      fireEvent.change(fileNameInput, { target: { value: 'data.txt' } });
-      fireEvent.change(fileContentInput, { target: { value: 'test content' } });
-      fireEvent.click(screen.getByText('+ Add File'));
-
-      // Verify file appears in list
-      await waitFor(() => {
-        expect(screen.getByText('data.txt')).toBeInTheDocument();
-      });
-
-      // Submit
-      fireEvent.click(screen.getByText('Create Problem'));
-
-      await waitFor(() => {
-        const callArgs = (global.fetch as jest.Mock).mock.calls[0];
-        const body = JSON.parse(callArgs[1].body);
-        expect(body.executionSettings.attachedFiles).toEqual([
-          { name: 'data.txt', content: 'test content' }
-        ]);
-      });
-    });
-
-    it('should validate file name and content before adding', () => {
-      render(<ProblemCreator />);
-
-      // Try to add file without name
-      const fileContentInput = screen.getByPlaceholderText(/File content/);
-      fireEvent.change(fileContentInput, { target: { value: 'content' } });
-      fireEvent.click(screen.getByText('+ Add File'));
-
-      // Error should appear
-      expect(screen.getByText(/Please provide both file name and content/)).toBeInTheDocument();
-    });
-
-    it('should allow removing attached files', async () => {
-      render(<ProblemCreator />);
-
-      // Add a file
-      const fileNameInput = screen.getByPlaceholderText(/File name/);
-      const fileContentInput = screen.getByPlaceholderText(/File content/);
-      
-      fireEvent.change(fileNameInput, { target: { value: 'data.txt' } });
-      fireEvent.change(fileContentInput, { target: { value: 'test content' } });
-      fireEvent.click(screen.getByText('+ Add File'));
-
-      // Verify file appears
-      await waitFor(() => {
-        expect(screen.getByText('data.txt')).toBeInTheDocument();
-      });
-
-      // Remove file
-      fireEvent.click(screen.getByText('Remove'));
-
-      // Verify file is gone
-      await waitFor(() => {
-        expect(screen.queryByText('data.txt')).not.toBeInTheDocument();
-      });
-    });
+    // Note: File attachment UI is now part of CodeEditor's ExecutionSettings
+    // These tests are handled by ExecutionSettings component tests
 
     it('should load execution settings when editing', async () => {
       const problemWithExecSettings = {
@@ -508,8 +451,7 @@ describe('ProblemCreator Component', () => {
 
       await waitFor(() => {
         expect(screen.getByLabelText(/Standard Input \(stdin\)/)).toHaveValue('1\n2\n3\n');
-        expect(screen.getByLabelText(/Random Seed/)).toHaveValue(99);
-        expect(screen.getByText('input.txt')).toBeInTheDocument();
+        // Note: Random seed and attached files are managed by CodeEditor component
       });
     });
 
@@ -530,9 +472,6 @@ describe('ProblemCreator Component', () => {
       fireEvent.change(screen.getByLabelText(/Standard Input \(stdin\)/), {
         target: { value: 'some input' },
       });
-      fireEvent.change(screen.getByLabelText(/Random Seed/), {
-        target: { value: '123' },
-      });
 
       // Submit
       fireEvent.click(screen.getByText('Create Problem'));
@@ -545,7 +484,6 @@ describe('ProblemCreator Component', () => {
       // Verify fields are reset
       await waitFor(() => {
         expect(screen.getByLabelText(/Standard Input \(stdin\)/)).toHaveValue('');
-        expect(screen.getByLabelText(/Random Seed/)).toHaveValue(null);
       });
     });
   });

@@ -5,14 +5,15 @@
  * 
  * Allows instructors to create or edit programming problems with:
  * - Title and description
- * - Starter code template
- * - Solution code (optional, for reference)
+ * - Starter code template (with Monaco editor and run capability)
+ * - Solution code (with Monaco editor and run capability)
  * - Test cases (added separately via test case UI)
  * - Visibility settings (public/class-specific)
  */
 
 import React, { useState, useEffect } from 'react';
 import type { ProblemInput } from '@/server/types/problem';
+import CodeEditor from '@/app/student/components/CodeEditor';
 
 interface ProblemCreatorProps {
   problemId?: string | null;
@@ -36,9 +37,9 @@ export default function ProblemCreator({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
-  // Execution settings
+  // Execution settings - shared between starter and solution
   const [stdin, setStdin] = useState('');
-  const [randomSeed, setRandomSeed] = useState<string>('');
+  const [randomSeed, setRandomSeed] = useState<number | undefined>(undefined);
   const [attachedFiles, setAttachedFiles] = useState<Array<{ name: string; content: string }>>([]);
 
   const isEditMode = !!problemId;
@@ -68,7 +69,7 @@ export default function ProblemCreator({
       // Load execution settings
       const execSettings = problem.executionSettings;
       setStdin(execSettings?.stdin || '');
-      setRandomSeed(execSettings?.randomSeed !== undefined ? String(execSettings.randomSeed) : '');
+      setRandomSeed(execSettings?.randomSeed);
       setAttachedFiles(execSettings?.attachedFiles || []);
     } catch (err: any) {
       setError(err.message || 'Failed to load problem');
@@ -102,7 +103,7 @@ export default function ProblemCreator({
       // Only include executionSettings if at least one field is set
       const execSettings: any = {};
       if (stdin.trim()) execSettings.stdin = stdin.trim();
-      if (randomSeed.trim()) execSettings.randomSeed = parseInt(randomSeed.trim(), 10);
+      if (randomSeed !== undefined) execSettings.randomSeed = randomSeed;
       if (attachedFiles.length > 0) execSettings.attachedFiles = attachedFiles;
       
       if (Object.keys(execSettings).length > 0) {
@@ -141,7 +142,7 @@ export default function ProblemCreator({
         setSolutionCode('');
         setIsPublic(false);
         setStdin('');
-        setRandomSeed('');
+        setRandomSeed(undefined);
         setAttachedFiles([]);
       }
 
@@ -207,37 +208,43 @@ export default function ProblemCreator({
 
         {/* Starter Code */}
         <div>
-          <label htmlFor="starterCode" className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
             Starter Code
           </label>
-          <textarea
-            id="starterCode"
-            value={starterCode}
-            onChange={(e) => setStarterCode(e.target.value)}
-            placeholder="def solution(nums, target):\n    # Your code here\n    pass"
-            rows={8}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+          <CodeEditor
+            code={starterCode}
+            onChange={setStarterCode}
+            useApiExecution={true}
+            title="Starter Code"
+            randomSeed={randomSeed}
+            onRandomSeedChange={setRandomSeed}
+            attachedFiles={attachedFiles}
+            onAttachedFilesChange={setAttachedFiles}
+            exampleInput={stdin}
           />
-          <p className="mt-1 text-xs text-gray-500">
-            Template code shown to students
+          <p className="mt-2 text-xs text-gray-500">
+            Template code shown to students. Click "Run Code" to test it before saving.
           </p>
         </div>
 
         {/* Solution Code */}
         <div>
-          <label htmlFor="solutionCode" className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
             Solution Code (Optional)
           </label>
-          <textarea
-            id="solutionCode"
-            value={solutionCode}
-            onChange={(e) => setSolutionCode(e.target.value)}
-            placeholder="def solution(nums, target):\n    seen = {}\n    for i, num in enumerate(nums):\n        complement = target - num\n        if complement in seen:\n            return [seen[complement], i]\n        seen[num] = i\n    return []"
-            rows={8}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+          <CodeEditor
+            code={solutionCode}
+            onChange={setSolutionCode}
+            useApiExecution={true}
+            title="Solution Code"
+            randomSeed={randomSeed}
+            onRandomSeedChange={setRandomSeed}
+            attachedFiles={attachedFiles}
+            onAttachedFilesChange={setAttachedFiles}
+            exampleInput={stdin}
           />
-          <p className="mt-1 text-xs text-gray-500">
-            Reference solution (not shown to students)
+          <p className="mt-2 text-xs text-gray-500">
+            Reference solution (not shown to students). Click "Run Code" to verify it works correctly.
           </p>
         </div>
 
@@ -245,7 +252,7 @@ export default function ProblemCreator({
         <div className="pt-4 border-t">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Execution Settings (Optional)</h3>
           <p className="text-sm text-gray-600 mb-4">
-            Configure default execution settings for this problem. These can be overridden at the session or student level.
+            These settings apply when testing code above. They will also be used as defaults when students work on this problem.
           </p>
 
           {/* Standard Input (stdin) */}
@@ -262,96 +269,7 @@ export default function ProblemCreator({
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
             />
             <p className="mt-1 text-xs text-gray-500">
-              Input data that will be provided to the program via stdin
-            </p>
-          </div>
-
-          {/* Random Seed */}
-          <div className="mb-4">
-            <label htmlFor="randomSeed" className="block text-sm font-medium text-gray-700 mb-2">
-              Random Seed
-            </label>
-            <input
-              id="randomSeed"
-              type="number"
-              value={randomSeed}
-              onChange={(e) => setRandomSeed(e.target.value)}
-              placeholder="e.g., 42"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <p className="mt-1 text-xs text-gray-500">
-              Seed for deterministic random number generation (for reproducible testing)
-            </p>
-          </div>
-
-          {/* Attached Files */}
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Attached Files
-            </label>
-            
-            {/* File list */}
-            {attachedFiles.length > 0 && (
-              <div className="mb-2 space-y-2">
-                {attachedFiles.map((file, index) => (
-                  <div key={index} className="flex items-start space-x-2 p-2 bg-gray-50 border border-gray-200 rounded">
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium text-gray-900 truncate">{file.name}</div>
-                      <div className="text-xs text-gray-500 font-mono truncate">{file.content.substring(0, 60)}...</div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const newFiles = attachedFiles.filter((_, i) => i !== index);
-                        setAttachedFiles(newFiles);
-                      }}
-                      className="flex-shrink-0 text-red-600 hover:text-red-800 text-sm"
-                    >
-                      Remove
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Add file form */}
-            <div className="space-y-2">
-              <input
-                id="newFileName"
-                type="text"
-                placeholder="File name (e.g., data.txt)"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-              />
-              <textarea
-                id="newFileContent"
-                placeholder="File content..."
-                rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
-              />
-              <button
-                type="button"
-                onClick={() => {
-                  const nameInput = document.getElementById('newFileName') as HTMLInputElement;
-                  const contentInput = document.getElementById('newFileContent') as HTMLTextAreaElement;
-                  
-                  if (nameInput.value.trim() && contentInput.value.trim()) {
-                    setAttachedFiles([
-                      ...attachedFiles,
-                      { name: nameInput.value.trim(), content: contentInput.value }
-                    ]);
-                    nameInput.value = '';
-                    contentInput.value = '';
-                  } else {
-                    setError('Please provide both file name and content');
-                  }
-                }}
-                className="px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 rounded hover:bg-blue-100"
-              >
-                + Add File
-              </button>
-            </div>
-            <p className="mt-1 text-xs text-gray-500">
-              Additional files that will be available to the program during execution
+              Input data that will be provided to the program via stdin when running code above
             </p>
           </div>
         </div>
