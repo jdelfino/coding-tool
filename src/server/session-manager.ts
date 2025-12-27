@@ -123,14 +123,17 @@ export class SessionManager {
   /**
    * Clone a problem for use in a session
    * Creates a deep copy to avoid modifying the original
-  /**
-   * Clone a problem for use in a session
-   * Creates a deep copy to avoid modifying the original
    */
   private cloneProblem(problem: Problem): Problem {
     return {
       ...problem,
       testCases: problem.testCases ? [...problem.testCases.map(tc => ({ ...tc }))] : undefined,
+      executionSettings: problem.executionSettings ? {
+        ...problem.executionSettings,
+        attachedFiles: problem.executionSettings.attachedFiles 
+          ? problem.executionSettings.attachedFiles.map(f => ({ ...f }))
+          : undefined,
+      } : undefined,
     };
   }
 

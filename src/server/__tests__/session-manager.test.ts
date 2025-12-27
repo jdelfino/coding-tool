@@ -187,6 +187,85 @@ describe('SessionManager', () => {
       expect(activeSessions1).toHaveLength(1);
       expect(activeSessions2).toHaveLength(1);
     });
+
+    it('should create session with problem and clone executionSettings', async () => {
+      const problem = createTestProblem({
+        title: 'Test Problem',
+        description: 'A test problem',
+        executionSettings: {
+          stdin: 'test input',
+          randomSeed: 42,
+          attachedFiles: [
+            { name: 'data.txt', content: 'file content' },
+            { name: 'config.json', content: '{"key": "value"}' }
+          ]
+        }
+      });
+
+      const session = await sessionManager.createSession('test-instructor', 'test-section-id', 'Test Section', problem);
+
+      expect(session.problem).toBeDefined();
+      expect(session.problem?.executionSettings).toBeDefined();
+      expect(session.problem?.executionSettings?.stdin).toBe('test input');
+      expect(session.problem?.executionSettings?.randomSeed).toBe(42);
+      expect(session.problem?.executionSettings?.attachedFiles).toHaveLength(2);
+      expect(session.problem?.executionSettings?.attachedFiles?.[0]).toEqual({ name: 'data.txt', content: 'file content' });
+      expect(session.problem?.executionSettings?.attachedFiles?.[1]).toEqual({ name: 'config.json', content: '{"key": "value"}' });
+    });
+
+    it('should deep clone executionSettings to prevent mutation of original problem', async () => {
+      const originalFiles = [
+        { name: 'original.txt', content: 'original content' }
+      ];
+      const problem = createTestProblem({
+        title: 'Test Problem',
+        executionSettings: {
+          stdin: 'original stdin',
+          randomSeed: 99,
+          attachedFiles: originalFiles
+        }
+      });
+
+      const session = await sessionManager.createSession('test-instructor', 'test-section-id', 'Test Section', problem);
+
+      // Modify the session's problem execution settings
+      if (session.problem?.executionSettings?.attachedFiles) {
+        session.problem.executionSettings.attachedFiles[0].content = 'modified content';
+      }
+
+      // Original problem should not be affected
+      expect(problem.executionSettings?.attachedFiles?.[0].content).toBe('original content');
+    });
+
+    it('should create session with problem without executionSettings', async () => {
+      const problem = createTestProblem({
+        title: 'Simple Problem',
+        description: 'No execution settings'
+      });
+
+      const session = await sessionManager.createSession('test-instructor', 'test-section-id', 'Test Section', problem);
+
+      expect(session.problem).toBeDefined();
+      expect(session.problem?.title).toBe('Simple Problem');
+      expect(session.problem?.executionSettings).toBeUndefined();
+    });
+
+    it('should create session with problem with partial executionSettings', async () => {
+      const problem = createTestProblem({
+        title: 'Partial Settings Problem',
+        executionSettings: {
+          randomSeed: 12345
+          // No stdin or attachedFiles
+        }
+      });
+
+      const session = await sessionManager.createSession('test-instructor', 'test-section-id', 'Test Section', problem);
+
+      expect(session.problem?.executionSettings).toBeDefined();
+      expect(session.problem?.executionSettings?.randomSeed).toBe(12345);
+      expect(session.problem?.executionSettings?.stdin).toBeUndefined();
+      expect(session.problem?.executionSettings?.attachedFiles).toBeUndefined();
+    });
   });
 
   describe('Join Code Management', () => {
