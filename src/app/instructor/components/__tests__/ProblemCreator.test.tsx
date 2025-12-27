@@ -3,7 +3,7 @@
  * 
  * Tests both create and edit modes with all fields:
  * - Loading existing problem data
- * - Editing all fields (title, description, starterCode, solutionCode, isPublic)
+ * - Editing all fields (title, description, starterCode, solutionCode)
  * - Form submission and validation
  * - Error handling
  * - Cancel functionality
@@ -76,7 +76,7 @@ describe('ProblemCreator Component', () => {
         description: 'Test description',
         starterCode: 'def solution():\n    pass',
         solutionCode: 'def solution():\n    return 42',
-        isPublic: true,
+        isPublic: false,
       };
 
       (global.fetch as jest.Mock).mockResolvedValueOnce({
@@ -99,7 +99,6 @@ describe('ProblemCreator Component', () => {
       fireEvent.change(screen.getByLabelText(/Solution Code/), {
         target: { value: 'def solution():\n    return 42' },
       });
-      fireEvent.click(screen.getByText(/Make this problem public/));
 
       // Submit
       fireEvent.click(screen.getByText('Create Problem'));
@@ -114,7 +113,7 @@ describe('ProblemCreator Component', () => {
             starterCode: 'def solution():\n    pass',
             solutionCode: 'def solution():\n    return 42',
             testCases: [],
-            isPublic: true,
+            isPublic: false,
             classId: undefined,
           }),
         });
@@ -338,41 +337,6 @@ describe('ProblemCreator Component', () => {
       });
     });
   });
-
-  describe('Visibility Settings', () => {
-    it('should default to private (not public)', () => {
-      render(<ProblemCreator />);
-      const checkbox = screen.getByRole('checkbox');
-      expect(checkbox).not.toBeChecked();
-    });
-
-    it('should toggle public visibility', () => {
-      render(<ProblemCreator />);
-      const checkbox = screen.getByRole('checkbox');
-      
-      fireEvent.click(checkbox);
-      expect(checkbox).toBeChecked();
-      
-      fireEvent.click(checkbox);
-      expect(checkbox).not.toBeChecked();
-    });
-
-    it('should preserve isPublic value from loaded problem', async () => {
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          problem: { ...mockExistingProblem, isPublic: true },
-        }),
-      });
-
-      render(<ProblemCreator problemId="problem-456" />);
-
-      await waitFor(() => {
-        const checkbox = screen.getByRole('checkbox');
-        expect(checkbox).toBeChecked();
-      });
-    });
-  });
   
   describe('Execution Settings', () => {
     it('should pass execution settings to CodeEditor components', () => {
@@ -405,17 +369,9 @@ describe('ProblemCreator Component', () => {
         target: { value: 'Test Problem' },
       });
 
-      // Simulate stdin being set through CodeEditor's onStdinChange callback
-      // In real usage, this would be triggered by ExecutionSettings inside CodeEditor
-      const starterCodeEditor = screen.getByTestId('code-editor-Starter Code');
-      const onStdinChange = starterCodeEditor.getAttribute('data-onstdinchange');
-      if (onStdinChange) {
-        // This simulates the callback being invoked
-        act(() => {
-          // Since we can't easily call the callback in tests, we'll verify the prop is passed
-          expect(starterCodeEditor).toBeInTheDocument();
-        });
-      }
+      // Note: ExecutionSettings (stdin, random seed, attached files) are now handled 
+      // inside CodeEditor component via onStdinChange callback
+      // This is tested in the CodeEditor component tests
 
       // Submit - execution settings should be empty since we didn't set them through the callback
       fireEvent.click(screen.getByText('Create Problem'));

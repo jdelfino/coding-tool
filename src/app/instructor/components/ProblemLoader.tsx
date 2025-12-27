@@ -139,7 +139,6 @@ export default function ProblemLoader({
                     <h3 className="font-medium text-gray-900">{problem.title}</h3>
                     <div className="mt-1 text-xs text-gray-500">
                       {problem.testCaseCount} test cases
-                      {problem.isPublic && ' • Public'}
                       {problem.classId && ' • Class'}
                     </div>
                     <div className="mt-1 text-xs text-gray-400">
@@ -189,20 +188,13 @@ export default function ProblemLoader({
                   </div>
                 </div>
 
-                <div className="flex items-center space-x-2 text-sm">
-                  <span className={`px-2 py-1 rounded ${
-                    selectedProblem.isPublic
-                      ? 'bg-green-100 text-green-800'
-                      : 'bg-gray-100 text-gray-800'
-                  }`}>
-                    {selectedProblem.isPublic ? 'Public' : 'Private'}
-                  </span>
-                  {selectedProblem.classId && (
+                {selectedProblem.classId && (
+                  <div className="flex items-center space-x-2 text-sm">
                     <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded">
                       Class Problem
                     </span>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="text-center text-gray-500">

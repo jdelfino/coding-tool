@@ -38,7 +38,6 @@ export default function ProblemLibrary({ onCreateNew, onEdit }: ProblemLibraryPr
 
   // Search and filter state
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterPublic, setFilterPublic] = useState<'all' | 'public' | 'private'>('all');
   const [sortBy, setSortBy] = useState<'title' | 'created' | 'updated'>('created');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
@@ -92,13 +91,6 @@ export default function ProblemLibrary({ onCreateNew, onEdit }: ProblemLibraryPr
       );
     }
 
-    // Apply visibility filter
-    if (filterPublic === 'public') {
-      filtered = filtered.filter((problem) => problem.isPublic);
-    } else if (filterPublic === 'private') {
-      filtered = filtered.filter((problem) => !problem.isPublic);
-    }
-
     // Apply sorting
     filtered.sort((a, b) => {
       let compareValue = 0;
@@ -115,7 +107,7 @@ export default function ProblemLibrary({ onCreateNew, onEdit }: ProblemLibraryPr
     });
 
     return filtered;
-  }, [problems, searchQuery, filterPublic, sortBy, sortOrder]);
+  }, [problems, searchQuery, sortBy, sortOrder]);
 
   const handleView = (problemId: string) => {
     // Navigate to problem view page
@@ -225,8 +217,6 @@ export default function ProblemLibrary({ onCreateNew, onEdit }: ProblemLibraryPr
       <ProblemSearch
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
-        filterPublic={filterPublic}
-        onFilterChange={setFilterPublic}
         sortBy={sortBy}
         onSortChange={setSortBy}
         sortOrder={sortOrder}
@@ -246,16 +236,16 @@ export default function ProblemLibrary({ onCreateNew, onEdit }: ProblemLibraryPr
             </div>
           </div>
           <h3 className="text-lg font-semibold text-gray-900 mb-2">
-            {searchQuery || filterPublic !== 'all'
+            {searchQuery
               ? 'No problems match your filters'
               : 'No problems yet'}
           </h3>
           <p className="text-gray-600 mb-4">
-            {searchQuery || filterPublic !== 'all'
+            {searchQuery
               ? 'Try adjusting your search or filters'
               : 'Create your first problem to get started'}
           </p>
-          {onCreateNew && !searchQuery && filterPublic === 'all' && (
+          {onCreateNew && !searchQuery && (
             <button
               onClick={onCreateNew}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"

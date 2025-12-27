@@ -32,7 +32,6 @@ export default function ProblemCreator({
   const [description, setDescription] = useState('');
   const [starterCode, setStarterCode] = useState('');
   const [solutionCode, setSolutionCode] = useState('');
-  const [isPublic, setIsPublic] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -64,7 +63,6 @@ export default function ProblemCreator({
       setDescription(problem.description || '');
       setStarterCode(problem.starterCode || '');
       setSolutionCode(problem.solutionCode || '');
-      setIsPublic(problem.isPublic || false);
       
       // Load execution settings
       const execSettings = problem.executionSettings;
@@ -96,7 +94,7 @@ export default function ProblemCreator({
         starterCode: starterCode.trim(),
         solutionCode: solutionCode.trim(),
         testCases: [], // Test cases added separately
-        isPublic,
+        isPublic: false, // Always private - no public library yet
         classId: classId || undefined,
       };
       
@@ -140,7 +138,6 @@ export default function ProblemCreator({
         setDescription('');
         setStarterCode('');
         setSolutionCode('');
-        setIsPublic(false);
         setStdin('');
         setRandomSeed(undefined);
         setAttachedFiles([]);
@@ -247,28 +244,6 @@ export default function ProblemCreator({
           />
           <p className="mt-2 text-xs text-gray-500">
             Reference solution (not shown to students). Click "Run Code" to verify it works correctly.
-          </p>
-        </div>
-
-        {/* Visibility */}
-        <div>
-          <label className="flex items-center space-x-2">
-            <input
-              type="checkbox"
-              checked={isPublic}
-              onChange={(e) => setIsPublic(e.target.checked)}
-              className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-            />
-            <span className="text-sm font-medium text-gray-700">
-              Make this problem public
-            </span>
-          </label>
-          <p className="mt-1 ml-6 text-xs text-gray-500">
-            {isPublic
-              ? 'Visible to all instructors and students'
-              : classId
-              ? 'Only visible to your class'
-              : 'Only visible to you'}
           </p>
         </div>
 

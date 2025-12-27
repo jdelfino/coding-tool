@@ -68,20 +68,9 @@ export default function ProblemCard({
       <div className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-2">
-              <h3 className="text-lg font-semibold text-gray-900 truncate">
-                {problem.title}
-              </h3>
-              <span
-                className={`px-2 py-0.5 text-xs font-medium rounded ${
-                  problem.isPublic
-                    ? 'bg-green-100 text-green-800'
-                    : 'bg-gray-100 text-gray-800'
-                }`}
-              >
-                {problem.isPublic ? 'Public' : 'Private'}
-              </span>
-            </div>
+            <h3 className="text-lg font-semibold text-gray-900 truncate mb-2">
+              {problem.title}
+            </h3>
 
             {hasDescription && (
               <p className="text-sm text-gray-600 mb-3 line-clamp-2">
@@ -142,20 +131,9 @@ export default function ProblemCard({
   // Grid view
   return (
     <div className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow flex flex-col">
-      <div className="flex items-start justify-between mb-3">
-        <h3 className="text-lg font-semibold text-gray-900 truncate flex-1 mr-2">
-          {problem.title}
-        </h3>
-        <span
-          className={`px-2 py-0.5 text-xs font-medium rounded whitespace-nowrap ${
-            problem.isPublic
-              ? 'bg-green-100 text-green-800'
-              : 'bg-gray-100 text-gray-800'
-          }`}
-        >
-          {problem.isPublic ? 'Public' : 'Private'}
-        </span>
-      </div>
+      <h3 className="text-lg font-semibold text-gray-900 truncate mb-3">
+        {problem.title}
+      </h3>
 
       {hasDescription && (
         <p className="text-sm text-gray-600 mb-3 line-clamp-3 flex-1">

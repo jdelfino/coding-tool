@@ -45,17 +45,6 @@ describe('ProblemCard', () => {
       expect(screen.getByText(/This is a test problem description/)).toBeInTheDocument();
     });
 
-    it('displays public badge for public problems', () => {
-      render(<ProblemCard {...defaultProps} />);
-      expect(screen.getByText('Public')).toBeInTheDocument();
-    });
-
-    it('displays private badge for private problems', () => {
-      const privateProblem = { ...mockProblem, isPublic: false };
-      render(<ProblemCard {...defaultProps} problem={privateProblem} />);
-      expect(screen.getByText('Private')).toBeInTheDocument();
-    });
-
     it('displays test case count', () => {
       render(<ProblemCard {...defaultProps} />);
       expect(screen.getByText(/2 tests/)).toBeInTheDocument();

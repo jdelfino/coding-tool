@@ -11,8 +11,6 @@ import React from 'react';
 interface ProblemSearchProps {
   searchQuery: string;
   onSearchChange: (query: string) => void;
-  filterPublic: 'all' | 'public' | 'private';
-  onFilterChange: (filter: 'all' | 'public' | 'private') => void;
   sortBy: 'title' | 'created' | 'updated';
   onSortChange: (sort: 'title' | 'created' | 'updated') => void;
   sortOrder: 'asc' | 'desc';
@@ -24,8 +22,6 @@ interface ProblemSearchProps {
 export default function ProblemSearch({
   searchQuery,
   onSearchChange,
-  filterPublic,
-  onFilterChange,
   sortBy,
   onSortChange,
   sortOrder,
@@ -78,20 +74,6 @@ export default function ProblemSearch({
 
       {/* Filters and sorting */}
       <div className="flex flex-wrap gap-4">
-        {/* Visibility filter */}
-        <div className="flex items-center gap-2">
-          <label className="text-sm font-medium text-gray-700">Visibility:</label>
-          <select
-            value={filterPublic}
-            onChange={(e) => onFilterChange(e.target.value as 'all' | 'public' | 'private')}
-            className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="all">All</option>
-            <option value="public">Public</option>
-            <option value="private">Private</option>
-          </select>
-        </div>
-
         {/* Sort by */}
         <div className="flex items-center gap-2">
           <label className="text-sm font-medium text-gray-700">Sort by:</label>

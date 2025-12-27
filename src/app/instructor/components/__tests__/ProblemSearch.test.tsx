@@ -60,19 +60,6 @@ describe('ProblemSearch', () => {
     expect(gridButton).toHaveClass('bg-blue-600');
   });
 
-  it('renders visibility filter dropdown', () => {
-    render(<ProblemSearch {...defaultProps} />);
-    const select = screen.getByDisplayValue('All');
-    expect(select).toBeInTheDocument();
-  });
-
-  it('calls onFilterChange when visibility filter changes', () => {
-    render(<ProblemSearch {...defaultProps} />);
-    const select = screen.getByDisplayValue('All');
-    fireEvent.change(select, { target: { value: 'public' } });
-    expect(defaultProps.onFilterChange).toHaveBeenCalledWith('public');
-  });
-
   it('renders sort by dropdown', () => {
     render(<ProblemSearch {...defaultProps} />);
     expect(screen.getByDisplayValue('Date Created')).toBeInTheDocument();
