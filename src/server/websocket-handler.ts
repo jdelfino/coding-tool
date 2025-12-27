@@ -251,6 +251,7 @@ class WebSocketHandler {
           sectionId: session.sectionId,
           sectionName: session.sectionName,
           problem: session.problem,
+          executionSettings: session.executionSettings,
         },
       });
       console.log('[handleCreateSession] Response sent successfully');
