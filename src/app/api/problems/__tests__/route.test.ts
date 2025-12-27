@@ -555,5 +555,54 @@ describe('/api/problems', () => {
       expect(data.problem.testCases).toHaveLength(1);
       expect(data.problem.testCases[0].name).toBe('Test 1');
     });
+
+    it('should include executionSettings when provided', async () => {
+      mockGetAuthProvider.mockResolvedValue({
+        getSession: jest.fn().mockResolvedValue(mockInstructorSession),
+      } as any);
+
+      const inputWithExecSettings = {
+        ...validProblemInput,
+        executionSettings: {
+          stdin: 'test input\n',
+          randomSeed: 42,
+          attachedFiles: [
+            { name: 'input.txt', content: 'file content' },
+          ],
+        },
+      };
+
+      let capturedInput: any;
+      mockGetStorage.mockResolvedValue({
+        problems: {
+          create: jest.fn().mockImplementation((input) => {
+            capturedInput = input;
+            return Promise.resolve({
+              ...input,
+              id: 'problem-exec',
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            });
+          }),
+        },
+      } as any);
+
+      const request = new NextRequest('http://localhost/api/problems', {
+        method: 'POST',
+        headers: { Cookie: 'sessionId=valid' },
+        body: JSON.stringify(inputWithExecSettings),
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(201);
+      expect(capturedInput.executionSettings).toBeDefined();
+      expect(capturedInput.executionSettings.stdin).toBe('test input\n');
+      expect(capturedInput.executionSettings.randomSeed).toBe(42);
+      expect(capturedInput.executionSettings.attachedFiles).toHaveLength(1);
+      expect(capturedInput.executionSettings.attachedFiles[0].name).toBe('input.txt');
+      expect(data.problem.executionSettings).toBeDefined();
+    });
   });
 });
