@@ -7,8 +7,16 @@ import * as path from 'path';
 const DATA_DIR = path.join(process.cwd(), 'data');
 
 /**
+ * Base URL for API calls
+ */
+const API_BASE_URL = process.env.PLAYWRIGHT_TEST_BASE_URL || 'http://localhost:3000';
+
+/**
  * Clears all test data by resetting data directory to empty state
  * Creates empty JSON files with empty objects/arrays
+ * 
+ * Note: This clears files directly. The Next.js server needs to restart
+ * or reload data to see these changes.
  */
 export async function clearTestData(): Promise<void> {
   const dataFiles = [
@@ -36,58 +44,52 @@ export async function clearTestData(): Promise<void> {
   } else {
     await fs.promises.mkdir(problemsDir, { recursive: true });
   }
+  
+  // Create empty problem index
+  const problemIndexPath = path.join(problemsDir, 'index.json');
+  await fs.promises.writeFile(problemIndexPath, JSON.stringify({
+    problems: [],
+    lastModified: new Date().toISOString()
+  }, null, 2), 'utf-8');
 }
 
 /**
  * Resets data directory to a known good state for testing
- * Includes creating test users if needed
  */
 export async function resetTestData(): Promise<void> {
   await clearTestData();
 }
 
 /**
- * Reads a data file from the data directory
- */
-export async function readDataFile(filename: string): Promise<any> {
-  const filePath = path.join(DATA_DIR, filename);
-  const content = await fs.promises.readFile(filePath, 'utf-8');
-  return JSON.parse(content);
-}
-
-/**
- * Writes data to a file in the data directory
- */
-export async function writeDataFile(filename: string, data: any): Promise<void> {
-  const filePath = path.join(DATA_DIR, filename);
-  await fs.promises.writeFile(filePath, JSON.stringify(data, null, 2), 'utf-8');
-}
-
-/**
- * Creates a test user in the data directory
+ * Creates a test user via the authentication API
+ * This ensures the user is properly loaded into the in-memory repository
  */
 export async function createTestUser(userId: string, username: string, role: 'instructor' | 'student'): Promise<void> {
-  const users = await readDataFile('users.json');
-  users[userId] = {
-    id: userId,
-    username,
-    role,
-    createdAt: new Date().toISOString(),
-    lastLoginAt: new Date().toISOString()
-  };
-  await writeDataFile('users.json', users);
+  try {
+    // Use the signin endpoint which auto-creates users
+    const response = await fetch(`${API_BASE_URL}/api/auth/signin`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, role }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Failed to create test user: ${response.status} ${errorText}`);
+    }
+  } catch (error) {
+    console.error(`Error creating test user ${username}:`, error);
+    throw error;
+  }
 }
 
 /**
  * Creates a test auth session for a user
+ * This is done automatically by the signin endpoint, so this function
+ * just calls signin to create both user and session
  */
 export async function createTestAuthSession(sessionId: string, userId: string): Promise<void> {
-  const sessions = await readDataFile('auth-sessions.json');
-  sessions[sessionId] = {
-    id: sessionId,
-    userId,
-    createdAt: new Date().toISOString(),
-    expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // 24 hours
-  };
-  await writeDataFile('auth-sessions.json', sessions);
+  // Auth sessions are created automatically via signin
+  // This is a no-op for backward compatibility
+  console.log(`Note: Auth sessions are now created automatically via signin. SessionId param ignored.`);
 }
