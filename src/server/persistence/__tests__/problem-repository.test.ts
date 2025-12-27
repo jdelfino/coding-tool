@@ -94,6 +94,41 @@ describe('LocalProblemRepository', () => {
 
       await expect(repository.create(input)).rejects.toThrow();
     });
+
+    it('should create and persist problem with executionSettings', async () => {
+      const input: ProblemInput = {
+        title: 'Test Problem with Exec Settings',
+        description: 'Test description',
+        starterCode: 'print("hello")',
+        testCases: [],
+        executionSettings: {
+          stdin: 'test input\n',
+          randomSeed: 42,
+          attachedFiles: [
+            { name: 'data.txt', content: 'file content' },
+            { name: 'config.json', content: '{"key": "value"}' },
+          ],
+        },
+        authorId: 'user-123',
+        classId: undefined,
+      };
+
+      const created = await repository.create(input);
+
+      expect(created.executionSettings).toBeDefined();
+      expect(created.executionSettings?.stdin).toBe('test input\n');
+      expect(created.executionSettings?.randomSeed).toBe(42);
+      expect(created.executionSettings?.attachedFiles).toHaveLength(2);
+      expect(created.executionSettings?.attachedFiles?.[0].name).toBe('data.txt');
+
+      // Verify it persists by retrieving it
+      const retrieved = await repository.getById(created.id);
+      expect(retrieved?.executionSettings).toBeDefined();
+      expect(retrieved?.executionSettings?.stdin).toBe('test input\n');
+      expect(retrieved?.executionSettings?.randomSeed).toBe(42);
+      expect(retrieved?.executionSettings?.attachedFiles).toHaveLength(2);
+      expect(retrieved?.executionSettings?.attachedFiles?.[1].content).toBe('{"key": "value"}');
+    });
   });
 
   describe('getById', () => {

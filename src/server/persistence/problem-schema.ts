@@ -46,6 +46,13 @@ export interface ProblemSchema {
   /** Array of test cases (optional) */
   testCases?: unknown[];
   
+  /** Execution settings (optional) */
+  executionSettings?: {
+    stdin?: string;
+    randomSeed?: number;
+    attachedFiles?: Array<{ name: string; content: string }>;
+  };
+  
   /** Author user ID */
   authorId: string;
   
@@ -174,6 +181,7 @@ export function serializeProblem(problem: Problem): ProblemSchema {
     description: problem.description,
     starterCode: problem.starterCode,
     testCases: problem.testCases,
+    executionSettings: problem.executionSettings,
     authorId: problem.authorId,
     classId: problem.classId,
     createdAt: problem.createdAt.toISOString(),
@@ -197,6 +205,7 @@ export function deserializeProblem(schema: ProblemSchema): Problem {
     description: schema.description,
     starterCode: schema.starterCode,
     testCases: schema.testCases as any[], // Type-checked by validation
+    executionSettings: schema.executionSettings,
     authorId: schema.authorId,
     classId: schema.classId,
     createdAt: new Date(schema.createdAt),
