@@ -18,7 +18,7 @@ describe('Code execution stdin handling', () => {
       const code = 'name = input("Enter name: ")\nprint(f"Hello, {name}")';
       const stdin = 'Alice\n';
       
-      const result = await codeExecutor.executeCodeSafe({ code, stdin });
+      const result = await codeExecutor.executeCodeSafe({ code, executionSettings: { stdin } });
       
       expect(result).toBeDefined();
       expect(result.success).toBeDefined();
@@ -41,7 +41,7 @@ describe('Code execution stdin handling', () => {
       const code = 'name = input()\nage = input()\nprint(f"{name} is {age}")';
       const stdin = 'Alice\n25\n';
       
-      const result = await codeExecutor.executeCodeSafe({ code, stdin });
+      const result = await codeExecutor.executeCodeSafe({ code, executionSettings: { stdin } });
       
       expect(result).toBeDefined();
       // Log the result for debugging
@@ -57,7 +57,7 @@ describe('Code execution stdin handling', () => {
       const code = 'print("No input needed")';
       const stdin = '';
       
-      const result = await codeExecutor.executeCodeSafe({ code, stdin });
+      const result = await codeExecutor.executeCodeSafe({ code, executionSettings: { stdin } });
       
       expect(result).toBeDefined();
       expect(result.success).toBe(true);

@@ -6,9 +6,7 @@ import { Problem, ExecutionSettings } from './types/problem';
  */
 export interface CodeSubmission {
   code: string;
-  stdin?: string;
-  randomSeed?: number;
-  attachedFiles?: Array<{ name: string; content: string }>;
+  executionSettings?: ExecutionSettings;
 }
 
 export interface Student {

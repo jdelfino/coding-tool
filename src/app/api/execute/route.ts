@@ -59,9 +59,11 @@ export async function POST(request: NextRequest) {
     const result = await executeCode(
       {
         code,
-        stdin,
-        randomSeed,
-        attachedFiles,
+        executionSettings: {
+          stdin,
+          randomSeed,
+          attachedFiles,
+        },
       },
       timeout
     );

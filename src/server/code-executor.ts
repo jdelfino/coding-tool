@@ -12,7 +12,10 @@ export async function executeCode(
   submission: CodeSubmission,
   timeout: number = DEFAULT_TIMEOUT
 ): Promise<ExecutionResult> {
-  const { code, stdin, randomSeed, attachedFiles } = submission;
+  const { code, executionSettings } = submission;
+  const stdin = executionSettings?.stdin;
+  const randomSeed = executionSettings?.randomSeed;
+  const attachedFiles = executionSettings?.attachedFiles;
   const startTime = Date.now();
   
   // Create temporary directory for attached files

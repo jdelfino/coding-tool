@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { sessionManagerHolder } from './session-manager';
 import { executeCodeSafe } from './code-executor';
 import { MessageType, WebSocketMessage, Student } from './types';
+import { ExecutionSettings } from './types/problem';
 import { getAuthProvider } from './auth';
 import { RBACService } from './auth/rbac';
 import { User } from './auth/types';
@@ -26,6 +27,21 @@ class WebSocketHandler {
   private connections: Map<WebSocket, Connection> = new Map();
   private heartbeatInterval: NodeJS.Timeout | null = null;
   private rbac = new RBACService();
+
+  /**
+   * Merges student-specific and session-level execution settings.
+   * Student settings take precedence over session settings.
+   */
+  private getEffectiveExecutionSettings(
+    studentSettings?: ExecutionSettings,
+    sessionSettings?: ExecutionSettings
+  ): ExecutionSettings {
+    return {
+      stdin: studentSettings?.stdin ?? sessionSettings?.stdin,
+      randomSeed: studentSettings?.randomSeed ?? sessionSettings?.randomSeed,
+      attachedFiles: studentSettings?.attachedFiles ?? sessionSettings?.attachedFiles,
+    };
+  }
 
   /**
    * Check if a connection has a specific permission.
@@ -251,7 +267,6 @@ class WebSocketHandler {
           sectionId: session.sectionId,
           sectionName: session.sectionName,
           problem: session.problem,
-          executionSettings: session.problem.executionSettings,
         },
       });
       console.log('[handleCreateSession] Response sent successfully');
@@ -349,7 +364,6 @@ class WebSocketHandler {
         sessionId: session.id,
         joinCode: session.joinCode,
         problem: session.problem,
-        executionSettings: session.problem.executionSettings,
       },
     });
 
@@ -521,12 +535,12 @@ class WebSocketHandler {
     // Broadcast to all students and public views
     this.broadcastToSession(connection.sessionId, {
       type: MessageType.PROBLEM_UPDATE,
-      payload: { problem, executionSettings },
+      payload: { problem },
     }, 'student');
     
     this.broadcastToSession(connection.sessionId, {
       type: MessageType.PROBLEM_UPDATE,
-      payload: { problem, executionSettings },
+      payload: { problem },
     }, 'public');
   }
 
@@ -592,20 +606,20 @@ class WebSocketHandler {
         ? await sessionManagerHolder.instance.getSession(connection.sessionId)
         : null;
       
-      // Use student-specific values if set, otherwise fall back to session defaults
-      const randomSeed = studentData?.executionSettings?.randomSeed !== undefined 
-        ? studentData.executionSettings.randomSeed 
-        : session?.problem.executionSettings?.randomSeed;
+      // Merge student and session execution settings
+      const executionSettings = this.getEffectiveExecutionSettings(
+        studentData?.executionSettings,
+        session?.problem.executionSettings
+      );
       
-      const attachedFiles = studentData?.executionSettings?.attachedFiles && studentData.executionSettings.attachedFiles.length > 0
-        ? studentData.executionSettings.attachedFiles
-        : session?.problem.executionSettings?.attachedFiles;
+      // Override stdin if provided in payload
+      if (stdin !== undefined) {
+        executionSettings.stdin = stdin;
+      }
       
       const result = await executeCodeSafe({ 
         code, 
-        stdin,
-        randomSeed,
-        attachedFiles,
+        executionSettings,
       });
 
       this.send(ws, {
@@ -644,20 +658,20 @@ class WebSocketHandler {
       // Get session defaults for fallback
       const session = await sessionManagerHolder.instance.getSession(connection.sessionId);
       
-      // Use student-specific values if set, otherwise fall back to session defaults
-      const randomSeed = studentData.executionSettings?.randomSeed !== undefined 
-        ? studentData.executionSettings.randomSeed 
-        : session?.problem.executionSettings?.randomSeed;
+      // Merge student and session execution settings
+      const executionSettings = this.getEffectiveExecutionSettings(
+        studentData.executionSettings,
+        session?.problem.executionSettings
+      );
       
-      const attachedFiles = studentData.executionSettings?.attachedFiles && studentData.executionSettings.attachedFiles.length > 0
-        ? studentData.executionSettings.attachedFiles
-        : session?.problem.executionSettings?.attachedFiles;
+      // Override stdin if provided in payload
+      if (stdin !== undefined) {
+        executionSettings.stdin = stdin;
+      }
       
       const result = await executeCodeSafe({ 
         code: studentData.code, 
-        stdin,
-        randomSeed,
-        attachedFiles,
+        executionSettings,
       });
 
       this.send(ws, {
@@ -853,11 +867,17 @@ class WebSocketHandler {
       // Get session to access executionSettings
       const session = await sessionManagerHolder.instance.getSession(connection.sessionId);
       
+      // Use session execution settings
+      const executionSettings = session?.problem?.executionSettings || {};
+      
+      // Override stdin if provided in payload
+      if (stdin !== undefined) {
+        executionSettings.stdin = stdin;
+      }
+      
       const result = await executeCodeSafe({ 
         code, 
-        stdin,
-        randomSeed: session?.problem?.executionSettings?.randomSeed,
-        attachedFiles: session?.problem?.executionSettings?.attachedFiles,
+        executionSettings,
       });
 
       this.send(ws, {

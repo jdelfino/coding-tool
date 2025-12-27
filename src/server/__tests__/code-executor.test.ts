@@ -76,7 +76,7 @@ describe('code-executor', () => {
         mockSpawn.mockReturnValue(mockProcess as any);
 
         const stdinInput = 'Alice\n25\n';
-        const promise = executeCode({ code: 'name = input(); age = input(); print(name, age)', stdin: stdinInput });
+        const promise = executeCode({ code: 'name = input(); age = input(); print(name, age)', executionSettings: { stdin: stdinInput } });
 
         // Verify stdin.write was called
         expect(mockProcess.stdin.write).toHaveBeenCalledWith(stdinInput);
@@ -111,7 +111,7 @@ describe('code-executor', () => {
         const mockProcess = createMockProcess();
         mockSpawn.mockReturnValue(mockProcess as any);
 
-        const promise = executeCode({ code: 'print("test")', stdin: '' });
+        const promise = executeCode({ code: 'print("test")', executionSettings: { stdin: '' } });
 
         expect(mockProcess.stdin.write).toHaveBeenCalledWith('');
         expect(mockProcess.stdin.end).toHaveBeenCalled();
@@ -128,7 +128,7 @@ describe('code-executor', () => {
         mockSpawn.mockReturnValue(mockProcess as any);
 
         const stdinInput = 'test input';
-        const promise = executeCode({ code: 'print("ok")', stdin: stdinInput });
+        const promise = executeCode({ code: 'print("ok")', executionSettings: { stdin: stdinInput } });
 
         mockProcess.stdout.emit('data', Buffer.from('ok\n'));
         mockProcess.emit('close', 0);
@@ -255,7 +255,7 @@ describe('code-executor', () => {
         mockSpawn.mockReturnValue(mockProcess as any);
 
         const stdinInput = 'test';
-        const promise = executeCode({ code: 'while True: pass', stdin: stdinInput }, 1000);
+        const promise = executeCode({ code: 'while True: pass', executionSettings: { stdin: stdinInput } }, 1000);
 
         jest.advanceTimersByTime(1000);
         mockProcess.emit('close', null);
@@ -337,7 +337,7 @@ describe('code-executor', () => {
       mockSpawn.mockReturnValue(mockProcess as any);
 
       const stdinInput = 'test input';
-      const promise = executeCodeSafe({ code: 'print("ok")', stdin: stdinInput });
+      const promise = executeCodeSafe({ code: 'print("ok")', executionSettings: { stdin: stdinInput } });
 
       mockProcess.stdout.emit('data', Buffer.from('ok\n'));
       mockProcess.emit('close', 0);
@@ -367,7 +367,9 @@ describe('code-executor', () => {
 
       const promise = executeCodeSafe({ 
         code: 'import random\nprint(random.random())', 
-        randomSeed: 99 
+        executionSettings: {
+          randomSeed: 99
+        }
       });
 
       const executedCode = mockSpawn.mock.calls[0][1][1];
@@ -385,7 +387,9 @@ describe('code-executor', () => {
 
       const promise = executeCodeSafe({ 
         code: 'print("ok")', 
-        attachedFiles: [{ name: 'test.txt', content: 'content' }]
+        executionSettings: {
+          attachedFiles: [{ name: 'test.txt', content: 'content' }]
+        }
       });
 
       const spawnOptions = mockSpawn.mock.calls[0][2];
@@ -405,7 +409,9 @@ describe('code-executor', () => {
 
       const promise = executeCode({ 
         code: 'import random\nprint(random.randint(1, 100))',
-        randomSeed: 42
+        executionSettings: {
+          randomSeed: 42
+        }
       });
 
       // Verify spawn was called with injected seed code
@@ -443,7 +449,9 @@ describe('code-executor', () => {
 
       const promise = executeCode({ 
         code: 'print("test")',
-        randomSeed: 0
+        executionSettings: {
+          randomSeed: 0
+        }
       });
 
       const executedCode = mockSpawn.mock.calls[0][1][1];
@@ -461,7 +469,9 @@ describe('code-executor', () => {
 
       const promise = executeCode({ 
         code: 'import os\nimport random\nprint("ok")',
-        randomSeed: 123
+        executionSettings: {
+          randomSeed: 123
+        }
       });
 
       const executedCode = mockSpawn.mock.calls[0][1][1];
@@ -482,9 +492,11 @@ describe('code-executor', () => {
 
       const promise = executeCode({ 
         code: 'with open("data.txt") as f: print(f.read())',
-        attachedFiles: [
-          { name: 'data.txt', content: 'Hello, World!' }
-        ]
+        executionSettings: {
+          attachedFiles: [
+            { name: 'data.txt', content: 'Hello, World!' }
+          ]
+        }
       });
 
       // Verify spawn was called with cwd option
@@ -505,11 +517,13 @@ describe('code-executor', () => {
 
       const promise = executeCode({ 
         code: 'print("ok")',
-        attachedFiles: [
-          { name: 'file1.txt', content: 'Content 1' },
-          { name: 'file2.txt', content: 'Content 2' },
-          { name: 'file3.txt', content: 'Content 3' }
-        ]
+        executionSettings: {
+          attachedFiles: [
+            { name: 'file1.txt', content: 'Content 1' },
+            { name: 'file2.txt', content: 'Content 2' },
+            { name: 'file3.txt', content: 'Content 3' }
+          ]
+        }
       });
 
       mockProcess.stdout.emit('data', Buffer.from('ok\n'));
@@ -525,10 +539,12 @@ describe('code-executor', () => {
 
       const promise = executeCode({ 
         code: 'print("ok")',
-        attachedFiles: [
-          { name: '../../../etc/passwd', content: 'malicious' },
-          { name: 'normal.txt', content: 'safe' }
-        ]
+        executionSettings: {
+          attachedFiles: [
+            { name: '../../../etc/passwd', content: 'malicious' },
+            { name: 'normal.txt', content: 'safe' }
+          ]
+        }
       });
 
       // Execution should succeed with sanitized filename
@@ -546,9 +562,11 @@ describe('code-executor', () => {
       const largeContent = 'x'.repeat(11 * 1024); // 11KB, exceeds 10KB limit
       const promise = executeCode({ 
         code: 'print("ok")',
-        attachedFiles: [
-          { name: 'large.txt', content: largeContent }
-        ]
+        executionSettings: {
+          attachedFiles: [
+            { name: 'large.txt', content: largeContent }
+          ]
+        }
       });
 
       const result = await promise;
@@ -562,14 +580,16 @@ describe('code-executor', () => {
 
       const promise = executeCode({ 
         code: 'print("ok")',
-        attachedFiles: [
-          { name: 'file1.txt', content: 'content' },
-          { name: 'file2.txt', content: 'content' },
-          { name: 'file3.txt', content: 'content' },
-          { name: 'file4.txt', content: 'content' },
-          { name: 'file5.txt', content: 'content' },
-          { name: 'file6.txt', content: 'content' }
-        ]
+        executionSettings: {
+          attachedFiles: [
+            { name: 'file1.txt', content: 'content' },
+            { name: 'file2.txt', content: 'content' },
+            { name: 'file3.txt', content: 'content' },
+            { name: 'file4.txt', content: 'content' },
+            { name: 'file5.txt', content: 'content' },
+            { name: 'file6.txt', content: 'content' }
+          ]
+        }
       });
 
       const result = await promise;
@@ -583,9 +603,11 @@ describe('code-executor', () => {
 
       const promise = executeCode({ 
         code: 'print("ok")',
-        attachedFiles: [
-          { name: '', content: 'content' }
-        ]
+        executionSettings: {
+          attachedFiles: [
+            { name: '', content: 'content' }
+          ]
+        }
       });
 
       const result = await promise;
@@ -599,7 +621,9 @@ describe('code-executor', () => {
 
       const promise = executeCode({ 
         code: 'print("ok")',
-        attachedFiles: [{ name: 'test.txt', content: 'test' }]
+        executionSettings: {
+          attachedFiles: [{ name: 'test.txt', content: 'test' }]
+        }
       });
 
       mockProcess.stdout.emit('data', Buffer.from('ok\n'));
@@ -617,7 +641,9 @@ describe('code-executor', () => {
 
       const promise = executeCode({ 
         code: 'raise Exception("error")',
-        attachedFiles: [{ name: 'test.txt', content: 'test' }]
+        executionSettings: {
+          attachedFiles: [{ name: 'test.txt', content: 'test' }]
+        }
       });
 
       mockProcess.stderr.emit('data', Buffer.from('Exception: error\n'));
@@ -634,7 +660,9 @@ describe('code-executor', () => {
 
       const promise = executeCode({ 
         code: 'while True: pass',
-        attachedFiles: [{ name: 'test.txt', content: 'test' }]
+        executionSettings: {
+          attachedFiles: [{ name: 'test.txt', content: 'test' }]
+        }
       }, 1000);
 
       jest.advanceTimersByTime(1000);
@@ -651,8 +679,10 @@ describe('code-executor', () => {
 
       const promise = executeCode({ 
         code: 'import random\nwith open("data.txt") as f: print(f.read(), random.randint(1,10))',
-        randomSeed: 42,
-        attachedFiles: [{ name: 'data.txt', content: 'Hello' }]
+        executionSettings: {
+          randomSeed: 42,
+          attachedFiles: [{ name: 'data.txt', content: 'Hello' }]
+        }
       });
 
       // Verify both seed injection and temp directory

@@ -121,9 +121,11 @@ describe('POST /api/execute', () => {
     expect(mockExecuteCode).toHaveBeenCalledWith(
       {
         code: 'print("Hello, World!")',
-        stdin: undefined,
-        randomSeed: undefined,
-        attachedFiles: undefined,
+        executionSettings: {
+          stdin: undefined,
+          randomSeed: undefined,
+          attachedFiles: undefined,
+        },
       },
       undefined
     );
@@ -159,9 +161,11 @@ describe('POST /api/execute', () => {
     expect(mockExecuteCode).toHaveBeenCalledWith(
       {
         code: 'import random\nprint(random.randint(1, 100))',
-        stdin: 'test input',
-        randomSeed: 42,
-        attachedFiles: undefined,
+        executionSettings: {
+          stdin: 'test input',
+          randomSeed: 42,
+          attachedFiles: undefined,
+        },
       },
       undefined
     );
@@ -200,9 +204,11 @@ describe('POST /api/execute', () => {
     expect(mockExecuteCode).toHaveBeenCalledWith(
       {
         code: 'with open("data.txt") as f:\n    print(f.read())',
-        stdin: undefined,
-        randomSeed: undefined,
-        attachedFiles,
+        executionSettings: {
+          stdin: undefined,
+          randomSeed: undefined,
+          attachedFiles,
+        },
       },
       undefined
     );
@@ -263,9 +269,11 @@ describe('POST /api/execute', () => {
     expect(mockExecuteCode).toHaveBeenCalledWith(
       {
         code: 'import time\ntime.sleep(10)',
-        stdin: undefined,
-        randomSeed: undefined,
-        attachedFiles: undefined,
+        executionSettings: {
+          stdin: undefined,
+          randomSeed: undefined,
+          attachedFiles: undefined,
+        },
       },
       5000
     );
