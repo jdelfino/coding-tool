@@ -32,14 +32,6 @@ jest.mock('next/navigation', () => ({
   useSearchParams: () => mockSearchParams,
 }));
 
-// Mock react-syntax-highlighter to avoid import issues
-jest.mock('react-syntax-highlighter', () => ({
-  Prism: ({ children }: { children: string }) => <pre>{children}</pre>,
-}));
-jest.mock('react-syntax-highlighter/dist/esm/styles/prism', () => ({
-  vscDarkPlus: {},
-}));
-
 // Mock ProblemInput to avoid React import issues
 jest.mock('../components/ProblemInput', () => ({
   __esModule: true,

@@ -151,7 +151,6 @@ npm start
 - **Frontend**: Next.js 15+ (React 19), TypeScript
 - **Backend**: Express.js 5, WebSockets (ws)
 - **Code Editor**: Monaco Editor (VS Code engine)
-- **Syntax Highlighting**: react-syntax-highlighter
 - **Code Execution**: Python 3 (child_process with timeout protection)
 - **Authentication**: Cookie-based sessions with RBAC
 - **Storage**: File-based JSON persistence with repository pattern
