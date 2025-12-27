@@ -154,7 +154,11 @@ function InstructorPage() {
         });
         // Restore execution settings from problem
         setSessionProblem(lastMessage.payload.problem || null);
-        setSessionExecutionSettings(lastMessage.payload.problem?.executionSettings || {});
+        setSessionExecutionSettings(
+          lastMessage.payload.executionSettings || 
+          lastMessage.payload.problem?.executionSettings || 
+          {}
+        );
         setViewMode('session');
         setIsCreatingSession(false);
         setError(null);

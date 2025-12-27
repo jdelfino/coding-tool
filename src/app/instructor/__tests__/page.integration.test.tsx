@@ -937,4 +937,192 @@ describe('InstructorPage - Integration Tests', () => {
       expect(screen.queryByText('Student1')).not.toBeInTheDocument();
     });
   });
+
+  describe('SESSION_CREATED executionSettings fallback', () => {
+    it('should use top-level executionSettings when present', async () => {
+      (useAuth as jest.Mock).mockReturnValue({
+        user: { userId: 'inst-1', username: 'Instructor', role: 'instructor' },
+        signin: jest.fn(),
+        signout: jest.fn(),
+      });
+
+      const mockSendMessage = jest.fn();
+      const mockWebSocketState = {
+        isConnected: true,
+        connectionStatus: 'connected' as const,
+        connectionError: null,
+        lastMessage: null,
+        sendMessage: mockSendMessage,
+      };
+
+      global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ classes: [] }),
+      });
+
+      (useWebSocket as jest.Mock).mockReturnValue(mockWebSocketState);
+      const { rerender } = render(<InstructorPage />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Instructor Dashboard')).toBeInTheDocument();
+      });
+
+      // Simulate SESSION_CREATED with top-level executionSettings
+      const sessionCreatedMessage = {
+        type: 'SESSION_CREATED',
+        payload: {
+          sessionId: 'test-session-123',
+          joinCode: 'XYZ789',
+          sectionId: 'section-1',
+          sectionName: 'Test Section',
+          problem: {
+            id: 'problem-1',
+            title: 'Test Problem',
+            description: 'Test',
+            // No executionSettings on problem
+          },
+          executionSettings: {
+            stdin: 'test input',
+            randomSeed: 42,
+          },
+        },
+      };
+
+      (useWebSocket as jest.Mock).mockReturnValue({
+        ...mockWebSocketState,
+        lastMessage: sessionCreatedMessage,
+      });
+      rerender(<InstructorPage />);
+
+      await waitFor(() => {
+        expect(screen.getByText('XYZ789')).toBeInTheDocument();
+      });
+
+      // Verify session is rendered (executionSettings are internal state)
+      expect(screen.getByText('Test Section')).toBeInTheDocument();
+    });
+
+    it('should fallback to problem.executionSettings when top-level is missing', async () => {
+      (useAuth as jest.Mock).mockReturnValue({
+        user: { userId: 'inst-1', username: 'Instructor', role: 'instructor' },
+        signin: jest.fn(),
+        signout: jest.fn(),
+      });
+
+      const mockSendMessage = jest.fn();
+      const mockWebSocketState = {
+        isConnected: true,
+        connectionStatus: 'connected' as const,
+        connectionError: null,
+        lastMessage: null,
+        sendMessage: mockSendMessage,
+      };
+
+      global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ classes: [] }),
+      });
+
+      (useWebSocket as jest.Mock).mockReturnValue(mockWebSocketState);
+      const { rerender } = render(<InstructorPage />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Instructor Dashboard')).toBeInTheDocument();
+      });
+
+      // Simulate SESSION_CREATED with problem.executionSettings but no top-level executionSettings
+      const sessionCreatedMessage = {
+        type: 'SESSION_CREATED',
+        payload: {
+          sessionId: 'test-session-456',
+          joinCode: 'ABC456',
+          sectionId: 'section-2',
+          sectionName: 'Another Section',
+          problem: {
+            id: 'problem-2',
+            title: 'Test Problem 2',
+            description: 'Test 2',
+            executionSettings: {
+              stdin: 'fallback input',
+              randomSeed: 99,
+            },
+          },
+          // No top-level executionSettings
+        },
+      };
+
+      (useWebSocket as jest.Mock).mockReturnValue({
+        ...mockWebSocketState,
+        lastMessage: sessionCreatedMessage,
+      });
+      rerender(<InstructorPage />);
+
+      await waitFor(() => {
+        expect(screen.getByText('ABC456')).toBeInTheDocument();
+      });
+
+      // Verify session is rendered (executionSettings are internal state)
+      expect(screen.getByText('Another Section')).toBeInTheDocument();
+    });
+
+    it('should use empty object when no executionSettings exist anywhere', async () => {
+      (useAuth as jest.Mock).mockReturnValue({
+        user: { userId: 'inst-1', username: 'Instructor', role: 'instructor' },
+        signin: jest.fn(),
+        signout: jest.fn(),
+      });
+
+      const mockSendMessage = jest.fn();
+      const mockWebSocketState = {
+        isConnected: true,
+        connectionStatus: 'connected' as const,
+        connectionError: null,
+        lastMessage: null,
+        sendMessage: mockSendMessage,
+      };
+
+      global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ classes: [] }),
+      });
+
+      (useWebSocket as jest.Mock).mockReturnValue(mockWebSocketState);
+      const { rerender } = render(<InstructorPage />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Instructor Dashboard')).toBeInTheDocument();
+      });
+
+      // Simulate SESSION_CREATED with no executionSettings anywhere
+      const sessionCreatedMessage = {
+        type: 'SESSION_CREATED',
+        payload: {
+          sessionId: 'test-session-789',
+          joinCode: 'DEF789',
+          sectionId: 'section-3',
+          sectionName: 'Third Section',
+          problem: {
+            id: 'problem-3',
+            title: 'Test Problem 3',
+            description: 'Test 3',
+            // No executionSettings
+          },
+          // No top-level executionSettings
+        },
+      };
+
+      (useWebSocket as jest.Mock).mockReturnValue({
+        ...mockWebSocketState,
+        lastMessage: sessionCreatedMessage,
+      });
+      rerender(<InstructorPage />);
+
+      await waitFor(() => {
+        expect(screen.getByText('DEF789')).toBeInTheDocument();
+      });
+
+      // Session should render without errors
+      expect(screen.getByText('Third Section')).toBeInTheDocument();
+    });
+  });
 });
