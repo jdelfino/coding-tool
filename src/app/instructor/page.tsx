@@ -75,6 +75,9 @@ function InstructorPage() {
   } | null>(null);
   const [showProblemLoader, setShowProblemLoader] = useState(false);
   
+  // Refresh trigger for SessionsList (increment to force refresh)
+  const [sessionsListRefreshTrigger, setSessionsListRefreshTrigger] = useState(0);
+  
   // Session execution settings
   const [sessionProblem, setSessionProblem] = useState<{ title: string; description: string; starterCode: string } | null>(null);
   const [sessionExecutionSettings, setSessionExecutionSettings] = useState<{
@@ -539,6 +542,7 @@ function InstructorPage() {
     if (viewMode === 'sessions') {
       return (
         <SessionsList
+          refreshTrigger={sessionsListRefreshTrigger}
           onRejoinSession={(sessionId) => {
             // Send JOIN_SESSION message via WebSocket
             if (isConnected) {
@@ -555,6 +559,8 @@ function InstructorPage() {
             // Send END_SESSION message via WebSocket
             if (isConnected) {
               sendMessage('END_SESSION', { sessionId });
+              // Trigger refresh of sessions list
+              setSessionsListRefreshTrigger(prev => prev + 1);
             } else {
               alert('Failed to end session: WebSocket not connected');
             }

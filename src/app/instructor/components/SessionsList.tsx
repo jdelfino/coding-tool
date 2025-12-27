@@ -22,9 +22,10 @@ interface SessionsListProps {
   onRejoinSession?: (sessionId: string) => void;
   onEndSession?: (sessionId: string) => void;
   onViewDetails?: (sessionId: string) => void;
+  refreshTrigger?: number; // Increment this to trigger a refresh
 }
 
-export default function SessionsList({ onRejoinSession, onEndSession, onViewDetails }: SessionsListProps) {
+export default function SessionsList({ onRejoinSession, onEndSession, onViewDetails, refreshTrigger }: SessionsListProps) {
   const router = useRouter();
   const [sessions, setSessions] = useState<SessionData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -69,7 +70,7 @@ export default function SessionsList({ onRejoinSession, onEndSession, onViewDeta
     // Auto-refresh every 30 seconds
     const interval = setInterval(fetchSessions, 30000);
     return () => clearInterval(interval);
-  }, [statusFilter, searchQuery]);
+  }, [statusFilter, searchQuery, refreshTrigger]);
 
   const handleRejoin = (sessionId: string) => {
     if (onRejoinSession) {
