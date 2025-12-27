@@ -89,6 +89,7 @@ export default function ExecutionSettings({
       backgroundColor: '#f5f5f5',
     }}>
       <button
+        type="button"
         onClick={() => setExpanded(!expanded)}
         style={{
           width: '100%',
@@ -171,6 +172,7 @@ export default function ExecutionSettings({
               <h4 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 'bold' }}>Random Seed:</h4>
               {!readOnly && !editingSeed && (
                 <button
+                  type="button"
                   onClick={() => {
                     setSeedInput(randomSeed?.toString() || '');
                     setEditingSeed(true);
@@ -220,6 +222,7 @@ export default function ExecutionSettings({
                   }}
                 />
                 <button
+                  type="button"
                   onClick={handleSaveSeed}
                   style={{
                     padding: '0.5rem 0.75rem',
@@ -234,6 +237,7 @@ export default function ExecutionSettings({
                   Save
                 </button>
                 <button
+                  type="button"
                   onClick={handleCancelSeedEdit}
                   style={{
                     padding: '0.5rem 0.75rem',
@@ -260,6 +264,7 @@ export default function ExecutionSettings({
               <h4 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 'bold' }}>Attached Files:</h4>
               {!readOnly && !editingFiles && (
                 <button
+                  type="button"
                   onClick={() => {
                     setLocalFiles(attachedFiles);
                     setEditingFiles(true);
@@ -307,6 +312,7 @@ export default function ExecutionSettings({
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                             <strong style={{ fontSize: '0.9rem' }}>{file.name}</strong>
                             <button
+                              type="button"
                               onClick={() => copyToClipboard(file.name)}
                               title="Copy file path"
                               style={{
@@ -366,6 +372,7 @@ export default function ExecutionSettings({
                         <span style={{ fontSize: '0.9rem' }}>{file.name}</span>
                         <div style={{ display: 'flex', gap: '0.5rem' }}>
                           <button
+                            type="button"
                             onClick={() => handleEditFile(index)}
                             style={{
                               padding: '0.25rem 0.5rem',
@@ -380,6 +387,7 @@ export default function ExecutionSettings({
                             Edit
                           </button>
                           <button
+                            type="button"
                             onClick={() => handleRemoveFile(index)}
                             style={{
                               padding: '0.25rem 0.5rem',
@@ -437,6 +445,7 @@ export default function ExecutionSettings({
                     }}
                   />
                   <button
+                    type="button"
                     onClick={handleAddFile}
                     disabled={!newFileName.trim() || !newFileContent.trim()}
                     style={{
@@ -457,6 +466,7 @@ export default function ExecutionSettings({
                 {/* Save/Cancel buttons */}
                 <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
                   <button
+                    type="button"
                     onClick={handleSaveFiles}
                     style={{
                       padding: '0.5rem 1rem',
@@ -471,6 +481,7 @@ export default function ExecutionSettings({
                     Save Changes
                   </button>
                   <button
+                    type="button"
                     onClick={handleCancelFilesEdit}
                     style={{
                       padding: '0.5rem 1rem',
