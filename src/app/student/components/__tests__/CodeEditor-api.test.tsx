@@ -56,7 +56,11 @@ describe('CodeEditor Component', () => {
       const runButton = screen.getByText('▶ Run Code');
       fireEvent.click(runButton);
 
-      expect(mockOnRun).toHaveBeenCalledWith(undefined);
+      expect(mockOnRun).toHaveBeenCalledWith({ 
+        stdin: undefined, 
+        randomSeed: undefined, 
+        attachedFiles: undefined 
+      });
     });
 
     it('should display execution results when provided', () => {
@@ -143,9 +147,11 @@ describe('CodeEditor Component', () => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             code: "print('API execution')",
-            stdin: undefined,
-            randomSeed: undefined,
-            attachedFiles: undefined,
+            executionSettings: {
+              stdin: undefined,
+              randomSeed: undefined,
+              attachedFiles: undefined,
+            },
           }),
         });
       });
@@ -249,9 +255,9 @@ describe('CodeEditor Component', () => {
       
       const body = JSON.parse(callArgs[1].body);
       expect(body.code).toBe(codeToRun);
-      expect(body.stdin).toBe('test input');
-      expect(body.randomSeed).toBe(42);
-      expect(body.attachedFiles).toEqual(attachedFiles);
+      expect(body.executionSettings.stdin).toBe('test input');
+      expect(body.executionSettings.randomSeed).toBe(42);
+      expect(body.executionSettings.attachedFiles).toEqual(attachedFiles);
     });
 
     it('should show running state during API execution', async () => {

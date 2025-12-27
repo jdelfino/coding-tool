@@ -451,7 +451,7 @@ function InstructorPage() {
     });
   };
 
-  const handleExecuteStudentCode = (stdin?: string) => {
+  const handleExecuteStudentCode = (executionSettings: { stdin?: string; randomSeed?: number; attachedFiles?: Array<{ name: string; content: string }> }) => {
     if (!selectedStudentId || !sessionId) return;
     
     setIsExecutingCode(true);
@@ -460,7 +460,7 @@ function InstructorPage() {
     sendMessage('EXECUTE_STUDENT_CODE', {
       sessionId,
       studentId: selectedStudentId,
-      executionSettings: { stdin },
+      executionSettings,
     });
   };
 

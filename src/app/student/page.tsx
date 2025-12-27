@@ -233,7 +233,7 @@ function StudentPage() {
     }
   }, [code]);
 
-  const handleRunCode = (stdin?: string) => {
+  const handleRunCode = (executionSettings: { stdin?: string; randomSeed?: number; attachedFiles?: Array<{ name: string; content: string }> }) => {
     if (!isConnected) {
       setError('Not connected to server. Cannot run code.');
       return;
@@ -248,7 +248,7 @@ function StudentPage() {
     setExecutionResult(null);
     sendMessage('EXECUTE_CODE', { 
       code, 
-      executionSettings: { stdin }
+      executionSettings
     });
     
     // Set timeout for execution

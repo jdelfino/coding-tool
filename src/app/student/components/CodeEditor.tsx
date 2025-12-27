@@ -11,10 +11,16 @@ interface ExecutionResult {
   executionTime: number;
 }
 
+interface ExecutionSettings {
+  stdin?: string;
+  randomSeed?: number;
+  attachedFiles?: Array<{ name: string; content: string }>;
+}
+
 interface CodeEditorProps {
   code: string;
   onChange: (code: string) => void;
-  onRun?: (stdin?: string) => void;
+  onRun?: (executionSettings: ExecutionSettings) => void;
   isRunning?: boolean;
   exampleInput?: string;
   onStdinChange?: (stdin: string) => void;
@@ -95,9 +101,11 @@ export default function CodeEditor({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           code,
-          stdin: stdin || undefined,
-          randomSeed,
-          attachedFiles,
+          executionSettings: {
+            stdin: stdin || undefined,
+            randomSeed,
+            attachedFiles,
+          },
         }),
       });
 
@@ -124,7 +132,7 @@ export default function CodeEditor({
     if (useApiExecution) {
       handleRunViaApi();
     } else if (onRun) {
-      onRun(stdin || undefined);
+      onRun({ stdin: stdin || undefined, randomSeed, attachedFiles });
     }
   };
 

@@ -114,7 +114,7 @@ function PublicViewContent() {
     }
   };
 
-  const handleRun = (stdin?: string) => {
+  const handleRun = (executionSettings: { stdin?: string; randomSeed?: number; attachedFiles?: Array<{ name: string; content: string }> }) => {
     if (!ws || ws.readyState !== WebSocket.OPEN) return;
     
     setIsExecuting(true);
@@ -122,10 +122,7 @@ function PublicViewContent() {
     
     ws.send(JSON.stringify({
       type: MessageType.PUBLIC_EXECUTE_CODE,
-      payload: { 
-        code, 
-        executionSettings: { stdin }
-      },
+      payload: { code, executionSettings },
     }));
   };
 
