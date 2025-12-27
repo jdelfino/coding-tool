@@ -176,8 +176,13 @@ function InstructorPage() {
         if (lastMessage.payload.sessionId === sessionId) {
           console.log('[SESSION_ENDED] Received for current session, clearing ALL state');
           
-          // Clear URL parameter to prevent auto-rejoin
-          router.replace('/instructor');
+          // Determine navigation target based on where we came from
+          // If we're in the sessions view, stay there; otherwise navigate based on context
+          const targetView = viewMode === 'sessions' ? 'sessions' : (classContext ? 'sections' : 'classes');
+          console.log('[SESSION_ENDED] Target viewMode:', targetView);
+          
+          // Clear sessionId from URL and set the correct view parameter
+          router.replace(`/instructor?view=${targetView}`);
           
           // Clear ALL session-related state
           setSessionId(null);
@@ -191,8 +196,7 @@ function InstructorPage() {
           setSessionExecutionSettings({});
           setSessionContext(null);
           
-          // Navigate to dashboard based on context
-          const targetView = classContext ? 'sections' : 'classes';
+          // Navigate based on where we came from
           console.log('[SESSION_ENDED] Setting viewMode to:', targetView);
           setViewMode(targetView);
           console.log('[SESSION_ENDED] State clearing complete');
