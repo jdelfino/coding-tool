@@ -18,6 +18,7 @@ import ProblemCreator from './components/ProblemCreator';
 import ProblemLoader from './components/ProblemLoader';
 import SessionsList from './components/SessionsList';
 import SessionDetails from './components/SessionDetails';
+import { Problem, ExecutionSettings } from '@/server/types/problem';
 import SessionProblemEditor from './components/SessionProblemEditor';
 
 interface Student {
@@ -451,7 +452,7 @@ function InstructorPage() {
     });
   };
 
-  const handleExecuteStudentCode = (executionSettings: { stdin?: string; randomSeed?: number; attachedFiles?: Array<{ name: string; content: string }> }) => {
+  const handleExecuteStudentCode = (executionSettings: ExecutionSettings) => {
     if (!selectedStudentId || !sessionId) return;
     
     setIsExecutingCode(true);

@@ -2,19 +2,14 @@
 
 import Editor from '@monaco-editor/react';
 import React, { useEffect, useRef, useState } from 'react';
-import ExecutionSettings from './ExecutionSettings';
+import ExecutionSettingsComponent from './ExecutionSettings';
+import type { ExecutionSettings } from '@/server/types/problem';
 
 interface ExecutionResult {
   success: boolean;
   output: string;
   error: string;
   executionTime: number;
-}
-
-interface ExecutionSettings {
-  stdin?: string;
-  randomSeed?: number;
-  attachedFiles?: Array<{ name: string; content: string }>;
 }
 
 interface CodeEditorProps {
@@ -266,7 +261,7 @@ export default function CodeEditor({
         </div>
       )}
 
-      <ExecutionSettings
+      <ExecutionSettingsComponent
         stdin={stdin}
         onStdinChange={handleStdinChange}
         randomSeed={randomSeed}

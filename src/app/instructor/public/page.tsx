@@ -3,6 +3,7 @@
 import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { MessageType } from '@/server/types';
+import { ExecutionSettings } from '@/server/types/problem';
 import CodeEditor from '@/app/student/components/CodeEditor';
 import OutputPanel from '@/app/student/components/OutputPanel';
 
@@ -114,7 +115,7 @@ function PublicViewContent() {
     }
   };
 
-  const handleRun = (executionSettings: { stdin?: string; randomSeed?: number; attachedFiles?: Array<{ name: string; content: string }> }) => {
+  const handleRun = (executionSettings: ExecutionSettings) => {
     if (!ws || ws.readyState !== WebSocket.OPEN) return;
     
     setIsExecuting(true);

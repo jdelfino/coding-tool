@@ -5,7 +5,7 @@ import { useWebSocket } from '@/hooks/useWebSocket';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSessionHistory, SessionHistory } from '@/hooks/useSessionHistory';
-import { Problem } from '@/server/types/problem';
+import { Problem, ExecutionSettings } from '@/server/types/problem';
 import JoinForm from './components/JoinForm';
 import StudentDashboard from './components/StudentDashboard';
 import ProblemDisplay from './components/ProblemDisplay';
@@ -233,7 +233,7 @@ function StudentPage() {
     }
   }, [code]);
 
-  const handleRunCode = (executionSettings: { stdin?: string; randomSeed?: number; attachedFiles?: Array<{ name: string; content: string }> }) => {
+  const handleRunCode = (executionSettings: ExecutionSettings) => {
     if (!isConnected) {
       setError('Not connected to server. Cannot run code.');
       return;
