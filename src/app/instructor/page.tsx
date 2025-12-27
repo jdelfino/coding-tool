@@ -372,13 +372,13 @@ function InstructorPage() {
       
       sendMessage('END_SESSION', { sessionId });
       
-      // Clear URL parameter immediately to prevent auto-rejoin
-      router.replace('/instructor');
-      
       // Determine navigation target based on where we came from
       // If we're in the sessions view, stay there; otherwise navigate based on context
       const targetView = viewMode === 'sessions' ? 'sessions' : (classContext ? 'sections' : 'classes');
       console.log('[handleEndSession] Target viewMode:', targetView);
+      
+      // Clear sessionId from URL and set the correct view parameter
+      router.replace(`/instructor?view=${targetView}`);
       
       // Clear ALL session-related state immediately
       console.log('[handleEndSession] Clearing session state...');
