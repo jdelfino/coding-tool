@@ -44,14 +44,12 @@ async function createSession(
   
   // Select class and section
   await page.selectOption('select#class', testClass.id);
-  await page.waitForTimeout(1000);
   await page.selectOption('select#section', testSection.id);
   
   // Click the "Create Session" button in the modal (use last() to get the submit button)
   await page.locator('button:has-text("Create Session")').last().click();
   
   // Wait for session to be created and get join code
-  await page.waitForTimeout(2000);
   const joinCodeElement = page.locator('text=/[A-Z0-9]{6}/').first();
   await expect(joinCodeElement).toBeVisible({ timeout: 10000 });
   const joinCode = (await joinCodeElement.textContent()) || '';
@@ -75,7 +73,7 @@ async function studentJoinAndSubmit(
   await studentPage.click('button:has-text("Join New Session")');
   await studentPage.fill('input[placeholder="ABC123"]', joinCode);
   await studentPage.click('button:has-text("Join Session")');
-  await studentPage.waitForTimeout(2000);
+  await studentPage.waitForTimeout(500);
   
   // Wait for editor to load and submit code
   const monacoEditor = studentPage.locator('.monaco-editor').first();
@@ -88,7 +86,7 @@ async function studentJoinAndSubmit(
   }, code);
   
   // Wait for code to be saved
-  await studentPage.waitForTimeout(1000);
+  await studentPage.waitForTimeout(300);
   
   return studentPage;
 }
@@ -122,7 +120,6 @@ test.describe('Instructor Public View', () => {
     const joinCode = await createSession(page, testClass, testSection, testProblem);
     
     // Get sessionId from API
-    await page.waitForTimeout(2000);
     const sessionsData = await page.evaluate(async () => {
       const response = await fetch('/api/sessions', { credentials: 'include' });
       return response.json();
@@ -153,7 +150,6 @@ test.describe('Instructor Public View', () => {
     const joinCode = await createSession(page, testClass, testSection, testProblem);
     
     // Get session ID from API
-    await page.waitForTimeout(2000);
     const sessionsData = await page.evaluate(async () => {
       const response = await fetch('/api/sessions', { credentials: 'include' });
       return response.json();
@@ -174,18 +170,17 @@ test.describe('Instructor Public View', () => {
     await expect(publicPage.locator('h1:has-text("Public Display")')).toBeVisible({ timeout: 10000 });
     await expect(publicPage.locator('text=/[A-Z0-9]{6}/')).toBeVisible({ timeout: 10000 });
     
-    // Now switch to instructor page and select student to display on public view
+    // Now switch to instructor page and wait for student to appear
     await page.bringToFront();
-    await page.waitForTimeout(3000); // Wait for student to appear in list
+    await expect(page.locator('text=alice-public-test')).toBeVisible({ timeout: 10000 });
     
     // Click "Show on Public View" button for the student
     const showOnPublicViewButton = page.locator('button:has-text("Show on Public View")').first();
     await expect(showOnPublicViewButton).toBeVisible({ timeout: 10000 });
     await showOnPublicViewButton.click();
     
-    // Switch back to public page and wait for update
+    // Switch back to public page and verify update
     await publicPage.bringToFront();
-    await publicPage.waitForTimeout(2000);
     
     // Verify public view shows featured submission
     await expect(publicPage.locator('h2:has-text("Featured Submission")')).toBeVisible({ timeout: 10000 });
@@ -203,7 +198,6 @@ test.describe('Instructor Public View', () => {
     const joinCode = await createSession(page, testClass, testSection, testProblem);
     
     // Get session ID from API
-    await page.waitForTimeout(2000);
     const sessionsData = await page.evaluate(async () => {
       const response = await fetch('/api/sessions', { credentials: 'include' });
       return response.json();
@@ -219,7 +213,7 @@ test.describe('Instructor Public View', () => {
     await studentPage.click('button:has-text("Join New Session")');
     await studentPage.fill('input[placeholder="ABC123"]', joinCode);
     await studentPage.click('button:has-text("Join Session")');
-    await studentPage.waitForTimeout(2000);
+    await studentPage.waitForTimeout(500);
     
     // Submit first version of code
     const monacoEditor = studentPage.locator('.monaco-editor').first();
@@ -229,27 +223,32 @@ test.describe('Instructor Public View', () => {
       const model = (window as any).monaco.editor.getModels()[0];
       model.setValue('def array_sum(arr):\n    return 0  # First version');
     });
-    await studentPage.waitForTimeout(1000);
+    await studentPage.waitForTimeout(300);
     
     // Submit second version of code
     await studentPage.evaluate(() => {
       const model = (window as any).monaco.editor.getModels()[0];
       model.setValue('def array_sum(arr):\n    return sum(arr)  # Final version');
     });
-    await studentPage.waitForTimeout(1000);
+    await studentPage.waitForTimeout(300);
     
-    // Switch to instructor and show submission on public view
+    // Switch to instructor and wait for student to appear
     await page.bringToFront();
-    await page.waitForTimeout(2000);
+    await expect(page.locator('text=bob-multiple-submissions')).toBeVisible({ timeout: 10000 });
     
-    const showOnPublicViewButton = page.locator('button:has-text("Show on Public View")').first();
-    await expect(showOnPublicViewButton).toBeVisible({ timeout: 10000 });
-    await showOnPublicViewButton.click();
-    
-    // Open public view and verify it shows the latest code
+    // Open public view BEFORE clicking button so it receives WebSocket update
     const publicPage = await context.newPage();
     await publicPage.goto(`/instructor/public?sessionId=${sessionId}`);
+    await expect(publicPage.locator('h1:has-text("Public Display")')).toBeVisible({ timeout: 10000 });
+    await expect(publicPage.locator('text=/[A-Z0-9]{6}/')).toBeVisible({ timeout: 10000 });
     
+    // Now click the show button
+    await page.bringToFront();
+    const showOnPublicViewButton = page.locator('button:has-text("Show on Public View")').first();
+    await showOnPublicViewButton.click();
+    
+    // Switch to public view and verify it received the update
+    await publicPage.bringToFront();
     await expect(publicPage.locator('h2:has-text("Featured Submission")')).toBeVisible({ timeout: 10000 });
     
     // Verify latest code is shown (not the first version)
@@ -269,7 +268,6 @@ test.describe('Instructor Public View', () => {
     const joinCode = await createSession(page, testClass, testSection, testProblem);
     
     // Get session ID from API
-    await page.waitForTimeout(2000);
     const sessionsData = await page.evaluate(async () => {
       const response = await fetch('/api/sessions', { credentials: 'include' });
       return response.json();
@@ -308,23 +306,25 @@ test.describe('Instructor Public View', () => {
     
     // Show first student on public view
     await page.bringToFront();
-    const charlieButton = page.locator('div:has-text("charlie-multi")').locator('button:has-text("Show on Public View")').first();
-    await charlieButton.click();
+    // Wait for charlie to be visible, then click his specific "Show on Public View" button
+    // Since students are in order and charlie is first, we can use nth(0)
+    const charlieSubmitButton = page.getByRole('button', { name: 'Show on Public View' }).nth(0);
+    await charlieSubmitButton.click();
     
     // Switch to public page and verify charlie's code
     await publicPage.bringToFront();
-    await publicPage.waitForTimeout(500); // Brief wait for WebSocket update to arrive
     await expect(publicPage.locator('h2:has-text("Featured Submission")')).toBeVisible({ timeout: 10000 });
     await expect(publicPage.locator('text=for x in arr')).toBeVisible({ timeout: 10000 });
     
     // Switch to diana's code
     await page.bringToFront();
-    const dianaButton = page.locator('div:has-text("diana-multi")').locator('button:has-text("Show on Public View")').first();
-    await dianaButton.click();
+    
+    // Diana is second, so use nth(1)
+    const dianaSubmitButton = page.getByRole('button', { name: 'Show on Public View' }).nth(1);
+    await dianaSubmitButton.click();
     
     // Verify public view updates to diana's code
     await publicPage.bringToFront();
-    await publicPage.waitForTimeout(500); // Brief wait for WebSocket update to arrive
     await expect(publicPage.locator('h2:has-text("Featured Submission")')).toBeVisible({ timeout: 10000 });
     await expect(publicPage.locator('text=return sum(arr)')).toBeVisible({ timeout: 10000 });
     
@@ -348,7 +348,6 @@ test.describe('Instructor Public View', () => {
     const joinCode = await createSession(page, testClass, testSection, testProblem);
     
     // Get session ID from API
-    await page.waitForTimeout(2000);
     const sessionsData = await page.evaluate(async () => {
       const response = await fetch('/api/sessions', { credentials: 'include' });
       return response.json();
@@ -368,16 +367,14 @@ test.describe('Instructor Public View', () => {
     
     await publicPage.goto(`/instructor/public?sessionId=${sessionId}`);
     
-    // Wait for WebSocket connection to establish
-    await publicPage.waitForTimeout(3000);
+    // Verify public view loaded correctly and WebSocket connected
+    await expect(publicPage.locator('h1:has-text("Public Display")')).toBeVisible({ timeout: 10000 });
+    await expect(publicPage.locator('text=/[A-Z0-9]{6}/')).toBeVisible({ timeout: 10000 });
     
     // Verify WebSocket connection was established
     expect(wsConnections.length).toBeGreaterThan(0);
     
-    // Verify public view loaded correctly
-    await expect(publicPage.locator('h1:has-text("Public Display")')).toBeVisible({ timeout: 10000 });
-    
-    // Have a student join and submit code
+    // NOW have a student join and submit code (after public page is open)
     const studentPage = await studentJoinAndSubmit(
       context, 
       joinCode, 
@@ -387,18 +384,22 @@ test.describe('Instructor Public View', () => {
     
     // Show submission on public view via instructor page
     await page.bringToFront();
-    await page.waitForTimeout(2000);
+    await expect(page.locator('text=eve-websocket-test')).toBeVisible({ timeout: 10000 });
     
+    // Click "Show on Public View" button for the student
     const showButton = page.locator('button:has-text("Show on Public View")').first();
     await expect(showButton).toBeVisible({ timeout: 10000 });
     await showButton.click();
     
     // Switch to public view and verify it updates in real-time via WebSocket
     await publicPage.bringToFront();
-    await publicPage.waitForTimeout(2000);
     
     // Verify featured submission appears (real-time update via WebSocket)
     await expect(publicPage.locator('h2:has-text("Featured Submission")')).toBeVisible({ timeout: 10000 });
+    
+    // Wait for Monaco editor to load
+    await publicPage.waitForSelector('.monaco-editor', { state: 'visible', timeout: 10000 });
+    
     await expect(publicPage.locator('text=return sum(arr)')).toBeVisible({ timeout: 10000 });
     
     // Cleanup

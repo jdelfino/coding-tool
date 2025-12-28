@@ -827,7 +827,7 @@ class WebSocketHandler {
       payload: {
         joinCode: session.joinCode,
         problem: session.problem,
-        code: featured.code || '',
+        code: featured.code,
         hasFeaturedSubmission: !!featured.studentId,
         executionSettings: featured.executionSettings,
       },
@@ -897,7 +897,7 @@ class WebSocketHandler {
         joinCode: session.joinCode,
         problem: session.problem,
         executionSettings: featured.executionSettings || session.problem.executionSettings,
-        code: featured.code || '',
+        code: featured.code || undefined,
         hasFeaturedSubmission: !!featured.studentId,
       },
     }, 'public');
