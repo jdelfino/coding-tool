@@ -304,6 +304,7 @@ test.describe('Instructor Public View', () => {
     // Open public view first
     const publicPage = await context.newPage();
     await publicPage.goto(`/instructor/public?sessionId=${sessionId}`);
+    await publicPage.waitForTimeout(3000); // Wait for HMR to complete
     await expect(publicPage.locator('h1:has-text("Public Display")')).toBeVisible({ timeout: 10000 });
     await expect(publicPage.locator('text=/[A-Z0-9]{6}/')).toBeVisible({ timeout: 10000 });
     
