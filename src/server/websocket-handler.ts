@@ -792,19 +792,38 @@ class WebSocketHandler {
     const sessionId = connection.sessionId;
     
     if (studentId) {
-      // Set featured submission
+      // Get session and student data BEFORE writing to storage
+      const session = await sessionManagerHolder.instance.getSession(sessionId);
+      if (!session) {
+        console.error('Session not found');
+        return;
+      }
+      
+      const student = session.students.get(studentId);
+      if (!student) {
+        console.error('Student not found in session');
+        return;
+      }
+      
+      // Set featured submission (writes to storage asynchronously)
       const success = await sessionManagerHolder.instance.setFeaturedSubmission(sessionId, studentId);
       if (!success) {
         console.error('Failed to set featured submission');
         return;
       }
+      
+      // Broadcast with the data we already have in memory
+      await this.broadcastPublicSubmissionUpdate(sessionId, {
+        studentId,
+        code: student.code,
+        executionSettings: student.executionSettings
+      });
     } else {
       // Clear featured submission
       await sessionManagerHolder.instance.clearFeaturedSubmission(sessionId);
+      // Broadcast update (no featured submission)
+      await this.broadcastPublicSubmissionUpdate(sessionId);
     }
-
-    // Broadcast update to public views
-    await this.broadcastPublicSubmissionUpdate(sessionId);
   }
 
   private async handleJoinPublicView(ws: WebSocket, connection: Connection, payload: any) {
@@ -885,11 +904,16 @@ class WebSocketHandler {
     }
   }
 
-  private async broadcastPublicSubmissionUpdate(sessionId: string) {
+  private async broadcastPublicSubmissionUpdate(
+    sessionId: string, 
+    featuredData?: { studentId?: string; code?: string; executionSettings?: any }
+  ) {
     const session = await sessionManagerHolder.instance.getSession(sessionId);
     if (!session) return;
 
-    const featured = await sessionManagerHolder.instance.getFeaturedSubmission(sessionId);
+    // Use provided featured data if available (avoids storage read race condition)
+    // Otherwise fall back to reading from storage (for cases like handleJoinPublicView)
+    const featured = featuredData || await sessionManagerHolder.instance.getFeaturedSubmission(sessionId);
     
     this.broadcastToSession(sessionId, {
       type: MessageType.PUBLIC_SUBMISSION_UPDATE,

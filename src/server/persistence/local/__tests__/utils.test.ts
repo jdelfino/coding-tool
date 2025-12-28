@@ -98,7 +98,7 @@ describe('readJsonFile and writeJsonFile', () => {
     const data = { test: 'value', number: 42, nested: { key: 'val' } };
     
     await writeJsonFile(testFile, data);
-    const result = await readJsonFile(testFile);
+    const result = await readJsonFile(testFile, {});
 
     expect(result).toEqual(data);
   });
@@ -112,7 +112,7 @@ describe('readJsonFile and writeJsonFile', () => {
     await expect(Promise.all(writes)).resolves.not.toThrow();
 
     // Should be able to read the file
-    const result = await readJsonFile(testFile);
+    const result = await readJsonFile<{ index: number; data: string }>(testFile, { index: 0, data: '' });
     expect(result).toHaveProperty('index');
     expect(typeof result.index).toBe('number');
   });

@@ -386,6 +386,9 @@ test.describe('Instructor Public View', () => {
     await page.bringToFront();
     await expect(page.locator('text=eve-websocket-test')).toBeVisible({ timeout: 10000 });
     
+    // Check that student has code before proceeding
+    await expect(page.locator('text=✓ Has code')).toBeVisible({ timeout: 10000 });
+    
     // Click "Show on Public View" button for the student
     const showButton = page.locator('button:has-text("Show on Public View")').first();
     await expect(showButton).toBeVisible({ timeout: 10000 });
@@ -397,9 +400,10 @@ test.describe('Instructor Public View', () => {
     // Verify featured submission appears (real-time update via WebSocket)
     await expect(publicPage.locator('h2:has-text("Featured Submission")')).toBeVisible({ timeout: 10000 });
     
-    // Wait for Monaco editor to load
+    // Wait for Monaco editor to be present and visible
     await publicPage.waitForSelector('.monaco-editor', { state: 'visible', timeout: 10000 });
     
+    // Verify the specific code content is visible
     await expect(publicPage.locator('text=return sum(arr)')).toBeVisible({ timeout: 10000 });
     
     // Cleanup
