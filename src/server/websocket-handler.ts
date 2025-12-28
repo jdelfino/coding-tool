@@ -821,14 +821,15 @@ class WebSocketHandler {
 
     // Send current session state
     const featured = await sessionManagerHolder.instance.getFeaturedSubmission(sessionId);
+    
     this.send(ws, {
       type: MessageType.PUBLIC_SUBMISSION_UPDATE,
       payload: {
         joinCode: session.joinCode,
         problem: session.problem,
-        executionSettings: featured.executionSettings || session.problem.executionSettings,
         code: featured.code || '',
         hasFeaturedSubmission: !!featured.studentId,
+        executionSettings: featured.executionSettings,
       },
     });
   }

@@ -52,8 +52,8 @@ function PublicViewContent() {
           if (message.payload.joinCode !== undefined) {
             setJoinCode(message.payload.joinCode);
           }
-          if (message.payload.problemText !== undefined) {
-            setProblemText(message.payload.problemText);
+          if (message.payload.problem !== undefined) {
+            setProblemText(message.payload.problem.description || '');
           }
           if (message.payload.code !== undefined) {
             setCode(message.payload.code);
@@ -61,14 +61,12 @@ function PublicViewContent() {
           if (message.payload.hasFeaturedSubmission !== undefined) {
             setHasFeaturedSubmission(message.payload.hasFeaturedSubmission);
           }
-          if (message.payload.exampleInput !== undefined) {
-            setExampleInput(message.payload.exampleInput);
-          }
-          if (message.payload.randomSeed !== undefined) {
-            setRandomSeed(message.payload.randomSeed);
-          }
-          if (message.payload.attachedFiles !== undefined) {
-            setAttachedFiles(message.payload.attachedFiles);
+          // Extract execution settings from either featured submission settings or problem defaults
+          if (message.payload.executionSettings !== undefined || message.payload.problem !== undefined) {
+            const effectiveSettings = message.payload.executionSettings || message.payload.problem?.executionSettings;
+            setExampleInput(effectiveSettings?.stdin || '');
+            setRandomSeed(effectiveSettings?.randomSeed);
+            setAttachedFiles(effectiveSettings?.attachedFiles || []);
           }
           break;
           
