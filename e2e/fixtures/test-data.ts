@@ -1,5 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
 import { writeDataFile, readDataFile } from '../helpers/db-helpers';
+import { Page } from '@playwright/test';
 
 /**
  * Test data generators for creating test entities
@@ -27,6 +28,77 @@ export interface TestSession {
   problemId?: string;
   createdAt: string;
   active: boolean;
+}
+
+/**
+ * Creates a test class via API using page context for authentication
+ */
+export async function createTestClassViaAPI(
+  page: Page,
+  name: string = 'Test Class',
+  description?: string
+): Promise<TestClass> {
+  const API_BASE_URL = process.env.PLAYWRIGHT_TEST_BASE_URL || 'http://localhost:3000';
+  
+  const cookies = await page.context().cookies();
+  const sessionCookie = cookies.find(c => c.name === 'sessionId');
+  
+  if (!sessionCookie) {
+    throw new Error('No session cookie found - user must be logged in');
+  }
+  
+  const response = await fetch(`${API_BASE_URL}/api/classes`, {
+    method: 'POST',
+    headers: { 
+      'Content-Type': 'application/json',
+      'Cookie': `sessionId=${sessionCookie.value}`
+    },
+    body: JSON.stringify({ name, description }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to create test class: ${response.status} ${errorText}`);
+  }
+
+  const data = await response.json();
+  return data.class;
+}
+
+/**
+ * Creates a test section via API using page context for authentication
+ */
+export async function createTestSectionViaAPI(
+  page: Page,
+  classId: string,
+  name: string = 'Test Section',
+  semester?: string
+): Promise<TestSection> {
+  const API_BASE_URL = process.env.PLAYWRIGHT_TEST_BASE_URL || 'http://localhost:3000';
+  
+  const cookies = await page.context().cookies();
+  const sessionCookie = cookies.find(c => c.name === 'sessionId');
+  
+  if (!sessionCookie) {
+    throw new Error('No session cookie found - user must be logged in');
+  }
+  
+  const response = await fetch(`${API_BASE_URL}/api/classes/${classId}/sections`, {
+    method: 'POST',
+    headers: { 
+      'Content-Type': 'application/json',
+      'Cookie': `sessionId=${sessionCookie.value}`
+    },
+    body: JSON.stringify({ name, semester }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to create test section: ${response.status} ${errorText}`);
+  }
+
+  const data = await response.json();
+  return data.section;
 }
 
 /**
@@ -103,6 +175,61 @@ export async function createTestSession(
   await writeDataFile('sessions.json', sessions);
   
   return newSession;
+}
+
+export interface TestProblem {
+  id: string;
+  title: string;
+  description?: string;
+  starterCode?: string;
+  authorId: string;
+  classId?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * Creates a test problem via API using page context for authentication
+ */
+export async function createTestProblem(
+  page: Page,
+  authorId: string,
+  title: string = 'Test Problem',
+  description: string = 'Write a function',
+  starterCode: string = 'def solution():\n    pass'
+): Promise<TestProblem> {
+  const API_BASE_URL = process.env.PLAYWRIGHT_TEST_BASE_URL || 'http://localhost:3000';
+  
+  // Get cookies from the page context
+  const cookies = await page.context().cookies();
+  const sessionCookie = cookies.find(c => c.name === 'sessionId');
+  
+  if (!sessionCookie) {
+    throw new Error('No session cookie found - user must be logged in');
+  }
+  
+  const response = await fetch(`${API_BASE_URL}/api/problems`, {
+    method: 'POST',
+    headers: { 
+      'Content-Type': 'application/json',
+      'Cookie': `sessionId=${sessionCookie.value}`
+    },
+    body: JSON.stringify({
+      title,
+      description,
+      starterCode,
+      authorId,
+      testCases: []
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to create test problem: ${response.status} ${errorText}`);
+  }
+
+  const data = await response.json();
+  return data.problem;
 }
 
 /**

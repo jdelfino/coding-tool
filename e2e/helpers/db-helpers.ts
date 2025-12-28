@@ -93,3 +93,34 @@ export async function createTestAuthSession(sessionId: string, userId: string): 
   // This is a no-op for backward compatibility
   console.log(`Note: Auth sessions are now created automatically via signin. SessionId param ignored.`);
 }
+
+/**
+ * Read a JSON data file from the data directory
+ */
+export async function readDataFile(filename: string): Promise<any> {
+  const filePath = path.join(DATA_DIR, filename);
+  try {
+    const data = await fs.promises.readFile(filePath, 'utf-8');
+    return JSON.parse(data, (key, value) => {
+      // Revive Date objects
+      if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(value)) {
+        return new Date(value);
+      }
+      return value;
+    });
+  } catch (error: any) {
+    if (error.code === 'ENOENT') {
+      // File doesn't exist, return empty object
+      return {};
+    }
+    throw error;
+  }
+}
+
+/**
+ * Write a JSON data file to the data directory
+ */
+export async function writeDataFile(filename: string, data: any): Promise<void> {
+  const filePath = path.join(DATA_DIR, filename);
+  await fs.promises.writeFile(filePath, JSON.stringify(data, null, 2), 'utf-8');
+}
