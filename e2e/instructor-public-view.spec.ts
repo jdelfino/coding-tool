@@ -295,7 +295,6 @@ test.describe('Instructor Public View', () => {
     
     // Switch to instructor and verify both students appear
     await page.bringToFront();
-    await page.waitForTimeout(2000);
     
     // Verify both students are in the student list
     await expect(page.locator('text=charlie-multi')).toBeVisible({ timeout: 10000 });
@@ -304,7 +303,6 @@ test.describe('Instructor Public View', () => {
     // Open public view first
     const publicPage = await context.newPage();
     await publicPage.goto(`/instructor/public?sessionId=${sessionId}`);
-    await publicPage.waitForTimeout(3000); // Wait for HMR to complete
     await expect(publicPage.locator('h1:has-text("Public Display")')).toBeVisible({ timeout: 10000 });
     await expect(publicPage.locator('text=/[A-Z0-9]{6}/')).toBeVisible({ timeout: 10000 });
     
@@ -315,7 +313,7 @@ test.describe('Instructor Public View', () => {
     
     // Switch to public page and verify charlie's code
     await publicPage.bringToFront();
-    await publicPage.waitForTimeout(2000);
+    await publicPage.waitForTimeout(500); // Brief wait for WebSocket update to arrive
     await expect(publicPage.locator('h2:has-text("Featured Submission")')).toBeVisible({ timeout: 10000 });
     await expect(publicPage.locator('text=for x in arr')).toBeVisible({ timeout: 10000 });
     
@@ -326,7 +324,7 @@ test.describe('Instructor Public View', () => {
     
     // Verify public view updates to diana's code
     await publicPage.bringToFront();
-    await publicPage.waitForTimeout(2000);
+    await publicPage.waitForTimeout(500); // Brief wait for WebSocket update to arrive
     await expect(publicPage.locator('h2:has-text("Featured Submission")')).toBeVisible({ timeout: 10000 });
     await expect(publicPage.locator('text=return sum(arr)')).toBeVisible({ timeout: 10000 });
     

@@ -12,6 +12,41 @@ import {
 } from '../types';
 
 /**
+ * Simple in-memory lock manager to prevent concurrent file writes
+ */
+class FileLockManager {
+  private locks: Map<string, Promise<void>> = new Map();
+
+  async withLock<T>(filePath: string, fn: () => Promise<T>): Promise<T> {
+    // Wait for any existing lock on this file
+    const existingLock = this.locks.get(filePath);
+    if (existingLock) {
+      await existingLock;
+    }
+
+    // Create a new lock for this operation
+    let releaseLock: () => void;
+    const lockPromise = new Promise<void>((resolve) => {
+      releaseLock = resolve;
+    });
+    this.locks.set(filePath, lockPromise);
+
+    try {
+      return await fn();
+    } finally {
+      // Release the lock
+      releaseLock!();
+      // Clean up if this was the current lock
+      if (this.locks.get(filePath) === lockPromise) {
+        this.locks.delete(filePath);
+      }
+    }
+  }
+}
+
+const fileLockManager = new FileLockManager();
+
+/**
  * Helper to create storage metadata
  */
 export function createMetadata(existing?: StorageMetadata): StorageMetadata {
@@ -40,23 +75,27 @@ export async function ensureDir(dirPath: string): Promise<void> {
 
 /**
  * Helper for atomic file writes (write to temp, then rename)
+ * Protected by file-level locking to prevent concurrent write conflicts
  */
 export async function atomicWrite(filePath: string, data: string): Promise<void> {
-  const tempPath = `${filePath}.tmp`;
-  try {
-    await fs.writeFile(tempPath, data, 'utf-8');
-    await fs.rename(tempPath, filePath);
-  } catch (error) {
-    // Clean up temp file if it exists
+  return fileLockManager.withLock(filePath, async () => {
+    // Use unique temp file for each write operation
+    const tempPath = `${filePath}.tmp.${process.pid}.${Date.now()}.${Math.random().toString(36).substring(7)}`;
     try {
-      await fs.unlink(tempPath);
-    } catch {}
-    throw new PersistenceError(
-      `Failed to write file: ${filePath}`,
-      PersistenceErrorCode.STORAGE_ERROR,
-      error
-    );
-  }
+      await fs.writeFile(tempPath, data, 'utf-8');
+      await fs.rename(tempPath, filePath);
+    } catch (error) {
+      // Clean up temp file if it exists
+      try {
+        await fs.unlink(tempPath);
+      } catch {}
+      throw new PersistenceError(
+        `Failed to write file: ${filePath}`,
+        PersistenceErrorCode.STORAGE_ERROR,
+        error
+      );
+    }
+  });
 }
 
 /**

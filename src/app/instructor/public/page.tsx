@@ -37,11 +37,13 @@ function PublicViewContent() {
     const websocket = new WebSocket(wsUrl);
 
     websocket.onopen = () => {
-      console.log('Public view connected to WebSocket');
-      websocket.send(JSON.stringify({
-        type: MessageType.JOIN_PUBLIC_VIEW,
-        payload: { sessionId },
-      }));
+      // Small delay to ensure connection is fully established
+      setTimeout(() => {
+        websocket.send(JSON.stringify({
+          type: MessageType.JOIN_PUBLIC_VIEW,
+          payload: { sessionId },
+        }));
+      }, 100);
     };
 
     websocket.onmessage = (event) => {
