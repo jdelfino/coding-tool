@@ -11,6 +11,7 @@ interface ExecutionSettingsProps {
   onAttachedFilesChange?: (files: Array<{ name: string; content: string }>) => void;
   exampleInput?: string;
   readOnly?: boolean;
+  inSidebar?: boolean; // New prop to indicate if component is in sidebar
 }
 
 export default function ExecutionSettings({
@@ -21,7 +22,8 @@ export default function ExecutionSettings({
   attachedFiles = [],
   onAttachedFilesChange,
   exampleInput,
-  readOnly = false
+  readOnly = false,
+  inSidebar = false
 }: ExecutionSettingsProps) {
   const [expanded, setExpanded] = useState(false);
   const [editingSeed, setEditingSeed] = useState(false);
@@ -30,6 +32,10 @@ export default function ExecutionSettings({
   const [localFiles, setLocalFiles] = useState(attachedFiles);
   const [newFileName, setNewFileName] = useState('');
   const [newFileContent, setNewFileContent] = useState('');
+
+  // When in sidebar, always show expanded (no collapse functionality needed)
+  const shouldShowCollapse = !inSidebar;
+  const isExpanded = inSidebar ? true : expanded;
 
   const handleSaveSeed = () => {
     const seed = seedInput.trim() ? parseInt(seedInput, 10) : undefined;
@@ -85,47 +91,49 @@ export default function ExecutionSettings({
 
   return (
     <div style={{
-      borderTop: '1px solid #ccc',
-      backgroundColor: '#f5f5f5',
+      borderTop: inSidebar ? 'none' : '1px solid #ccc',
+      backgroundColor: inSidebar ? 'transparent' : '#f5f5f5',
     }}>
-      <button
-        type="button"
-        onClick={() => setExpanded(!expanded)}
-        style={{
-          width: '100%',
-          padding: '0.5rem 1rem',
-          backgroundColor: 'transparent',
-          border: 'none',
-          cursor: 'pointer',
-          textAlign: 'left',
-          fontWeight: 'bold',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <span style={{ 
-            transition: 'transform 0.2s',
-            display: 'inline-block',
-            transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)',
-          }}>
-            ▶
-          </span>
-          Execution Settings
-        </div>
-        {hasContent && !expanded && (
-          <span style={{ fontSize: '0.85rem', color: '#666', fontWeight: 'normal' }}>
-            {stdin && '📝'} {randomSeed !== undefined && '🎲'} {attachedFiles.length > 0 && `📁 ${attachedFiles.length}`}
-          </span>
-        )}
-      </button>
+      {shouldShowCollapse && (
+        <button
+          type="button"
+          onClick={() => setExpanded(!expanded)}
+          style={{
+            width: '100%',
+            padding: '0.5rem 1rem',
+            backgroundColor: 'transparent',
+            border: 'none',
+            cursor: 'pointer',
+            textAlign: 'left',
+            fontWeight: 'bold',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span style={{ 
+              transition: 'transform 0.2s',
+              display: 'inline-block',
+              transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
+            }}>
+              ▶
+            </span>
+            Execution Settings
+          </div>
+          {hasContent && !isExpanded && (
+            <span style={{ fontSize: '0.85rem', color: '#666', fontWeight: 'normal' }}>
+              {stdin && '📝'} {randomSeed !== undefined && '🎲'} {attachedFiles.length > 0 && `📁 ${attachedFiles.length}`}
+            </span>
+          )}
+        </button>
+      )}
 
-      {expanded && (
+      {isExpanded && (
         <div style={{ 
           padding: '1rem', 
-          backgroundColor: 'white',
-          borderTop: '1px solid #ccc'
+          backgroundColor: inSidebar ? '#f9f9f9' : 'white',
+          borderTop: shouldShowCollapse ? '1px solid #ccc' : 'none'
         }}>
           {/* Program Input */}
           <div style={{ marginBottom: '1rem' }}>

@@ -4,6 +4,7 @@ import Editor from '@monaco-editor/react';
 import React, { useEffect, useRef, useState } from 'react';
 import ExecutionSettingsComponent from './ExecutionSettings';
 import type { ExecutionSettings } from '@/server/types/problem';
+import { useResponsiveLayout, useSidebarSection } from '@/hooks/useResponsiveLayout';
 
 interface ExecutionResult {
   success: boolean;
@@ -51,6 +52,10 @@ export default function CodeEditor({
   const [stdin, setStdin] = useState('');
   const [localIsRunning, setLocalIsRunning] = useState(false);
   const [localExecutionResult, setLocalExecutionResult] = useState<ExecutionResult | null>(null);
+  
+  // Responsive layout detection
+  const isDesktop = useResponsiveLayout(1024);
+  const { isCollapsed: isSettingsCollapsed, toggle: toggleSettings } = useSidebarSection('execution-settings', false);
 
   // Wrapper to call both internal state and parent callback
   const handleStdinChange = (value: string) => {
@@ -132,145 +137,146 @@ export default function CodeEditor({
   };
 
   return (
-    <div style={{ border: '1px solid #ccc', borderRadius: '4px' }}>
-      <div style={{ 
-        padding: '0.5rem 1rem', 
-        backgroundColor: '#f5f5f5',
-        borderBottom: '1px solid #ccc',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center'
-      }}>
-        <span style={{ fontWeight: 'bold' }}>{title}</span>
+    <div className="border border-gray-300 rounded">
+      {/* Header */}
+      <div className="px-4 py-2 bg-gray-100 border-b border-gray-300 flex justify-between items-center">
+        <span className="font-bold">{title}</span>
         {showRunButton && (
           <button
             onClick={handleRun}
             disabled={effectiveIsRunning || readOnly}
-            style={{
-              padding: '0.5rem 1rem',
-              backgroundColor: effectiveIsRunning ? '#6c757d' : '#28a745',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: effectiveIsRunning || readOnly ? 'not-allowed' : 'pointer',
-            }}
+            className={`px-4 py-2 rounded text-white ${
+              effectiveIsRunning || readOnly
+                ? 'bg-gray-500 cursor-not-allowed'
+                : 'bg-green-600 hover:bg-green-700 cursor-pointer'
+            }`}
           >
             {effectiveIsRunning ? '⏳ Running...' : '▶ Run Code'}
           </button>
         )}
       </div>
-      
-      <Editor
-        height="400px"
-        defaultLanguage="python"
-        value={code}
-        onChange={(value) => !readOnly && onChange(value || '')}
-        onMount={handleEditorDidMount}
-        theme="vs-dark"
-        options={{
-          minimap: { enabled: false },
-          fontSize: 14,
-          lineNumbers: 'on',
-          roundedSelection: false,
-          scrollBeyondLastLine: false,
-          automaticLayout: true,
-          readOnly,
-        }}
-      />
 
-      {/* Execution Results */}
-      {effectiveResult && (
-        <div style={{
-          padding: '1rem',
-          backgroundColor: effectiveResult.success ? '#d4edda' : '#f8d7da',
-          borderTop: '1px solid #ccc',
-          borderBottom: '1px solid #ccc',
-        }}>
-          <div style={{ 
-            display: 'flex', 
-            justifyContent: 'space-between', 
-            alignItems: 'center',
-            marginBottom: '0.5rem',
-          }}>
-            <span style={{ 
-              fontWeight: 'bold',
-              color: effectiveResult.success ? '#155724' : '#721c24',
-            }}>
-              {effectiveResult.success ? '✓ Success' : '✗ Error'}
-            </span>
-            <span style={{ 
-              fontSize: '0.875rem',
-              color: effectiveResult.success ? '#155724' : '#721c24',
-            }}>
-              Execution time: {effectiveResult.executionTime}ms
-            </span>
-          </div>
-          
-          {effectiveResult.output && (
-            <div style={{ marginTop: '0.5rem' }}>
-              <div style={{ 
-                fontWeight: 'bold', 
-                fontSize: '0.875rem',
-                color: effectiveResult.success ? '#155724' : '#721c24',
-              }}>
-                Output:
+      {/* Main Content Area - Responsive Layout */}
+      <div className="lg:flex lg:flex-row">
+        {/* Left Column: Editor + Results (Desktop) or Full Width (Mobile) */}
+        <div className="lg:flex-[7] flex flex-col">
+          {/* Code Editor */}
+          <Editor
+            height="400px"
+            defaultLanguage="python"
+            value={code}
+            onChange={(value) => !readOnly && onChange(value || '')}
+            onMount={handleEditorDidMount}
+            theme="vs-dark"
+            options={{
+              minimap: { enabled: false },
+              fontSize: 14,
+              lineNumbers: 'on',
+              roundedSelection: false,
+              scrollBeyondLastLine: false,
+              automaticLayout: true,
+              readOnly,
+            }}
+          />
+
+          {/* Execution Results */}
+          {effectiveResult && (
+            <div className={`p-4 border-t border-gray-300 ${
+              effectiveResult.success ? 'bg-green-100' : 'bg-red-100'
+            }`}>
+              <div className="flex justify-between items-center mb-2">
+                <span className={`font-bold ${
+                  effectiveResult.success ? 'text-green-800' : 'text-red-800'
+                }`}>
+                  {effectiveResult.success ? '✓ Success' : '✗ Error'}
+                </span>
+                <span className={`text-sm ${
+                  effectiveResult.success ? 'text-green-800' : 'text-red-800'
+                }`}>
+                  Execution time: {effectiveResult.executionTime}ms
+                </span>
               </div>
-              <pre style={{
-                backgroundColor: 'white',
-                padding: '0.5rem',
-                borderRadius: '4px',
-                border: '1px solid #ccc',
-                overflowX: 'auto',
-                fontSize: '0.875rem',
-                fontFamily: 'monospace',
-                marginTop: '0.25rem',
-                whiteSpace: 'pre-wrap',
-                wordBreak: 'break-word',
-              }}>
-                {effectiveResult.output}
-              </pre>
-            </div>
-          )}
-          
-          {effectiveResult.error && (
-            <div style={{ marginTop: '0.5rem' }}>
-              <div style={{ 
-                fontWeight: 'bold', 
-                fontSize: '0.875rem',
-                color: '#721c24',
-              }}>
-                Error:
-              </div>
-              <pre style={{
-                backgroundColor: 'white',
-                padding: '0.5rem',
-                borderRadius: '4px',
-                border: '1px solid #ccc',
-                overflowX: 'auto',
-                fontSize: '0.875rem',
-                fontFamily: 'monospace',
-                marginTop: '0.25rem',
-                whiteSpace: 'pre-wrap',
-                wordBreak: 'break-word',
-                color: '#721c24',
-              }}>
-                {effectiveResult.error}
-              </pre>
+              
+              {effectiveResult.output && (
+                <div className="mt-2">
+                  <div className={`font-bold text-sm ${
+                    effectiveResult.success ? 'text-green-800' : 'text-red-800'
+                  }`}>
+                    Output:
+                  </div>
+                  <pre className="bg-white p-2 rounded border border-gray-300 overflow-x-auto text-sm font-mono mt-1 whitespace-pre-wrap break-words">
+                    {effectiveResult.output}
+                  </pre>
+                </div>
+              )}
+              
+              {effectiveResult.error && (
+                <div className="mt-2">
+                  <div className="font-bold text-sm text-red-800">
+                    Error:
+                  </div>
+                  <pre className="bg-white p-2 rounded border border-gray-300 overflow-x-auto text-sm font-mono mt-1 whitespace-pre-wrap break-words text-red-800">
+                    {effectiveResult.error}
+                  </pre>
+                </div>
+              )}
             </div>
           )}
         </div>
-      )}
 
-      <ExecutionSettingsComponent
-        stdin={stdin}
-        onStdinChange={handleStdinChange}
-        randomSeed={randomSeed}
-        onRandomSeedChange={onRandomSeedChange}
-        attachedFiles={attachedFiles}
-        onAttachedFilesChange={onAttachedFilesChange}
-        exampleInput={exampleInput}
-        readOnly={readOnly}
-      />
+        {/* Right Sidebar (Desktop) or Below (Mobile) */}
+        <div className={`lg:flex-[3] lg:border-l border-gray-300 ${isDesktop ? '' : 'border-t'}`}>
+          {isDesktop ? (
+            /* Desktop: Collapsible Sidebar Section */
+            <div className="bg-gray-50">
+              <button
+                onClick={toggleSettings}
+                className="w-full px-4 py-2 bg-transparent border-none cursor-pointer text-left font-bold flex items-center justify-between hover:bg-gray-100"
+                aria-expanded={!isSettingsCollapsed}
+                aria-label="Toggle execution settings"
+              >
+                <div className="flex items-center gap-2">
+                  <span className={`inline-block transition-transform duration-200 ${
+                    isSettingsCollapsed ? '' : 'rotate-90'
+                  }`}>
+                    ▶
+                  </span>
+                  Execution Settings
+                </div>
+              </button>
+              
+              {!isSettingsCollapsed && (
+                <div className="border-t border-gray-300">
+                  <ExecutionSettingsComponent
+                    stdin={stdin}
+                    onStdinChange={handleStdinChange}
+                    randomSeed={randomSeed}
+                    onRandomSeedChange={onRandomSeedChange}
+                    attachedFiles={attachedFiles}
+                    onAttachedFilesChange={onAttachedFilesChange}
+                    exampleInput={exampleInput}
+                    readOnly={readOnly}
+                    inSidebar={true}
+                  />
+                </div>
+              )}
+            </div>
+          ) : (
+            /* Mobile: Traditional Bottom Section */
+            <ExecutionSettingsComponent
+              stdin={stdin}
+              onStdinChange={handleStdinChange}
+              randomSeed={randomSeed}
+              onRandomSeedChange={onRandomSeedChange}
+              attachedFiles={attachedFiles}
+              onAttachedFilesChange={onAttachedFilesChange}
+              exampleInput={exampleInput}
+              readOnly={readOnly}
+              inSidebar={false}
+            />
+          )}
+        </div>
+      </div>
     </div>
   );
 }
