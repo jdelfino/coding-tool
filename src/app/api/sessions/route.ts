@@ -4,6 +4,104 @@ import { getSessionManager } from '@/server/session-manager';
 import { getStorage } from '@/server/persistence';
 
 /**
+ * GET /api/sessions
+ * 
+ * List sessions for the authenticated user.
+ * - Instructors see their created sessions
+ * - Students see sessions they've joined
+ * 
+ * Query params:
+ * - status?: 'active' | 'completed' (optional - filter by status)
+ */
+export async function GET(request: NextRequest) {
+  try {
+    // Authenticate user
+    const sessionId = request.cookies.get('sessionId')?.value;
+    if (!sessionId) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    const authProvider = await getAuthProvider();
+    const session = await authProvider.getSession(sessionId);
+    if (!session) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    const user = session.user;
+    const storage = await getStorage();
+
+    // Get status filter from query params
+    const { searchParams } = new URL(request.url);
+    const statusFilter = searchParams.get('status') as 'active' | 'completed' | null;
+
+    let userSessions;
+
+    if (user.role === 'instructor' || user.role === 'admin') {
+      // Instructors see sessions they created
+      const queryOptions: any = {
+        instructorId: user.id,
+      };
+      
+      if (statusFilter) {
+        queryOptions.active = statusFilter === 'active';
+      }
+
+      userSessions = await storage.sessions.listAllSessions(queryOptions);
+    } else {
+      // Students see sessions they've joined
+      // For now, we'll get all sessions and filter by participants
+      // TODO: Add participantId filter to SessionQueryOptions for efficiency
+      const allSessions = await storage.sessions.listAllSessions();
+      userSessions = allSessions.filter(s => s.participants.includes(user.id));
+      
+      if (statusFilter) {
+        userSessions = userSessions.filter(s => 
+          statusFilter === 'active' ? s.status === 'active' : s.status === 'completed'
+        );
+      }
+    }
+
+    // Return lightweight session data
+    const sessions = userSessions.map(s => ({
+      id: s.id,
+      joinCode: s.joinCode,
+      sectionId: s.sectionId,
+      sectionName: s.sectionName,
+      status: s.status,
+      createdAt: s.createdAt,
+      endedAt: s.endedAt,
+      problem: s.problem ? {
+        id: s.problem.id,
+        title: s.problem.title,
+        description: s.problem.description,
+      } : undefined,
+      participantCount: s.participants.length,
+    }));
+
+    return NextResponse.json({
+      success: true,
+      sessions,
+    });
+
+  } catch (error) {
+    console.error('Error listing sessions:', error);
+    return NextResponse.json(
+      { 
+        error: 'Failed to list sessions',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      },
+      { status: 500 }
+    );
+  }
+}
+
+/**
  * POST /api/sessions
  * 
  * Create a new session, optionally from a problem.

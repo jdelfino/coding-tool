@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { POST } from '../route';
+import { GET, POST } from '../route';
 import { getAuthProvider } from '@/server/auth';
 import { getSessionManager } from '@/server/session-manager';
 import { getStorage } from '@/server/persistence';
@@ -367,5 +367,218 @@ describe('POST /api/sessions', () => {
 
     expect(response.status).toBe(403);
     expect(data.error).toContain('must be an instructor');
+  });
+});
+describe('GET /api/sessions', () => {
+  const mockInstructor = {
+    id: 'instructor-1',
+    username: 'instructor',
+    email: 'instructor@test.com',
+    role: 'instructor' as const,
+    createdAt: new Date('2024-01-01'),
+  };
+
+  const mockStudent = {
+    id: 'student-1',
+    username: 'student',
+    email: 'student@test.com',
+    role: 'student' as const,
+    createdAt: new Date('2024-01-01'),
+  };
+
+  const mockSessions = [
+    {
+      id: 'session-1',
+      joinCode: 'ABC123',
+      sectionId: 'section-1',
+      sectionName: 'Section A',
+      status: 'active' as const,
+      createdAt: new Date('2024-01-01'),
+      creatorId: 'instructor-1',
+      participants: ['instructor-1', 'student-1'],
+      students: new Map(),
+      problem: {
+        id: 'problem-1',
+        title: 'Test Problem 1',
+        description: 'Description 1',
+        starterCode: 'def test():\n    pass',
+        testCases: [],
+        authorId: 'instructor-1',
+        createdAt: new Date('2024-01-01'),
+        updatedAt: new Date('2024-01-01'),
+      },
+      lastActivity: new Date('2024-01-01'),
+    },
+    {
+      id: 'session-2',
+      joinCode: 'DEF456',
+      sectionId: 'section-2',
+      sectionName: 'Section B',
+      status: 'completed' as const,
+      createdAt: new Date('2024-01-02'),
+      endedAt: new Date('2024-01-03'),
+      creatorId: 'instructor-1',
+      participants: ['instructor-1'],
+      students: new Map(),
+      problem: undefined,
+      lastActivity: new Date('2024-01-02'),
+    },
+    {
+      id: 'session-3',
+      joinCode: 'GHI789',
+      sectionId: 'section-3',
+      sectionName: 'Section C',
+      status: 'active' as const,
+      createdAt: new Date('2024-01-03'),
+      creatorId: 'other-instructor',
+      participants: ['other-instructor', 'student-1'],
+      students: new Map(),
+      problem: undefined,
+      lastActivity: new Date('2024-01-03'),
+    },
+  ];
+
+  let mockAuthProvider: any;
+  let mockStorage: any;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+
+    mockAuthProvider = {
+      getSession: jest.fn(),
+    };
+
+    mockStorage = {
+      sessions: {
+        listAllSessions: jest.fn(),
+      },
+    };
+
+    (getAuthProvider as jest.Mock).mockResolvedValue(mockAuthProvider);
+    (getStorage as jest.Mock).mockResolvedValue(mockStorage);
+  });
+
+  it('returns sessions created by instructor', async () => {
+    mockAuthProvider.getSession.mockResolvedValue({ user: mockInstructor });
+    mockStorage.sessions.listAllSessions.mockResolvedValue([mockSessions[0], mockSessions[1]]);
+
+    const request = new NextRequest('http://localhost/api/sessions', {
+      method: 'GET',
+      headers: {
+        Cookie: 'sessionId=test-session-id',
+      },
+    });
+
+    const response = await GET(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.success).toBe(true);
+    expect(data.sessions).toHaveLength(2);
+    expect(data.sessions[0].id).toBe('session-1');
+    expect(data.sessions[0].participantCount).toBe(2);
+    expect(data.sessions[1].id).toBe('session-2');
+    expect(mockStorage.sessions.listAllSessions).toHaveBeenCalledWith({
+      instructorId: 'instructor-1',
+    });
+  });
+
+  it('returns sessions joined by student', async () => {
+    mockAuthProvider.getSession.mockResolvedValue({ user: mockStudent });
+    mockStorage.sessions.listAllSessions.mockResolvedValue(mockSessions);
+
+    const request = new NextRequest('http://localhost/api/sessions', {
+      method: 'GET',
+      headers: {
+        Cookie: 'sessionId=test-session-id',
+      },
+    });
+
+    const response = await GET(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.success).toBe(true);
+    expect(data.sessions).toHaveLength(2);
+    expect(data.sessions[0].id).toBe('session-1');
+    expect(data.sessions[1].id).toBe('session-3');
+  });
+
+  it('filters by active status', async () => {
+    mockAuthProvider.getSession.mockResolvedValue({ user: mockInstructor });
+    mockStorage.sessions.listAllSessions.mockResolvedValue([mockSessions[0]]);
+
+    const request = new NextRequest('http://localhost/api/sessions?status=active', {
+      method: 'GET',
+      headers: {
+        Cookie: 'sessionId=test-session-id',
+      },
+    });
+
+    const response = await GET(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.success).toBe(true);
+    expect(data.sessions).toHaveLength(1);
+    expect(data.sessions[0].status).toBe('active');
+    expect(mockStorage.sessions.listAllSessions).toHaveBeenCalledWith({
+      instructorId: 'instructor-1',
+      active: true,
+    });
+  });
+
+  it('filters by completed status', async () => {
+    mockAuthProvider.getSession.mockResolvedValue({ user: mockInstructor });
+    mockStorage.sessions.listAllSessions.mockResolvedValue([mockSessions[1]]);
+
+    const request = new NextRequest('http://localhost/api/sessions?status=completed', {
+      method: 'GET',
+      headers: {
+        Cookie: 'sessionId=test-session-id',
+      },
+    });
+
+    const response = await GET(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.sessions).toHaveLength(1);
+    expect(data.sessions[0].status).toBe('completed');
+    expect(mockStorage.sessions.listAllSessions).toHaveBeenCalledWith({
+      instructorId: 'instructor-1',
+      active: false,
+    });
+  });
+
+  it('returns 401 when not authenticated', async () => {
+    const request = new NextRequest('http://localhost/api/sessions', {
+      method: 'GET',
+    });
+
+    const response = await GET(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(401);
+    expect(data.error).toBe('Unauthorized');
+  });
+
+  it('returns empty array when instructor has no sessions', async () => {
+    mockAuthProvider.getSession.mockResolvedValue({ user: mockInstructor });
+    mockStorage.sessions.listAllSessions.mockResolvedValue([]);
+
+    const request = new NextRequest('http://localhost/api/sessions', {
+      method: 'GET',
+      headers: {
+        Cookie: 'sessionId=test-session-id',
+      },
+    });
+
+    const response = await GET(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.success).toBe(true);
+    expect(data.sessions).toHaveLength(0);
   });
 });
