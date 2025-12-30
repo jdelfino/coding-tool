@@ -63,6 +63,22 @@ export default function CodeEditor({
   const { isCollapsed: isSettingsCollapsed, toggle: toggleSettings, setCollapsed: setSettingsCollapsed } = useSidebarSection('execution-settings', false);
   const { isCollapsed: isProblemCollapsed, toggle: toggleProblem, setCollapsed: setProblemCollapsed } = useSidebarSection('problem-panel', true);
 
+  // Ensure only one sidebar is open at a time on mount
+  const hasMountedRef = useRef(false);
+  useEffect(() => {
+    if (!hasMountedRef.current) {
+      hasMountedRef.current = true;
+      if (!isSettingsCollapsed && !isProblemCollapsed) {
+        // Both are open - close settings, keep problem open if it exists, otherwise keep settings
+        if (problem && setSettingsCollapsed) {
+          setSettingsCollapsed(true);
+        } else if (setProblemCollapsed) {
+          setProblemCollapsed(true);
+        }
+      }
+    }
+  }, [isSettingsCollapsed, isProblemCollapsed, problem, setSettingsCollapsed, setProblemCollapsed]);
+
   // Ensure only one sidebar is open at a time
   const handleToggleProblem = () => {
     if (isProblemCollapsed) {
