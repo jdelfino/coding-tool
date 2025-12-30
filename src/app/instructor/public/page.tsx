@@ -216,7 +216,6 @@ function PublicViewContent() {
               exampleInput={exampleInput}
               randomSeed={randomSeed}
               attachedFiles={attachedFiles}
-              executionResult={executionResult}
               problem={problem}
               title="Featured Code"
             />

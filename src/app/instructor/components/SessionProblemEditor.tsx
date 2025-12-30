@@ -120,18 +120,20 @@ export default function SessionProblemEditor({
         <label className="block text-sm font-medium text-gray-700 mb-2">
           Starter Code
         </label>
-        <CodeEditor
-          code={starterCode}
-          onChange={setStarterCode}
-          useApiExecution={true}
-          title="Starter Code"
-          exampleInput={stdin}
-          onStdinChange={setStdin}
-          randomSeed={randomSeed}
-          onRandomSeedChange={setRandomSeed}
-          attachedFiles={attachedFiles}
-          onAttachedFilesChange={setAttachedFiles}
-        />
+        <div style={{ height: '400px' }}>
+          <CodeEditor
+            code={starterCode}
+            onChange={setStarterCode}
+            useApiExecution={true}
+            title="Starter Code"
+            exampleInput={stdin}
+            onStdinChange={setStdin}
+            randomSeed={randomSeed}
+            onRandomSeedChange={setRandomSeed}
+            attachedFiles={attachedFiles}
+            onAttachedFilesChange={setAttachedFiles}
+          />
+        </div>
         <p className="mt-2 text-xs text-gray-500">
           Template code shown to students. You can test it by clicking "Run Code".
         </p>
