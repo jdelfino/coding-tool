@@ -157,9 +157,71 @@ export default function CodeEditor({
       </div>
 
       {/* Main Content Area - Responsive Layout */}
-      <div className="lg:flex lg:flex-row overflow-hidden">
-        {/* Left Column: Editor + Results (Desktop) or Full Width (Mobile) */}
-        <div className={`flex flex-col ${isDesktop && !isSettingsCollapsed ? 'lg:flex-[7]' : 'flex-1'}`}>
+      <div className="flex flex-row">
+        {/* Left Sidebar (Desktop only) - VS Code style */}
+        {isDesktop && (
+          <div className="flex flex-row flex-shrink-0">
+            {/* Activity Bar (Icon bar) */}
+            <div className="w-12 bg-gray-800 flex flex-col items-center py-2 gap-1">
+              <button
+                onClick={toggleSettings}
+                className={`w-10 h-10 flex items-center justify-center rounded transition-colors ${
+                  !isSettingsCollapsed 
+                    ? 'bg-gray-700 text-white' 
+                    : 'text-gray-400 hover:text-white hover:bg-gray-700'
+                }`}
+                aria-label="Execution Settings"
+                title="Execution Settings"
+              >
+                {/* Settings/Sliders icon */}
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <line x1="4" y1="21" x2="4" y2="14" />
+                  <line x1="4" y1="10" x2="4" y2="3" />
+                  <line x1="12" y1="21" x2="12" y2="12" />
+                  <line x1="12" y1="8" x2="12" y2="3" />
+                  <line x1="20" y1="21" x2="20" y2="16" />
+                  <line x1="20" y1="12" x2="20" y2="3" />
+                  <line x1="1" y1="14" x2="7" y2="14" />
+                  <line x1="9" y1="8" x2="15" y2="8" />
+                  <line x1="17" y1="16" x2="23" y2="16" />
+                </svg>
+              </button>
+              {/* Future icons will go here */}
+            </div>
+
+            {/* Side Panel (expands when active) */}
+            {!isSettingsCollapsed && (
+              <div className="w-80 bg-gray-50 border-r border-gray-300 flex flex-col flex-shrink-0">
+                <div className="px-4 py-2 bg-gray-100 border-b border-gray-300 font-bold flex items-center justify-between">
+                  <span>Execution Settings</span>
+                  <button
+                    onClick={toggleSettings}
+                    className="text-gray-600 hover:text-gray-900 text-xl leading-none"
+                    aria-label="Close panel"
+                  >
+                    ×
+                  </button>
+                </div>
+                <div className="flex-1 overflow-y-auto">
+                  <ExecutionSettingsComponent
+                    stdin={stdin}
+                    onStdinChange={handleStdinChange}
+                    randomSeed={randomSeed}
+                    onRandomSeedChange={onRandomSeedChange}
+                    attachedFiles={attachedFiles}
+                    onAttachedFilesChange={onAttachedFilesChange}
+                    exampleInput={exampleInput}
+                    readOnly={readOnly}
+                    inSidebar={true}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Main Editor Area */}
+        <div className="flex-1 flex flex-col min-w-0">
           {/* Code Editor */}
           <Editor
             height="400px"
@@ -224,59 +286,8 @@ export default function CodeEditor({
           )}
         </div>
 
-        {/* Right Sidebar (Desktop) or Below (Mobile) */}
-        {isDesktop ? (
-          /* Desktop: Collapsible Sidebar Section */
-          !isSettingsCollapsed ? (
-            <div className="lg:flex-[3] lg:border-l border-gray-300 bg-gray-50">
-              <button
-                onClick={toggleSettings}
-                className="w-full px-4 py-2 bg-transparent border-none cursor-pointer text-left font-bold flex items-center justify-between hover:bg-gray-100"
-                aria-expanded={!isSettingsCollapsed}
-                aria-label="Toggle execution settings"
-              >
-                <div className="flex items-center gap-2">
-                  <span className="inline-block transition-transform duration-200 rotate-90">
-                    ▶
-                  </span>
-                  Execution Settings
-                </div>
-              </button>
-              
-              <div className="border-t border-gray-300">
-                <ExecutionSettingsComponent
-                  stdin={stdin}
-                  onStdinChange={handleStdinChange}
-                  randomSeed={randomSeed}
-                  onRandomSeedChange={onRandomSeedChange}
-                  attachedFiles={attachedFiles}
-                  onAttachedFilesChange={onAttachedFilesChange}
-                  exampleInput={exampleInput}
-                  readOnly={readOnly}
-                  inSidebar={true}
-                />
-              </div>
-            </div>
-          ) : (
-            <div className="lg:border-l border-gray-300 bg-gray-50" style={{ flexBasis: '40px', flexShrink: 0 }}>
-              <button
-                onClick={toggleSettings}
-                className="w-full h-full p-2 bg-transparent border-none cursor-pointer flex items-center justify-center hover:bg-gray-100"
-                aria-expanded={!isSettingsCollapsed}
-                aria-label="Toggle execution settings"
-                title="Execution Settings"
-              >
-                {/* Hamburger icon */}
-                <div className="flex flex-col gap-1">
-                  <div className="w-5 h-0.5 bg-gray-600"></div>
-                  <div className="w-5 h-0.5 bg-gray-600"></div>
-                  <div className="w-5 h-0.5 bg-gray-600"></div>
-                </div>
-              </button>
-            </div>
-          )
-        ) : (
-          /* Mobile: Traditional Bottom Section */
+        {/* Mobile: Bottom Execution Settings */}
+        {!isDesktop && (
           <div className="border-t border-gray-300">
             <ExecutionSettingsComponent
               stdin={stdin}

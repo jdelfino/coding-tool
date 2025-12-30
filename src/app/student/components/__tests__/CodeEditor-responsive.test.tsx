@@ -76,10 +76,9 @@ describe('CodeEditor Responsive Layout', () => {
         />
       );
 
-      // Look for the collapse button
-      const collapseButton = screen.getByRole('button', { name: /toggle execution settings/i });
-      expect(collapseButton).toBeInTheDocument();
-      expect(collapseButton).toHaveAttribute('aria-expanded', 'true');
+      // Look for the activity bar button
+      const sidebarButton = screen.getByRole('button', { name: /execution settings/i });
+      expect(sidebarButton).toBeInTheDocument();
     });
 
     it('should render editor and sidebar in horizontal layout on desktop', () => {
@@ -90,9 +89,9 @@ describe('CodeEditor Responsive Layout', () => {
         />
       );
 
-      // Check for lg:flex class which creates horizontal layout on large screens
-      const layoutContainer = container.querySelector('.lg\\:flex');
-      expect(layoutContainer).toBeInTheDocument();
+      // Check for the activity bar (icon sidebar) which appears on desktop
+      const activityBar = container.querySelector('.w-12.bg-gray-800');
+      expect(activityBar).toBeInTheDocument();
     });
   });
 
@@ -123,9 +122,9 @@ describe('CodeEditor Responsive Layout', () => {
         />
       );
 
-      // The collapse button should not exist on mobile as settings are always visible
-      const collapseButton = screen.queryByRole('button', { name: /toggle execution settings/i });
-      expect(collapseButton).not.toBeInTheDocument();
+      // The activity bar should not exist on mobile
+      const sidebarButton = screen.queryByRole('button', { name: /execution settings/i });
+      expect(sidebarButton).not.toBeInTheDocument();
     });
 
     it('should maintain vertical stacking layout on mobile', () => {
@@ -136,9 +135,9 @@ describe('CodeEditor Responsive Layout', () => {
         />
       );
 
-      // The layout container has flex-row on desktop but stacks vertically on mobile
-      const layoutContainer = container.querySelector('.lg\\:flex');
-      expect(layoutContainer).toBeInTheDocument();
+      // Activity bar should not be rendered on mobile
+      const activityBar = container.querySelector('.w-12.bg-gray-800');
+      expect(activityBar).not.toBeInTheDocument();
     });
   });
 
@@ -199,10 +198,10 @@ describe('CodeEditor Responsive Layout', () => {
         />
       );
 
-      const collapseButton = screen.getByRole('button', { name: /toggle execution settings/i });
-      expect(collapseButton).toHaveAttribute('aria-expanded', 'false');
+      const sidebarButton = screen.getByRole('button', { name: /execution settings/i });
+      expect(sidebarButton).toBeInTheDocument();
       
-      // Settings should not be rendered when collapsed
+      // Settings panel should not be rendered when collapsed
       expect(screen.queryByTestId('execution-settings')).not.toBeInTheDocument();
     });
 
@@ -221,10 +220,10 @@ describe('CodeEditor Responsive Layout', () => {
         />
       );
 
-      const collapseButton = screen.getByRole('button', { name: /toggle execution settings/i });
-      expect(collapseButton).toHaveAttribute('aria-expanded', 'true');
+      const sidebarButton = screen.getByRole('button', { name: /execution settings/i });
+      expect(sidebarButton).toBeInTheDocument();
       
-      // Settings should be rendered when expanded
+      // Settings panel should be rendered when expanded
       expect(screen.getByTestId('execution-settings')).toBeInTheDocument();
     });
   });
@@ -242,9 +241,9 @@ describe('CodeEditor Responsive Layout', () => {
         />
       );
 
-      // Should still render collapsible sidebar in read-only mode
-      const collapseButton = screen.getByRole('button', { name: /toggle execution settings/i });
-      expect(collapseButton).toBeInTheDocument();
+      // Should still render sidebar button in read-only mode
+      const sidebarButton = screen.getByRole('button', { name: /execution settings/i });
+      expect(sidebarButton).toBeInTheDocument();
     });
   });
 });
