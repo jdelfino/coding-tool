@@ -51,12 +51,41 @@ export interface ExecutionResult {
   stdin?: string; // Input provided to the program
 }
 
+// Debugger/Trace types
+export interface CallFrame {
+  functionName: string;
+  filename: string;
+  line: number;
+}
+
+export interface VariableState {
+  [key: string]: any;
+}
+
+export interface TraceStep {
+  line: number;
+  event: string; // 'line', 'call', 'return', 'exception'
+  locals: VariableState;
+  globals: VariableState;
+  callStack: CallFrame[];
+  stdout: string;
+}
+
+export interface ExecutionTrace {
+  steps: TraceStep[];
+  totalSteps: number;
+  exitCode: number;
+  error?: string;
+  truncated?: boolean;
+}
+
 export enum MessageType {
   // Student messages
   JOIN_SESSION = 'JOIN_SESSION',
   CODE_UPDATE = 'CODE_UPDATE',
   EXECUTE_CODE = 'EXECUTE_CODE',
   UPDATE_STUDENT_SETTINGS = 'UPDATE_STUDENT_SETTINGS',
+  TRACE_REQUEST = 'TRACE_REQUEST',
   
   // Instructor messages
   CREATE_SESSION = 'CREATE_SESSION',
@@ -85,6 +114,7 @@ export enum MessageType {
   STUDENT_CODE = 'STUDENT_CODE',
   PUBLIC_SUBMISSION_UPDATE = 'PUBLIC_SUBMISSION_UPDATE',
   REVISIONS_DATA = 'REVISIONS_DATA',
+  TRACE_RESPONSE = 'TRACE_RESPONSE',
   ERROR = 'ERROR',
 }
 
