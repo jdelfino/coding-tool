@@ -5,7 +5,6 @@ import { useSearchParams } from 'next/navigation';
 import { MessageType } from '@/server/types';
 import { ExecutionSettings } from '@/server/types/problem';
 import CodeEditor from '@/app/student/components/CodeEditor';
-import OutputPanel from '@/app/student/components/OutputPanel';
 
 interface ExecutionResult {
   success: boolean;
@@ -208,38 +207,16 @@ function PublicViewContent() {
           borderRadius: '4px'
         }}>
           <h2 style={{ marginTop: 0, marginBottom: '1rem' }}>Featured Submission</h2>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-            <div>
-              <h3 style={{ 
-                fontSize: '0.875rem', 
-                fontWeight: '500',
-                color: '#666',
-                marginBottom: '0.5rem' 
-              }}>
-                Code
-              </h3>
-              <CodeEditor
-                code={code}
-                onChange={handleCodeChange}
-                onRun={handleRun}
-                isRunning={isExecuting}
-                exampleInput={exampleInput}
-                randomSeed={randomSeed}
-                attachedFiles={attachedFiles}
-              />
-            </div>
-            <div>
-              <h3 style={{ 
-                fontSize: '0.875rem', 
-                fontWeight: '500',
-                color: '#666',
-                marginBottom: '0.5rem' 
-              }}>
-                Output
-              </h3>
-              <OutputPanel result={executionResult} />
-            </div>
-          </div>
+          <CodeEditor
+            code={code}
+            onChange={handleCodeChange}
+            onRun={handleRun}
+            isRunning={isExecuting}
+            exampleInput={exampleInput}
+            randomSeed={randomSeed}
+            attachedFiles={attachedFiles}
+            executionResult={executionResult}
+          />
         </div>
       ) : (
         <div style={{ 
