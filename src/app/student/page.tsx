@@ -8,7 +8,6 @@ import { useSessionHistory, SessionHistory } from '@/hooks/useSessionHistory';
 import { Problem, ExecutionSettings } from '@/server/types/problem';
 import JoinForm from './components/JoinForm';
 import StudentDashboard from './components/StudentDashboard';
-import ProblemDisplay from './components/ProblemDisplay';
 import CodeEditor from './components/CodeEditor';
 import SessionEndedNotification from './components/SessionEndedNotification';
 
@@ -570,11 +569,6 @@ function StudentPage() {
         />
       )}
 
-      <ProblemDisplay 
-        problem={problem}
-        onLoadStarterCode={handleLoadStarterCode}
-      />
-
       <CodeEditor
         code={code}
         onChange={setCode}
@@ -586,6 +580,8 @@ function StudentPage() {
         attachedFiles={studentExecutionSettings?.attachedFiles !== undefined ? studentExecutionSettings.attachedFiles : sessionExecutionSettings.attachedFiles}
         onAttachedFilesChange={(files) => setStudentExecutionSettings(prev => ({ ...prev, attachedFiles: files }))}
         executionResult={executionResult}
+        problem={problem}
+        onLoadStarterCode={handleLoadStarterCode}
       />
     </main>
   );

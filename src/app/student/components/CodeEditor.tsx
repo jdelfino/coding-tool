@@ -5,6 +5,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import ExecutionSettingsComponent from './ExecutionSettings';
 import type { ExecutionSettings } from '@/server/types/problem';
 import { useResponsiveLayout, useSidebarSection } from '@/hooks/useResponsiveLayout';
+import type { Problem } from '@/server/types/problem';
 
 interface ExecutionResult {
   success: boolean;
@@ -29,6 +30,8 @@ interface CodeEditorProps {
   useApiExecution?: boolean;
   title?: string;
   showRunButton?: boolean;
+  problem?: Problem | null;
+  onLoadStarterCode?: (starterCode: string) => void;
 }
 
 export default function CodeEditor({ 
@@ -47,6 +50,8 @@ export default function CodeEditor({
   useApiExecution = false,
   title = 'Your Code',
   showRunButton = true,
+  problem = null,
+  onLoadStarterCode,
 }: CodeEditorProps) {
   const editorRef = useRef<any>(null);
   const [stdin, setStdin] = useState('');
@@ -56,6 +61,7 @@ export default function CodeEditor({
   // Responsive layout detection
   const isDesktop = useResponsiveLayout(1024);
   const { isCollapsed: isSettingsCollapsed, toggle: toggleSettings } = useSidebarSection('execution-settings', false);
+  const { isCollapsed: isProblemCollapsed, toggle: toggleProblem } = useSidebarSection('problem-panel', true);
 
   // Wrapper to call both internal state and parent callback
   const handleStdinChange = (value: string) => {
@@ -163,6 +169,30 @@ export default function CodeEditor({
           <div className="flex flex-row flex-shrink-0">
             {/* Activity Bar (Icon bar) */}
             <div className="w-12 bg-gray-800 flex flex-col items-center py-2 gap-1">
+              {/* Problem icon (only show if problem exists) */}
+              {problem && (
+                <button
+                  onClick={toggleProblem}
+                  className={`w-10 h-10 flex items-center justify-center rounded transition-colors ${
+                    !isProblemCollapsed 
+                      ? 'bg-gray-700 text-white' 
+                      : 'text-gray-400 hover:text-white hover:bg-gray-700'
+                  }`}
+                  aria-label="Problem"
+                  title="Problem"
+                >
+                  {/* Document/Problem icon */}
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                    <polyline points="14 2 14 8 20 8" />
+                    <line x1="16" y1="13" x2="8" y2="13" />
+                    <line x1="16" y1="17" x2="8" y2="17" />
+                    <polyline points="10 9 9 9 8 9" />
+                  </svg>
+                </button>
+              )}
+              
+              {/* Settings icon */}
               <button
                 onClick={toggleSettings}
                 className={`w-10 h-10 flex items-center justify-center rounded transition-colors ${
@@ -190,13 +220,46 @@ export default function CodeEditor({
             </div>
 
             {/* Side Panel (expands when active) */}
+            {(!isProblemCollapsed && problem) && (
+              <div className="w-80 bg-gray-800 text-gray-200 border-r border-gray-700 flex flex-col flex-shrink-0">
+                <div className="px-4 py-2 bg-gray-900 border-b border-gray-700 font-bold flex items-center justify-between">
+                  <span>Problem</span>
+                  <button
+                    onClick={toggleProblem}
+                    className="text-gray-400 hover:text-gray-100 text-xl leading-none"
+                    aria-label="Close panel"
+                  >
+                    ×
+                  </button>
+                </div>
+                <div className="flex-1 overflow-y-auto p-4">
+                  <h2 className="text-xl font-bold mb-4">{problem.title}</h2>
+                  {problem.description && (
+                    <div className="prose prose-invert prose-sm max-w-none">
+                      <pre className="whitespace-pre-wrap text-gray-300 text-sm font-sans">
+                        {problem.description}
+                      </pre>
+                    </div>
+                  )}
+                  {problem.starterCode && onLoadStarterCode && (
+                    <button
+                      onClick={() => onLoadStarterCode(problem.starterCode || '')}
+                      className="mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm"
+                    >
+                      Load Starter Code
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+            
             {!isSettingsCollapsed && (
-              <div className="w-80 bg-gray-50 border-r border-gray-300 flex flex-col flex-shrink-0">
-                <div className="px-4 py-2 bg-gray-100 border-b border-gray-300 font-bold flex items-center justify-between">
+              <div className="w-80 bg-gray-800 text-gray-200 border-r border-gray-700 flex flex-col flex-shrink-0">
+                <div className="px-4 py-2 bg-gray-900 border-b border-gray-700 font-bold flex items-center justify-between">
                   <span>Execution Settings</span>
                   <button
                     onClick={toggleSettings}
-                    className="text-gray-600 hover:text-gray-900 text-xl leading-none"
+                    className="text-gray-400 hover:text-gray-100 text-xl leading-none"
                     aria-label="Close panel"
                   >
                     ×

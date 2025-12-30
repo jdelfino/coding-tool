@@ -89,10 +89,23 @@ export default function ExecutionSettings({
 
   const hasContent = stdin || randomSeed !== undefined || attachedFiles.length > 0;
 
+  // Color scheme based on mode
+  const bgColor = inSidebar ? 'transparent' : '#f5f5f5';
+  const contentBg = inSidebar ? '#1f2937' : 'white'; // gray-800 for sidebar
+  const textColor = inSidebar ? '#e5e7eb' : '#000'; // gray-200 for sidebar
+  const labelColor = inSidebar ? '#d1d5db' : '#000'; // gray-300 for sidebar
+  const inputBg = inSidebar ? '#374151' : '#fff'; // gray-700 for sidebar
+  const inputBorder = inSidebar ? '#4b5563' : '#ccc'; // gray-600 for sidebar
+  const inputText = inSidebar ? '#f3f4f6' : '#000'; // gray-100 for sidebar
+  const buttonBg = inSidebar ? '#374151' : '#f5f5f5'; // gray-700 for sidebar
+  const buttonHoverBg = inSidebar ? '#4b5563' : '#e5e5e5'; // gray-600 for sidebar
+  const borderColor = inSidebar ? '#374151' : '#ccc'; // gray-700 for sidebar
+
   return (
     <div style={{
-      borderTop: inSidebar ? 'none' : '1px solid #ccc',
-      backgroundColor: inSidebar ? 'transparent' : '#f5f5f5',
+      borderTop: inSidebar ? 'none' : `1px solid ${borderColor}`,
+      backgroundColor: bgColor,
+      color: textColor,
     }}>
       {shouldShowCollapse && (
         <button
@@ -132,8 +145,9 @@ export default function ExecutionSettings({
       {isExpanded && (
         <div style={{ 
           padding: '1rem', 
-          backgroundColor: inSidebar ? '#f9f9f9' : 'white',
-          borderTop: shouldShowCollapse ? '1px solid #ccc' : 'none'
+          backgroundColor: contentBg,
+          borderTop: shouldShowCollapse ? `1px solid ${borderColor}` : 'none',
+          color: textColor,
         }}>
           {/* Program Input */}
           <div style={{ marginBottom: '1rem' }}>
@@ -141,14 +155,15 @@ export default function ExecutionSettings({
               display: 'block', 
               marginBottom: '0.5rem',
               fontWeight: 'bold',
-              fontSize: '0.9rem'
+              fontSize: '0.9rem',
+              color: labelColor,
             }}>
               Program Input (stdin):
               {exampleInput && (
                 <span style={{ 
                   marginLeft: '0.5rem',
                   fontSize: '0.8rem',
-                  color: '#666',
+                  color: inSidebar ? '#9ca3af' : '#666',
                   fontWeight: 'normal'
                 }}>
                   (example provided by instructor)
@@ -166,18 +181,19 @@ export default function ExecutionSettings({
                 padding: '0.5rem',
                 fontFamily: 'monospace',
                 fontSize: '0.9rem',
-                border: '1px solid #ccc',
+                border: `1px solid ${inputBorder}`,
                 borderRadius: '4px',
                 resize: 'vertical',
-                backgroundColor: readOnly ? '#f5f5f5' : 'white',
+                backgroundColor: readOnly ? (inSidebar ? '#1f2937' : '#f5f5f5') : inputBg,
+                color: inputText,
               }}
             />
           </div>
 
           {/* Random Seed */}
-          <div style={{ marginBottom: '1rem', paddingTop: '1rem', borderTop: '1px solid #eee' }}>
+          <div style={{ marginBottom: '1rem', paddingTop: '1rem', borderTop: `1px solid ${inSidebar ? '#374151' : '#eee'}` }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-              <h4 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 'bold' }}>Random Seed:</h4>
+              <h4 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 'bold', color: labelColor }}>Random Seed:</h4>
               {!readOnly && !editingSeed && (
                 <button
                   type="button"
@@ -203,15 +219,16 @@ export default function ExecutionSettings({
             {!editingSeed ? (
               <div style={{ 
                 padding: '0.5rem', 
-                backgroundColor: '#f8f9fa', 
-                border: '1px solid #dee2e6',
+                backgroundColor: inSidebar ? '#111827' : '#f8f9fa',
+                border: `1px solid ${inSidebar ? '#374151' : '#dee2e6'}`,
                 borderRadius: '4px',
-                fontSize: '0.9rem'
+                fontSize: '0.9rem',
+                color: textColor,
               }}>
                 {randomSeed !== undefined ? (
                   <code>{randomSeed}</code>
                 ) : (
-                  <span style={{ color: '#666', fontStyle: 'italic' }}>No seed set (random)</span>
+                  <span style={{ color: inSidebar ? '#9ca3af' : '#666', fontStyle: 'italic' }}>No seed set (random)</span>
                 )}
               </div>
             ) : (
@@ -224,9 +241,11 @@ export default function ExecutionSettings({
                   style={{
                     flex: 1,
                     padding: '0.5rem',
-                    border: '1px solid #ccc',
+                    border: `1px solid ${inputBorder}`,
                     borderRadius: '4px',
-                    fontSize: '0.9rem'
+                    fontSize: '0.9rem',
+                    backgroundColor: inputBg,
+                    color: inputText,
                   }}
                 />
                 <button
@@ -261,15 +280,15 @@ export default function ExecutionSettings({
                 </button>
               </div>
             )}
-            <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.8rem', color: '#666' }}>
+            <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.8rem', color: inSidebar ? '#9ca3af' : '#666' }}>
               Makes random numbers predictable. Same seed = same "random" results.
             </p>
           </div>
 
           {/* Attached Files */}
-          <div style={{ paddingTop: '1rem', borderTop: '1px solid #eee' }}>
+          <div style={{ paddingTop: '1rem', borderTop: `1px solid ${inSidebar ? '#374151' : '#eee'}` }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-              <h4 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 'bold' }}>Attached Files:</h4>
+              <h4 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 'bold', color: labelColor }}>Attached Files:</h4>
               {!readOnly && !editingFiles && (
                 <button
                   type="button"
@@ -297,12 +316,13 @@ export default function ExecutionSettings({
                 {attachedFiles.length === 0 ? (
                   <div style={{ 
                     padding: '0.5rem', 
-                    backgroundColor: '#f8f9fa', 
-                    border: '1px solid #dee2e6',
+                    backgroundColor: inSidebar ? '#111827' : '#f8f9fa',
+                    border: `1px solid ${inSidebar ? '#374151' : '#dee2e6'}`,
                     borderRadius: '4px',
-                    fontSize: '0.9rem'
+                    fontSize: '0.9rem',
+                    color: textColor,
                   }}>
-                    <span style={{ color: '#666', fontStyle: 'italic' }}>No files attached</span>
+                    <span style={{ color: inSidebar ? '#9ca3af' : '#666', fontStyle: 'italic' }}>No files attached</span>
                   </div>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
@@ -311,9 +331,10 @@ export default function ExecutionSettings({
                         key={index}
                         style={{
                           padding: '0.75rem',
-                          backgroundColor: '#f8f9fa',
-                          border: '1px solid #dee2e6',
+                          backgroundColor: inSidebar ? '#111827' : '#f8f9fa',
+                          border: `1px solid ${inSidebar ? '#374151' : '#dee2e6'}`,
                           borderRadius: '4px',
+                          color: textColor,
                         }}
                       >
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
