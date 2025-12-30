@@ -441,7 +441,7 @@ function StudentPage() {
 
   // Active session view
   return (
-    <main style={{ padding: '2rem', maxWidth: '1000px', margin: '0 auto' }}>
+    <main style={{ padding: '1rem', width: '100%', height: '100vh', boxSizing: 'border-box' }}>
       {/* Header with Sign Out */}
       <div style={{ 
         display: 'flex', 

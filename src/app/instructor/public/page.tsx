@@ -150,7 +150,7 @@ function PublicViewContent() {
   }
 
   return (
-    <main style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
+    <main style={{ padding: '1rem', width: '100%', minHeight: '100vh', boxSizing: 'border-box' }}>
       <h1 style={{ marginBottom: '1.5rem' }}>Public Display</h1>
       
       {/* Header with Join Code */}
@@ -226,7 +226,6 @@ function PublicViewContent() {
                 exampleInput={exampleInput}
                 randomSeed={randomSeed}
                 attachedFiles={attachedFiles}
-                readOnly
               />
             </div>
             <div>

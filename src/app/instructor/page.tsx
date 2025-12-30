@@ -114,15 +114,13 @@ function InstructorPage() {
   //Auto-join session from URL params (e.g., after creating session from problem)
   useEffect(() => {
     const sessionIdParam = searchParams.get('sessionId');
-    if (sessionIdParam && isConnected && !sessionId) {
-      console.log('[Auto-join] Attempting to join session from URL:', sessionIdParam);
-      
-      if (!isConnected) {
-        console.log('[Auto-join] WebSocket not connected, skipping');
-        return;
-      }
-      
-      console.log('[Auto-join] Sending JOIN_EXISTING_SESSION message');
+    
+    // Only auto-join if:
+    // 1. There's a sessionId in the URL
+    // 2. WebSocket is connected
+    // 3. We're not already in that specific session (allow switching sessions)
+    if (sessionIdParam && isConnected && sessionId !== sessionIdParam) {
+      console.log('[Auto-join] Joining session from URL:', sessionIdParam);
       sendMessage('JOIN_EXISTING_SESSION', { sessionId: sessionIdParam });
       
       // Clear URL params after initiating join
@@ -756,7 +754,7 @@ function InstructorPage() {
         </div>
 
         {/* Main content */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="w-full px-4 sm:px-6 lg:px-8 py-8">
           {/* Navigation */}
           <InstructorNav 
             currentView={viewMode}
