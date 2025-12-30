@@ -384,68 +384,81 @@ export default function CodeEditor({
 
         {/* Main Editor Area */}
         <div className="flex-1 flex flex-col min-w-0 min-h-0">
-          {/* Code Editor */}
-          <Editor
-            height="100%"
-            defaultLanguage="python"
-            value={code}
-            onChange={(value) => !readOnly && onChange(value || '')}
-            onMount={handleEditorDidMount}
-            theme="vs-dark"
-            options={{
-              minimap: { enabled: false },
-              fontSize: 14,
-              lineNumbers: 'on',
-              roundedSelection: false,
-              scrollBeyondLastLine: false,
-              automaticLayout: true,
-              readOnly,
-            }}
-          />
+          {/* Code Editor - takes 60% of space */}
+          <div className="flex-1 min-h-0" style={{ flexBasis: '60%' }}>
+            <Editor
+              height="100%"
+              defaultLanguage="python"
+              value={code}
+              onChange={(value) => !readOnly && onChange(value || '')}
+              onMount={handleEditorDidMount}
+              theme="vs-dark"
+              options={{
+                minimap: { enabled: false },
+                fontSize: 14,
+                lineNumbers: 'on',
+                roundedSelection: false,
+                scrollBeyondLastLine: false,
+                automaticLayout: true,
+                readOnly,
+              }}
+            />
+          </div>
 
-          {/* Execution Results */}
-          {effectiveResult && (
-            <div className={`p-4 border-t border-gray-300 ${
-              effectiveResult.success ? 'bg-green-100' : 'bg-red-100'
-            }`}>
-              <div className="flex justify-between items-center mb-2">
-                <span className={`font-bold ${
-                  effectiveResult.success ? 'text-green-800' : 'text-red-800'
-                }`}>
-                  {effectiveResult.success ? '✓ Success' : '✗ Error'}
-                </span>
-                <span className={`text-sm ${
-                  effectiveResult.success ? 'text-green-800' : 'text-red-800'
-                }`}>
-                  Execution time: {effectiveResult.executionTime}ms
-                </span>
-              </div>
-              
-              {effectiveResult.output && (
-                <div className="mt-2">
-                  <div className={`font-bold text-sm ${
+          {/* Execution Results - Always Visible - takes 40% of space */}
+          <div 
+            className="border-t border-gray-300 overflow-y-auto flex-shrink-0"
+            style={{ flexBasis: '40%', minHeight: '150px', maxHeight: '40%' }}
+          >
+            {effectiveResult ? (
+              <div className={`p-4 h-full ${
+                effectiveResult.success ? 'bg-green-100' : 'bg-red-100'
+              }`}>
+                <div className="flex justify-between items-center mb-2">
+                  <span className={`font-bold ${
                     effectiveResult.success ? 'text-green-800' : 'text-red-800'
                   }`}>
-                    Output:
-                  </div>
-                  <pre className="bg-white p-2 rounded border border-gray-300 overflow-x-auto text-sm font-mono mt-1 whitespace-pre-wrap break-words">
-                    {effectiveResult.output}
-                  </pre>
+                    {effectiveResult.success ? '✓ Success' : '✗ Error'}
+                  </span>
+                  <span className={`text-sm ${
+                    effectiveResult.success ? 'text-green-800' : 'text-red-800'
+                  }`}>
+                    Execution time: {effectiveResult.executionTime}ms
+                  </span>
                 </div>
-              )}
-              
-              {effectiveResult.error && (
-                <div className="mt-2">
-                  <div className="font-bold text-sm text-red-800">
-                    Error:
+                
+                {effectiveResult.output && (
+                  <div className="mt-2">
+                    <div className={`font-bold text-sm ${
+                      effectiveResult.success ? 'text-green-800' : 'text-red-800'
+                    }`}>
+                      Output:
+                    </div>
+                    <pre className="bg-white p-2 rounded border border-gray-300 overflow-x-auto text-sm font-mono mt-1 whitespace-pre-wrap break-words">
+                      {effectiveResult.output}
+                    </pre>
                   </div>
-                  <pre className="bg-white p-2 rounded border border-gray-300 overflow-x-auto text-sm font-mono mt-1 whitespace-pre-wrap break-words text-red-800">
-                    {effectiveResult.error}
-                  </pre>
-                </div>
-              )}
-            </div>
-          )}
+                )}
+                
+                {effectiveResult.error && (
+                  <div className="mt-2">
+                    <div className="font-bold text-sm text-red-800">
+                      Error:
+                    </div>
+                    <pre className="bg-white p-2 rounded border border-gray-300 overflow-x-auto text-sm font-mono mt-1 whitespace-pre-wrap break-words text-red-800">
+                      {effectiveResult.error}
+                    </pre>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="p-4 bg-gray-50 h-full flex items-center justify-center">
+                <p className="text-gray-500 text-sm italic">
+                  Run the code to see output here
+                </p>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Mobile: Bottom Execution Settings */}
