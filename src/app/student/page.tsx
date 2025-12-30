@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { useAuth } from '@/contexts/AuthContext';
@@ -220,14 +220,42 @@ function StudentPage() {
     refetchSessions();
   };
 
+  const editorRef = useRef<any>(null);
+
   const handleLoadStarterCode = useCallback((starterCode: string) => {
     if (code.trim().length > 0) {
       // Ask for confirmation if there's existing code
       if (confirm('This will replace your current code. Are you sure?')) {
-        setCode(starterCode);
+        // Use Monaco editor API to preserve undo history
+        if (editorRef.current) {
+          const editor = editorRef.current;
+          const model = editor.getModel();
+          if (model) {
+            const fullRange = model.getFullModelRange();
+            editor.executeEdits('load-starter-code', [{
+              range: fullRange,
+              text: starterCode,
+            }]);
+          }
+        } else {
+          setCode(starterCode);
+        }
       }
     } else {
-      setCode(starterCode);
+      // Use Monaco editor API to preserve undo history
+      if (editorRef.current) {
+        const editor = editorRef.current;
+        const model = editor.getModel();
+        if (model) {
+          const fullRange = model.getFullModelRange();
+          editor.executeEdits('load-starter-code', [{
+            range: fullRange,
+            text: starterCode,
+          }]);
+        }
+      } else {
+        setCode(starterCode);
+      }
     }
   }, [code]);
 
@@ -586,6 +614,7 @@ function StudentPage() {
           executionResult={executionResult}
           problem={problem}
           onLoadStarterCode={handleLoadStarterCode}
+          externalEditorRef={editorRef}
         />
       </div>
     </main>

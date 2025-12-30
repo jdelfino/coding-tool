@@ -31,8 +31,7 @@ interface CodeEditorProps {
   title?: string;
   showRunButton?: boolean;
   problem?: Problem | null;
-  onLoadStarterCode?: (starterCode: string) => void;
-}
+  onLoadStarterCode?: (starterCode: string) => void;  externalEditorRef?: React.MutableRefObject<any>;}
 
 export default function CodeEditor({ 
   code, 
@@ -52,6 +51,7 @@ export default function CodeEditor({
   showRunButton = true,
   problem = null,
   onLoadStarterCode,
+  externalEditorRef,
 }: CodeEditorProps) {
   const editorRef = useRef<any>(null);
   const [stdin, setStdin] = useState('');
@@ -61,7 +61,7 @@ export default function CodeEditor({
   // Responsive layout detection
   const isDesktop = useResponsiveLayout(1024);
   const { isCollapsed: isSettingsCollapsed, toggle: toggleSettings, setCollapsed: setSettingsCollapsed } = useSidebarSection('execution-settings', false);
-  const { isCollapsed: isProblemCollapsed, toggle: toggleProblem, setCollapsed: setProblemCollapsed } = useSidebarSection('problem-panel', true);
+  const { isCollapsed: isProblemCollapsed, toggle: toggleProblem, setCollapsed: setProblemCollapsed } = useSidebarSection('problem-panel', false);
 
   // Sidebar resize state
   const [sidebarWidth, setSidebarWidth] = useState(320); // 320px = w-80
@@ -206,6 +206,10 @@ export default function CodeEditor({
 
   const handleEditorDidMount = (editor: any) => {
     editorRef.current = editor;
+    // Also store in external ref if provided
+    if (externalEditorRef) {
+      externalEditorRef.current = editor;
+    }
     if (!readOnly) {
       editor.focus();
     }
