@@ -173,13 +173,7 @@ test.describe('Instructor Session Management', () => {
     // Verify session controls are present
     await expect(page.locator('button:has-text("End Session")')).toBeVisible();
     await expect(page.locator('button:has-text("Leave Session")')).toBeVisible();
-    
-    // Verify section name is displayed
-    await expect(page.getByText(testSection.name)).toBeVisible({ timeout: 5000 });
-    
-    // Verify we're in the active session view with controls
-    await expect(page.locator('button:has-text("End Session")')).toBeVisible();
-    await expect(page.locator('button:has-text("Leave Session")')).toBeVisible();
+    await expect(page.locator('button:has-text("Open Public View")')).toBeVisible();
   });
 
   test('should handle multiple sessions correctly', async ({ page }) => {
@@ -196,6 +190,14 @@ test.describe('Instructor Session Management', () => {
     await page.selectOption('select#section', testSection.id);
     await page.locator('button:has-text("Create Session")').last().click({ force: true });
     
+    // Wait for modal to close and navigation to start
+    await expect(page.locator('h2:has-text("Create Session")')).not.toBeVisible({ timeout: 5000 });
+    
+    // Wait for URL to change to session URL (navigation after session creation)
+    await page.waitForURL(/sessionId=/, { timeout: 5000 });
+    
+    // After creating session, page navigates and auto-joins via WebSocket
+    // Wait for session controls to appear (depends on WebSocket response)
     await expect(page.locator('h2:has-text("Active Session")')).toBeVisible({ timeout: 10000 });
     
     // Set up dialog handler BEFORE clicking end button
@@ -207,7 +209,8 @@ test.describe('Instructor Session Management', () => {
     const endButton = page.locator('button:has-text("End Session")');
     await endButton.click();
     
-    await page.waitForTimeout(1000);
+    // Wait for session to actually end - Active Session heading should disappear
+    await expect(page.locator('h2:has-text("Active Session")')).not.toBeVisible({ timeout: 10000 });
     
     // Create a second problem for variety
     const secondProblem = await createTestProblem(
@@ -231,13 +234,29 @@ test.describe('Instructor Session Management', () => {
     await page.selectOption('select#section', testSection.id);
     await page.locator('button:has-text("Create Session")').last().click({ force: true });
     
+    // Wait for modal to close and navigation to start
+    await expect(page.locator('h2:has-text("Create Session")')).not.toBeVisible({ timeout: 5000 });
+    
+    // Wait for URL to change to session URL (navigation after session creation)
+    await page.waitForURL(/sessionId=/, { timeout: 5000 });
+    
+    // After creating session, page navigates and auto-joins via WebSocket
     await expect(page.locator('h2:has-text("Active Session")')).toBeVisible({ timeout: 10000 });
     
     // Now navigate to sessions view to see all sessions
     await page.click('button:has-text("Sessions")');
-    await expect(page.locator('h2').filter({ hasText: /Active Sessions|Your Sessions/ })).toBeVisible({ timeout: 10000 });
     
-    // Verify we can see some session controls/indicators (at least one session should be visible)
-    await expect(page.locator('button').filter({ hasText: /Rejoin|End Session|View Details/ }).first()).toBeVisible({ timeout: 5000 });
+    // We should have exactly 1 active session (the second one) and 1 past session (the first one we ended)
+    await expect(page.locator('h3:has-text("Active Now")')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('h3:has-text("Past Sessions")')).toBeVisible({ timeout: 5000 });
+    
+    // Verify the count in the headings
+    await expect(page.locator('h3:has-text("Active Now (1)")')).toBeVisible();
+    await expect(page.locator('h3:has-text("Past Sessions (1)")')).toBeVisible();
+    
+    // Verify the active session has the correct controls
+    const activeSessionCard = page.locator('div.border-green-500').first();
+    await expect(activeSessionCard.locator('button:has-text("Rejoin")')).toBeVisible();
+    await expect(activeSessionCard.locator('button:has-text("End")')).toBeVisible();
   });
 });

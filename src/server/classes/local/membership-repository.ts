@@ -310,6 +310,17 @@ export class MembershipRepository implements IMembershipRepository {
   }
 
   /**
+   * Clear all memberships (for testing/admin purposes)
+   */
+  async clear(): Promise<void> {
+    await this.ensureInitialized();
+    this.memberships.clear();
+    this.userSectionIndex.clear();
+    this.sectionUserIndex.clear();
+    await this.save();
+  }
+
+  /**
    * Validate a join code and return the section
    * 
    * @param code - The join code to validate

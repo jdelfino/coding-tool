@@ -198,4 +198,13 @@ export class ClassRepository implements IClassRepository {
 
     return await this.sectionRepository.listSections({ classId });
   }
+
+  /**
+   * Clear all classes (for testing/admin purposes)
+   */
+  async clear(): Promise<void> {
+    await this.ensureInitialized();
+    this.classes.clear();
+    await this.save();
+  }
 }

@@ -349,4 +349,14 @@ export class SectionRepository implements ISectionRepository {
       await this.save();
     }
   }
+
+  /**
+   * Clear all sections (for testing/admin purposes)
+   */
+  async clear(): Promise<void> {
+    await this.ensureInitialized();
+    this.sections.clear();
+    this.joinCodeIndex.clear();
+    await this.save();
+  }
 }
