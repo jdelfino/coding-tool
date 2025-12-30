@@ -3,7 +3,7 @@
 import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { MessageType } from '@/server/types';
-import { ExecutionSettings } from '@/server/types/problem';
+import { ExecutionSettings, Problem } from '@/server/types/problem';
 import CodeEditor from '@/app/student/components/CodeEditor';
 
 interface ExecutionResult {
@@ -19,6 +19,7 @@ function PublicViewContent() {
   
   const [ws, setWs] = useState<WebSocket | null>(null);
   const [joinCode, setJoinCode] = useState('');
+  const [problem, setProblem] = useState<Problem | null>(null);
   const [problemText, setProblemText] = useState('');
   const [code, setCode] = useState('');
   const [hasFeaturedSubmission, setHasFeaturedSubmission] = useState(false);
@@ -54,6 +55,7 @@ function PublicViewContent() {
             setJoinCode(message.payload.joinCode);
           }
           if (message.payload.problem !== undefined) {
+            setProblem(message.payload.problem);
             setProblemText(message.payload.problem.description || '');
           }
           if (message.payload.code !== undefined) {
@@ -216,6 +218,7 @@ function PublicViewContent() {
             randomSeed={randomSeed}
             attachedFiles={attachedFiles}
             executionResult={executionResult}
+            problem={problem}
           />
         </div>
       ) : (

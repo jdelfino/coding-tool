@@ -10,6 +10,7 @@
 
 import React, { useState, useEffect } from 'react';
 import CodeEditor from '@/app/student/components/CodeEditor';
+import { Problem } from '@/server/types/problem';
 
 interface SessionProblemEditorProps {
   onUpdateProblem: (
@@ -20,7 +21,7 @@ interface SessionProblemEditorProps {
       attachedFiles?: Array<{ name: string; content: string }>;
     }
   ) => void;
-  initialProblem?: { title: string; description: string; starterCode: string } | null;
+  initialProblem?: Problem | { title: string; description: string; starterCode: string } | null;
   initialExecutionSettings?: {
     stdin?: string;
     randomSeed?: number;

@@ -81,7 +81,7 @@ function InstructorPage() {
   const [sessionsListRefreshTrigger, setSessionsListRefreshTrigger] = useState(0);
   
   // Session execution settings
-  const [sessionProblem, setSessionProblem] = useState<{ title: string; description: string; starterCode: string } | null>(null);
+  const [sessionProblem, setSessionProblem] = useState<Problem | null>(null);
   const [sessionExecutionSettings, setSessionExecutionSettings] = useState<{
     stdin?: string;
     randomSeed?: number;
@@ -435,7 +435,7 @@ function InstructorPage() {
   ) => {
     if (!sessionId) return;
     // Update local state to keep in sync with server
-    setSessionProblem(problem);
+    setSessionProblem(problem as Problem);
     setSessionExecutionSettings(executionSettings || {});
     sendMessage('UPDATE_PROBLEM', { sessionId, problem, executionSettings });
   };
@@ -677,6 +677,7 @@ function InstructorPage() {
                   randomSeed={students.find(s => s.id === selectedStudentId)?.executionSettings?.randomSeed}
                   attachedFiles={students.find(s => s.id === selectedStudentId)?.executionSettings?.attachedFiles}
                   readOnly
+                  problem={sessionProblem}
                 />
                 {executionResult && (
                   <div style={{ marginTop: '1rem' }}>
