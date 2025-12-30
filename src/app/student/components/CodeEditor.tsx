@@ -159,7 +159,7 @@ export default function CodeEditor({
       {/* Main Content Area - Responsive Layout */}
       <div className="lg:flex lg:flex-row">
         {/* Left Column: Editor + Results (Desktop) or Full Width (Mobile) */}
-        <div className="lg:flex-[7] flex flex-col">
+        <div className={`flex flex-col ${isDesktop && !isSettingsCollapsed ? 'lg:flex-[7]' : 'flex-1'}`}>
           {/* Code Editor */}
           <Editor
             height="400px"
@@ -225,10 +225,10 @@ export default function CodeEditor({
         </div>
 
         {/* Right Sidebar (Desktop) or Below (Mobile) */}
-        <div className={`lg:flex-[3] lg:border-l border-gray-300 ${isDesktop ? '' : 'border-t'}`}>
-          {isDesktop ? (
-            /* Desktop: Collapsible Sidebar Section */
-            <div className="bg-gray-50">
+        {isDesktop ? (
+          /* Desktop: Collapsible Sidebar Section */
+          !isSettingsCollapsed ? (
+            <div className="lg:flex-[3] lg:border-l border-gray-300 bg-gray-50">
               <button
                 onClick={toggleSettings}
                 className="w-full px-4 py-2 bg-transparent border-none cursor-pointer text-left font-bold flex items-center justify-between hover:bg-gray-100"
@@ -236,33 +236,48 @@ export default function CodeEditor({
                 aria-label="Toggle execution settings"
               >
                 <div className="flex items-center gap-2">
-                  <span className={`inline-block transition-transform duration-200 ${
-                    isSettingsCollapsed ? '' : 'rotate-90'
-                  }`}>
+                  <span className="inline-block transition-transform duration-200 rotate-90">
                     ▶
                   </span>
                   Execution Settings
                 </div>
               </button>
               
-              {!isSettingsCollapsed && (
-                <div className="border-t border-gray-300">
-                  <ExecutionSettingsComponent
-                    stdin={stdin}
-                    onStdinChange={handleStdinChange}
-                    randomSeed={randomSeed}
-                    onRandomSeedChange={onRandomSeedChange}
-                    attachedFiles={attachedFiles}
-                    onAttachedFilesChange={onAttachedFilesChange}
-                    exampleInput={exampleInput}
-                    readOnly={readOnly}
-                    inSidebar={true}
-                  />
-                </div>
-              )}
+              <div className="border-t border-gray-300">
+                <ExecutionSettingsComponent
+                  stdin={stdin}
+                  onStdinChange={handleStdinChange}
+                  randomSeed={randomSeed}
+                  onRandomSeedChange={onRandomSeedChange}
+                  attachedFiles={attachedFiles}
+                  onAttachedFilesChange={onAttachedFilesChange}
+                  exampleInput={exampleInput}
+                  readOnly={readOnly}
+                  inSidebar={true}
+                />
+              </div>
             </div>
           ) : (
-            /* Mobile: Traditional Bottom Section */
+            <div className="lg:border-l border-gray-300 bg-gray-50" style={{ flexBasis: '40px', flexShrink: 0 }}>
+              <button
+                onClick={toggleSettings}
+                className="w-full h-full px-2 py-2 bg-transparent border-none cursor-pointer text-left font-bold flex items-center justify-center hover:bg-gray-100"
+                aria-expanded={!isSettingsCollapsed}
+                aria-label="Toggle execution settings"
+                style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}
+              >
+                <div className="flex items-center gap-2">
+                  <span className="inline-block transition-transform duration-200">
+                    ▶
+                  </span>
+                  Execution Settings
+                </div>
+              </button>
+            </div>
+          )
+        ) : (
+          /* Mobile: Traditional Bottom Section */
+          <div className="border-t border-gray-300">
             <ExecutionSettingsComponent
               stdin={stdin}
               onStdinChange={handleStdinChange}
@@ -274,8 +289,8 @@ export default function CodeEditor({
               readOnly={readOnly}
               inSidebar={false}
             />
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );
