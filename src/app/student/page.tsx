@@ -439,13 +439,14 @@ function StudentPage() {
 
   // Active session view
   return (
-    <main style={{ padding: '1rem', width: '100%', height: '100vh', boxSizing: 'border-box' }}>
+    <main style={{ padding: '1rem', width: '100%', height: '100vh', boxSizing: 'border-box', display: 'flex', flexDirection: 'column' }}>
       {/* Header with Sign Out */}
       <div style={{ 
         display: 'flex', 
         justifyContent: 'space-between', 
         alignItems: 'center',
-        marginBottom: '1rem'
+        marginBottom: '1rem',
+        flexShrink: 0
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
           <h1 style={{ margin: 0 }}>Live Coding Session</h1>
@@ -526,7 +527,8 @@ function StudentPage() {
           backgroundColor: '#fff3cd',
           color: '#856404',
           borderRadius: '4px',
-          border: '1px solid #ffeaa7'
+          border: '1px solid #ffeaa7',
+          flexShrink: 0
         }}>
           ⚠ {connectionError}
         </div>
@@ -543,7 +545,8 @@ function StudentPage() {
           border: '1px solid #f5c6cb',
           display: 'flex',
           justifyContent: 'space-between',
-          alignItems: 'center'
+          alignItems: 'center',
+          flexShrink: 0
         }}>
           <span>{error}</span>
           <button
@@ -569,20 +572,22 @@ function StudentPage() {
         />
       )}
 
-      <CodeEditor
-        code={code}
-        onChange={setCode}
-        onRun={handleRunCode}
-        isRunning={isRunning}
-        exampleInput={sessionExecutionSettings.stdin}
-        randomSeed={studentExecutionSettings?.randomSeed !== undefined ? studentExecutionSettings.randomSeed : sessionExecutionSettings.randomSeed}
-        onRandomSeedChange={(seed) => setStudentExecutionSettings(prev => ({ ...prev, randomSeed: seed }))}
-        attachedFiles={studentExecutionSettings?.attachedFiles !== undefined ? studentExecutionSettings.attachedFiles : sessionExecutionSettings.attachedFiles}
-        onAttachedFilesChange={(files) => setStudentExecutionSettings(prev => ({ ...prev, attachedFiles: files }))}
-        executionResult={executionResult}
-        problem={problem}
-        onLoadStarterCode={handleLoadStarterCode}
-      />
+      <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+        <CodeEditor
+          code={code}
+          onChange={setCode}
+          onRun={handleRunCode}
+          isRunning={isRunning}
+          exampleInput={sessionExecutionSettings.stdin}
+          randomSeed={studentExecutionSettings?.randomSeed !== undefined ? studentExecutionSettings.randomSeed : sessionExecutionSettings.randomSeed}
+          onRandomSeedChange={(seed) => setStudentExecutionSettings(prev => ({ ...prev, randomSeed: seed }))}
+          attachedFiles={studentExecutionSettings?.attachedFiles !== undefined ? studentExecutionSettings.attachedFiles : sessionExecutionSettings.attachedFiles}
+          onAttachedFilesChange={(files) => setStudentExecutionSettings(prev => ({ ...prev, attachedFiles: files }))}
+          executionResult={executionResult}
+          problem={problem}
+          onLoadStarterCode={handleLoadStarterCode}
+        />
+      </div>
     </main>
   );
 }

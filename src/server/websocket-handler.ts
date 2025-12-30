@@ -967,15 +967,6 @@ class WebSocketHandler {
       attachedFiles: s.executionSettings?.attachedFiles ?? session.problem.executionSettings?.attachedFiles,
     }));
 
-    console.log('[broadcastStudentList] Sending student list:', {
-      sessionId,
-      problemDefaults: {
-        randomSeed: session.problem.executionSettings?.randomSeed,
-        attachedFiles: session.problem.executionSettings?.attachedFiles,
-      },
-      students: studentList.map(s => ({ id: s.id, randomSeed: s.randomSeed, attachedFiles: s.attachedFiles })),
-    });
-
     this.broadcastToSession(sessionId, {
       type: MessageType.STUDENT_LIST_UPDATE,
       payload: { students: studentList },

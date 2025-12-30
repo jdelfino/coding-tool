@@ -184,13 +184,10 @@ export class SessionManager {
    * Get a session by ID
    */
   async getSession(sessionId: string): Promise<Session | null> {
-    console.log(`[SessionManager.getSession] Looking up session ${sessionId}, storage=${!!this.storage}`);
-    
     // Ensure storage is initialized (auto-init for API routes)
     const storage = await this.ensureStorage();
     
     const session = await storage.sessions.getSession(sessionId);
-    console.log(`[SessionManager.getSession] Storage returned: ${session ? 'Found' : 'Not found'}`);
     return session;
   }
 

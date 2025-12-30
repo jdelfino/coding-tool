@@ -160,9 +160,9 @@ export default function CodeEditor({
   };
 
   return (
-    <div className="border border-gray-300 rounded">
+    <div className="border border-gray-300 rounded flex flex-col" style={{ height: '100%' }}>
       {/* Header */}
-      <div className="px-4 py-2 bg-gray-100 border-b border-gray-300 flex justify-between items-center">
+      <div className="px-4 py-2 bg-gray-100 border-b border-gray-300 flex justify-between items-center flex-shrink-0">
         <span className="font-bold">{title}</span>
         {showRunButton && (
           <button
@@ -301,10 +301,10 @@ export default function CodeEditor({
         )}
 
         {/* Main Editor Area */}
-        <div className="flex-1 flex flex-col min-w-0">
+        <div className="flex-1 flex flex-col min-w-0 min-h-0">
           {/* Code Editor */}
           <Editor
-            height="600px"
+            height="100%"
             defaultLanguage="python"
             value={code}
             onChange={(value) => !readOnly && onChange(value || '')}
