@@ -10,7 +10,6 @@ import JoinForm from './components/JoinForm';
 import StudentDashboard from './components/StudentDashboard';
 import ProblemDisplay from './components/ProblemDisplay';
 import CodeEditor from './components/CodeEditor';
-import OutputPanel from './components/OutputPanel';
 import SessionEndedNotification from './components/SessionEndedNotification';
 
 function StudentPage() {
@@ -586,9 +585,8 @@ function StudentPage() {
         onRandomSeedChange={(seed) => setStudentExecutionSettings(prev => ({ ...prev, randomSeed: seed }))}
         attachedFiles={studentExecutionSettings?.attachedFiles !== undefined ? studentExecutionSettings.attachedFiles : sessionExecutionSettings.attachedFiles}
         onAttachedFilesChange={(files) => setStudentExecutionSettings(prev => ({ ...prev, attachedFiles: files }))}
+        executionResult={executionResult}
       />
-
-      <OutputPanel result={executionResult} />
     </main>
   );
 }
