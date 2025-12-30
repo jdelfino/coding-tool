@@ -1,3 +1,6 @@
+/**
+ * @jest-environment jsdom
+ */
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { VariableInspector } from '../VariableInspector';
@@ -35,7 +38,8 @@ describe('VariableInspector', () => {
     render(<VariableInspector locals={{}} globals={globals} />);
     
     expect(screen.getByText('factorial')).toBeInTheDocument();
-    expect(screen.getByText('<function factorial>')).toBeInTheDocument();
+    // formatValue wraps strings with quotes, so <function factorial> becomes '<function factorial>'
+    expect(screen.getByText("'<function factorial>'")).toBeInTheDocument();
   });
 
   it('highlights changed variables', () => {

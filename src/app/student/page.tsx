@@ -54,7 +54,7 @@ function StudentPage() {
   const { isConnected, connectionStatus, connectionError, lastMessage, sendMessage } = useWebSocket(wsUrl);
   
   // Debugger state
-  const debugger = useDebugger(sendMessage);
+  const debuggerHook = useDebugger(sendMessage);
 
   // Define handlers with useCallback to avoid dependency issues
   const handleJoin = useCallback((joinCode: string) => {
@@ -159,7 +159,7 @@ function StudentPage() {
         break;
 
       case 'TRACE_RESPONSE':
-        debugger.setTrace(lastMessage.payload.trace);
+        debuggerHook.setTrace(lastMessage.payload.trace);
         break;
 
       case 'SESSION_ENDED':
@@ -623,7 +623,7 @@ function StudentPage() {
           problem={problem}
           onLoadStarterCode={handleLoadStarterCode}
           externalEditorRef={editorRef}
-          debugger={debugger}
+          debugger={debuggerHook}
         />
       </div>
     </main>
