@@ -63,6 +63,47 @@ export default function CodeEditor({
   const { isCollapsed: isSettingsCollapsed, toggle: toggleSettings, setCollapsed: setSettingsCollapsed } = useSidebarSection('execution-settings', false);
   const { isCollapsed: isProblemCollapsed, toggle: toggleProblem, setCollapsed: setProblemCollapsed } = useSidebarSection('problem-panel', true);
 
+  // Sidebar resize state
+  const [sidebarWidth, setSidebarWidth] = useState(320); // 320px = w-80
+  const [isResizing, setIsResizing] = useState(false);
+  const resizeRef = useRef<HTMLDivElement>(null);
+
+  // Handle sidebar resizing
+  const handleMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsResizing(true);
+  };
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isResizing) return;
+      
+      const newWidth = e.clientX - 48; // Subtract activity bar width (48px = w-12)
+      // Constrain width between 200px and 600px
+      const constrainedWidth = Math.min(Math.max(newWidth, 200), 600);
+      setSidebarWidth(constrainedWidth);
+    };
+
+    const handleMouseUp = () => {
+      setIsResizing(false);
+    };
+
+    if (isResizing) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      // Prevent text selection while resizing
+      document.body.style.userSelect = 'none';
+      document.body.style.cursor = 'col-resize';
+    }
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.userSelect = '';
+      document.body.style.cursor = '';
+    };
+  }, [isResizing]);
+
   // Ensure only one sidebar is open at a time on mount
   const hasMountedRef = useRef(false);
   useEffect(() => {
@@ -254,7 +295,11 @@ export default function CodeEditor({
 
             {/* Side Panel (expands when active) */}
             {(!isProblemCollapsed && problem) && (
-              <div className="w-80 bg-gray-800 text-gray-200 border-r border-gray-700 flex flex-col flex-shrink-0 h-full">
+              <div 
+                ref={resizeRef}
+                className="bg-gray-800 text-gray-200 border-r border-gray-700 flex flex-col flex-shrink-0 h-full relative"
+                style={{ width: `${sidebarWidth}px` }}
+              >
                 <div className="px-4 py-2 bg-gray-900 border-b border-gray-700 font-bold flex items-center justify-between flex-shrink-0">
                   <span>Problem</span>
                   <button
@@ -283,11 +328,23 @@ export default function CodeEditor({
                     </button>
                   )}
                 </div>
+                {/* Resize handle */}
+                <div
+                  onMouseDown={handleMouseDown}
+                  className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-blue-500 transition-colors"
+                  style={{ 
+                    background: isResizing ? '#3b82f6' : 'transparent',
+                  }}
+                  title="Drag to resize"
+                />
               </div>
             )}
             
             {!isSettingsCollapsed && (
-              <div className="w-80 bg-gray-800 text-gray-200 border-r border-gray-700 flex flex-col flex-shrink-0 h-full">
+              <div 
+                className="bg-gray-800 text-gray-200 border-r border-gray-700 flex flex-col flex-shrink-0 h-full relative"
+                style={{ width: `${sidebarWidth}px` }}
+              >
                 <div className="px-4 py-2 bg-gray-900 border-b border-gray-700 font-bold flex items-center justify-between flex-shrink-0">
                   <span>Execution Settings</span>
                   <button
@@ -311,6 +368,15 @@ export default function CodeEditor({
                     inSidebar={true}
                   />
                 </div>
+                {/* Resize handle */}
+                <div
+                  onMouseDown={handleMouseDown}
+                  className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-blue-500 transition-colors"
+                  style={{ 
+                    background: isResizing ? '#3b82f6' : 'transparent',
+                  }}
+                  title="Drag to resize"
+                />
               </div>
             )}
           </div>

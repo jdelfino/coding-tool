@@ -668,17 +668,19 @@ function InstructorPage() {
                     {students.find(s => s.id === selectedStudentId)?.name || 'Student'}'s Code
                   </h3>
                 </div>
-                <CodeEditor
-                  code={selectedStudentCode}
-                  onChange={() => {}} // Read-only for instructor
-                  onRun={handleExecuteStudentCode}
-                  isRunning={isExecutingCode}
-                  exampleInput={sessionExecutionSettings.stdin}
-                  randomSeed={students.find(s => s.id === selectedStudentId)?.executionSettings?.randomSeed}
-                  attachedFiles={students.find(s => s.id === selectedStudentId)?.executionSettings?.attachedFiles}
-                  readOnly
-                  problem={sessionProblem}
-                />
+                <div style={{ height: '500px' }}>
+                  <CodeEditor
+                    code={selectedStudentCode}
+                    onChange={() => {}} // Read-only for instructor
+                    onRun={handleExecuteStudentCode}
+                    isRunning={isExecutingCode}
+                    exampleInput={sessionExecutionSettings.stdin}
+                    randomSeed={students.find(s => s.id === selectedStudentId)?.executionSettings?.randomSeed}
+                    attachedFiles={students.find(s => s.id === selectedStudentId)?.executionSettings?.attachedFiles}
+                    readOnly
+                    problem={sessionProblem}
+                  />
+                </div>
                 {executionResult && (
                   <div style={{ marginTop: '1rem' }}>
                     <OutputPanel result={executionResult} />

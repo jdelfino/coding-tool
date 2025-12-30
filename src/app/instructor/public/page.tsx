@@ -152,53 +152,52 @@ function PublicViewContent() {
 
   return (
     <main style={{ padding: '1rem', width: '100%', minHeight: '100vh', boxSizing: 'border-box' }}>
-      <h1 style={{ marginBottom: '1.5rem' }}>Public Display</h1>
+      <h1 style={{ marginBottom: '1rem' }}>Public Display</h1>
       
-      {/* Header with Join Code */}
+      {/* Compact Header with Problem and Join Code */}
       <div style={{ 
-        padding: '1.5rem', 
+        padding: '1rem', 
         border: '1px solid #ccc', 
         borderRadius: '4px',
         marginBottom: '1rem',
         display: 'flex',
         justifyContent: 'space-between',
-        alignItems: 'center'
+        alignItems: 'flex-start',
+        gap: '1.5rem'
       }}>
-        <div>
-          <p style={{ color: '#666', marginBottom: '0.5rem' }}>This view is for classroom display</p>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <h2 style={{ marginTop: 0, marginBottom: '0.5rem', fontSize: '1.25rem' }}>Problem</h2>
+          {problemText ? (
+            <pre style={{ 
+              whiteSpace: 'pre-wrap', 
+              color: '#333',
+              fontFamily: 'inherit',
+              fontSize: '0.9rem',
+              margin: 0
+            }}>
+              {problemText}
+            </pre>
+          ) : (
+            <p style={{ color: '#999', fontStyle: 'italic', margin: 0 }}>No problem set yet</p>
+          )}
         </div>
-        <div style={{ textAlign: 'right' }}>
-          <p style={{ fontSize: '0.875rem', color: '#666', marginBottom: '0.25rem' }}>Join Code</p>
+        <div style={{ 
+          textAlign: 'right',
+          flexShrink: 0,
+          borderLeft: '2px solid #ddd',
+          paddingLeft: '1.5rem'
+        }}>
+          <p style={{ fontSize: '0.75rem', color: '#666', marginBottom: '0.25rem', marginTop: 0 }}>Join Code</p>
           <p style={{ 
-            fontSize: '2.5rem', 
+            fontSize: '2rem', 
             fontWeight: 'bold', 
             color: '#0070f3',
-            fontFamily: 'monospace'
+            fontFamily: 'monospace',
+            margin: 0
           }}>
             {joinCode || '------'}
           </p>
         </div>
-      </div>
-
-      {/* Problem Display */}
-      <div style={{ 
-        padding: '1rem', 
-        border: '1px solid #ccc',
-        borderRadius: '4px',
-        marginBottom: '1rem'
-      }}>
-        <h2 style={{ marginTop: 0, marginBottom: '1rem' }}>Problem</h2>
-        {problemText ? (
-          <pre style={{ 
-            whiteSpace: 'pre-wrap', 
-            color: '#333',
-            fontFamily: 'inherit'
-          }}>
-            {problemText}
-          </pre>
-        ) : (
-          <p style={{ color: '#999', fontStyle: 'italic' }}>No problem set yet</p>
-        )}
       </div>
 
       {/* Featured Submission */}
