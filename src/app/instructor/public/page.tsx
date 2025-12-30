@@ -151,8 +151,15 @@ function PublicViewContent() {
   }
 
   return (
-    <main style={{ padding: '1rem', width: '100%', minHeight: '100vh', boxSizing: 'border-box' }}>
-      <h1 style={{ marginBottom: '1rem' }}>Public Display</h1>
+    <main style={{ 
+      padding: '1rem', 
+      width: '100%', 
+      minHeight: '100vh', 
+      boxSizing: 'border-box',
+      display: 'flex',
+      flexDirection: 'column'
+    }}>
+      <h1 style={{ marginBottom: '1rem', flexShrink: 0 }}>Public Display</h1>
       
       {/* Compact Header with Problem and Join Code */}
       <div style={{ 
@@ -163,7 +170,8 @@ function PublicViewContent() {
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'flex-start',
-        gap: '1.5rem'
+        gap: '1.5rem',
+        flexShrink: 0
       }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <h2 style={{ marginTop: 0, marginBottom: '0.5rem', fontSize: '1.25rem' }}>Problem</h2>
@@ -205,9 +213,13 @@ function PublicViewContent() {
         <div style={{ 
           padding: '1rem', 
           border: '1px solid #ccc',
-          borderRadius: '4px'
+          borderRadius: '4px',
+          flex: 1,
+          minHeight: 0,
+          display: 'flex',
+          flexDirection: 'column'
         }}>
-          <div style={{ height: '500px' }}>
+          <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
             <CodeEditor
               code={code}
               onChange={handleCodeChange}
