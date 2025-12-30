@@ -207,7 +207,7 @@ function PublicViewContent() {
           border: '1px solid #ccc',
           borderRadius: '4px'
         }}>
-          <div style={{ height: '400px' }}>
+          <div style={{ height: '500px' }}>
             <CodeEditor
               code={code}
               onChange={handleCodeChange}
@@ -216,100 +216,10 @@ function PublicViewContent() {
               exampleInput={exampleInput}
               randomSeed={randomSeed}
               attachedFiles={attachedFiles}
+              executionResult={executionResult}
               problem={problem}
               title="Featured Code"
             />
-          </div>
-          {/* Output Section - Always Visible */}
-          <div style={{ marginTop: '1rem' }}>
-            {executionResult ? (
-              <div style={{
-                padding: '1rem',
-                borderRadius: '4px',
-                backgroundColor: executionResult.success ? '#d1fae5' : '#fee2e2',
-                border: `1px solid ${executionResult.success ? '#86efac' : '#fca5a5'}`
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                  <span style={{
-                    fontWeight: 'bold',
-                    color: executionResult.success ? '#065f46' : '#991b1b'
-                  }}>
-                    {executionResult.success ? '✓ Success' : '✗ Error'}
-                  </span>
-                  <span style={{
-                    fontSize: '0.875rem',
-                    color: executionResult.success ? '#065f46' : '#991b1b'
-                  }}>
-                    Execution time: {executionResult.executionTime}ms
-                  </span>
-                </div>
-                
-                {executionResult.output && (
-                  <div style={{ marginTop: '0.5rem' }}>
-                    <div style={{
-                      fontWeight: 'bold',
-                      fontSize: '0.875rem',
-                      color: executionResult.success ? '#065f46' : '#991b1b'
-                    }}>
-                      Output:
-                    </div>
-                    <pre style={{
-                      backgroundColor: 'white',
-                      padding: '0.5rem',
-                      borderRadius: '4px',
-                      border: '1px solid #d1d5db',
-                      overflowX: 'auto',
-                      fontSize: '0.875rem',
-                      fontFamily: 'monospace',
-                      marginTop: '0.25rem',
-                      whiteSpace: 'pre-wrap',
-                      wordBreak: 'break-word'
-                    }}>
-                      {executionResult.output}
-                    </pre>
-                  </div>
-                )}
-                
-                {executionResult.error && (
-                  <div style={{ marginTop: '0.5rem' }}>
-                    <div style={{
-                      fontWeight: 'bold',
-                      fontSize: '0.875rem',
-                      color: '#991b1b'
-                    }}>
-                      Error:
-                    </div>
-                    <pre style={{
-                      backgroundColor: 'white',
-                      padding: '0.5rem',
-                      borderRadius: '4px',
-                      border: '1px solid #d1d5db',
-                      overflowX: 'auto',
-                      fontSize: '0.875rem',
-                      fontFamily: 'monospace',
-                      marginTop: '0.25rem',
-                      whiteSpace: 'pre-wrap',
-                      wordBreak: 'break-word',
-                      color: '#991b1b'
-                    }}>
-                      {executionResult.error}
-                    </pre>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div style={{
-                padding: '2rem',
-                borderRadius: '4px',
-                backgroundColor: '#f3f4f6',
-                border: '1px solid #d1d5db',
-                textAlign: 'center'
-              }}>
-                <p style={{ color: '#6b7280', fontStyle: 'italic', margin: 0 }}>
-                  Run the code to see output here
-                </p>
-              </div>
-            )}
           </div>
         </div>
       ) : (
