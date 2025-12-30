@@ -259,4 +259,47 @@ test.describe('Instructor Session Management', () => {
     await expect(activeSessionCard.locator('button:has-text("Rejoin")')).toBeVisible();
     await expect(activeSessionCard.locator('button:has-text("End")')).toBeVisible();
   });
+
+  test('should successfully rejoin an active session', async ({ page }) => {
+    // Create a session
+    await page.click('button:has-text("Problems")');
+    await expect(page.locator('h2:has-text("Problem Library")')).toBeVisible({ timeout: 10000 });
+    
+    const problemCard = page.locator(`div:has-text("${testProblem.title}")`).first();
+    await problemCard.locator('button:has-text("Create Session")').click();
+    
+    // Select section
+    await page.click('text=Select Section');
+    await page.click(`text=${testSection.name}`);
+    await page.click('button:has-text("Create Session")');
+    
+    // Wait for session to be created
+    await expect(page.locator('text=/Join Code:/')).toBeVisible({ timeout: 10000 });
+    const joinCodeText = await page.locator('text=/Join Code:/ + span').textContent();
+    const firstJoinCode = joinCodeText?.trim();
+    
+    // Navigate away to sessions list
+    await page.click('button:has-text("Sessions")');
+    await expect(page.locator('h3:has-text("Active Now")')).toBeVisible({ timeout: 10000 });
+    
+    // Click "Rejoin" button
+    const activeSessionCard = page.locator('div.border-green-500').first();
+    await activeSessionCard.locator('button:has-text("Rejoin")').click();
+    
+    // Should successfully rejoin - verify by checking join code is displayed
+    await expect(page.locator('text=/Join Code:/')).toBeVisible({ timeout: 10000 });
+    const rejoinedJoinCodeText = await page.locator('text=/Join Code:/ + span').textContent();
+    const rejoinedJoinCode = rejoinedJoinCodeText?.trim();
+    
+    // Should be the same session
+    expect(rejoinedJoinCode).toBe(firstJoinCode);
+    
+    // Should NOT see "Waiting for session..." error
+    await expect(page.locator('text=Waiting for session...')).not.toBeVisible();
+    await expect(page.locator('text=Invalid join code')).not.toBeVisible();
+    
+    // Should see session controls
+    await expect(page.locator('button:has-text("End Session")')).toBeVisible();
+    await expect(page.locator('button:has-text("Load Problem")')).toBeVisible();
+  });
 });

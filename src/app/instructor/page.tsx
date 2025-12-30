@@ -562,10 +562,10 @@ function InstructorPage() {
         <SessionsList
           refreshTrigger={sessionsListRefreshTrigger}
           onRejoinSession={(sessionId) => {
-            // Send JOIN_SESSION message via WebSocket
+            // Send JOIN_EXISTING_SESSION message via WebSocket
             if (isConnected) {
               // First, join the session via WebSocket
-              sendMessage('JOIN_SESSION', { sessionId });
+              sendMessage('JOIN_EXISTING_SESSION', { sessionId });
               // Then navigate to session view
               setViewMode('session');
               setSessionId(sessionId);
