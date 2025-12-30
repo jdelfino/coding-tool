@@ -57,5 +57,12 @@ export function useSidebarSection(sectionId: string, defaultCollapsed: boolean =
     }
   };
 
-  return { isCollapsed, toggle };
+  const setCollapsed = (collapsed: boolean) => {
+    setIsCollapsed(collapsed);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(`sidebar-${sectionId}-collapsed`, String(collapsed));
+    }
+  };
+
+  return { isCollapsed, toggle, setCollapsed };
 }

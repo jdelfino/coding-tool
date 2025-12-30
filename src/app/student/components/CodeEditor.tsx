@@ -60,8 +60,25 @@ export default function CodeEditor({
   
   // Responsive layout detection
   const isDesktop = useResponsiveLayout(1024);
-  const { isCollapsed: isSettingsCollapsed, toggle: toggleSettings } = useSidebarSection('execution-settings', false);
-  const { isCollapsed: isProblemCollapsed, toggle: toggleProblem } = useSidebarSection('problem-panel', true);
+  const { isCollapsed: isSettingsCollapsed, toggle: toggleSettings, setCollapsed: setSettingsCollapsed } = useSidebarSection('execution-settings', false);
+  const { isCollapsed: isProblemCollapsed, toggle: toggleProblem, setCollapsed: setProblemCollapsed } = useSidebarSection('problem-panel', true);
+
+  // Ensure only one sidebar is open at a time
+  const handleToggleProblem = () => {
+    if (isProblemCollapsed) {
+      // Opening problem panel - close settings
+      setSettingsCollapsed(true);
+    }
+    toggleProblem();
+  };
+
+  const handleToggleSettings = () => {
+    if (isSettingsCollapsed) {
+      // Opening settings panel - close problem
+      setProblemCollapsed(true);
+    }
+    toggleSettings();
+  };
 
   // Wrapper to call both internal state and parent callback
   const handleStdinChange = (value: string) => {
@@ -172,7 +189,7 @@ export default function CodeEditor({
               {/* Problem icon (only show if problem exists) */}
               {problem && (
                 <button
-                  onClick={toggleProblem}
+                  onClick={handleToggleProblem}
                   className={`w-10 h-10 flex items-center justify-center rounded transition-colors ${
                     !isProblemCollapsed 
                       ? 'bg-gray-700 text-white' 
@@ -194,7 +211,7 @@ export default function CodeEditor({
               
               {/* Settings icon */}
               <button
-                onClick={toggleSettings}
+                onClick={handleToggleSettings}
                 className={`w-10 h-10 flex items-center justify-center rounded transition-colors ${
                   !isSettingsCollapsed 
                     ? 'bg-gray-700 text-white' 
@@ -287,7 +304,7 @@ export default function CodeEditor({
         <div className="flex-1 flex flex-col min-w-0">
           {/* Code Editor */}
           <Editor
-            height="400px"
+            height="600px"
             defaultLanguage="python"
             value={code}
             onChange={(value) => !readOnly && onChange(value || '')}
