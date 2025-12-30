@@ -240,9 +240,9 @@ export default function CodeEditor({
       <div className="flex flex-row flex-1 min-h-0">
         {/* Left Sidebar (Desktop only) - VS Code style */}
         {isDesktop && (
-          <div className="flex flex-row flex-shrink-0 h-full">
+          <div className="flex flex-row flex-shrink-0" style={{ height: '100%' }}>
             {/* Activity Bar (Icon bar) */}
-            <div className="w-12 bg-gray-800 flex flex-col items-center py-2 gap-1 h-full">
+            <div className="w-12 bg-gray-800 flex flex-col items-center py-2 gap-1" style={{ height: '100%' }}>
               {/* Problem icon (only show if problem exists) */}
               {problem && (
                 <button
@@ -297,8 +297,8 @@ export default function CodeEditor({
             {(!isProblemCollapsed && problem) && (
               <div 
                 ref={resizeRef}
-                className="bg-gray-800 text-gray-200 border-r border-gray-700 flex flex-col flex-shrink-0 h-full relative"
-                style={{ width: `${sidebarWidth}px` }}
+                className="bg-gray-800 text-gray-200 border-r border-gray-700 flex flex-col flex-shrink-0 relative"
+                style={{ width: `${sidebarWidth}px`, maxHeight: '100%', height: '100%' }}
               >
                 <div className="px-4 py-2 bg-gray-900 border-b border-gray-700 font-bold flex items-center justify-between flex-shrink-0">
                   <span>Problem</span>
@@ -342,8 +342,8 @@ export default function CodeEditor({
             
             {!isSettingsCollapsed && (
               <div 
-                className="bg-gray-800 text-gray-200 border-r border-gray-700 flex flex-col flex-shrink-0 h-full relative"
-                style={{ width: `${sidebarWidth}px` }}
+                className="bg-gray-800 text-gray-200 border-r border-gray-700 flex flex-col flex-shrink-0 relative"
+                style={{ width: `${sidebarWidth}px`, maxHeight: '100%', height: '100%' }}
               >
                 <div className="px-4 py-2 bg-gray-900 border-b border-gray-700 font-bold flex items-center justify-between flex-shrink-0">
                   <span>Execution Settings</span>

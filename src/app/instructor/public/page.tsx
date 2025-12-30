@@ -208,17 +208,19 @@ function PublicViewContent() {
           borderRadius: '4px'
         }}>
           <h2 style={{ marginTop: 0, marginBottom: '1rem' }}>Featured Submission</h2>
-          <CodeEditor
-            code={code}
-            onChange={handleCodeChange}
-            onRun={handleRun}
-            isRunning={isExecuting}
-            exampleInput={exampleInput}
-            randomSeed={randomSeed}
-            attachedFiles={attachedFiles}
-            executionResult={executionResult}
-            problem={problem}
-          />
+          <div style={{ height: '600px' }}>
+            <CodeEditor
+              code={code}
+              onChange={handleCodeChange}
+              onRun={handleRun}
+              isRunning={isExecuting}
+              exampleInput={exampleInput}
+              randomSeed={randomSeed}
+              attachedFiles={attachedFiles}
+              executionResult={executionResult}
+              problem={problem}
+            />
+          </div>
         </div>
       ) : (
         <div style={{ 
