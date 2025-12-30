@@ -18,6 +18,7 @@ export function useWebSocket(url: string) {
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
   const reconnectAttempts = useRef(0);
   const maxReconnectAttempts = 5;
+  const connectRef = useRef<(() => void) | null>(null);
 
   const connect = useCallback(() => {
     // Don't attempt connection if URL is empty (SSR or not yet initialized)
@@ -31,6 +32,22 @@ export function useWebSocket(url: string) {
       setConnectionStatus('failed');
       setConnectionError('Unable to connect to server. Please refresh the page.');
       return;
+    }
+
+    // Clear any pending reconnect timeout
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+      reconnectTimeoutRef.current = undefined;
+    }
+
+    // Close existing WebSocket if it exists and is not already closed
+    if (wsRef.current) {
+      const currentState = wsRef.current.readyState;
+      if (currentState === WebSocket.CONNECTING || currentState === WebSocket.OPEN) {
+        console.log('Closing existing WebSocket before creating new connection');
+        wsRef.current.close();
+      }
+      wsRef.current = null;
     }
 
     try {
@@ -76,7 +93,8 @@ export function useWebSocket(url: string) {
           setConnectionError(`Connection lost. Reconnecting in ${Math.ceil(delay / 1000)}s...`);
           reconnectTimeoutRef.current = setTimeout(() => {
             console.log(`Reconnecting... (attempt ${reconnectAttempts.current})`);
-            connect();
+            // Call the latest version of connect via the ref
+            connectRef.current?.();
           }, delay);
         } else {
           setConnectionStatus('failed');
@@ -92,6 +110,11 @@ export function useWebSocket(url: string) {
       console.error('Error creating WebSocket for URL:', url, error);
     }
   }, [url]);
+
+  // Keep connectRef up-to-date with the latest connect function
+  useEffect(() => {
+    connectRef.current = connect;
+  }, [connect]);
 
   useEffect(() => {
     connect();
