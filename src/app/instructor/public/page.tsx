@@ -154,7 +154,7 @@ function PublicViewContent() {
     <main style={{ 
       padding: '1rem', 
       width: '100%', 
-      minHeight: '100vh', 
+      height: '100vh', 
       boxSizing: 'border-box',
       display: 'flex',
       flexDirection: 'column'
