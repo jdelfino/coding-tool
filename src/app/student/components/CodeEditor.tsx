@@ -68,6 +68,11 @@ export default function CodeEditor({
   const [isResizing, setIsResizing] = useState(false);
   const resizeRef = useRef<HTMLDivElement>(null);
 
+  // Output section resize state
+  const [outputHeight, setOutputHeight] = useState(150); // Start at 150px
+  const [isResizingOutput, setIsResizingOutput] = useState(false);
+  const outputResizeRef = useRef<HTMLDivElement>(null);
+
   // Handle sidebar resizing
   const handleMouseDown = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -76,24 +81,37 @@ export default function CodeEditor({
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
-      if (!isResizing) return;
+      if (isResizing) {
+        const newWidth = e.clientX - 48; // Subtract activity bar width (48px = w-12)
+        // Constrain width between 200px and 600px
+        const constrainedWidth = Math.min(Math.max(newWidth, 200), 600);
+        setSidebarWidth(constrainedWidth);
+      }
       
-      const newWidth = e.clientX - 48; // Subtract activity bar width (48px = w-12)
-      // Constrain width between 200px and 600px
-      const constrainedWidth = Math.min(Math.max(newWidth, 200), 600);
-      setSidebarWidth(constrainedWidth);
+      if (isResizingOutput && outputResizeRef.current) {
+        const container = outputResizeRef.current.parentElement;
+        if (!container) return;
+        
+        const containerRect = container.getBoundingClientRect();
+        const newHeight = containerRect.bottom - e.clientY;
+        const maxHeight = containerRect.height * 0.4; // Max 40% of container
+        // Constrain height between 100px and 40% of container
+        const constrainedHeight = Math.min(Math.max(newHeight, 100), maxHeight);
+        setOutputHeight(constrainedHeight);
+      }
     };
 
     const handleMouseUp = () => {
       setIsResizing(false);
+      setIsResizingOutput(false);
     };
 
-    if (isResizing) {
+    if (isResizing || isResizingOutput) {
       document.addEventListener('mousemove', handleMouseMove);
       document.addEventListener('mouseup', handleMouseUp);
       // Prevent text selection while resizing
       document.body.style.userSelect = 'none';
-      document.body.style.cursor = 'col-resize';
+      document.body.style.cursor = isResizingOutput ? 'row-resize' : 'col-resize';
     }
 
     return () => {
@@ -102,7 +120,7 @@ export default function CodeEditor({
       document.body.style.userSelect = '';
       document.body.style.cursor = '';
     };
-  }, [isResizing]);
+  }, [isResizing, isResizingOutput]);
 
   // Ensure only one sidebar is open at a time on mount
   const hasMountedRef = useRef(false);
@@ -143,9 +161,41 @@ export default function CodeEditor({
     onStdinChange?.(value);
   };
 
+  const handleOutputMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsResizingOutput(true);
+  };
+
   // Use local state for API execution, or passed props for WebSocket execution
   const effectiveIsRunning = useApiExecution ? localIsRunning : isRunning;
   const effectiveResult = useApiExecution ? localExecutionResult : executionResult;
+
+  // Auto-grow output section when results appear (up to 40%)
+  useEffect(() => {
+    if (effectiveResult && outputResizeRef.current) {
+      const container = outputResizeRef.current.parentElement;
+      if (!container) return;
+      
+      const containerHeight = container.getBoundingClientRect().height;
+      const maxHeight = containerHeight * 0.4;
+      
+      // Estimate needed height based on content
+      const hasOutput = effectiveResult.output && effectiveResult.output.length > 0;
+      const hasError = effectiveResult.error && effectiveResult.error.length > 0;
+      
+      let targetHeight = 150; // Minimum
+      if (hasOutput || hasError) {
+        // Grow to accommodate content, up to 40%
+        const contentLines = (effectiveResult.output || effectiveResult.error || '').split('\n').length;
+        targetHeight = Math.min(150 + (contentLines * 20), maxHeight);
+      }
+      
+      setOutputHeight(Math.min(targetHeight, maxHeight));
+    } else if (!effectiveResult) {
+      // Reset to initial size when no results
+      setOutputHeight(150);
+    }
+  }, [effectiveResult]);
 
   // Initialize stdin with example input if provided
   useEffect(() => {
@@ -384,8 +434,8 @@ export default function CodeEditor({
 
         {/* Main Editor Area */}
         <div className="flex-1 flex flex-col min-w-0 min-h-0">
-          {/* Code Editor - takes 60% of space */}
-          <div className="flex-1 min-h-0" style={{ flexBasis: '60%' }}>
+          {/* Code Editor - grows to fill remaining space */}
+          <div className="flex-1 min-h-0">
             <Editor
               height="100%"
               defaultLanguage="python"
@@ -405,11 +455,22 @@ export default function CodeEditor({
             />
           </div>
 
-          {/* Execution Results - Always Visible - takes 40% of space */}
+          {/* Execution Results - Always Visible - Resizable */}
           <div 
-            className="border-t border-gray-300 overflow-y-auto flex-shrink-0"
-            style={{ flexBasis: '40%', minHeight: '150px', maxHeight: '40%' }}
+            ref={outputResizeRef}
+            className="border-t border-gray-300 overflow-y-auto flex-shrink-0 relative"
+            style={{ height: `${outputHeight}px` }}
           >
+            {/* Resize handle */}
+            <div
+              onMouseDown={handleOutputMouseDown}
+              className="absolute top-0 left-0 right-0 h-1 cursor-row-resize hover:bg-blue-500 transition-colors z-10"
+              style={{ 
+                background: isResizingOutput ? '#3b82f6' : 'transparent',
+                marginTop: '-2px'
+              }}
+              title="Drag to resize output"
+            />
             {effectiveResult ? (
               <div className={`p-4 h-full ${
                 effectiveResult.success ? 'bg-green-100' : 'bg-red-100'
