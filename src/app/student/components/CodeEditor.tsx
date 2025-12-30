@@ -144,9 +144,9 @@ export default function CodeEditor({
         {showRunButton && (
           <button
             onClick={handleRun}
-            disabled={effectiveIsRunning || readOnly}
+            disabled={effectiveIsRunning}
             className={`px-4 py-2 rounded text-white ${
-              effectiveIsRunning || readOnly
+              effectiveIsRunning
                 ? 'bg-gray-500 cursor-not-allowed'
                 : 'bg-green-600 hover:bg-green-700 cursor-pointer'
             }`}
@@ -157,7 +157,7 @@ export default function CodeEditor({
       </div>
 
       {/* Main Content Area - Responsive Layout */}
-      <div className="lg:flex lg:flex-row">
+      <div className="lg:flex lg:flex-row overflow-hidden">
         {/* Left Column: Editor + Results (Desktop) or Full Width (Mobile) */}
         <div className={`flex flex-col ${isDesktop && !isSettingsCollapsed ? 'lg:flex-[7]' : 'flex-1'}`}>
           {/* Code Editor */}
@@ -261,16 +261,16 @@ export default function CodeEditor({
             <div className="lg:border-l border-gray-300 bg-gray-50" style={{ flexBasis: '40px', flexShrink: 0 }}>
               <button
                 onClick={toggleSettings}
-                className="w-full h-full px-2 py-2 bg-transparent border-none cursor-pointer text-left font-bold flex items-center justify-center hover:bg-gray-100"
+                className="w-full h-full p-2 bg-transparent border-none cursor-pointer flex items-center justify-center hover:bg-gray-100"
                 aria-expanded={!isSettingsCollapsed}
                 aria-label="Toggle execution settings"
-                style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}
+                title="Execution Settings"
               >
-                <div className="flex items-center gap-2">
-                  <span className="inline-block transition-transform duration-200">
-                    ▶
-                  </span>
-                  Execution Settings
+                {/* Hamburger icon */}
+                <div className="flex flex-col gap-1">
+                  <div className="w-5 h-0.5 bg-gray-600"></div>
+                  <div className="w-5 h-0.5 bg-gray-600"></div>
+                  <div className="w-5 h-0.5 bg-gray-600"></div>
                 </div>
               </button>
             </div>

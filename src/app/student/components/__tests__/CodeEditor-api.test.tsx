@@ -350,7 +350,8 @@ describe('CodeEditor Component', () => {
       );
 
       const runButton = screen.getByText('▶ Run Code');
-      expect(runButton).toBeDisabled();
+      // Run button should be enabled even in read-only mode
+      expect(runButton).not.toBeDisabled();
     });
   });
 });
