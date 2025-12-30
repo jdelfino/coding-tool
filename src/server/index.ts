@@ -23,7 +23,6 @@ const handle = app.getRequestHandler();
 
 app.prepare().then(async () => {
   // Initialize persistence storage
-  console.log('Initializing storage backend...');
   const storage = await createDefaultStorage();
   
   // Set global storage holder (accessible by API routes)
@@ -38,9 +37,6 @@ app.prepare().then(async () => {
   const revisionBuffer = new RevisionBuffer(storage);
   revisionBuffer.startAutoFlush();
   revisionBufferHolder.instance = revisionBuffer;
-  
-  console.log('Storage backend initialized successfully');
-  console.log('Authentication provider will auto-initialize on first use');
 
   const expressApp = express();
   const server = createServer(expressApp);

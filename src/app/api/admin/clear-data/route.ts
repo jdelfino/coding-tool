@@ -53,8 +53,6 @@ export async function POST(request: NextRequest) {
     // 6. Auth sessions (depend on users)
     // 7. Users (last)
     
-    console.log('[Admin Clear Data] Starting data wipe...');
-    
     // 1. Clear all active sessions via session manager
     const sessionManager = await getSessionManager();
     const allSessions = await storage.sessions.listAllSessions();
@@ -65,14 +63,12 @@ export async function POST(request: NextRequest) {
         console.error(`[Admin Clear Data] Error ending session ${session.id}:`, error);
       }
     }
-    console.log(`[Admin Clear Data] Cleared ${allSessions.length} sessions`);
     
     // 2. Clear memberships
     if (storage.memberships) {
       const membershipRepo = storage.memberships as any;
       if (typeof membershipRepo.clear === 'function') {
         await membershipRepo.clear();
-        console.log('[Admin Clear Data] Cleared memberships');
       }
     }
     
@@ -81,7 +77,6 @@ export async function POST(request: NextRequest) {
       const sectionRepo = storage.sections as any;
       if (typeof sectionRepo.clear === 'function') {
         await sectionRepo.clear();
-        console.log('[Admin Clear Data] Cleared sections');
       }
     }
     
@@ -90,7 +85,6 @@ export async function POST(request: NextRequest) {
       const classRepo = storage.classes as any;
       if (typeof classRepo.clear === 'function') {
         await classRepo.clear();
-        console.log('[Admin Clear Data] Cleared classes');
       }
     }
     
@@ -103,14 +97,12 @@ export async function POST(request: NextRequest) {
         console.error(`[Admin Clear Data] Error deleting problem ${problem.id}:`, error);
       }
     }
-    console.log(`[Admin Clear Data] Cleared ${problems.length} problems`);
     
     // 6. Clear revisions
     if (storage.revisions) {
       const revisionRepo = storage.revisions as any;
       if (typeof revisionRepo.clear === 'function') {
         await revisionRepo.clear();
-        console.log('[Admin Clear Data] Cleared revisions');
       }
     }
     
@@ -122,7 +114,6 @@ export async function POST(request: NextRequest) {
     for (const authSession of allAuthSessions) {
       await authProvider.destroySession(authSession.sessionId);
     }
-    console.log(`[Admin Clear Data] Cleared ${allAuthSessions.length} auth sessions`);
     
     // Delete all users except the current admin/instructor (to prevent lockout)
     let deletedCount = 0;
@@ -136,9 +127,6 @@ export async function POST(request: NextRequest) {
         }
       }
     }
-    console.log(`[Admin Clear Data] Deleted ${deletedCount} users (preserved current admin)`);
-    
-    console.log('[Admin Clear Data] Data wipe complete');
     
     return NextResponse.json({
       success: true,

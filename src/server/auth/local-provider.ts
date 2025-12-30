@@ -49,7 +49,6 @@ export class LocalAuthProvider implements IAuthProvider {
         this.activeSessions.set(sessionId, session);
       }
       
-      console.log(`[Auth] Loaded ${this.activeSessions.size} sessions from disk`);
     } catch (error: any) {
       if (error.code !== 'ENOENT') {
         console.error('[Auth] Error loading sessions:', error);
@@ -106,7 +105,6 @@ export class LocalAuthProvider implements IAuthProvider {
       if (adminEmail && normalizedUsername.toLowerCase() === adminEmail.toLowerCase()) {
         // Bootstrap admin from ADMIN_EMAIL
         role = 'admin';
-        console.log(`[Auth] Creating bootstrap admin account: ${normalizedUsername}`);
       } else if (userCount === 0) {
         // First user becomes instructor (if no ADMIN_EMAIL set)
         role = 'instructor';

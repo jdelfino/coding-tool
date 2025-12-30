@@ -16,7 +16,6 @@ export async function getAuthProvider(): Promise<IAuthProvider> {
     // Auto-initialize storage if needed (for API routes)
     const storage = await getStorage();
     authProviderInstance = new LocalAuthProvider(storage.users);
-    console.log('[Auth] Initialized auth provider');
   }
   return authProviderInstance;
 }

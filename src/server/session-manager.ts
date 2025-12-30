@@ -16,7 +16,6 @@ export class SessionManager {
    */
   private async ensureStorage(): Promise<IStorageRepository> {
     if (!this.storage) {
-      console.log('[SessionManager] Auto-initializing storage');
       this.storage = await getStorage(); // Use singleton storage
       // Don't call initialize() - getStorage() handles that
     }
@@ -39,7 +38,6 @@ export class SessionManager {
         this.sessionsByJoinCode.set(session.joinCode, session.id);
       }
       
-      console.log(`Loaded ${sessions.length} sessions from storage`);
     } catch (error) {
       console.error('Failed to load sessions from storage:', error);
       throw error;
@@ -106,9 +104,7 @@ export class SessionManager {
     
     // Persist to storage
     try {
-      console.log(`[SessionManager.createSession] About to persist session ${sessionId} to storage`);
       await storage.sessions.createSession(session);
-      console.log(`[SessionManager.createSession] Successfully persisted session ${sessionId} to storage`);
     } catch (error) {
       console.error('Failed to persist session to storage:', error);
       throw error;
@@ -116,7 +112,6 @@ export class SessionManager {
     
     this.sessionsByJoinCode.set(joinCode, sessionId);
     
-    console.log(`Created session ${sessionId} with join code ${joinCode}${sectionId ? ` for section ${sectionId}` : ''}${problem ? ` with problem "${problem.title}"` : ''}`);
     return session;
   }
 
@@ -172,19 +167,16 @@ export class SessionManager {
     }
     
     // Not in index - search all sessions in storage (handles cross-process session creation)
-    console.log(`[SessionManager.getSessionByJoinCode] Join code ${upperJoinCode} not in index, searching storage...`);
     const allSessions = await storage.sessions.listAllSessions();
     
     for (const session of allSessions) {
       if (session.joinCode === upperJoinCode) {
         // Update our index for future lookups
         this.sessionsByJoinCode.set(upperJoinCode, session.id);
-        console.log(`[SessionManager.getSessionByJoinCode] Found session ${session.id} in storage, updated index`);
         return session;
       }
     }
     
-    console.log(`[SessionManager.getSessionByJoinCode] Session not found for join code ${upperJoinCode}`);
     return null;
   }
 

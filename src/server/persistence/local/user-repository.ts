@@ -32,7 +32,6 @@ export class LocalUserRepository implements IUserRepository {
     await this.reloadFromDisk();
 
     this.initialized = true;
-    console.log(`[UserStorage] Loaded ${this.users.size} users from disk`);
   }
 
   /**

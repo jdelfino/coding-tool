@@ -174,7 +174,6 @@ export const storageHolder = {
  */
 export async function getStorage(): Promise<IStorageRepository> {
   if (!storageHolder.instance) {
-    console.log('[Storage] Auto-initializing storage for API routes');
     storageHolder.instance = await createDefaultStorage();
   }
   return storageHolder.instance;

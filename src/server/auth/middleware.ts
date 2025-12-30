@@ -140,7 +140,6 @@ export async function authenticateWebSocket(
     if (user) {
       ws.user = user;
       ws.sessionId = sessionId;
-      console.log(`[WebSocket Auth] Authenticated: ${user.username} (${user.role})`);
     }
 
     return user;
