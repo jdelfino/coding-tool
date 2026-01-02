@@ -22,6 +22,7 @@ jest.mock('@monaco-editor/react', () => {
             })),
           })),
           executeEdits: jest.fn(),
+          deltaDecorations: jest.fn().mockReturnValue([]),
         };
         onMount(mockEditor);
       }

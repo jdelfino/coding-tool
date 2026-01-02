@@ -39,6 +39,7 @@ jest.mock('@monaco-editor/react', () => {
             (mockEditor as any).lastEdit = { source, edits };
             return true;
           }),
+          deltaDecorations: jest.fn().mockReturnValue([]),
           lastEdit: null as { source: string; edits: any[] } | null,
         };
         

@@ -7,6 +7,7 @@ import { DebuggerPanel } from './DebuggerPanel';
 import type { ExecutionSettings } from '@/server/types/problem';
 import { useResponsiveLayout, useSidebarSection } from '@/hooks/useResponsiveLayout';
 import type { Problem } from '@/server/types/problem';
+import type * as Monaco from 'monaco-editor';
 
 interface ExecutionResult {
   success: boolean;
@@ -37,11 +38,11 @@ interface CodeEditorProps {
   debugger?: ReturnType<typeof import('@/hooks/useDebugger').useDebugger>;
 }
 
-export default function CodeEditor({ 
-  code, 
-  onChange, 
-  onRun, 
-  isRunning = false, 
+export default function CodeEditor({
+  code,
+  onChange,
+  onRun,
+  isRunning = false,
   exampleInput,
   onStdinChange,
   randomSeed,
@@ -62,7 +63,8 @@ export default function CodeEditor({
   const [stdin, setStdin] = useState('');
   const [localIsRunning, setLocalIsRunning] = useState(false);
   const [localExecutionResult, setLocalExecutionResult] = useState<ExecutionResult | null>(null);
-  
+  const decorationsRef = useRef<string[]>([]);
+
   // Responsive layout detection
   const isDesktop = useResponsiveLayout(1024);
   const { isCollapsed: isSettingsCollapsed, toggle: toggleSettings, setCollapsed: setSettingsCollapsed } = useSidebarSection('execution-settings', false);
@@ -92,11 +94,11 @@ export default function CodeEditor({
         const constrainedWidth = Math.min(Math.max(newWidth, 200), 600);
         setSidebarWidth(constrainedWidth);
       }
-      
+
       if (isResizingOutput && outputResizeRef.current) {
         const container = outputResizeRef.current.parentElement;
         if (!container) return;
-        
+
         const containerRect = container.getBoundingClientRect();
         const newHeight = containerRect.bottom - e.clientY;
         const maxHeight = containerRect.height * 0.4; // Max 40% of container
@@ -180,21 +182,21 @@ export default function CodeEditor({
     if (effectiveResult && outputResizeRef.current) {
       const container = outputResizeRef.current.parentElement;
       if (!container) return;
-      
+
       const containerHeight = container.getBoundingClientRect().height;
       const maxHeight = containerHeight * 0.4;
-      
+
       // Estimate needed height based on content
       const hasOutput = effectiveResult.output && effectiveResult.output.length > 0;
       const hasError = effectiveResult.error && effectiveResult.error.length > 0;
-      
+
       let targetHeight = 150; // Minimum
       if (hasOutput || hasError) {
         // Grow to accommodate content, up to 40%
         const contentLines = (effectiveResult.output || effectiveResult.error || '').split('\n').length;
         targetHeight = Math.min(150 + (contentLines * 20), maxHeight);
       }
-      
+
       setOutputHeight(Math.min(targetHeight, maxHeight));
     } else if (!effectiveResult) {
       // Reset to initial size when no results
@@ -208,6 +210,40 @@ export default function CodeEditor({
       setStdin(exampleInput);
     }
   }, [exampleInput]);
+
+  // Update line highlighting when debugging
+  useEffect(() => {
+    if (!editorRef.current || !debuggerHook) return;
+
+    const editor = editorRef.current as Monaco.editor.IStandaloneCodeEditor;
+    const currentStep = debuggerHook.getCurrentStep();
+    const currentLine = currentStep?.line;
+
+    // Clear decorations when not debugging or no current line
+    if (!debuggerHook.hasTrace || !currentLine) {
+      const newDecorations = editor.deltaDecorations(decorationsRef.current, []);
+      decorationsRef.current = newDecorations;
+      return;
+    }
+
+    // Add decoration for current line
+    const newDecorations = editor.deltaDecorations(decorationsRef.current, [
+      {
+        range: {
+          startLineNumber: currentLine,
+          startColumn: 1,
+          endLineNumber: currentLine,
+          endColumn: 1,
+        },
+        options: {
+          isWholeLine: true,
+          className: 'debugger-line-highlight',
+          glyphMarginClassName: 'debugger-line-glyph',
+        },
+      },
+    ]);
+    decorationsRef.current = newDecorations;
+  }, [debuggerHook?.hasTrace, debuggerHook?.currentStep]);
 
   const handleEditorDidMount = (editor: any) => {
     editorRef.current = editor;
@@ -332,8 +368,8 @@ export default function CodeEditor({
                 <button
                   onClick={handleToggleProblem}
                   className={`w-10 h-10 flex items-center justify-center rounded transition-colors ${
-                    !isProblemCollapsed 
-                      ? 'bg-gray-700 text-white' 
+                    !isProblemCollapsed
+                      ? 'bg-gray-700 text-white'
                       : 'text-gray-400 hover:text-white hover:bg-gray-700'
                   }`}
                   aria-label="Problem"
@@ -349,13 +385,13 @@ export default function CodeEditor({
                   </svg>
                 </button>
               )}
-              
+
               {/* Settings icon */}
               <button
                 onClick={handleToggleSettings}
                 className={`w-10 h-10 flex items-center justify-center rounded transition-colors ${
-                  !isSettingsCollapsed 
-                    ? 'bg-gray-700 text-white' 
+                  !isSettingsCollapsed
+                    ? 'bg-gray-700 text-white'
                     : 'text-gray-400 hover:text-white hover:bg-gray-700'
                 }`}
                 aria-label="Execution Settings"
@@ -379,7 +415,7 @@ export default function CodeEditor({
 
             {/* Side Panel (expands when active) */}
             {(!isProblemCollapsed && problem) && (
-              <div 
+              <div
                 ref={resizeRef}
                 className="bg-gray-800 text-gray-200 border-r border-gray-700 flex flex-col flex-shrink-0 relative"
                 style={{ width: `${sidebarWidth}px`, maxHeight: '100%', height: '100%' }}
@@ -416,16 +452,16 @@ export default function CodeEditor({
                 <div
                   onMouseDown={handleMouseDown}
                   className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-blue-500 transition-colors"
-                  style={{ 
+                  style={{
                     background: isResizing ? '#3b82f6' : 'transparent',
                   }}
                   title="Drag to resize"
                 />
               </div>
             )}
-            
+
             {!isSettingsCollapsed && (
-              <div 
+              <div
                 className="bg-gray-800 text-gray-200 border-r border-gray-700 flex flex-col flex-shrink-0 relative"
                 style={{ width: `${sidebarWidth}px`, maxHeight: '100%', height: '100%' }}
               >
@@ -456,7 +492,7 @@ export default function CodeEditor({
                 <div
                   onMouseDown={handleMouseDown}
                   className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-blue-500 transition-colors"
-                  style={{ 
+                  style={{
                     background: isResizing ? '#3b82f6' : 'transparent',
                   }}
                   title="Drag to resize"
@@ -485,12 +521,13 @@ export default function CodeEditor({
                 scrollBeyondLastLine: false,
                 automaticLayout: true,
                 readOnly,
+                glyphMargin: true,
               }}
             />
           </div>
 
           {/* Execution Results or Debugger - Always Visible - Resizable */}
-          <div 
+          <div
             ref={outputResizeRef}
             className="border-t border-gray-300 overflow-y-auto flex-shrink-0 relative"
             style={{ height: debuggerHook?.hasTrace ? 'auto' : `${outputHeight}px`, flex: debuggerHook?.hasTrace ? 1 : undefined }}
@@ -500,14 +537,14 @@ export default function CodeEditor({
               <div
                 onMouseDown={handleOutputMouseDown}
                 className="absolute top-0 left-0 right-0 h-1 cursor-row-resize hover:bg-blue-500 transition-colors z-10"
-                style={{ 
+                style={{
                   background: isResizingOutput ? '#3b82f6' : 'transparent',
                   marginTop: '-2px'
                 }}
                 title="Drag to resize output"
               />
             )}
-            
+
             {debuggerHook?.hasTrace ? (
               /* Show debugger panel when trace is active */
               <DebuggerPanel
@@ -545,7 +582,7 @@ export default function CodeEditor({
                     Execution time: {effectiveResult.executionTime}ms
                   </span>
                 </div>
-                
+
                 {effectiveResult.output && (
                   <div className="mt-2">
                     <div className={`font-bold text-sm ${
@@ -558,7 +595,7 @@ export default function CodeEditor({
                     </pre>
                   </div>
                 )}
-                
+
                 {effectiveResult.error && (
                   <div className="mt-2">
                     <div className="font-bold text-sm text-red-800">
