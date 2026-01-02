@@ -12,6 +12,7 @@ import { revisionBufferHolder } from './revision-buffer';
 import { getStorage } from './persistence';
 import { getSectionRepository, getMembershipRepository } from './classes';
 import * as DiffMatchPatch from 'diff-match-patch';
+import { traceExecution } from './code-tracer';
 
 interface Connection {
   ws: WebSocket;
@@ -202,6 +203,10 @@ class WebSocketHandler {
         
       case MessageType.PUBLIC_EXECUTE_CODE:
         await this.handlePublicExecuteCode(ws, connection, message.payload);
+        break;
+        
+      case MessageType.TRACE_REQUEST:
+        await this.handleTraceRequest(ws, connection, message.payload);
         break;
         
       default:
@@ -984,6 +989,32 @@ class WebSocketHandler {
       type: MessageType.ERROR,
       payload: { error },
     });
+  }
+
+  private async handleTraceRequest(ws: WebSocket, connection: Connection, payload: any) {
+    try {
+      const { code, stdin, maxSteps } = payload;
+
+      if (!code || typeof code !== 'string') {
+        this.sendError(ws, 'Invalid code for trace request');
+        return;
+      }
+
+      // Execute tracing
+      const trace = await traceExecution(code, {
+        stdin: stdin || '',
+        maxSteps: maxSteps || 5000
+      });
+
+      // Send trace response
+      this.send(ws, {
+        type: MessageType.TRACE_RESPONSE,
+        payload: { trace }
+      });
+    } catch (error) {
+      console.error('Error during trace execution:', error);
+      this.sendError(ws, 'Failed to generate execution trace');
+    }
   }
 
   private heartbeat() {

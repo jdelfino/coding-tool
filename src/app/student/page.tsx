@@ -6,6 +6,7 @@ import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSessionHistory, SessionHistory } from '@/hooks/useSessionHistory';
 import { Problem, ExecutionSettings } from '@/server/types/problem';
+import { useDebugger } from '@/hooks/useDebugger';
 import JoinForm from './components/JoinForm';
 import StudentDashboard from './components/StudentDashboard';
 import CodeEditor from './components/CodeEditor';
@@ -51,6 +52,9 @@ function StudentPage() {
   }, []);
   
   const { isConnected, connectionStatus, connectionError, lastMessage, sendMessage } = useWebSocket(wsUrl);
+  
+  // Debugger state
+  const debuggerHook = useDebugger(sendMessage);
 
   // Define handlers with useCallback to avoid dependency issues
   const handleJoin = useCallback((joinCode: string) => {
@@ -152,6 +156,10 @@ function StudentPage() {
       case 'EXECUTION_RESULT':
         setExecutionResult(lastMessage.payload);
         setIsRunning(false);
+        break;
+
+      case 'TRACE_RESPONSE':
+        debuggerHook.setTrace(lastMessage.payload.trace);
         break;
 
       case 'SESSION_ENDED':
@@ -615,6 +623,7 @@ function StudentPage() {
           problem={problem}
           onLoadStarterCode={handleLoadStarterCode}
           externalEditorRef={editorRef}
+          debugger={debuggerHook}
         />
       </div>
     </main>

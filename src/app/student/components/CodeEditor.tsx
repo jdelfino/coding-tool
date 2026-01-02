@@ -3,6 +3,7 @@
 import Editor from '@monaco-editor/react';
 import React, { useEffect, useRef, useState } from 'react';
 import ExecutionSettingsComponent from './ExecutionSettings';
+import { DebuggerPanel } from './DebuggerPanel';
 import type { ExecutionSettings } from '@/server/types/problem';
 import { useResponsiveLayout, useSidebarSection } from '@/hooks/useResponsiveLayout';
 import type { Problem } from '@/server/types/problem';
@@ -31,7 +32,10 @@ interface CodeEditorProps {
   title?: string;
   showRunButton?: boolean;
   problem?: Problem | null;
-  onLoadStarterCode?: (starterCode: string) => void;  externalEditorRef?: React.MutableRefObject<any>;}
+  onLoadStarterCode?: (starterCode: string) => void;
+  externalEditorRef?: React.MutableRefObject<any>;
+  debugger?: ReturnType<typeof import('@/hooks/useDebugger').useDebugger>;
+}
 
 export default function CodeEditor({ 
   code, 
@@ -52,6 +56,7 @@ export default function CodeEditor({
   problem = null,
   onLoadStarterCode,
   externalEditorRef,
+  debugger: debuggerHook,
 }: CodeEditorProps) {
   const editorRef = useRef<any>(null);
   const [stdin, setStdin] = useState('');
@@ -275,19 +280,44 @@ export default function CodeEditor({
       {/* Header */}
       <div className="px-4 py-2 bg-gray-100 border-b border-gray-300 flex justify-between items-center flex-shrink-0">
         <span className="font-bold">{title}</span>
-        {showRunButton && (
-          <button
-            onClick={handleRun}
-            disabled={effectiveIsRunning}
-            className={`px-4 py-2 rounded text-white ${
-              effectiveIsRunning
-                ? 'bg-gray-500 cursor-not-allowed'
-                : 'bg-green-600 hover:bg-green-700 cursor-pointer'
-            }`}
-          >
-            {effectiveIsRunning ? '⏳ Running...' : '▶ Run Code'}
-          </button>
-        )}
+        <div className="flex gap-2">
+          {showRunButton && (
+            <>
+              <button
+                onClick={handleRun}
+                disabled={effectiveIsRunning}
+                className={`px-4 py-2 rounded text-white ${
+                  effectiveIsRunning
+                    ? 'bg-gray-500 cursor-not-allowed'
+                    : 'bg-green-600 hover:bg-green-700 cursor-pointer'
+                }`}
+              >
+                {effectiveIsRunning ? '⏳ Running...' : '▶ Run Code'}
+              </button>
+              {debuggerHook && (
+                <button
+                  onClick={() => {
+                    if (debuggerHook.hasTrace) {
+                      debuggerHook.reset();
+                    } else {
+                      debuggerHook.requestTrace(code, stdin || undefined);
+                    }
+                  }}
+                  disabled={debuggerHook.isLoading || !code.trim()}
+                  className={`px-4 py-2 rounded text-white ${
+                    debuggerHook.isLoading || !code.trim()
+                      ? 'bg-gray-500 cursor-not-allowed'
+                      : debuggerHook.hasTrace
+                      ? 'bg-red-600 hover:bg-red-700 cursor-pointer'
+                      : 'bg-blue-600 hover:bg-blue-700 cursor-pointer'
+                  }`}
+                >
+                  {debuggerHook.isLoading ? '⏳ Loading...' : debuggerHook.hasTrace ? '✕ Exit Debug' : '🐛 Debug'}
+                </button>
+              )}
+            </>
+          )}
+        </div>
       </div>
 
       {/* Main Content Area - Responsive Layout */}
@@ -459,23 +489,47 @@ export default function CodeEditor({
             />
           </div>
 
-          {/* Execution Results - Always Visible - Resizable */}
+          {/* Execution Results or Debugger - Always Visible - Resizable */}
           <div 
             ref={outputResizeRef}
             className="border-t border-gray-300 overflow-y-auto flex-shrink-0 relative"
-            style={{ height: `${outputHeight}px` }}
+            style={{ height: debuggerHook?.hasTrace ? 'auto' : `${outputHeight}px`, flex: debuggerHook?.hasTrace ? 1 : undefined }}
           >
-            {/* Resize handle */}
-            <div
-              onMouseDown={handleOutputMouseDown}
-              className="absolute top-0 left-0 right-0 h-1 cursor-row-resize hover:bg-blue-500 transition-colors z-10"
-              style={{ 
-                background: isResizingOutput ? '#3b82f6' : 'transparent',
-                marginTop: '-2px'
-              }}
-              title="Drag to resize output"
-            />
-            {effectiveResult ? (
+            {/* Resize handle (only show when not debugging) */}
+            {!debuggerHook?.hasTrace && (
+              <div
+                onMouseDown={handleOutputMouseDown}
+                className="absolute top-0 left-0 right-0 h-1 cursor-row-resize hover:bg-blue-500 transition-colors z-10"
+                style={{ 
+                  background: isResizingOutput ? '#3b82f6' : 'transparent',
+                  marginTop: '-2px'
+                }}
+                title="Drag to resize output"
+              />
+            )}
+            
+            {debuggerHook?.hasTrace ? (
+              /* Show debugger panel when trace is active */
+              <DebuggerPanel
+                currentStep={debuggerHook.currentStep}
+                totalSteps={debuggerHook.totalSteps}
+                currentLine={debuggerHook.getCurrentStep()?.line || 0}
+                locals={debuggerHook.getCurrentLocals()}
+                globals={debuggerHook.getCurrentGlobals()}
+                previousLocals={debuggerHook.getPreviousStep()?.locals || {}}
+                previousGlobals={debuggerHook.getPreviousStep()?.globals || {}}
+                callStack={debuggerHook.getCurrentCallStack()}
+                canStepForward={debuggerHook.canStepForward}
+                canStepBackward={debuggerHook.canStepBackward}
+                onStepForward={debuggerHook.stepForward}
+                onStepBackward={debuggerHook.stepBackward}
+                onJumpToFirst={debuggerHook.jumpToFirst}
+                onJumpToLast={debuggerHook.jumpToLast}
+                onExit={debuggerHook.reset}
+                truncated={debuggerHook.trace?.truncated}
+              />
+            ) : effectiveResult ? (
+              /* Show normal output when not debugging */
               <div className={`p-4 h-full ${
                 effectiveResult.success ? 'bg-green-100' : 'bg-red-100'
               }`}>
@@ -519,7 +573,7 @@ export default function CodeEditor({
             ) : (
               <div className="p-4 bg-gray-50 h-full flex items-center justify-center">
                 <p className="text-gray-500 text-sm italic">
-                  Run the code to see output here
+                  {debuggerHook ? 'Click Debug to step through your code' : 'Run the code to see output here'}
                 </p>
               </div>
             )}
