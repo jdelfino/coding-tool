@@ -60,12 +60,12 @@ test.describe('Critical User Paths', () => {
     await instructorPage.locator('button:has-text("Create Session")').last().click();
 
     // Wait for session view to load
-    await expect(instructorPage.locator('h2:has-text("Active Session")')).toBeVisible({ timeout: 10000 });
+    await expect(instructorPage.locator('h2:has-text("Active Session")')).toBeVisible({ timeout: 5000 });
 
     // Now student joins the section using the join code
     await loginAsStudent(page, 'test-student-critical');
     await page.goto('/sections');
-    await expect(page.locator('h1:has-text("My Sections")')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('h1:has-text("My Sections")')).toBeVisible({ timeout: 5000 });
 
     // Join section with join code
     await page.click('button:has-text("Join Section"), button:has-text("Join Your First Section")');
@@ -74,7 +74,7 @@ test.describe('Critical User Paths', () => {
     await page.click('button:has-text("Join Section")');
 
     // Wait for redirect back to sections page after successful join
-    await expect(page.locator('h1:has-text("My Sections")')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('h1:has-text("My Sections")')).toBeVisible({ timeout: 5000 });
 
     // The active session should be visible in the section - look for the "Join Now" button
     await expect(page.locator('button:has-text("Join Now")')).toBeVisible({ timeout: 5000 });
@@ -83,7 +83,7 @@ test.describe('Critical User Paths', () => {
     await page.click('button:has-text("Join Now")');
 
     // Verify student entered session
-    await expect(page.locator('h1:has-text("Live Coding Session")')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('h1:has-text("Live Coding Session")')).toBeVisible({ timeout: 5000 });
     await expect(page.locator('h2:has-text("Hello World")')).toBeVisible({ timeout: 5000 });
 
     // Write and submit code
@@ -96,7 +96,7 @@ test.describe('Critical User Paths', () => {
     await page.click('button:has-text("Run")');
 
     // Verify execution output
-    await expect(page.locator('pre:has-text("Hello World")')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('pre:has-text("Hello World")')).toBeVisible({ timeout: 5000 });
 
     // Cleanup
     await instructorContext.close();

@@ -43,11 +43,11 @@ test.describe('Student Session Participation', () => {
 
     // Create session via instructor UI (so it's properly created in the session manager)
     await page.goto('/instructor');
-    await expect(page.locator('h2:has-text("Your Classes")')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('h2:has-text("Your Classes")')).toBeVisible({ timeout: 5000 });
 
     // Navigate to problems
     await page.click('button:has-text("Problems")');
-    await expect(page.locator('h2:has-text("Problem Library")')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('h2:has-text("Problem Library")')).toBeVisible({ timeout: 5000 });
 
     // Find and click "Create Session" for the test problem
     const problemCard = page.locator(`div:has-text("${testProblem.title}")`).first();
@@ -106,14 +106,14 @@ test.describe('Student Session Participation', () => {
     await expect(page.locator('button:has-text("Leave Session")')).toBeVisible({ timeout: 5000 });
 
     // Wait for problem to be loaded before expecting Monaco
-    await expect(page.locator('h2, h3').filter({ hasText: testProblem.title })).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('h2, h3').filter({ hasText: testProblem.title })).toBeVisible({ timeout: 5000 });
 
     // Wait a moment for React to render
     await page.waitForTimeout(500);
 
     // Wait for editor
     const monacoEditor = page.locator('.monaco-editor').first();
-    await expect(monacoEditor).toBeVisible({ timeout: 10000 });
+    await expect(monacoEditor).toBeVisible({ timeout: 5000 });
 
     // Submit first solution
     await page.evaluate(() => {
@@ -131,7 +131,7 @@ test.describe('Student Session Participation', () => {
     await page.click('button:has-text("Run")');
 
     // Verify execution shows new output
-    await expect(page.locator('text=Second')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('text=Second')).toBeVisible({ timeout: 5000 });
   });
 
   test('Multiple students in same session', async ({ browser }) => {
@@ -156,6 +156,11 @@ test.describe('Student Session Participation', () => {
     await page1.click('button:has-text("Join Now")');
     await page1.waitForURL(/\/student\?sessionId=/, { timeout: 5000 });
 
+    // Wait for student 1 session to fully load
+    await expect(page1.locator('button:has-text("Leave Session")')).toBeVisible({ timeout: 5000 });
+    await expect(page1.locator('h2, h3').filter({ hasText: testProblem.title })).toBeVisible({ timeout: 5000 });
+    await page1.waitForTimeout(500); // Wait for React to render
+
     // Student 2 joins section and session
     await page2.goto('/sections');
     await expect(page2.locator('h1:has-text("My Sections")')).toBeVisible({ timeout: 5000 });
@@ -167,9 +172,14 @@ test.describe('Student Session Participation', () => {
     await page2.click('button:has-text("Join Now")');
     await page2.waitForURL(/\/student\?sessionId=/, { timeout: 5000 });
 
+    // Wait for student 2 session to fully load
+    await expect(page2.locator('button:has-text("Leave Session")')).toBeVisible({ timeout: 5000 });
+    await expect(page2.locator('h2, h3').filter({ hasText: testProblem.title })).toBeVisible({ timeout: 5000 });
+    await page2.waitForTimeout(500); // Wait for React to render
+
     // Wait for editors
-    await expect(page1.locator('.monaco-editor').first()).toBeVisible({ timeout: 10000 });
-    await expect(page2.locator('.monaco-editor').first()).toBeVisible({ timeout: 10000 });
+    await expect(page1.locator('.monaco-editor').first()).toBeVisible({ timeout: 5000 });
+    await expect(page2.locator('.monaco-editor').first()).toBeVisible({ timeout: 5000 });
 
     // Each student writes different code using Monaco API
     await page1.evaluate(() => {
@@ -187,8 +197,8 @@ test.describe('Student Session Participation', () => {
     await page2.click('button:has-text("Run")');
 
     // Verify both have output
-    await expect(page1.locator('pre').filter({ hasText: 'Student A' }).first()).toBeVisible({ timeout: 10000 });
-    await expect(page2.locator('pre').filter({ hasText: 'Student B' }).first()).toBeVisible({ timeout: 10000 });
+    await expect(page1.locator('pre').filter({ hasText: 'Student A' }).first()).toBeVisible({ timeout: 5000 });
+    await expect(page2.locator('pre').filter({ hasText: 'Student B' }).first()).toBeVisible({ timeout: 5000 });
 
     await context1.close();
     await context2.close();
@@ -211,7 +221,7 @@ test.describe('Student Session Participation', () => {
 
     // Wait for editor
     const monacoEditor = page.locator('.monaco-editor').first();
-    await expect(monacoEditor).toBeVisible({ timeout: 10000 });
+    await expect(monacoEditor).toBeVisible({ timeout: 5000 });
 
     // Write some code using Monaco API
     await page.evaluate(() => {
@@ -227,13 +237,13 @@ test.describe('Student Session Participation', () => {
     await page.waitForTimeout(2000);
 
     // Should still be in the session view (URL should persist)
-    await expect(page.locator('h1:has-text("Live Coding Session")')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('h1:has-text("Live Coding Session")')).toBeVisible({ timeout: 5000 });
 
     // Editor should be visible
-    await expect(monacoEditor).toBeVisible({ timeout: 10000 });
+    await expect(monacoEditor).toBeVisible({ timeout: 5000 });
 
     // Verify code is still there by running it
     await page.click('button:has-text("Run")');
-    await expect(page.locator('text=Persisted Code')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('text=Persisted Code')).toBeVisible({ timeout: 5000 });
   });
 });
