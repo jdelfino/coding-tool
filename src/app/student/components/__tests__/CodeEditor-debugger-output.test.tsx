@@ -27,7 +27,7 @@ describe('CodeEditor - Debugger Output Display', () => {
   });
 
   describe('when debugger has trace with stdout', () => {
-    it('displays stdout in the output panel', () => {
+    it('displays stdout with step annotations in the output panel', () => {
       const mockDebugger = {
         trace: {
           steps: [
@@ -110,10 +110,12 @@ describe('CodeEditor - Debugger Output Display', () => {
       // Should show step information
       expect(screen.getByText('Step 3 of 3')).toBeInTheDocument();
       
-      // Should show the stdout content
+      // Should show the stdout content with step annotations
       expect(screen.getByText('Console Output (up to current step):')).toBeInTheDocument();
-      expect(screen.getByText(/Hello, World!/)).toBeInTheDocument();
-      expect(screen.getByText(/Value: 15/)).toBeInTheDocument();
+      expect(screen.getByText('[Step 2]')).toBeInTheDocument();
+      expect(screen.getByText('[Step 3]')).toBeInTheDocument();
+      expect(screen.getByText('Hello, World!')).toBeInTheDocument();
+      expect(screen.getByText('Value: 15')).toBeInTheDocument();
     });
 
     it('shows "no output yet" when stdout is empty', () => {
@@ -292,11 +294,12 @@ describe('CodeEditor - Debugger Output Display', () => {
         />
       );
 
-      // At step 2, should only show first line
+      // At step 2, should only show first line with step annotation
       expect(screen.getByText('Step 2 of 3')).toBeInTheDocument();
-      expect(screen.getByText(/First line/)).toBeInTheDocument();
+      expect(screen.getByText('[Step 2]')).toBeInTheDocument();
+      expect(screen.getByText('First line')).toBeInTheDocument();
       // Should NOT show second line yet (that's in step 3)
-      expect(screen.queryByText(/Second line/)).not.toBeInTheDocument();
+      expect(screen.queryByText('Second line')).not.toBeInTheDocument();
     });
   });
 
@@ -317,6 +320,17 @@ describe('CodeEditor - Debugger Output Display', () => {
 
       expect(screen.getByText('✓ Success')).toBeInTheDocument();
       expect(screen.getByText(/Hello/)).toBeInTheDocument();
+    });
+
+    it('shows appropriate message when no output exists', () => {
+      render(
+        <CodeEditor
+          code="# Empty code"
+          onChange={mockOnChange}
+        />
+      );
+
+      expect(screen.getByText('Program output will appear here after you run your code')).toBeInTheDocument();
     });
   });
 });

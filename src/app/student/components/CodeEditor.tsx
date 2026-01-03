@@ -355,6 +355,38 @@ export default function CodeEditor({
     }
   };
 
+  // Helper function to annotate output lines with step numbers
+  const getAnnotatedOutput = () => {
+    if (!debuggerHook?.trace?.steps) return [];
+    
+    const annotatedLines: Array<{ stepNumber: number; text: string }> = [];
+    let previousOutput = '';
+    
+    debuggerHook.trace.steps.forEach((step, index) => {
+      const currentOutput = step.stdout || '';
+      
+      // Find new lines added in this step
+      if (currentOutput.length > previousOutput.length) {
+        const newContent = currentOutput.substring(previousOutput.length);
+        const lines = newContent.split('\n');
+        
+        lines.forEach((line, lineIndex) => {
+          // Skip the last empty line if it's just from splitting
+          if (lineIndex === lines.length - 1 && line === '') return;
+          
+          annotatedLines.push({
+            stepNumber: index + 1,
+            text: line
+          });
+        });
+      }
+      
+      previousOutput = currentOutput;
+    });
+    
+    return annotatedLines;
+  };
+
   return (
     <div className="border border-gray-300 rounded flex flex-col" style={{ height: '100%' }}>
       {/* Header */}
@@ -809,20 +841,36 @@ export default function CodeEditor({
                   </span>
                 </div>
 
-                {debuggerHook.getCurrentStep()?.stdout ? (
-                  <div className="mt-2">
-                    <div className="font-bold text-sm text-blue-800">
-                      Console Output (up to current step):
+                {(() => {
+                  const annotatedLines = getAnnotatedOutput();
+                  const currentStepOutput = debuggerHook.getCurrentStep()?.stdout || '';
+                  const visibleLines = annotatedLines.filter(line => {
+                    // Only show lines up to and including the current step
+                    return line.stepNumber <= debuggerHook.currentStep + 1;
+                  });
+                  
+                  return visibleLines.length > 0 ? (
+                    <div className="mt-2">
+                      <div className="font-bold text-sm text-blue-800">
+                        Console Output (up to current step):
+                      </div>
+                      <div className="bg-white p-2 rounded border border-blue-200 overflow-x-auto text-sm font-mono mt-1">
+                        {visibleLines.map((line, index) => (
+                          <div key={index} className="flex hover:bg-blue-50">
+                            <span className="text-blue-400 select-none mr-3 flex-shrink-0" style={{ minWidth: '60px' }}>
+                              [Step {line.stepNumber}]
+                            </span>
+                            <span className="whitespace-pre-wrap break-words flex-1">{line.text}</span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                    <pre className="bg-white p-2 rounded border border-blue-200 overflow-x-auto text-sm font-mono mt-1 whitespace-pre-wrap break-words">
-                      {debuggerHook.getCurrentStep()?.stdout}
-                    </pre>
-                  </div>
-                ) : (
-                  <div className="mt-2 text-sm text-blue-700 italic">
-                    No console output yet
-                  </div>
-                )}
+                  ) : (
+                    <div className="mt-2 text-sm text-blue-700 italic">
+                      No console output yet
+                    </div>
+                  );
+                })()}
 
                 {debuggerHook.error && (
                   <div className="mt-2">
@@ -884,7 +932,7 @@ export default function CodeEditor({
             ) : (
               <div className="p-4 bg-gray-50 h-full flex items-center justify-center">
                 <p className="text-gray-500 text-sm italic">
-                  {debuggerHook ? 'Click Debug to step through your code' : 'Run the code to see output here'}
+                  Program output will appear here after you run your code
                 </p>
               </div>
             )}
