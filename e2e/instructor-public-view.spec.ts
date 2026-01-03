@@ -86,7 +86,7 @@ async function studentJoinAndSubmit(
   const studentContext = await browser.newContext();
   const studentPage = await studentContext.newPage();
   await loginAsStudent(studentPage, studentName);
-  
+
   // Wait for auth to fully settle after login
   await studentPage.waitForTimeout(1000);
 
@@ -114,76 +114,26 @@ async function studentJoinAndSubmit(
   // Wait for navigation to student page
   await studentPage.waitForURL(/\/student\?sessionId=/, { timeout: 5000 });
 
-  // Wait for session to load AND for the student to be fully joined (SESSION_JOINED message received)
-  // CRITICAL: Check what's actually on the page before looking for Leave Session button
-  const pageDebug = await studentPage.evaluate(() => {
-    const bodyText = document.body.textContent || '';
-    return {
-      url: window.location.href,
-      title: document.title,
-      h1Text: document.querySelector('h1')?.textContent || 'NO_H1',
-      signedInText: bodyText.match(/Signed in as\s+(\S+)/)?.[1] || 'NO_SIGNED_IN_TEXT',
-      hasLeaveButton: bodyText.includes('Leave Session'),
-      bodySnippet: bodyText.substring(0, 300).replace(/\s+/g, ' ')
-    };
-  });
-  console.log('📊 Page state before looking for Leave Session button:', JSON.stringify(pageDebug, null, 2));
-
-  // If we're seeing the instructor dashboard, this is the bug
-  if (pageDebug.h1Text?.includes('Instructor')) {
-    throw new Error(`🐛 BUG REPRODUCED! Student page is showing Instructor Dashboard. URL: ${pageDebug.url}, User shown: ${pageDebug.signedInText}`);
-  }
-
+  // Wait for session to load
   await expect(studentPage.locator('button:has-text("Leave Session")')).toBeVisible({ timeout: 5000 });
-  console.log('Leave Session button visible, student has joined');
 
-  // Debug: Check what's on the page
-  const htmlContent = await studentPage.content();
-  console.log('Student page URL after join:', studentPage.url());
-  console.log('Student page title:', await studentPage.title());
-
-  // CRITICAL: Wait for problem to be loaded before expecting Monaco
-  // The problem must be received via WebSocket (SESSION_JOINED or PROBLEM_UPDATE) before Monaco renders
-  console.log('Waiting for problem to load...');
+  // Wait for problem to be loaded before expecting Monaco
   await expect(studentPage.locator('h2, h3').filter({ hasText: problemTitle })).toBeVisible({ timeout: 15000 });
-  console.log('Problem loaded!');
-
-  // CRITICAL: Check if student is still on the /student page (not redirected to /sections)
-  let currentUrl = studentPage.url();
-  if (!currentUrl.includes('/student?sessionId=')) {
-    throw new Error(`Student was REDIRECTED after problem loaded! Current URL: ${currentUrl}`);
-  }
-  console.log('Student still on /student page after problem load');
 
   // Wait a moment for React to render
   await studentPage.waitForTimeout(500);
 
-  // Check URL again before looking for Monaco
-  currentUrl = studentPage.url();
-  console.log('URL after 500ms wait:', currentUrl);
-  if (!currentUrl.includes('/student?sessionId=')) {
-    // Try to understand what triggered the redirect
-    const pageText = await studentPage.evaluate(() => document.body.innerText);
-    console.log('Page text after redirect:', pageText.substring(0, 500));
-    throw new Error(`Student was REDIRECTED before Monaco check! Current URL: ${currentUrl}`);
-  }
-
   const monacoEditor = studentPage.locator('.monaco-editor').first();
 
   await expect(monacoEditor).toBeVisible({ timeout: 10000 });
-  console.log('Monaco editor is visible');
 
-  // Wait for Monaco model to be ready - use a more lenient check
-  // Sometimes the model takes time to initialize, especially with HMR
+  // Wait for Monaco model to be ready
   await studentPage.waitForFunction(() => {
     const monaco = (window as any).monaco;
     if (!monaco || !monaco.editor) return false;
     const models = monaco.editor.getModels();
-    console.log('Monaco models count:', models?.length || 0);
     return models && models.length > 0;
-  }, { timeout: 15000 }); // Increased timeout
-
-  console.log('Monaco model ready');
+  }, { timeout: 15000 });
 
   // Wait a bit more for the editor to be fully interactive
   await studentPage.waitForTimeout(500);
@@ -196,18 +146,14 @@ async function studentJoinAndSubmit(
   await studentPage.keyboard.press('Control+A');
   await studentPage.keyboard.type(code, { delay: 50 });
 
-  // Wait for debounced code save (500ms debounce) + extra time for server processing
-  // With 50ms delay per character, a 40-char code takes ~2s to type, then 500ms debounce, then server processing
-  // So we need to wait at least 3 seconds total
-  await studentPage.waitForTimeout(3000);
+  // Wait for debounced code save (500ms debounce) + server processing
+  await studentPage.waitForTimeout(1500);
 
-  // CRITICAL: Verify student is still in session and code was set correctly
-  // This check ensures the test fails fast if the student got redirected or code wasn't saved
-  currentUrl = studentPage.url();
+  // Verify student is still in session
+  const currentUrl = studentPage.url();
   if (!currentUrl.includes('/student?sessionId=')) {
     throw new Error(`Student was redirected away from session! Current URL: ${currentUrl}`);
   }
-  console.log('Student still in session, URL:', currentUrl);
 
   // Verify the code was actually set in Monaco
   const actualCode = await studentPage.evaluate(() => {
@@ -223,8 +169,6 @@ async function studentJoinAndSubmit(
   if (!actualCode.includes('return sum(arr)')) {
     throw new Error(`Code was not set correctly in Monaco! Expected to include "return sum(arr)", but got: ${actualCode}`);
   }
-
-  console.log('Code verified in Monaco:', actualCode);
 
   return { page: studentPage, context: studentContext };
 }
@@ -316,15 +260,6 @@ test.describe('Instructor Public View', () => {
     // Wait for Monaco editor in the student code section to load
     const studentCodeSection = page.locator('div:has(h3:has-text("alice-public-test\'s Code"))');
     await expect(studentCodeSection.locator('.monaco-editor')).toBeVisible({ timeout: 5000 });
-
-    // Debug: Get actual monaco content
-    const actualCode = await page.evaluate(() => {
-      const models = (window as any).monaco?.editor?.getModels();
-      if (!models || models.length === 0) return 'NO_MODELS';
-      // Get all models' content to see what we have
-      return models.map((m: any, i: number) => `Model ${i}: ${m.getValue()}`).join('\n---\n');
-    });
-    console.log('ACTUAL MONACO CONTENT:', actualCode);
 
     // Wait for the student's code to appear in the student code editor (not the problem editor)
     await expect(studentCodeSection.locator('text=return sum(arr)')).toBeVisible({ timeout: 5000 });
@@ -516,7 +451,6 @@ test.describe('Instructor Public View', () => {
 
     publicPage.on('websocket', ws => {
       wsConnections.push(ws);
-      console.log('WebSocket connection detected:', ws.url());
     });
 
     await publicPage.goto(`/instructor/public?sessionId=${sessionId}`);
