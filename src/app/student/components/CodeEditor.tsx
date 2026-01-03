@@ -433,7 +433,7 @@ export default function CodeEditor({
               onAttachedFilesChange={onAttachedFilesChange}
               exampleInput={exampleInput}
               readOnly={readOnly}
-              inSidebar={false}
+              inSidebar={true}
               darkTheme={true}
             />
           </div>
@@ -592,7 +592,22 @@ export default function CodeEditor({
         {/* Main Editor Area */}
         <div className={`flex-1 flex flex-col min-w-0 ${isDesktop ? 'min-h-0' : ''}`} style={!isDesktop ? { minHeight: '400px' } : {}}>
           {/* Code Editor - grows to fill remaining space */}
-          <div className="flex-1" style={!isDesktop ? { minHeight: '300px' } : { minHeight: 0 }}>
+          <div 
+            className="flex-1" 
+            style={
+              !isDesktop 
+                ? (debuggerHook?.hasTrace 
+                    ? { 
+                        minHeight: 'auto',
+                        height: `${Math.min(Math.max((code.split('\n').length + 3) * 21, 150), 400)}px`,
+                        flexGrow: 0,
+                        flexShrink: 0
+                      }
+                    : { minHeight: '300px' }
+                  )
+                : { minHeight: 0 }
+            }
+          >
             <Editor
               height="100%"
               defaultLanguage="python"
