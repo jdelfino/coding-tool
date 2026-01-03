@@ -10,7 +10,7 @@
  */
 
 import { test, expect } from './helpers/setup';
-import { Page, BrowserContext } from '@playwright/test';
+import { Page, Browser, BrowserContext } from '@playwright/test';
 import { loginAsInstructor, loginAsStudent } from './fixtures/auth-helpers';
 import {
   createTestProblem,
@@ -73,16 +73,69 @@ async function createSession(
 
 /**
  * Helper: Student joins session and submits code
+ * Returns both the student page and context for proper cleanup
  */
 async function studentJoinAndSubmit(
-  context: BrowserContext,
+  browser: Browser,
   joinCode: string,
   studentName: string,
   code: string,
   problemTitle: string
-): Promise<Page> {
-  const studentPage = await context.newPage();
+): Promise<{ page: Page; context: BrowserContext }> {
+  // Create a new isolated context for the student to avoid cookie sharing
+  const studentContext = await browser.newContext();
+  const studentPage = await studentContext.newPage();
+  
+  // Add a unique identifier to help debugging
+  await studentPage.evaluate(() => {
+    (window as any)._PLAYWRIGHT_PAGE_ID = 'STUDENT_PAGE';
+  });
+  
+  console.log('Creating student with username:', studentName);
   await loginAsStudent(studentPage, studentName);
+  console.log('Student signed in, current URL:', studentPage.url());
+  
+  // Wait a moment for cookies to be set
+  await studentPage.waitForTimeout(500);
+  
+  // Verify who is signed in by checking localStorage and cookies
+  const authInfo = await studentPage.evaluate(() => {
+    return {
+      localStorage: Object.keys(localStorage).reduce((acc: any, key) => {
+        acc[key] = localStorage.getItem(key);
+        return acc;
+      }, {}),
+      cookies: document.cookie
+    };
+  });
+  console.log('Student auth info:', JSON.stringify(authInfo, null, 2));
+  
+  // Also get cookies via Playwright API
+  const playwrightCookies = await studentContext.cookies();
+  console.log('Student cookies via Playwright:', JSON.stringify(playwrightCookies, null, 2));
+  
+  // Navigate to student page to check who is signed in
+  await studentPage.goto('/student');
+  await studentPage.waitForTimeout(1000); // Wait for page to load
+  
+  // Check what user is displayed
+  const displayedUser = await studentPage.evaluate(() => {
+    const signedInText = document.body.textContent || '';
+    if (signedInText.includes('Signed in as')) {
+      const match = signedInText.match(/Signed in as\s+(\S+)/);
+      return match ? match[1] : 'UNKNOWN';
+    }
+    return 'NO_SIGNED_IN_TEXT';
+  });
+  console.log('Displayed user on /student page:', displayedUser);
+  
+  if (displayedUser === 'test-public-view-instructor') {
+    throw new Error(`ERROR: Student page is showing instructor user! Expected ${studentName}, got ${displayedUser}`);
+  }
+  
+  if (displayedUser !== studentName && displayedUser !== 'NO_SIGNED_IN_TEXT') {
+    console.warn(`WARNING: Expected user ${studentName}, but page shows ${displayedUser}`);
+  }
 
   // Navigate to sections page
   await studentPage.goto('/sections');
@@ -110,13 +163,20 @@ async function studentJoinAndSubmit(
   console.log('Waiting for navigation to /student?sessionId=...');
   await studentPage.waitForURL(/\/student\?sessionId=/, { timeout: 5000 });
   console.log('Navigated to:', studentPage.url());
+  
+  // Verify this is the student page
+  const pageId = await studentPage.evaluate(() => (window as any)._PLAYWRIGHT_PAGE_ID);
+  console.log('Page ID after navigation:', pageId);
+  if (pageId !== 'STUDENT_PAGE') {
+    throw new Error(`ERROR: Not on student page! Page ID: ${pageId}`);
+  }
 
   // Wait for session to load AND for the student to be fully joined (SESSION_JOINED message received)
   await expect(studentPage.locator('button:has-text("Leave Session")')).toBeVisible({ timeout: 5000 });
   console.log('Leave Session button visible, student has joined');
 
   // Debug: Check what's on the page
-  const pageContent = await studentPage.content();
+  const htmlContent = await studentPage.content();
   console.log('Student page URL after join:', studentPage.url());
   console.log('Student page title:', await studentPage.title());
 
@@ -138,7 +198,11 @@ async function studentJoinAndSubmit(
 
   // Check URL again before looking for Monaco
   currentUrl = studentPage.url();
+  console.log('URL after 500ms wait:', currentUrl);
   if (!currentUrl.includes('/student?sessionId=')) {
+    // Try to understand what triggered the redirect
+    const pageText = await studentPage.evaluate(() => document.body.innerText);
+    console.log('Page text after redirect:', pageText.substring(0, 500));
     throw new Error(`Student was REDIRECTED before Monaco check! Current URL: ${currentUrl}`);
   }
 
@@ -200,7 +264,7 @@ async function studentJoinAndSubmit(
 
   console.log('Code verified in Monaco:', actualCode);
 
-  return studentPage;
+  return { page: studentPage, context: studentContext };
 }
 
 test.describe('Instructor Public View', () => {
@@ -248,16 +312,22 @@ test.describe('Instructor Public View', () => {
     await expect(page.locator('text=No submission selected for display')).toBeVisible({ timeout: 5000 });
   });
 
-  test('should display featured submission when selected by instructor', async ({ page, context }) => {
+  test('should display featured submission when selected by instructor', async ({ page, browser }) => {
     // Create session
     const { sessionId, joinCode } = await createSession(page, testClass, testSection, testProblem);
 
     // Have a student join and submit code
     const studentCode = 'def array_sum(arr):\n    return sum(arr)';
-    const studentPage = await studentJoinAndSubmit(context, joinCode, 'alice-public-test', studentCode, testProblem.title);
+    const { page: studentPage, context: studentContext } = await studentJoinAndSubmit(
+      browser,
+      joinCode,
+      'alice-public-test',
+      studentCode,
+      testProblem.title
+    );
 
-    // Open public view FIRST
-    const publicPage = await context.newPage();
+    // Open public view in a separate context (can use instructor's context)
+    const publicPage = await page.context().newPage();
     await publicPage.goto(`/instructor/public?sessionId=${sessionId}`);
 
     // Wait for public view to load and WebSocket to connect
@@ -317,14 +387,16 @@ test.describe('Instructor Public View', () => {
     // Cleanup
     await studentPage.close();
     await publicPage.close();
+    await studentContext.close();
   });
 
-  test('should show latest submission when student submits multiple times', async ({ page, context }) => {
+  test('should show latest submission when student submits multiple times', async ({ page, browser }) => {
     // Create session
     const { sessionId, joinCode } = await createSession(page, testClass, testSection, testProblem);
 
-    // Have a student join
-    const studentPage = await context.newPage();
+    // Have a student join - create new context for isolated authentication
+    const studentContext = await browser.newContext();
+    const studentPage = await studentContext.newPage();
     await loginAsStudent(studentPage, 'bob-multiple-submissions');
 
     // Navigate to sections and join
@@ -366,7 +438,7 @@ test.describe('Instructor Public View', () => {
     await expect(page.locator('text=bob-multiple-submissions')).toBeVisible({ timeout: 10000 });
 
     // Open public view BEFORE clicking button so it receives WebSocket update
-    const publicPage = await context.newPage();
+    const publicPage = await page.context().newPage();
     await publicPage.goto(`/instructor/public?sessionId=${sessionId}`);
     await expect(publicPage.locator('h1:has-text("Public Display")')).toBeVisible({ timeout: 5000 });
     await expect(publicPage.locator('text=/[A-Z0-9]{6}/')).toBeVisible({ timeout: 5000 });
@@ -390,23 +462,24 @@ test.describe('Instructor Public View', () => {
     // Cleanup
     await studentPage.close();
     await publicPage.close();
+    await studentContext.close();
   });
 
-  test('should display multiple student submissions when multiple students join', async ({ page, context }) => {
+  test('should display multiple student submissions when multiple students join', async ({ page, browser }) => {
     // Create session
     const { sessionId, joinCode } = await createSession(page, testClass, testSection, testProblem);
 
     // Have multiple students join and submit code
-    const student1Page = await studentJoinAndSubmit(
-      context,
+    const { page: student1Page, context: student1Context } = await studentJoinAndSubmit(
+      browser,
       joinCode,
       'charlie-multi',
       'def array_sum(arr):\n    result = 0\n    for x in arr:\n        result += x\n    return result',
       testProblem.title
     );
 
-    const student2Page = await studentJoinAndSubmit(
-      context,
+    const { page: student2Page, context: student2Context } = await studentJoinAndSubmit(
+      browser,
       joinCode,
       'diana-multi',
       'def array_sum(arr):\n    return sum(arr)',
@@ -425,7 +498,7 @@ test.describe('Instructor Public View', () => {
     await expect(page.locator('text=diana-multi')).toBeVisible({ timeout: 10000 });
 
     // Open public view first
-    const publicPage = await context.newPage();
+    const publicPage = await page.context().newPage();
     await publicPage.goto(`/instructor/public?sessionId=${sessionId}`);
     await expect(publicPage.locator('h1:has-text("Public Display")')).toBeVisible({ timeout: 10000 });
     await expect(publicPage.locator('text=/[A-Z0-9]{6}/')).toBeVisible({ timeout: 10000 });
@@ -458,6 +531,8 @@ test.describe('Instructor Public View', () => {
     await student1Page.close();
     await student2Page.close();
     await publicPage.close();
+    await student1Context.close();
+    await student2Context.close();
   });
 
   test('should handle public view with no session ID gracefully', async ({ page }) => {
@@ -469,12 +544,12 @@ test.describe('Instructor Public View', () => {
     await expect(page.locator('text=Please provide a sessionId in the URL')).toBeVisible({ timeout: 5000 });
   });
 
-  test('should verify WebSocket connection for real-time public view updates', async ({ page, context }) => {
+  test('should verify WebSocket connection for real-time public view updates', async ({ page, browser }) => {
     // Create session
     const { sessionId, joinCode } = await createSession(page, testClass, testSection, testProblem);
 
     // Open public view and monitor WebSocket connections
-    const publicPage = await context.newPage();
+    const publicPage = await page.context().newPage();
     const wsConnections: any[] = [];
 
     publicPage.on('websocket', ws => {
@@ -492,8 +567,8 @@ test.describe('Instructor Public View', () => {
     expect(wsConnections.length).toBeGreaterThan(0);
 
     // NOW have a student join and submit code (after public page is open)
-    const studentPage = await studentJoinAndSubmit(
-      context,
+    const { page: studentPage, context: studentContext } = await studentJoinAndSubmit(
+      browser,
       joinCode,
       'eve-websocket-test',
       'def array_sum(arr):\n    return sum(arr)',
@@ -532,5 +607,6 @@ test.describe('Instructor Public View', () => {
     // Cleanup
     await studentPage.close();
     await publicPage.close();
+    await studentContext.close();
   });
 });
