@@ -2,7 +2,7 @@
  * @jest-environment jsdom
  */
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { VariableInspector } from '../VariableInspector';
 
 describe('VariableInspector', () => {
@@ -120,5 +120,39 @@ describe('VariableInspector', () => {
 
     expect(screen.getByText('3 vars')).toBeInTheDocument();
     expect(screen.getByText('1 vars')).toBeInTheDocument();
+  });
+
+  it('rotates collapse arrows when sections are toggled', () => {
+    const locals = { x: 5 };
+    const globals = { y: 10 };
+
+    const { container } = render(
+      <VariableInspector locals={locals} globals={globals} />
+    );
+
+    const localButton = screen.getByRole('button', { name: /local variables/i });
+    const globalButton = screen.getByRole('button', { name: /global variables/i });
+
+    // Initially both sections are expanded, arrows should not be rotated
+    const localArrow = localButton.querySelector('span.inline-block');
+    const globalArrow = globalButton.querySelector('span.inline-block');
+
+    expect(localArrow).not.toHaveClass('-rotate-90');
+    expect(globalArrow).not.toHaveClass('-rotate-90');
+
+    // Click to collapse local variables
+    fireEvent.click(localButton);
+    expect(localArrow).toHaveClass('-rotate-90');
+
+    // Click to collapse global variables
+    fireEvent.click(globalButton);
+    expect(globalArrow).toHaveClass('-rotate-90');
+
+    // Click to expand again
+    fireEvent.click(localButton);
+    expect(localArrow).not.toHaveClass('-rotate-90');
+
+    fireEvent.click(globalButton);
+    expect(globalArrow).not.toHaveClass('-rotate-90');
   });
 });

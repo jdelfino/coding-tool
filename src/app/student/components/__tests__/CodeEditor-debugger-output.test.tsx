@@ -106,10 +106,10 @@ describe('CodeEditor - Debugger Output Display', () => {
 
       // Should show debugger output header
       expect(screen.getByText('🐛 Debugger Output')).toBeInTheDocument();
-      
+
       // Should show step information
       expect(screen.getByText('Step 3 of 3')).toBeInTheDocument();
-      
+
       // Should show the stdout content with step annotations
       expect(screen.getByText('Console Output (up to current step):')).toBeInTheDocument();
       expect(screen.getByText('[Step 2]')).toBeInTheDocument();

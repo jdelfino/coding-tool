@@ -96,7 +96,10 @@ export function VariableInspector({
             darkTheme ? 'text-gray-200 hover:bg-gray-700' : 'text-gray-700 hover:bg-gray-50'
           }`}
         >
-          <span>▼ Local Variables</span>
+          <span className="flex items-center">
+            <span className={`inline-block transition-transform mr-2 ${showLocals ? '' : '-rotate-90'}`}>▼</span>
+            Local Variables
+          </span>
           <span className={`text-xs ${darkTheme ? 'text-gray-400' : 'text-gray-500'}`}>
             {Object.keys(locals).length} vars
           </span>
@@ -111,7 +114,10 @@ export function VariableInspector({
           className={`w-full flex items-center justify-between px-4 py-2 text-sm font-medium ${
             darkTheme ? 'text-gray-200 hover:bg-gray-700' : 'text-gray-700 hover:bg-gray-50'
           }`}>
-          <span>▼ Global Variables</span>
+          <span className="flex items-center">
+            <span className={`inline-block transition-transform mr-2 ${showGlobals ? '' : '-rotate-90'}`}>▼</span>
+            Global Variables
+          </span>
           <span className={`text-xs ${darkTheme ? 'text-gray-400' : 'text-gray-500'}`}>
             {Object.keys(globals).length} vars
           </span>

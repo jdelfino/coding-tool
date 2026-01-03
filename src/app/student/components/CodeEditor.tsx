@@ -358,32 +358,32 @@ export default function CodeEditor({
   // Helper function to annotate output lines with step numbers
   const getAnnotatedOutput = () => {
     if (!debuggerHook?.trace?.steps) return [];
-    
+
     const annotatedLines: Array<{ stepNumber: number; text: string }> = [];
     let previousOutput = '';
-    
+
     debuggerHook.trace.steps.forEach((step, index) => {
       const currentOutput = step.stdout || '';
-      
+
       // Find new lines added in this step
       if (currentOutput.length > previousOutput.length) {
         const newContent = currentOutput.substring(previousOutput.length);
         const lines = newContent.split('\n');
-        
+
         lines.forEach((line, lineIndex) => {
           // Skip the last empty line if it's just from splitting
           if (lineIndex === lines.length - 1 && line === '') return;
-          
+
           annotatedLines.push({
             stepNumber: index + 1,
             text: line
           });
         });
       }
-      
+
       previousOutput = currentOutput;
     });
-    
+
     return annotatedLines;
   };
 
@@ -848,7 +848,7 @@ export default function CodeEditor({
                     // Only show lines up to and including the current step
                     return line.stepNumber <= debuggerHook.currentStep + 1;
                   });
-                  
+
                   return visibleLines.length > 0 ? (
                     <div className="mt-2">
                       <div className="font-bold text-sm text-blue-800">
