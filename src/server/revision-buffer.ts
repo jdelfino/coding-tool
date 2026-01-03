@@ -22,7 +22,7 @@ interface StudentRevisionState {
 
 /**
  * RevisionBuffer manages server-side code revision tracking with batched persistence.
- * 
+ *
  * - Receives full code snapshots from clients
  * - Generates diffs server-side
  * - Buffers revisions in memory
@@ -34,13 +34,13 @@ interface StudentRevisionState {
 export class RevisionBuffer {
   private dmp = new DiffMatchPatch.diff_match_patch();
   private storage: StorageBackend;
-  
+
   // Map: sessionId-studentId -> StudentRevisionState
   private stateMap = new Map<string, StudentRevisionState>();
-  
+
   // Background flush interval
   private backgroundFlushInterval?: NodeJS.Timeout;
-  
+
   private readonly TYPING_PAUSE_MS = 5000; // 5 seconds
   private readonly BACKGROUND_FLUSH_MS = 30000; // 30 seconds
   private readonly LARGE_CHANGE_THRESHOLD = 1000; // chars changed
@@ -208,7 +208,7 @@ export class RevisionBuffer {
    */
   async flushAll(): Promise<void> {
     const keys = Array.from(this.stateMap.keys());
-    
+
     if (keys.length === 0) {
       return;
     }
@@ -224,7 +224,7 @@ export class RevisionBuffer {
    */
   async flushSession(sessionId: string): Promise<void> {
     const keys = Array.from(this.stateMap.keys()).filter(k => k.startsWith(sessionId + '-'));
-    
+
     for (const key of keys) {
       const [, studentId] = key.split('-');
       await this.flushBuffer(sessionId, studentId);
@@ -242,13 +242,13 @@ export class RevisionBuffer {
     if (state) {
       // Flush any pending revisions before resetting
       await this.flushBuffer(sessionId, studentId);
-      
+
       // Clear flush timer
       if (state.flushTimer) {
         clearTimeout(state.flushTimer);
         state.flushTimer = undefined;
       }
-      
+
       // Update baseline code and reset revision count
       state.previousCode = currentCode;
       state.revisionCount = 0;

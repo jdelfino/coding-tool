@@ -36,7 +36,6 @@ function StudentPage() {
   const [error, setError] = useState<string | null>(null);
   const [isJoining, setIsJoining] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
-  const [hasCheckedAutoRejoin, setHasCheckedAutoRejoin] = useState(false);
   const [sessionEnded, setSessionEnded] = useState(false);
 
   // Construct WebSocket URL - only initialize on client side
@@ -87,48 +86,41 @@ function StudentPage() {
     handleJoin(sessionId);
   }, [handleJoin]);
 
-  // Auto-rejoin logic: check for sessionId in URL or active sessions on mount
+  // Track if we've already initiated a join for this sessionId to prevent loops
+  const joinAttemptedRef = useRef<string | null>(null);
+
+  // Simple logic: If there's a sessionId in URL, join it
+  // No smart redirects, no auto-rejoin complexity
   useEffect(() => {
-    if (!hasCheckedAutoRejoin && !isLoadingSessions && isConnected) {
-      setHasCheckedAutoRejoin(true);
-
-      // Priority 1: Join session from URL parameter
-      if (sessionIdFromUrl) {
-        handleRejoinSession(sessionIdFromUrl);
-        return;
-      }
-
-      // Priority 2: Auto-rejoin if exactly one active session
-      if (sessions.length > 0) {
-        // Filter active sessions
-        const activeSessions = sessions.filter(s => s.status === 'active');
-
-        // If exactly one active session, auto-rejoin
-        if (activeSessions.length === 1) {
-          const session = activeSessions[0];
-          handleRejoinSession(session.id);
-        } else {
-          // Multiple or no active sessions - redirect to sections page
-          window.location.href = '/sections';
-        }
-      } else {
-        // No sessions at all - redirect to sections page
-        window.location.href = '/sections';
-      }
+    if (!sessionIdFromUrl) {
+      // No sessionId in URL - nothing to do
+      return;
     }
-  }, [hasCheckedAutoRejoin, isLoadingSessions, isConnected, sessions, sessionIdFromUrl, handleRejoinSession]);
 
-  // Handle WebSocket reconnection - rejoin session if we were in one
-  useEffect(() => {
-    // If we reconnected and we have a current session, rejoin it
-    if (isConnected && currentSessionId && joined && !isJoining) {
-      const session = sessions.find(s => s.id === currentSessionId);
-      if (session) {
-        setJoined(false); // Reset joined state
-        handleRejoinSession(session.id);
-      }
+    // If we're already joined to this session, clear the attempt flag
+    if (joined && currentSessionId === sessionIdFromUrl) {
+      joinAttemptedRef.current = null;
+      return;
     }
-  }, [isConnected]); // Only trigger on isConnected changes
+
+    // If we're currently joining, wait
+    if (isJoining) {
+      return;
+    }
+
+    // Check if we've already attempted to join this specific session
+    if (joinAttemptedRef.current === sessionIdFromUrl) {
+      return;
+    }
+
+    // Join the session from the URL
+    if (isConnected) {
+      joinAttemptedRef.current = sessionIdFromUrl;
+      handleRejoinSession(sessionIdFromUrl);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionIdFromUrl, joined, currentSessionId, isJoining, isConnected]);
+  // Intentionally exclude handleRejoinSession to avoid re-runs
 
   // Handle incoming WebSocket messages
   useEffect(() => {
@@ -286,23 +278,40 @@ function StudentPage() {
     }, 15000);
   };
 
-  // Show loading state while checking for auto-rejoin
-  if (!hasCheckedAutoRejoin || isLoadingSessions) {
+  // Show loading state while WebSocket connects
+  if (!isConnected) {
     return (
       <main style={{ padding: '2rem', textAlign: 'center' }}>
         <h1>Live Coding Classroom</h1>
-        <p>Loading...</p>
+        <p>Connecting...</p>
       </main>
     );
   }
 
-  // Not in a session - should only reach here if auto-join logic didn't work
-  // In production, students should always be redirected to /sections
+  // No sessionId in URL - show error message
+  if (!sessionIdFromUrl) {
+    return (
+      <main style={{ padding: '2rem', textAlign: 'center' }}>
+        <h1>No Session</h1>
+        <p>Please navigate to a session from your sections page.</p>
+        <a href="/sections" style={{ color: '#0070f3', textDecoration: 'underline' }}>
+          Go to My Sections
+        </a>
+      </main>
+    );
+  }
+
+  // Waiting to join or joining in progress
   if (!joined) {
     return (
       <main style={{ padding: '2rem', textAlign: 'center' }}>
         <h1>Live Coding Classroom</h1>
-        <p>Redirecting to sections...</p>
+        <p>{isJoining ? 'Joining session...' : 'Loading...'}</p>
+        {error && (
+          <div style={{ marginTop: '1rem', color: '#e00', padding: '1rem', background: '#fee', borderRadius: '4px' }}>
+            <strong>Error:</strong> {error}
+          </div>
+        )}
       </main>
     );
   }

@@ -48,7 +48,7 @@ export class LocalAuthProvider implements IAuthProvider {
       for (const [sessionId, session] of Object.entries(sessions)) {
         this.activeSessions.set(sessionId, session);
       }
-      
+
     } catch (error: any) {
       if (error.code !== 'ENOENT') {
         console.error('[Auth] Error loading sessions:', error);
@@ -97,11 +97,11 @@ export class LocalAuthProvider implements IAuthProvider {
       // Auto-create user
       const allUsers = await this.userRepository.listUsers();
       const userCount = allUsers.length;
-      
+
       // Determine role
       let role: UserRole;
       const adminEmail = process.env.ADMIN_EMAIL?.trim();
-      
+
       if (adminEmail && normalizedUsername.toLowerCase() === adminEmail.toLowerCase()) {
         // Bootstrap admin from ADMIN_EMAIL
         role = 'admin';
@@ -112,23 +112,23 @@ export class LocalAuthProvider implements IAuthProvider {
         // Subsequent users are students
         role = 'student';
       }
-      
+
       user = await this.createUser(normalizedUsername, role);
     } else {
       // Check if existing user should be elevated to admin
       const adminEmail = process.env.ADMIN_EMAIL?.trim();
-      if (adminEmail && 
+      if (adminEmail &&
           normalizedUsername.toLowerCase() === adminEmail.toLowerCase() &&
           user.role !== 'admin') {
         await this.userRepository.updateUser(user.id, { role: 'admin' });
         user = await this.userRepository.getUser(user.id) as User;
       }
-      
+
       // Update last login time
       await this.userRepository.updateUser(user.id, {
         lastLoginAt: new Date(),
       });
-      
+
       // Refresh user object
       user = await this.userRepository.getUser(user.id) as User;
     }

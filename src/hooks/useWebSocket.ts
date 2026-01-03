@@ -74,16 +74,16 @@ export function useWebSocket(url: string) {
       ws.onclose = (event) => {
         setIsConnected(false);
         setConnectionStatus('disconnected');
-        
+
         // Don't reconnect if it was a normal closure
         if (event.code === 1000) {
           return;
         }
-        
+
         // Attempt to reconnect with exponential backoff
         const delay = Math.min(1000 * Math.pow(2, reconnectAttempts.current), 30000);
         reconnectAttempts.current++;
-        
+
         if (reconnectAttempts.current < maxReconnectAttempts) {
           setConnectionError(`Connection lost. Reconnecting in ${Math.ceil(delay / 1000)}s...`);
           reconnectTimeoutRef.current = setTimeout(() => {
