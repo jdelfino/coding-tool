@@ -29,11 +29,7 @@ export default function JoinSectionForm({ onSubmit }: JoinSectionFormProps) {
       await onSubmit(joinCode.trim());
       setSuccess(true);
       setJoinCode('');
-
-      // Redirect to sections dashboard after a brief delay
-      setTimeout(() => {
-        router.push('/sections');
-      }, 1500);
+      // Note: Parent component handles redirect to /sections
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to join section');
     } finally {

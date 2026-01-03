@@ -85,94 +85,7 @@ async function studentJoinAndSubmit(
   // Create a new isolated context for the student to avoid cookie sharing
   const studentContext = await browser.newContext();
   const studentPage = await studentContext.newPage();
-
-  // Listen to console logs to debug ProtectedRoute behavior
-  studentPage.on('console', (msg) => {
-    const text = msg.text();
-    if (text.includes('[ProtectedRoute]') || text.includes('[StudentPage]') || text.includes('WebSocket') || text.includes('redirecting') || text.includes('[REDIRECT]') || text.includes('[DEBUG]')) {
-      console.log('🔍 Browser console:', text);
-    }
-  });
-
-  // Track ALL navigation events to catch redirects
-  studentPage.on('framenavigated', (frame) => {
-    if (frame === studentPage.mainFrame()) {
-      console.log('🧭 Navigation detected:', frame.url());
-    }
-  });
-
-  // Listen for route changes in Next.js
-  await studentPage.evaluate(() => {
-    if (typeof window !== 'undefined' && (window as any).next) {
-      const originalPush = (window as any).next.router.push;
-      const originalReplace = (window as any).next.router.replace;
-
-      (window as any).next.router.push = function(...args: any[]) {
-        console.log('[REDIRECT] router.push called with:', args);
-        console.trace('[REDIRECT] Stack trace:');
-        return originalPush.apply(this, args);
-      };
-
-      (window as any).next.router.replace = function(...args: any[]) {
-        console.log('[REDIRECT] router.replace called with:', args);
-        console.trace('[REDIRECT] Stack trace:');
-        return originalReplace.apply(this, args);
-      };
-    }
-  }).catch(() => {
-    // Ignore if Next.js router isn't available yet
-    console.log('⚠️ Could not hook Next.js router (not yet available)');
-  });
-
-  // Add a unique identifier to help debugging
-  await studentPage.evaluate(() => {
-    (window as any)._PLAYWRIGHT_PAGE_ID = 'STUDENT_PAGE';
-  });
-
-  console.log('Creating student with username:', studentName);
   await loginAsStudent(studentPage, studentName);
-  console.log('Student signed in, current URL:', studentPage.url());
-
-  // CRITICAL: Wait for auth to fully settle by calling the API directly
-  // This ensures the session cookie is properly set and recognized by the server
-  let authVerified = false;
-  let attempts = 0;
-  while (!authVerified && attempts < 10) {
-    attempts++;
-    await studentPage.waitForTimeout(200);
-
-    const apiResponse = await studentPage.evaluate(async () => {
-      try {
-        const response = await fetch('/api/auth/me', { credentials: 'include' });
-        if (!response.ok) return { error: 'Not authenticated', status: response.status };
-        const data = await response.json();
-        return { user: data.user, status: response.status };
-      } catch (error) {
-        return { error: String(error), status: 0 };
-      }
-    });
-
-    console.log(`Auth verification attempt ${attempts}:`, JSON.stringify(apiResponse, null, 2));
-
-    if (apiResponse.user && apiResponse.user.username === studentName) {
-      authVerified = true;
-      console.log(`✅ Student ${studentName} authentication verified via API`);
-    } else if (apiResponse.user) {
-      throw new Error(`FATAL: API returned WRONG user! Expected ${studentName}, got ${apiResponse.user.username}`);
-    }
-  }
-
-  if (!authVerified) {
-    throw new Error(`FATAL: Could not verify student ${studentName} authentication after ${attempts} attempts`);
-  }
-
-  // Double-check cookies are set
-  const playwrightCookies = await studentContext.cookies();
-  const sessionCookie = playwrightCookies.find(c => c.name === 'sessionId');
-  if (!sessionCookie) {
-    throw new Error('FATAL: No sessionId cookie found after authentication!');
-  }
-  console.log('Student sessionId cookie:', sessionCookie.value.substring(0, 8) + '...');
 
   // Navigate to sections page
   await studentPage.goto('/sections');
@@ -193,62 +106,10 @@ async function studentJoinAndSubmit(
   const joinNowButton = studentPage.locator('button:has-text("Join Now")');
   await expect(joinNowButton).toBeVisible({ timeout: 5000 });
 
-  console.log('About to click Join Now, current URL:', studentPage.url());
   await joinNowButton.click();
 
   // Wait for navigation to student page
-  console.log('Waiting for navigation to /student?sessionId=...');
   await studentPage.waitForURL(/\/student\?sessionId=/, { timeout: 5000 });
-  console.log('Navigated to:', studentPage.url());
-
-  // Hook Next.js router AFTER navigation to catch any subsequent redirects
-  await studentPage.evaluate(() => {
-    if (typeof window !== 'undefined') {
-      // Track router.push/replace calls
-      const nextRouter = (window as any).next?.router;
-      if (nextRouter && !nextRouter._debugHooked) {
-        nextRouter._debugHooked = true;
-        const originalPush = nextRouter.push.bind(nextRouter);
-        const originalReplace = nextRouter.replace.bind(nextRouter);
-
-        nextRouter.push = function(...args: any[]) {
-          console.log('[REDIRECT] router.push called:', args[0]);
-          console.trace();
-          return originalPush(...args);
-        };
-
-        nextRouter.replace = function(...args: any[]) {
-          console.log('[REDIRECT] router.replace called:', args[0]);
-          console.trace();
-          return originalReplace(...args);
-        };
-
-        console.log('[DEBUG] Next.js router hooked successfully');
-      }
-    }
-  }).catch((e) => console.log('⚠️ Could not hook router:', e.message));
-
-  // Wait a moment for the page to stabilize and catch any redirects
-  console.log('Waiting 3 seconds to observe redirects...');
-  await studentPage.waitForTimeout(3000);
-  console.log('Current URL after wait:', studentPage.url());
-
-  const postNavAuth = await studentPage.evaluate(async () => {
-    try {
-      const response = await fetch('/api/auth/me', { credentials: 'include' });
-      if (!response.ok) return { error: 'Not authenticated', status: response.status };
-      const data = await response.json();
-      return { user: data.user, status: response.status };
-    } catch (error) {
-      return { error: String(error), status: 0 };
-    }
-  });
-
-  console.log('Post-navigation auth check:', JSON.stringify(postNavAuth, null, 2));
-
-  if (!postNavAuth.user || postNavAuth.user.username !== studentName) {
-    throw new Error(`FATAL: After navigation, API returned wrong user! Expected ${studentName}, got ${postNavAuth.user?.username || 'none'}`);
-  }
 
   // Wait for session to load AND for the student to be fully joined (SESSION_JOINED message received)
   // CRITICAL: Check what's actually on the page before looking for Leave Session button

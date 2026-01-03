@@ -50,8 +50,6 @@ export function ProtectedRoute({
 
     if (!user) {
       // Not authenticated, redirect to sign-in
-      console.log('[ProtectedRoute] No user after load, redirecting to', fallbackPath);
-      console.log('[ProtectedRoute] CASE 1: No user');
       router.push(fallbackPath);
       return; // Don't mark as done if we're redirecting due to no auth
     }
@@ -66,8 +64,6 @@ export function ProtectedRoute({
       if (!hasPermissionAccess) {
         // No permission, redirect to appropriate page
         const defaultPath = user.role === 'instructor' ? '/instructor' : '/student';
-        console.log('[ProtectedRoute] No permission, redirecting to', defaultPath);
-        console.log('[ProtectedRoute] CASE 2: No permission');
         router.push(defaultPath);
         return; // Don't mark as done if we're redirecting
       }
@@ -77,15 +73,12 @@ export function ProtectedRoute({
       if (!hasAccess) {
         // Wrong role, redirect to appropriate page
         const defaultPath = user.role === 'instructor' ? '/instructor' : '/student';
-        console.log('[ProtectedRoute] Wrong role (expected:', requiredRole, ', got:', user.role, '), redirecting to', defaultPath);
-        console.log('[ProtectedRoute] CASE 3: Wrong role - user.role=', user.role, 'requiredRole=', requiredRole);
         router.push(defaultPath);
         return; // Don't mark as done if we're redirecting
       }
     }
 
     // If we get here, auth check passed - mark as done
-    console.log('[ProtectedRoute] Auth check PASSED for user:', user.username, 'role:', user.role);
     initialAuthCheckDone.current = true;
   }, [user, isLoading, requiredRole, requiredPermission, requiredPermissions, hasSinglePermission, hasAnyPermissions, router, fallbackPath, allowAdmin]);
 
