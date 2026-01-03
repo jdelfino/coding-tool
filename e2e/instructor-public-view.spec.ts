@@ -89,7 +89,7 @@ async function studentJoinAndSubmit(
   // Listen to console logs to debug ProtectedRoute behavior
   studentPage.on('console', (msg) => {
     const text = msg.text();
-    if (text.includes('[ProtectedRoute]') || text.includes('redirecting')) {
+    if (text.includes('[ProtectedRoute]') || text.includes('[StudentPage]') || text.includes('WebSocket') || text.includes('redirecting')) {
       console.log('🔍 Browser console:', text);
     }
   });
@@ -171,9 +171,8 @@ async function studentJoinAndSubmit(
   await studentPage.waitForURL(/\/student\?sessionId=/, { timeout: 5000 });
   console.log('Navigated to:', studentPage.url());
 
-  // Re-verify authentication after navigation to ensure correct user is loaded
-  // This is critical because the student page will call /api/auth/me on mount
-  await studentPage.waitForTimeout(500); // Give AuthContext time to load
+  // Wait a moment for the page to stabilize
+  await studentPage.waitForTimeout(500);
 
   const postNavAuth = await studentPage.evaluate(async () => {
     try {

@@ -46,11 +46,22 @@ function StudentPage() {
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       const host = window.location.host;
       const url = `${protocol}//${host}/ws`;
+      console.log('[StudentPage] Setting WebSocket URL:', url);
       setWsUrl(url);
     }
   }, []);
 
   const { isConnected, connectionStatus, connectionError, lastMessage, sendMessage } = useWebSocket(wsUrl);
+
+  // Debug WebSocket state
+  useEffect(() => {
+    console.log('[StudentPage] WebSocket state:', {
+      wsUrl,
+      isConnected,
+      connectionStatus,
+      connectionError
+    });
+  }, [wsUrl, isConnected, connectionStatus, connectionError]);
 
   // Debugger state
   const debuggerHook = useDebugger(sendMessage);

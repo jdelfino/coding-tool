@@ -32,21 +32,19 @@ export function ProtectedRoute({
   const { user, isLoading } = useAuth();
   const router = useRouter();
   
-  // Track previous user to detect changes
-  const prevUserRef = useRef<typeof user>(undefined);
+  // Track if we've completed the initial auth check successfully
+  // This prevents re-checking on every re-render
+  const initialAuthCheckDone = useRef(false);
   
   // Check permissions
   const hasSinglePermission = usePermission(user, requiredPermission || '');
   const hasAnyPermissions = useAnyPermission(user, requiredPermissions || []);
 
   useEffect(() => {
-    // CRITICAL: Only perform auth checks after initial load completes
-    // AND if the user actually changed (not just re-rendered)
-    const userChanged = prevUserRef.current !== user;
-    prevUserRef.current = user;
-    
-    // Don't redirect if we're still loading OR if user didn't actually change
-    if (isLoading || !userChanged) {
+    // Only perform auth check if:
+    // 1. Loading is complete
+    // 2. We haven't already completed a successful auth check
+    if (isLoading || initialAuthCheckDone.current) {
       return;
     }
     
@@ -54,7 +52,11 @@ export function ProtectedRoute({
       // Not authenticated, redirect to sign-in
       console.log('[ProtectedRoute] No user after load, redirecting to', fallbackPath);
       router.push(fallbackPath);
-    } else if (requiredPermission || requiredPermissions) {
+      return; // Don't mark as done if we're redirecting due to no auth
+    }
+    
+    // User is authenticated, check permissions/role
+    if (requiredPermission || requiredPermissions) {
       // Check permission-based access
       const hasPermissionAccess = 
         (requiredPermission && hasSinglePermission) ||
@@ -65,6 +67,7 @@ export function ProtectedRoute({
         const defaultPath = user.role === 'instructor' ? '/instructor' : '/student';
         console.log('[ProtectedRoute] No permission, redirecting to', defaultPath);
         router.push(defaultPath);
+        return; // Don't mark as done if we're redirecting
       }
     } else if (requiredRole) {
       // Check role-based access (legacy support)
@@ -74,8 +77,12 @@ export function ProtectedRoute({
         const defaultPath = user.role === 'instructor' ? '/instructor' : '/student';
         console.log('[ProtectedRoute] Wrong role (expected:', requiredRole, ', got:', user.role, '), redirecting to', defaultPath);
         router.push(defaultPath);
+        return; // Don't mark as done if we're redirecting
       }
     }
+    
+    // If we get here, auth check passed - mark as done
+    initialAuthCheckDone.current = true;
   }, [user, isLoading, requiredRole, requiredPermission, requiredPermissions, hasSinglePermission, hasAnyPermissions, router, fallbackPath, allowAdmin]);
 
   // Show loading state while checking authentication
