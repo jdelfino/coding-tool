@@ -132,10 +132,14 @@ function StudentPage() {
           console.log('Auto-rejoining session:', session.id);
           handleRejoinSession(session.id);
         } else {
-          // Multiple or no active sessions - show dashboard
+          // Multiple or no active sessions - redirect to sections page
+          console.log('Multiple or no active sessions - redirecting to /sections');
+          window.location.href = '/sections';
         }
       } else {
-        // No sessions at all - show dashboard
+        // No sessions at all - redirect to sections page
+        console.log('No sessions - redirecting to /sections');
+        window.location.href = '/sections';
       }
     }
   }, [hasCheckedAutoRejoin, isLoadingSessions, isConnected, sessions, sessionIdFromUrl, handleRejoinSession]);

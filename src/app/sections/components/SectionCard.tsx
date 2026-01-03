@@ -49,14 +49,23 @@ export default function SectionCard({ section, getActiveSessions }: SectionCardP
     router.push(`/student?sessionId=${sessionId}`);
   };
 
+  const handleViewSection = () => {
+    router.push(`/sections/${section.id}`);
+  };
+
   return (
     <div className="bg-white rounded-lg shadow hover:shadow-lg transition-shadow border border-gray-200">
       <div className="p-6">
         <div className="flex items-start justify-between">
-          {/* Left: Section Info */}
-          <div className="flex-1">
+          {/* Left: Section Info - Clickable */}
+          <button
+            onClick={handleViewSection}
+            className="flex-1 text-left hover:opacity-80 transition-opacity"
+          >
             <div className="flex items-center gap-4 mb-2">
-              <h3 className="text-xl font-semibold text-gray-900">{section.name}</h3>
+              <h3 className="text-xl font-semibold text-gray-900 hover:text-blue-600 transition-colors">
+                {section.name}
+              </h3>
               {section.semester && (
                 <span className="text-sm text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
                   {section.semester}
@@ -65,7 +74,7 @@ export default function SectionCard({ section, getActiveSessions }: SectionCardP
             </div>
             <p className="text-gray-600 mb-1">{section.className}</p>
             <p className="text-sm text-gray-500">Enrolled as {section.role}</p>
-          </div>
+          </button>
 
           {/* Right: Status Badge */}
           <div className="flex-shrink-0 ml-4">
