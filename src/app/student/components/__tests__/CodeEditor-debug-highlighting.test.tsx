@@ -231,4 +231,120 @@ describe('CodeEditor - Debug Line Highlighting', () => {
     const decorations = lastCall[1];
     expect(decorations).toHaveLength(0);
   });
+
+  it('should make editor read-only when debugger is active', () => {
+    const mockDebugger = {
+      hasTrace: true,
+      isLoading: false,
+      currentStep: 0,
+      totalSteps: 5,
+      trace: { steps: [], truncated: false, totalSteps: 5, exitCode: 0 },
+      getCurrentStep: jest.fn().mockReturnValue({ line: 5 }),
+      getCurrentLocals: jest.fn().mockReturnValue({}),
+      getCurrentGlobals: jest.fn().mockReturnValue({}),
+      getPreviousStep: jest.fn().mockReturnValue(null),
+      getCurrentCallStack: jest.fn().mockReturnValue([]),
+      canStepForward: true,
+      canStepBackward: false,
+      stepForward: jest.fn(),
+      stepBackward: jest.fn(),
+      jumpToFirst: jest.fn(),
+      jumpToLast: jest.fn(),
+      reset: jest.fn(),
+      requestTrace: jest.fn(),
+      setTrace: jest.fn(),
+      jumpToStep: jest.fn(),
+      error: null,
+    };
+
+    const onChange = jest.fn();
+    render(
+      <CodeEditor
+        code="print('hello')"
+        onChange={onChange}
+        debugger={mockDebugger}
+      />
+    );
+
+    // onChange should be called during mount, but editor should be read-only
+    // Since the Monaco mock auto-calls onMount, check that focus was NOT called (read-only editors don't get focus)
+    expect(mockEditor.focus).not.toHaveBeenCalled();
+  });
+
+  it('should allow editing when debugger is not active', () => {
+    const mockDebugger = {
+      hasTrace: false,
+      isLoading: false,
+      currentStep: 0,
+      totalSteps: 0,
+      trace: null,
+      getCurrentStep: jest.fn().mockReturnValue(null),
+      getCurrentLocals: jest.fn().mockReturnValue({}),
+      getCurrentGlobals: jest.fn().mockReturnValue({}),
+      getPreviousStep: jest.fn().mockReturnValue(null),
+      getCurrentCallStack: jest.fn().mockReturnValue([]),
+      canStepForward: false,
+      canStepBackward: false,
+      stepForward: jest.fn(),
+      stepBackward: jest.fn(),
+      jumpToFirst: jest.fn(),
+      jumpToLast: jest.fn(),
+      reset: jest.fn(),
+      requestTrace: jest.fn(),
+      setTrace: jest.fn(),
+      jumpToStep: jest.fn(),
+      error: null,
+    };
+
+    const onChange = jest.fn();
+    render(
+      <CodeEditor
+        code="print('hello')"
+        onChange={onChange}
+        debugger={mockDebugger}
+      />
+    );
+
+    // Editor should not be read-only, so focus should be called
+    expect(mockEditor.focus).toHaveBeenCalled();
+  });
+
+  it('should respect explicit readOnly prop even when debugger is not active', () => {
+    const mockDebugger = {
+      hasTrace: false,
+      isLoading: false,
+      currentStep: 0,
+      totalSteps: 0,
+      trace: null,
+      getCurrentStep: jest.fn().mockReturnValue(null),
+      getCurrentLocals: jest.fn().mockReturnValue({}),
+      getCurrentGlobals: jest.fn().mockReturnValue({}),
+      getPreviousStep: jest.fn().mockReturnValue(null),
+      getCurrentCallStack: jest.fn().mockReturnValue([]),
+      canStepForward: false,
+      canStepBackward: false,
+      stepForward: jest.fn(),
+      stepBackward: jest.fn(),
+      jumpToFirst: jest.fn(),
+      jumpToLast: jest.fn(),
+      reset: jest.fn(),
+      requestTrace: jest.fn(),
+      setTrace: jest.fn(),
+      jumpToStep: jest.fn(),
+      error: null,
+    };
+
+    const onChange = jest.fn();
+    render(
+      <CodeEditor
+        code="print('hello')"
+        onChange={onChange}
+        readOnly={true}
+        debugger={mockDebugger}
+      />
+    );
+
+    // Editor is explicitly readOnly, so focus should NOT be called
+    expect(mockEditor.focus).not.toHaveBeenCalled();
+  });
 });

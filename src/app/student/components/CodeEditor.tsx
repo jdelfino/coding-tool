@@ -65,6 +65,9 @@ export default function CodeEditor({
   const [localExecutionResult, setLocalExecutionResult] = useState<ExecutionResult | null>(null);
   const decorationsRef = useRef<string[]>([]);
 
+  // Compute effective read-only state: either explicitly readOnly or debugger is active
+  const isReadOnly = readOnly || (debuggerHook?.hasTrace ?? false);
+
   // Responsive layout detection
   const isDesktop = useResponsiveLayout(1024);
   const { isCollapsed: isSettingsCollapsed, toggle: toggleSettings, setCollapsed: setSettingsCollapsed } = useSidebarSection('execution-settings', false);
@@ -255,7 +258,7 @@ export default function CodeEditor({
     if (externalEditorRef) {
       externalEditorRef.current = editor;
     }
-    if (!readOnly) {
+    if (!isReadOnly) {
       editor.focus();
     }
   };
@@ -612,7 +615,7 @@ export default function CodeEditor({
               height="100%"
               defaultLanguage="python"
               value={code}
-              onChange={(value) => !readOnly && onChange(value || '')}
+              onChange={(value) => !isReadOnly && onChange(value || '')}
               onMount={handleEditorDidMount}
               theme="vs-dark"
               options={{
@@ -622,7 +625,7 @@ export default function CodeEditor({
                 roundedSelection: false,
                 scrollBeyondLastLine: false,
                 automaticLayout: true,
-                readOnly,
+                readOnly: isReadOnly,
                 glyphMargin: true,
               }}
             />
