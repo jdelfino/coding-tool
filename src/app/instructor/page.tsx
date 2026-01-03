@@ -141,6 +141,7 @@ function InstructorPage() {
     switch (lastMessage.type) {
       case 'SESSION_CREATED':
         setSessionId(lastMessage.payload.sessionId);
+        setJoinCode(lastMessage.payload.joinCode); // Capture join code from section
         setSessionContext({
           sectionId: lastMessage.payload.sectionId,
           sectionName: lastMessage.payload.sectionName,
@@ -190,7 +191,7 @@ function InstructorPage() {
           // Navigate based on where we came from
           setViewMode(targetView);
         }
-        
+
         break;
 
       case 'STUDENT_LIST_UPDATE':
@@ -384,7 +385,7 @@ function InstructorPage() {
       // Navigate based on context
       setViewMode(targetView);
     }
-    
+
   };
 
   const handleOpenProblemLoader = () => {
@@ -605,6 +606,7 @@ function InstructorPage() {
           <SessionControls
             sessionId={sessionId}
             sectionName={sessionContext?.sectionName}
+            joinCode={joinCode || undefined}
             onEndSession={handleEndSession}
             onLeaveSession={handleLeaveSession}
             onLoadProblem={handleOpenProblemLoader}

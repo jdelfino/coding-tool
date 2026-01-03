@@ -254,6 +254,7 @@ class WebSocketHandler {
           sessionId: session.id,
           sectionId: session.sectionId,
           sectionName: session.sectionName,
+          joinCode: section.joinCode, // Include section's join code
           problem: session.problem,
         },
       });

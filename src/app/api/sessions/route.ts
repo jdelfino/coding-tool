@@ -209,6 +209,7 @@ export async function POST(request: NextRequest) {
         id: newSession.id,
         sectionId: newSession.sectionId,
         sectionName: newSession.sectionName,
+        joinCode: section.joinCode, // Include section's join code for student access
         problem: newSession.problem,
         createdAt: newSession.createdAt,
         status: newSession.status,

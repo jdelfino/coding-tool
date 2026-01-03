@@ -5,14 +5,16 @@ import React from 'react';
 interface SessionControlsProps {
   sessionId: string;
   sectionName?: string;
+  joinCode?: string;
   onEndSession: () => void;
   onLeaveSession: () => void;
   onLoadProblem?: () => void;
 }
 
-export default function SessionControls({ 
-  sessionId, 
+export default function SessionControls({
+  sessionId,
   sectionName,
+  joinCode,
   onEndSession,
   onLeaveSession,
   onLoadProblem
@@ -29,6 +31,14 @@ export default function SessionControls({
           <h2 className="text-xl font-bold text-gray-900 mb-1">Active Session</h2>
           {sectionName && (
             <p className="text-sm text-gray-600">{sectionName}</p>
+          )}
+          {joinCode && (
+            <div className="mt-2 inline-flex items-center px-3 py-1 bg-blue-100 text-blue-800 text-sm font-mono font-bold rounded-lg">
+              <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+              </svg>
+              Join Code: {joinCode}
+            </div>
           )}
         </div>
         <div className="flex gap-2">

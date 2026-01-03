@@ -29,7 +29,7 @@ export default function JoinSectionForm({ onSubmit }: JoinSectionFormProps) {
       await onSubmit(joinCode.trim());
       setSuccess(true);
       setJoinCode('');
-      
+
       // Redirect to sections dashboard after a brief delay
       setTimeout(() => {
         router.push('/sections');
@@ -70,14 +70,14 @@ export default function JoinSectionForm({ onSubmit }: JoinSectionFormProps) {
             type="text"
             value={joinCode}
             onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
-            placeholder="ABC-K7M-X2P"
+            placeholder="e.g., ABC123"
             className="w-full px-4 py-3 text-lg font-mono border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-center tracking-wider"
             disabled={submitting || success}
             required
-            maxLength={11}
+            maxLength={6}
           />
           <p className="mt-2 text-sm text-gray-500">
-            Format: XXX-XXX-XXX (e.g., ABC-K7M-X2P)
+            Enter the 6-character code from your instructor
           </p>
         </div>
 
