@@ -32,14 +32,34 @@ describe('VariableInspector', () => {
 
   it('displays global variables', () => {
     const globals = {
-      factorial: '<function factorial>'
+      result: 42,
+      message: 'done'
     };
 
     render(<VariableInspector locals={{}} globals={globals} />);
     
-    expect(screen.getByText('factorial')).toBeInTheDocument();
-    // formatValue wraps strings with quotes, so <function factorial> becomes '<function factorial>'
-    expect(screen.getByText("'<function factorial>'")).toBeInTheDocument();
+    expect(screen.getByText('result')).toBeInTheDocument();
+    expect(screen.getByText('42')).toBeInTheDocument();
+    expect(screen.getByText('message')).toBeInTheDocument();
+    expect(screen.getByText("'done'")).toBeInTheDocument();
+  });
+
+  it('filters out function variables', () => {
+    const globals = {
+      factorial: '<function factorial>',
+      helper: '<built-in function print>',
+      x: 5
+    };
+
+    render(<VariableInspector locals={{}} globals={globals} />);
+    
+    // Functions should be filtered out
+    expect(screen.queryByText('factorial')).not.toBeInTheDocument();
+    expect(screen.queryByText('helper')).not.toBeInTheDocument();
+    
+    // Regular variables should still appear
+    expect(screen.getByText('x')).toBeInTheDocument();
+    expect(screen.getByText('5')).toBeInTheDocument();
   });
 
   it('highlights changed variables', () => {

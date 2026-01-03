@@ -37,7 +37,7 @@ export function CallStackPanel({ callStack }: CallStackPanelProps) {
                 <span className="mr-2 text-blue-600">→</span>
               )}
               <span className="font-mono text-gray-900">
-                {frame.functionName}
+                {frame.functionName === '<module>' ? '<main program>' : frame.functionName}
               </span>
               <span className="mx-2 text-gray-400">:</span>
               <span className="font-mono text-gray-600">

@@ -23,7 +23,7 @@ describe('CallStackPanel', () => {
 
     render(<CallStackPanel callStack={callStack} />);
     
-    expect(screen.getByText('<module>')).toBeInTheDocument();
+    expect(screen.getByText('<main program>')).toBeInTheDocument();
     expect(screen.getByText('main')).toBeInTheDocument();
     expect(screen.getByText('factorial')).toBeInTheDocument();
   });

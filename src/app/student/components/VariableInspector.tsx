@@ -35,7 +35,11 @@ export function VariableInspector({
     previous: Record<string, any>,
     label: string
   ) => {
-    const entries = Object.entries(vars);
+    // Filter out functions (for intro students who haven't learned functions as objects)
+    const entries = Object.entries(vars).filter(([name, value]) => {
+      const valStr = String(value);
+      return !valStr.startsWith('<function') && !valStr.startsWith('<built-in function');
+    });
     
     if (entries.length === 0) {
       return (

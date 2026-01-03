@@ -362,18 +362,30 @@ export default function CodeEditor({
         <span className="font-bold">{title}</span>
         <div className="flex gap-2">
           {showRunButton && (
-            <button
-              type="button"
-              onClick={handleRun}
-              disabled={effectiveIsRunning}
-              className={`px-4 py-2 rounded text-white ${
-                effectiveIsRunning
-                  ? 'bg-gray-500 cursor-not-allowed'
-                  : 'bg-green-600 hover:bg-green-700 cursor-pointer'
-              }`}
-            >
-              {effectiveIsRunning ? '⏳ Running...' : '▶ Run Code'}
-            </button>
+            <>
+              {debuggerHook?.hasTrace ? (
+                <button
+                  type="button"
+                  onClick={debuggerHook.reset}
+                  className="px-4 py-2 rounded text-white bg-red-600 hover:bg-red-700 cursor-pointer"
+                >
+                  ✕ Exit Debugging
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleRun}
+                  disabled={effectiveIsRunning}
+                  className={`px-4 py-2 rounded text-white ${
+                    effectiveIsRunning
+                      ? 'bg-gray-500 cursor-not-allowed'
+                      : 'bg-green-600 hover:bg-green-700 cursor-pointer'
+                  }`}
+                >
+                  {effectiveIsRunning ? '⏳ Running...' : '▶ Run Code'}
+                </button>
+              )}
+            </>
           )}
         </div>
       </div>
@@ -772,20 +784,18 @@ export default function CodeEditor({
           <div
             ref={outputResizeRef}
             className="border-t border-gray-300 overflow-y-auto flex-shrink-0 relative"
-            style={{ height: debuggerHook?.hasTrace ? 'auto' : `${outputHeight}px`, flex: debuggerHook?.hasTrace ? 1 : undefined }}
+            style={{ height: `${outputHeight}px` }}
           >
-            {/* Resize handle (only show when not debugging) */}
-            {!debuggerHook?.hasTrace && (
-              <div
-                onMouseDown={handleOutputMouseDown}
-                className="absolute top-0 left-0 right-0 h-1 cursor-row-resize hover:bg-blue-500 transition-colors z-10"
-                style={{
-                  background: isResizingOutput ? '#3b82f6' : 'transparent',
-                  marginTop: '-2px'
-                }}
-                title="Drag to resize output"
-              />
-            )}
+            {/* Resize handle (always show) */}
+            <div
+              onMouseDown={handleOutputMouseDown}
+              className="absolute top-0 left-0 right-0 h-1 cursor-row-resize hover:bg-blue-500 transition-colors z-10"
+              style={{
+                background: isResizingOutput ? '#3b82f6' : 'transparent',
+                marginTop: '-2px'
+              }}
+              title="Drag to resize output"
+            />
 
             {debuggerHook?.hasTrace ? (
               /* Show message when debugging - variables/call stack are in sidebar */
