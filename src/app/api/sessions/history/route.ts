@@ -58,11 +58,10 @@ export async function GET(request: NextRequest) {
     // Filter by classId (would need section to class mapping - defer for now)
     // We could add classId to session model in the future
 
-    // Filter by search query (section name or join code)
+    // Filter by search query (section name)
     if (searchQuery) {
       filteredSessions = filteredSessions.filter(s => 
-        s.sectionName.toLowerCase().includes(searchQuery) ||
-        s.joinCode.toLowerCase().includes(searchQuery)
+        s.sectionName.toLowerCase().includes(searchQuery)
       );
     }
 
@@ -74,7 +73,6 @@ export async function GET(request: NextRequest) {
     // Convert sessions to serializable format (Maps can't be JSON stringified)
     const sessionData = filteredSessions.map(session => ({
       id: session.id,
-      joinCode: session.joinCode,
       problemTitle: session.problem?.title || 'Untitled Session',
       problemDescription: session.problem?.description,
       createdAt: session.createdAt.toISOString(),

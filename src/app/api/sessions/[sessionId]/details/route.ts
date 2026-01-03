@@ -51,7 +51,6 @@ export async function GET(
     // Return session details
     const sessionData = {
       id: session.id,
-      joinCode: session.joinCode,
       problemTitle: session.problem?.title || 'Untitled Session',
       problemDescription: session.problem?.description,
       starterCode: session.problem?.starterCode,

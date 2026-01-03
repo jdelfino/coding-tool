@@ -70,7 +70,6 @@ export async function GET(request: NextRequest) {
     // Return lightweight session data
     const sessions = userSessions.map(s => ({
       id: s.id,
-      joinCode: s.joinCode,
       sectionId: s.sectionId,
       sectionName: s.sectionName,
       status: s.status,
@@ -208,7 +207,6 @@ export async function POST(request: NextRequest) {
       success: true,
       session: {
         id: newSession.id,
-        joinCode: newSession.joinCode,
         sectionId: newSession.sectionId,
         sectionName: newSession.sectionName,
         problem: newSession.problem,

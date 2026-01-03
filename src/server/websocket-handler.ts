@@ -268,7 +268,6 @@ class WebSocketHandler {
         type: MessageType.SESSION_CREATED,
         payload: {
           sessionId: session.id,
-          joinCode: session.joinCode,
           sectionId: session.sectionId,
           sectionName: session.sectionName,
           problem: session.problem,
@@ -288,7 +287,6 @@ class WebSocketHandler {
       // Convert sessions to a serializable format (without Maps)
       const sessionList = sessions.map(session => ({
         id: session.id,
-        joinCode: session.joinCode,
         problem: session.problem,
         studentCount: session.students.size,
         createdAt: session.createdAt,
@@ -367,7 +365,6 @@ class WebSocketHandler {
       type: MessageType.SESSION_JOINED,
       payload: {
         sessionId: session.id,
-        joinCode: session.joinCode,
         problem: session.problem,
       },
     });
@@ -845,8 +842,8 @@ class WebSocketHandler {
     // Send current session state
     const featured = await sessionManagerHolder.instance.getFeaturedSubmission(sessionId);
     
-    // Get section join code instead of session join code
-    let displayJoinCode = session.joinCode; // fallback to session join code
+    // Get section join code (sessions no longer have join codes)
+    let displayJoinCode: string | undefined;
     if (session.sectionId) {
       const sectionRepo = await getSectionRepository();
       const section = await sectionRepo.getSection(session.sectionId);
@@ -929,10 +926,20 @@ class WebSocketHandler {
     // Otherwise fall back to reading from storage (for cases like handleJoinPublicView)
     const featured = featuredData || await sessionManagerHolder.instance.getFeaturedSubmission(sessionId);
     
+    // Get section join code (sessions no longer have join codes)
+    let displayJoinCode: string | undefined;
+    if (session.sectionId) {
+      const sectionRepo = await getSectionRepository();
+      const section = await sectionRepo.getSection(session.sectionId);
+      if (section) {
+        displayJoinCode = section.joinCode;
+      }
+    }
+    
     this.broadcastToSession(sessionId, {
       type: MessageType.PUBLIC_SUBMISSION_UPDATE,
       payload: {
-        joinCode: session.joinCode,
+        joinCode: displayJoinCode,
         problem: session.problem,
         executionSettings: featured.executionSettings || session.problem.executionSettings,
         code: featured.code || undefined,

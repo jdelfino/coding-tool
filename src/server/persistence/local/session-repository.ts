@@ -179,15 +179,6 @@ export class LocalSessionRepository implements ISessionRepository {
     return sessions;
   }
 
-  async getSessionByJoinCode(joinCode: string): Promise<StoredSession | null> {
-    for (const session of this.cache.values()) {
-      if (session.joinCode === joinCode) {
-        return session;
-      }
-    }
-    return null;
-  }
-
   async countSessions(options?: SessionQueryOptions): Promise<number> {
     const sessions = await this.listAllSessions(options);
     return sessions.length;

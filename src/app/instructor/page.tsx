@@ -149,7 +149,6 @@ function InstructorPage() {
       case 'SESSION_CREATED':
         console.log('[SESSION_CREATED] Setting session state');
         setSessionId(lastMessage.payload.sessionId);
-        setJoinCode(lastMessage.payload.joinCode);
         setSessionContext({
           sectionId: lastMessage.payload.sectionId,
           sectionName: lastMessage.payload.sectionName,
@@ -168,7 +167,6 @@ function InstructorPage() {
 
       case 'SESSION_JOINED':
         setSessionId(lastMessage.payload.sessionId);
-        setJoinCode(lastMessage.payload.joinCode);
         // Restore execution settings from problem
         setSessionProblem(lastMessage.payload.problem || null);
         setSessionExecutionSettings(lastMessage.payload.problem?.executionSettings || {});
@@ -621,8 +619,8 @@ function InstructorPage() {
         );
       }
 
-      // Only render session content once we have sessionId and joinCode
-      if (!sessionId || !joinCode) {
+      // Only render session content once we have sessionId
+      if (!sessionId) {
         return (
           <div className="text-center py-12">
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 max-w-md mx-auto">

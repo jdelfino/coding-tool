@@ -122,14 +122,6 @@ export interface ISessionRepository extends IStorageBackend {
   listAllSessions(options?: SessionQueryOptions): Promise<StoredSession[]>;
 
   /**
-   * Get a session by join code
-   * 
-   * @param joinCode - The join code to search for
-   * @returns The session with this join code, or null if not found
-   */
-  getSessionByJoinCode(joinCode: string): Promise<StoredSession | null>;
-
-  /**
    * Count total sessions (optionally filtered)
    * 
    * @param options - Query options for filtering

@@ -115,9 +115,9 @@ function StudentPage() {
     if (isConnected && currentSessionId && joined && !isJoining) {
       const session = sessions.find(s => s.id === currentSessionId);
       if (session) {
-        console.log('WebSocket reconnected, rejoining session:', session.joinCode);
+        console.log('WebSocket reconnected, rejoining session:', session.id);
         setJoined(false); // Reset joined state
-        handleRejoinSession(session.id, session.joinCode);
+        handleRejoinSession(session.id);
       }
     }
   }, [isConnected]); // Only trigger on isConnected changes
