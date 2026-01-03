@@ -320,6 +320,7 @@ export default function CodeEditor({
           {showRunButton && (
             <>
               <button
+                type="button"
                 onClick={handleRun}
                 disabled={effectiveIsRunning}
                 className={`px-4 py-2 rounded text-white ${
@@ -332,6 +333,7 @@ export default function CodeEditor({
               </button>
               {debuggerHook && (
                 <button
+                  type="button"
                   onClick={() => {
                     if (debuggerHook.hasTrace) {
                       debuggerHook.reset();
@@ -366,6 +368,7 @@ export default function CodeEditor({
               {/* Problem icon (only show if problem exists) */}
               {problem && (
                 <button
+                  type="button"
                   onClick={handleToggleProblem}
                   className={`w-10 h-10 flex items-center justify-center rounded transition-colors ${
                     !isProblemCollapsed
@@ -388,6 +391,7 @@ export default function CodeEditor({
 
               {/* Settings icon */}
               <button
+                type="button"
                 onClick={handleToggleSettings}
                 className={`w-10 h-10 flex items-center justify-center rounded transition-colors ${
                   !isSettingsCollapsed
@@ -423,6 +427,7 @@ export default function CodeEditor({
                 <div className="px-4 py-2 bg-gray-900 border-b border-gray-700 font-bold flex items-center justify-between flex-shrink-0">
                   <span>Problem</span>
                   <button
+                    type="button"
                     onClick={toggleProblem}
                     className="text-gray-400 hover:text-gray-100 text-xl leading-none"
                     aria-label="Close panel"
@@ -441,6 +446,7 @@ export default function CodeEditor({
                   )}
                   {problem.starterCode && onLoadStarterCode && (
                     <button
+                      type="button"
                       onClick={() => onLoadStarterCode(problem.starterCode || '')}
                       className="mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm"
                     >
@@ -468,6 +474,7 @@ export default function CodeEditor({
                 <div className="px-4 py-2 bg-gray-900 border-b border-gray-700 font-bold flex items-center justify-between flex-shrink-0">
                   <span>Execution Settings</span>
                   <button
+                    type="button"
                     onClick={toggleSettings}
                     className="text-gray-400 hover:text-gray-100 text-xl leading-none"
                     aria-label="Close panel"

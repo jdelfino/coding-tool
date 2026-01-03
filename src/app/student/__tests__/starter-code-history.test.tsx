@@ -30,7 +30,7 @@ jest.mock('@monaco-editor/react', () => {
             endColumn: 20,
           })),
         };
-        
+
         const mockEditor = {
           focus: jest.fn(),
           getModel: jest.fn(() => mockModel),
@@ -42,10 +42,10 @@ jest.mock('@monaco-editor/react', () => {
           deltaDecorations: jest.fn().mockReturnValue([]),
           lastEdit: null as { source: string; edits: any[] } | null,
         };
-        
+
         // Expose editor for test access
         (window as any).__mockEditor = mockEditor;
-        
+
         onMount(mockEditor);
       }
     }, [onMount]);
@@ -67,9 +67,9 @@ describe('StudentPage - Starter Code with Edit History', () => {
     (window as any).__mockEditor = null;
 
     mockUseAuth.mockReturnValue({
-      user: { 
-        id: 'student1', 
-        username: 'TestStudent', 
+      user: {
+        id: 'student1',
+        username: 'TestStudent',
         role: 'student',
         createdAt: new Date().toISOString() as any,
       },

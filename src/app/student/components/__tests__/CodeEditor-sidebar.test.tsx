@@ -62,7 +62,7 @@ describe('CodeEditor - Problem Sidebar', () => {
     await waitFor(() => {
       expect(screen.getByText('Test Problem')).toBeInTheDocument();
     });
-    
+
     expect(screen.getByText('This is a test problem description')).toBeInTheDocument();
     expect(screen.getByText('Load Starter Code')).toBeInTheDocument();
   });
