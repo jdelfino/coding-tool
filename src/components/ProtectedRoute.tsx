@@ -31,11 +31,11 @@ export function ProtectedRoute({
 }: ProtectedRouteProps) {
   const { user, isLoading } = useAuth();
   const router = useRouter();
-  
+
   // Track if we've completed the initial auth check successfully
   // This prevents re-checking on every re-render
   const initialAuthCheckDone = useRef(false);
-  
+
   // Check permissions
   const hasSinglePermission = usePermission(user, requiredPermission || '');
   const hasAnyPermissions = useAnyPermission(user, requiredPermissions || []);
@@ -47,25 +47,27 @@ export function ProtectedRoute({
     if (isLoading || initialAuthCheckDone.current) {
       return;
     }
-    
+
     if (!user) {
       // Not authenticated, redirect to sign-in
       console.log('[ProtectedRoute] No user after load, redirecting to', fallbackPath);
+      console.log('[ProtectedRoute] CASE 1: No user');
       router.push(fallbackPath);
       return; // Don't mark as done if we're redirecting due to no auth
     }
-    
+
     // User is authenticated, check permissions/role
     if (requiredPermission || requiredPermissions) {
       // Check permission-based access
-      const hasPermissionAccess = 
+      const hasPermissionAccess =
         (requiredPermission && hasSinglePermission) ||
         (requiredPermissions && hasAnyPermissions);
-      
+
       if (!hasPermissionAccess) {
         // No permission, redirect to appropriate page
         const defaultPath = user.role === 'instructor' ? '/instructor' : '/student';
         console.log('[ProtectedRoute] No permission, redirecting to', defaultPath);
+        console.log('[ProtectedRoute] CASE 2: No permission');
         router.push(defaultPath);
         return; // Don't mark as done if we're redirecting
       }
@@ -76,12 +78,14 @@ export function ProtectedRoute({
         // Wrong role, redirect to appropriate page
         const defaultPath = user.role === 'instructor' ? '/instructor' : '/student';
         console.log('[ProtectedRoute] Wrong role (expected:', requiredRole, ', got:', user.role, '), redirecting to', defaultPath);
+        console.log('[ProtectedRoute] CASE 3: Wrong role - user.role=', user.role, 'requiredRole=', requiredRole);
         router.push(defaultPath);
         return; // Don't mark as done if we're redirecting
       }
     }
-    
+
     // If we get here, auth check passed - mark as done
+    console.log('[ProtectedRoute] Auth check PASSED for user:', user.username, 'role:', user.role);
     initialAuthCheckDone.current = true;
   }, [user, isLoading, requiredRole, requiredPermission, requiredPermissions, hasSinglePermission, hasAnyPermissions, router, fallbackPath, allowAdmin]);
 
@@ -102,10 +106,10 @@ export function ProtectedRoute({
   // SECURITY: Check access BEFORE rendering children
   // This prevents unauthorized users from seeing protected content
   if (requiredPermission || requiredPermissions) {
-    const hasPermissionAccess = 
+    const hasPermissionAccess =
       (requiredPermission && hasSinglePermission) ||
       (requiredPermissions && hasAnyPermissions);
-    
+
     if (!hasPermissionAccess) {
       return null;
     }

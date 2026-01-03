@@ -89,9 +89,39 @@ async function studentJoinAndSubmit(
   // Listen to console logs to debug ProtectedRoute behavior
   studentPage.on('console', (msg) => {
     const text = msg.text();
-    if (text.includes('[ProtectedRoute]') || text.includes('[StudentPage]') || text.includes('WebSocket') || text.includes('redirecting')) {
+    if (text.includes('[ProtectedRoute]') || text.includes('[StudentPage]') || text.includes('WebSocket') || text.includes('redirecting') || text.includes('[REDIRECT]') || text.includes('[DEBUG]')) {
       console.log('🔍 Browser console:', text);
     }
+  });
+
+  // Track ALL navigation events to catch redirects
+  studentPage.on('framenavigated', (frame) => {
+    if (frame === studentPage.mainFrame()) {
+      console.log('🧭 Navigation detected:', frame.url());
+    }
+  });
+
+  // Listen for route changes in Next.js
+  await studentPage.evaluate(() => {
+    if (typeof window !== 'undefined' && (window as any).next) {
+      const originalPush = (window as any).next.router.push;
+      const originalReplace = (window as any).next.router.replace;
+
+      (window as any).next.router.push = function(...args: any[]) {
+        console.log('[REDIRECT] router.push called with:', args);
+        console.trace('[REDIRECT] Stack trace:');
+        return originalPush.apply(this, args);
+      };
+
+      (window as any).next.router.replace = function(...args: any[]) {
+        console.log('[REDIRECT] router.replace called with:', args);
+        console.trace('[REDIRECT] Stack trace:');
+        return originalReplace.apply(this, args);
+      };
+    }
+  }).catch(() => {
+    // Ignore if Next.js router isn't available yet
+    console.log('⚠️ Could not hook Next.js router (not yet available)');
   });
 
   // Add a unique identifier to help debugging
@@ -171,8 +201,37 @@ async function studentJoinAndSubmit(
   await studentPage.waitForURL(/\/student\?sessionId=/, { timeout: 5000 });
   console.log('Navigated to:', studentPage.url());
 
-  // Wait a moment for the page to stabilize
-  await studentPage.waitForTimeout(500);
+  // Hook Next.js router AFTER navigation to catch any subsequent redirects
+  await studentPage.evaluate(() => {
+    if (typeof window !== 'undefined') {
+      // Track router.push/replace calls
+      const nextRouter = (window as any).next?.router;
+      if (nextRouter && !nextRouter._debugHooked) {
+        nextRouter._debugHooked = true;
+        const originalPush = nextRouter.push.bind(nextRouter);
+        const originalReplace = nextRouter.replace.bind(nextRouter);
+
+        nextRouter.push = function(...args: any[]) {
+          console.log('[REDIRECT] router.push called:', args[0]);
+          console.trace();
+          return originalPush(...args);
+        };
+
+        nextRouter.replace = function(...args: any[]) {
+          console.log('[REDIRECT] router.replace called:', args[0]);
+          console.trace();
+          return originalReplace(...args);
+        };
+
+        console.log('[DEBUG] Next.js router hooked successfully');
+      }
+    }
+  }).catch((e) => console.log('⚠️ Could not hook router:', e.message));
+
+  // Wait a moment for the page to stabilize and catch any redirects
+  console.log('Waiting 3 seconds to observe redirects...');
+  await studentPage.waitForTimeout(3000);
+  console.log('Current URL after wait:', studentPage.url());
 
   const postNavAuth = await studentPage.evaluate(async () => {
     try {
@@ -205,12 +264,12 @@ async function studentJoinAndSubmit(
     };
   });
   console.log('📊 Page state before looking for Leave Session button:', JSON.stringify(pageDebug, null, 2));
-  
+
   // If we're seeing the instructor dashboard, this is the bug
   if (pageDebug.h1Text?.includes('Instructor')) {
     throw new Error(`🐛 BUG REPRODUCED! Student page is showing Instructor Dashboard. URL: ${pageDebug.url}, User shown: ${pageDebug.signedInText}`);
   }
-  
+
   await expect(studentPage.locator('button:has-text("Leave Session")')).toBeVisible({ timeout: 5000 });
   console.log('Leave Session button visible, student has joined');
 
