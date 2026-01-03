@@ -103,11 +103,10 @@ describe('Section Membership Verification', () => {
     expect(section?.instructorIds).toContain(instructorId);
   });
 
-  test('session can be retrieved by join code', async () => {
+  test('session is associated with correct section', async () => {
     const session = await sessionManager.createSession(instructorId, sectionId, 'Section A', mockProblem);
-    const joinCode = session.joinCode;
 
-    const retrievedSession = await sessionManager.getSessionByJoinCode(joinCode);
+    const retrievedSession = await sessionManager.getSession(session.id);
     expect(retrievedSession).toBeDefined();
     expect(retrievedSession?.id).toBe(session.id);
     expect(retrievedSession?.sectionId).toBe(sectionId);

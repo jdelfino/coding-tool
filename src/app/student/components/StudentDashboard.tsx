@@ -4,7 +4,6 @@ import React from 'react';
 
 interface SessionInfo {
   id: string;
-  joinCode: string;
   problemText: string;
   createdAt: string;
   lastActivity: string;
@@ -16,7 +15,7 @@ interface SessionInfo {
 interface StudentDashboardProps {
   sessions: SessionInfo[];
   onJoinNewSession: () => void;
-  onRejoinSession: (sessionId: string, joinCode: string) => void;
+  onRejoinSession: (sessionId: string) => void;
   disabled: boolean;
 }
 
@@ -129,11 +128,8 @@ export default function StudentDashboard({
                 className="p-6 bg-white border-2 border-green-400 rounded-xl shadow-md hover:shadow-xl transition-all duration-200 transform hover:-translate-y-1"
               >
                 <div className="mb-4">
-                  <div className="text-3xl font-bold text-green-600 mb-1 font-mono tracking-wider">
-                    {session.joinCode}
-                  </div>
                   <div className="inline-block px-2 py-1 bg-green-100 text-green-700 text-xs font-bold rounded uppercase tracking-wide">
-                    Active
+                    Active Session
                   </div>
                 </div>
 
@@ -151,7 +147,7 @@ export default function StudentDashboard({
                 </div>
 
                 <button
-                  onClick={() => onRejoinSession(session.id, session.joinCode)}
+                  onClick={() => onRejoinSession(session.id)}
                   disabled={disabled}
                   className="w-full py-2.5 px-4 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-semibold rounded-lg shadow-md hover:shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
@@ -182,9 +178,6 @@ export default function StudentDashboard({
                 className="p-6 bg-white border border-gray-300 rounded-xl shadow-sm hover:shadow-md transition-all duration-200 opacity-75 hover:opacity-100"
               >
                 <div className="mb-4">
-                  <div className="text-3xl font-bold text-gray-500 mb-1 font-mono tracking-wider">
-                    {session.joinCode}
-                  </div>
                   <div className="inline-block px-2 py-1 bg-gray-200 text-gray-600 text-xs font-bold rounded uppercase tracking-wide">
                     Completed
                   </div>

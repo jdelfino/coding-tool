@@ -21,7 +21,6 @@ export interface Student {
 
 export interface Session {
   id: string;
-  joinCode: string;
   
   // Problem object for the session (executionSettings stored within problem.executionSettings)
   problem: Problem;

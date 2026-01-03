@@ -424,11 +424,11 @@ class WebSocketHandler {
   }
 
   private async handleJoinSession(ws: WebSocket, connection: Connection, payload: any) {
-    const { joinCode, studentName } = payload;
+    const { sessionId, studentName } = payload;
     
     // Validate inputs
-    if (!joinCode || typeof joinCode !== 'string') {
-      this.sendError(ws, 'Invalid join code');
+    if (!sessionId || typeof sessionId !== 'string') {
+      this.sendError(ws, 'Invalid session ID');
       return;
     }
     
@@ -442,9 +442,9 @@ class WebSocketHandler {
       return;
     }
     
-    const session = await sessionManagerHolder.instance.getSessionByJoinCode(joinCode);
+    const session = await sessionManagerHolder.instance.getSession(sessionId);
     if (!session) {
-      this.sendError(ws, 'Session not found. Please check the join code.');
+      this.sendError(ws, 'Session not found.');
       return;
     }
 

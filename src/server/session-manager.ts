@@ -4,9 +4,6 @@ import { Problem, ExecutionSettings } from './types/problem';
 import { IStorageRepository, getStorage } from './persistence';
 
 export class SessionManager {
-  // In-memory index for join codes (for fast lookup)
-  private sessionsByJoinCode: Map<string, string> = new Map();
-
   constructor(private storage?: IStorageRepository) {
     // Storage is optional for backward compatibility during migration
   }
@@ -30,37 +27,15 @@ export class SessionManager {
     if (!this.storage) return;
 
     try {
-      // Load all sessions from storage
-      const sessions = await this.storage.sessions.listAllSessions();
-
-      // Rebuild join code index
-      for (const session of sessions) {
-        this.sessionsByJoinCode.set(session.joinCode, session.id);
-      }
-
+      // Load all sessions from storage (for validation/warmup)
+      await this.storage.sessions.listAllSessions();
     } catch (error) {
       console.error('Failed to load sessions from storage:', error);
       throw error;
     }
   }
 
-  /**
-   * Generate a unique join code (6 uppercase letters/numbers)
-   */
-  private generateJoinCode(): string {
-    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    let code = '';
-    for (let i = 0; i < 6; i++) {
-      code += characters.charAt(Math.floor(Math.random() * characters.length));
-    }
 
-    // Ensure uniqueness (very unlikely to collide, but check anyway)
-    if (this.sessionsByJoinCode.has(code)) {
-      return this.generateJoinCode();
-    }
-
-    return code;
-  }
 
   /**
    * Create a new session within a section
@@ -86,11 +61,9 @@ export class SessionManager {
     }
 
     const sessionId = uuidv4();
-    const joinCode = this.generateJoinCode();
 
     const session: Session = {
       id: sessionId,
-      joinCode,
       problem: problem ? this.cloneProblem(problem) : this.createEmptyProblem(creatorId),
       students: new Map(),
       createdAt: new Date(),
@@ -109,8 +82,6 @@ export class SessionManager {
       console.error('Failed to persist session to storage:', error);
       throw error;
     }
-
-    this.sessionsByJoinCode.set(joinCode, sessionId);
 
     return session;
   }
@@ -148,36 +119,6 @@ export class SessionManager {
           : undefined,
       } : undefined,
     };
-  }
-
-  /**
-   * Get a session by join code
-   */
-  async getSessionByJoinCode(joinCode: string): Promise<Session | null> {
-    const upperJoinCode = joinCode.toUpperCase();
-
-    // Ensure storage is initialized (auto-init for API routes)
-    const storage = await this.ensureStorage();
-
-    // First check in-memory index
-    const sessionId = this.sessionsByJoinCode.get(upperJoinCode);
-    if (sessionId) {
-      const session = await storage.sessions.getSession(sessionId);
-      return session;
-    }
-
-    // Not in index - search all sessions in storage (handles cross-process session creation)
-    const allSessions = await storage.sessions.listAllSessions();
-
-    for (const session of allSessions) {
-      if (session.joinCode === upperJoinCode) {
-        // Update our index for future lookups
-        this.sessionsByJoinCode.set(upperJoinCode, session.id);
-        return session;
-      }
-    }
-
-    return null;
   }
 
   /**
@@ -562,7 +503,6 @@ export class SessionManager {
 
     try {
       await this.storage.sessions.deleteSession(sessionId);
-      this.sessionsByJoinCode.delete(session.joinCode);
       console.log(`Deleted session ${sessionId}`);
       return true;
     } catch (error) {

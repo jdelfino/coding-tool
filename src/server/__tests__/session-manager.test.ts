@@ -58,7 +58,6 @@ describe('SessionManager', () => {
 
       expect(session).toBeDefined();
       expect(session.id).toBe('session-0');
-      expect(session.joinCode).toMatch(/^[A-Z0-9]{6}$/);
       expect(session.problem).toBeDefined();
       expect(session.problem.title).toBe('Untitled Session');
       expect(session.students).toBeInstanceOf(Map);
@@ -92,9 +91,10 @@ describe('SessionManager', () => {
       const session1 = await sessionManager.createSession('test-instructor-1', 'test-section-id', 'Test Section');
       const session2 = await sessionManager.createSession('test-instructor-2', 'test-section-id', 'Test Section');
 
-      expect(session1.joinCode).toBeDefined();
-      expect(session2.joinCode).toBeDefined();
-      expect(session1.joinCode).not.toBe(session2.joinCode);
+      // Sessions should have unique IDs
+      expect(session1.id).toBeDefined();
+      expect(session2.id).toBeDefined();
+      expect(session1.id).not.toBe(session2.id);
 
       Math.random = originalRandom;
     });
@@ -128,7 +128,6 @@ describe('SessionManager', () => {
       const stored = await storage.sessions.getSession(session.id);
       expect(stored).toBeDefined();
       expect(stored?.id).toBe(session.id);
-      expect(stored?.joinCode).toBe(session.joinCode);
     });
 
     it('should throw error if storage fails during create', async () => {
@@ -269,52 +268,6 @@ describe('SessionManager', () => {
       expect(session.problem?.executionSettings?.randomSeed).toBe(12345);
       expect(session.problem?.executionSettings?.stdin).toBeUndefined();
       expect(session.problem?.executionSettings?.attachedFiles).toBeUndefined();
-    });
-  });
-
-  describe('Join Code Management', () => {
-    it('should generate 6-character uppercase codes', async () => {
-      const session = await sessionManager.createSession('test-instructor', 'test-section-id', 'Test Section');
-
-      expect(session.joinCode).toHaveLength(6);
-      expect(session.joinCode).toMatch(/^[A-Z0-9]+$/);
-    });
-
-    it('should normalize join codes to uppercase', async () => {
-      const session = await sessionManager.createSession('test-instructor', 'test-section-id', 'Test Section');
-
-      // Test case-insensitive lookup
-      const found = await sessionManager.getSessionByJoinCode(session.joinCode.toLowerCase());
-      expect(found).toBeDefined();
-      expect(found?.id).toBe(session.id);
-    });
-
-    it('should find session by join code', async () => {
-      const session = await sessionManager.createSession('test-instructor', 'test-section-id', 'Test Section');
-
-      const found = await sessionManager.getSessionByJoinCode(session.joinCode);
-      expect(found).toBeDefined();
-      expect(found?.id).toBe(session.id);
-      expect(found?.joinCode).toBe(session.joinCode);
-    });
-
-    it('should return null for non-existent join code', async () => {
-      const found = await sessionManager.getSessionByJoinCode('INVALID');
-      expect(found).toBeNull();
-    });
-
-    it('should handle case-insensitive join code lookup', async () => {
-      const session = await sessionManager.createSession('test-instructor', 'test-section-id', 'Test Section');
-      const lowerCode = session.joinCode.toLowerCase();
-      const mixedCode = session.joinCode.split('').map((c, i) =>
-        i % 2 === 0 ? c.toLowerCase() : c.toUpperCase()
-      ).join('');
-
-      const found1 = await sessionManager.getSessionByJoinCode(lowerCode);
-      const found2 = await sessionManager.getSessionByJoinCode(mixedCode);
-
-      expect(found1?.id).toBe(session.id);
-      expect(found2?.id).toBe(session.id);
     });
   });
 
@@ -631,16 +584,6 @@ describe('SessionManager', () => {
       expect(found).toBeNull();
     });
 
-    it('should remove join code index on delete', async () => {
-      const session = await sessionManager.createSession('test-instructor', 'test-section-id', 'Test Section');
-      const joinCode = session.joinCode;
-
-      await sessionManager.deleteSession(session.id);
-
-      const found = await sessionManager.getSessionByJoinCode(joinCode);
-      expect(found).toBeNull();
-    });
-
     it('should track active vs inactive sessions', async () => {
       const session1 = await sessionManager.createSession('test-instructor-1', 'test-section-id', 'Test Section');
       const session2 = await sessionManager.createSession('test-instructor-2', 'test-section-id', 'Test Section');
@@ -879,25 +822,12 @@ describe('SessionManager', () => {
       const newManager = new SessionManager(storage);
       await newManager.initialize();
 
-      // Should be able to find sessions by join code
-      const found1 = await newManager.getSessionByJoinCode(session1.joinCode);
-      const found2 = await newManager.getSessionByJoinCode(session2.joinCode);
+      // Should be able to find sessions by ID
+      const found1 = await newManager.getSession(session1.id);
+      const found2 = await newManager.getSession(session2.id);
 
       expect(found1?.id).toBe(session1.id);
       expect(found2?.id).toBe(session2.id);
-    });
-
-    it('should rebuild join code index on initialize', async () => {
-      const session1 = await sessionManager.createSession('test-instructor-1', 'test-section-id', 'Test Section');
-      const session2 = await sessionManager.createSession('test-instructor-2', 'test-section-id', 'Test Section');
-
-      // Create new manager and initialize
-      const newManager = new SessionManager(storage);
-      await newManager.initialize();
-
-      // Join code index should work
-      const found = await newManager.getSessionByJoinCode(session1.joinCode);
-      expect(found?.id).toBe(session1.id);
     });
 
     it('should auto-initialize storage when needed', async () => {

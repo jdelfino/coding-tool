@@ -7,7 +7,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useSessionHistory, SessionHistory } from '@/hooks/useSessionHistory';
 import { Problem, ExecutionSettings } from '@/server/types/problem';
 import { useDebugger } from '@/hooks/useDebugger';
-import JoinForm from './components/JoinForm';
 import StudentDashboard from './components/StudentDashboard';
 import CodeEditor from './components/CodeEditor';
 import SessionEndedNotification from './components/SessionEndedNotification';
@@ -15,7 +14,6 @@ import SessionEndedNotification from './components/SessionEndedNotification';
 function StudentPage() {
   const { user, signOut } = useAuth();
   const { sessions, isLoading: isLoadingSessions, refetch: refetchSessions } = useSessionHistory();
-  const [view, setView] = useState<'dashboard' | 'join' | 'session'>('dashboard');
   const [joined, setJoined] = useState(false);
   const [studentId, setStudentId] = useState<string | null>(null);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
@@ -57,10 +55,10 @@ function StudentPage() {
   const debuggerHook = useDebugger(sendMessage);
 
   // Define handlers with useCallback to avoid dependency issues
-  const handleJoin = useCallback((joinCode: string) => {
-    // Validate join code
-    if (!joinCode || joinCode.length !== 6) {
-      setError('Join code must be 6 characters');
+  const handleJoin = useCallback((sessionId: string) => {
+    // Validate session ID
+    if (!sessionId) {
+      setError('Invalid session ID');
       return;
     }
 
@@ -70,7 +68,7 @@ function StudentPage() {
     console.log('[JOIN] Joining session with username:', studentName, 'user:', user);
     setError(null);
     setIsJoining(true);
-    sendMessage('JOIN_SESSION', { joinCode, studentName });
+    sendMessage('JOIN_SESSION', { sessionId, studentName });
     
     // Set timeout for join operation
     setTimeout(() => {
@@ -83,9 +81,9 @@ function StudentPage() {
     }, 10000);
   }, [user?.username, sendMessage]);
 
-  const handleRejoinSession = useCallback((sessionId: string, joinCode: string) => {
+  const handleRejoinSession = useCallback((sessionId: string) => {
     setCurrentSessionId(sessionId);
-    handleJoin(joinCode);
+    handleJoin(sessionId);
   }, [handleJoin]);
 
   // Auto-rejoin logic: check for active sessions on mount (only after WebSocket connects)
@@ -100,15 +98,13 @@ function StudentPage() {
         // If exactly one active session, auto-rejoin
         if (activeSessions.length === 1) {
           const session = activeSessions[0];
-          console.log('Auto-rejoining session:', session.joinCode);
-          handleRejoinSession(session.id, session.joinCode);
+          console.log('Auto-rejoining session:', session.id);
+          handleRejoinSession(session.id);
         } else {
           // Multiple or no active sessions - show dashboard
-          setView('dashboard');
         }
       } else {
         // No sessions at all - show dashboard
-        setView('dashboard');
       }
     }
   }, [hasCheckedAutoRejoin, isLoadingSessions, isConnected, sessions, handleRejoinSession]);
@@ -145,7 +141,6 @@ function StudentPage() {
         setCode(lastMessage.payload.code || '');
         setIsJoining(false);
         setError(null);
-        setView('session');
         break;
 
       case 'PROBLEM_UPDATE':
@@ -203,12 +198,9 @@ function StudentPage() {
     });
   }, [studentExecutionSettings, joined, studentId, sendMessage]);
 
-  const handleShowDashboard = () => {
-    setView('dashboard');
-  };
-
   const handleShowJoinForm = () => {
-    setView('join');
+    // Redirect to sections page to join sections
+    window.location.href = '/sections/join';
   };
 
   const handleLeaveSession = () => {
@@ -222,7 +214,6 @@ function StudentPage() {
     setCode('');
     setExecutionResult(null);
     setSessionEnded(false);
-    setView('dashboard');
     
     // Refresh sessions
     refetchSessions();
@@ -424,41 +415,13 @@ function StudentPage() {
           </div>
         )}
 
-        {/* Dashboard or Join Form */}
-        {view === 'dashboard' ? (
-          <StudentDashboard
-            sessions={sessions}
-            onJoinNewSession={handleShowJoinForm}
-            onRejoinSession={handleRejoinSession}
-            disabled={!isConnected || connectionStatus === 'failed'}
-          />
-        ) : (
-          <div>
-            <div style={{ marginBottom: '1rem' }}>
-              <button
-                onClick={handleShowDashboard}
-                style={{
-                  padding: '0.5rem 1rem',
-                  backgroundColor: 'transparent',
-                  color: '#0070f3',
-                  border: '1px solid #0070f3',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  fontSize: '0.9rem'
-                }}
-              >
-                ← Back to Dashboard
-              </button>
-            </div>
-            <h2>Join a Session</h2>
-            <JoinForm 
-              onJoin={handleJoin} 
-              username={user?.username || 'Student'}
-              isJoining={isJoining} 
-              disabled={!isConnected || connectionStatus === 'failed'} 
-            />
-          </div>
-        )}
+        {/* Dashboard */}
+        <StudentDashboard
+          sessions={sessions}
+          onJoinNewSession={handleShowJoinForm}
+          onRejoinSession={handleRejoinSession}
+          disabled={!isConnected || connectionStatus === 'failed'}
+        />
       </main>
     );
   }
