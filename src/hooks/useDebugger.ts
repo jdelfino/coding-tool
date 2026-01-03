@@ -116,6 +116,18 @@ export function useDebugger(sendMessage: (type: string, payload: any) => void) {
       // Only handle if debugger is active
       if (!state.trace) return;
 
+      // Don't intercept keyboard shortcuts if user is typing in an input field
+      const target = e.target as HTMLElement;
+      const isEditableElement = 
+        target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.isContentEditable ||
+        (target.closest && target.closest('.monaco-editor')); // Monaco editor check
+
+      if (isEditableElement) {
+        return; // Let the input field handle the key
+      }
+
       switch (e.key) {
         case 'ArrowRight':
         case 'n':

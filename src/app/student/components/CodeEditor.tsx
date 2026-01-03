@@ -69,7 +69,7 @@ export default function CodeEditor({
   const isDesktop = useResponsiveLayout(1024);
   const { isCollapsed: isSettingsCollapsed, toggle: toggleSettings, setCollapsed: setSettingsCollapsed } = useSidebarSection('execution-settings', false);
   const { isCollapsed: isProblemCollapsed, toggle: toggleProblem, setCollapsed: setProblemCollapsed } = useSidebarSection('problem-panel', false);
-  
+
   // Mobile-specific state (separate from desktop sidebar state)
   const [mobileProblemCollapsed, setMobileProblemCollapsed] = useState(true);
   const [mobileSettingsCollapsed, setMobileSettingsCollapsed] = useState(true);
@@ -592,12 +592,12 @@ export default function CodeEditor({
         {/* Main Editor Area */}
         <div className={`flex-1 flex flex-col min-w-0 ${isDesktop ? 'min-h-0' : ''}`} style={!isDesktop ? { minHeight: '400px' } : {}}>
           {/* Code Editor - grows to fill remaining space */}
-          <div 
-            className="flex-1" 
+          <div
+            className="flex-1"
             style={
-              !isDesktop 
-                ? (debuggerHook?.hasTrace 
-                    ? { 
+              !isDesktop
+                ? (debuggerHook?.hasTrace
+                    ? {
                         minHeight: 'auto',
                         height: `${Math.min(Math.max((code.split('\n').length + 3) * 21, 150), 400)}px`,
                         flexGrow: 0,

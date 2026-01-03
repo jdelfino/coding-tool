@@ -112,7 +112,7 @@ describe('CodeEditor Responsive Layout', () => {
       // Should have action bar with settings button
       const settingsButton = screen.getByRole('button', { name: /toggle settings/i });
       expect(settingsButton).toBeInTheDocument();
-      
+
       // Settings should be collapsed by default (not visible)
       expect(screen.queryByTestId('execution-settings')).not.toBeInTheDocument();
     });
@@ -169,7 +169,7 @@ describe('CodeEditor Responsive Layout', () => {
       // Should have both problem and settings buttons
       expect(screen.getByRole('button', { name: /toggle problem/i })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /toggle settings/i })).toBeInTheDocument();
-      
+
       // Both sections should be collapsed by default (not visible)
       expect(screen.queryByTestId('execution-settings')).not.toBeInTheDocument();
       expect(screen.queryByText('Test Problem')).not.toBeInTheDocument();

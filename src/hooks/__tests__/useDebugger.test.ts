@@ -262,4 +262,216 @@ describe('useDebugger', () => {
     expect(result.current.canStepForward).toBe(false);
     expect(result.current.canStepBackward).toBe(true);
   });
+
+  describe('keyboard shortcuts', () => {
+    it('responds to arrow keys and n/p shortcuts', () => {
+      const { result } = renderHook(() => useDebugger(sendMessage));
+
+      act(() => {
+        result.current.setTrace(mockTrace);
+      });
+
+      expect(result.current.currentStep).toBe(0);
+
+      // Test arrow right
+      act(() => {
+        window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight' }));
+      });
+      expect(result.current.currentStep).toBe(1);
+
+      // Test 'n' key
+      act(() => {
+        window.dispatchEvent(new KeyboardEvent('keydown', { key: 'n' }));
+      });
+      expect(result.current.currentStep).toBe(2);
+
+      // Test 'p' key
+      act(() => {
+        window.dispatchEvent(new KeyboardEvent('keydown', { key: 'p' }));
+      });
+      expect(result.current.currentStep).toBe(1);
+
+      // Test arrow left
+      act(() => {
+        window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft' }));
+      });
+      expect(result.current.currentStep).toBe(0);
+    });
+
+    it('responds to Home/End keys', () => {
+      const { result } = renderHook(() => useDebugger(sendMessage));
+
+      act(() => {
+        result.current.setTrace(mockTrace);
+        result.current.jumpToStep(1);
+      });
+
+      expect(result.current.currentStep).toBe(1);
+
+      // Test End key
+      act(() => {
+        window.dispatchEvent(new KeyboardEvent('keydown', { key: 'End' }));
+      });
+      expect(result.current.currentStep).toBe(2);
+
+      // Test Home key
+      act(() => {
+        window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Home' }));
+      });
+      expect(result.current.currentStep).toBe(0);
+    });
+
+    it('responds to Escape key', () => {
+      const { result } = renderHook(() => useDebugger(sendMessage));
+
+      act(() => {
+        result.current.setTrace(mockTrace);
+        result.current.jumpToStep(1);
+      });
+
+      expect(result.current.trace).not.toBeNull();
+
+      act(() => {
+        window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+      });
+
+      expect(result.current.trace).toBeNull();
+      expect(result.current.currentStep).toBe(0);
+    });
+
+    it('ignores shortcuts when typing in input field', () => {
+      const { result } = renderHook(() => useDebugger(sendMessage));
+
+      act(() => {
+        result.current.setTrace(mockTrace);
+      });
+
+      expect(result.current.currentStep).toBe(0);
+
+      // Create a mock input element
+      const input = document.createElement('input');
+      document.body.appendChild(input);
+
+      // Simulate typing 'p' in the input field
+      act(() => {
+        const event = new KeyboardEvent('keydown', { 
+          key: 'p',
+          bubbles: true 
+        });
+        Object.defineProperty(event, 'target', { value: input, enumerable: true });
+        window.dispatchEvent(event);
+      });
+
+      // Should NOT step backward - still at step 0
+      expect(result.current.currentStep).toBe(0);
+
+      document.body.removeChild(input);
+    });
+
+    it('ignores shortcuts when typing in textarea', () => {
+      const { result } = renderHook(() => useDebugger(sendMessage));
+
+      act(() => {
+        result.current.setTrace(mockTrace);
+      });
+
+      expect(result.current.currentStep).toBe(0);
+
+      // Create a mock textarea element
+      const textarea = document.createElement('textarea');
+      document.body.appendChild(textarea);
+
+      // Simulate typing 'n' in the textarea
+      act(() => {
+        const event = new KeyboardEvent('keydown', { 
+          key: 'n',
+          bubbles: true 
+        });
+        Object.defineProperty(event, 'target', { value: textarea, enumerable: true });
+        window.dispatchEvent(event);
+      });
+
+      // Should NOT step forward - still at step 0
+      expect(result.current.currentStep).toBe(0);
+
+      document.body.removeChild(textarea);
+    });
+
+    it('ignores shortcuts when typing in contenteditable element', () => {
+      const { result } = renderHook(() => useDebugger(sendMessage));
+
+      act(() => {
+        result.current.setTrace(mockTrace);
+      });
+
+      expect(result.current.currentStep).toBe(0);
+
+      // Create a mock contenteditable div
+      const div = document.createElement('div');
+      div.contentEditable = 'true';
+      document.body.appendChild(div);
+
+      // Simulate typing 'p' in the contenteditable
+      act(() => {
+        const event = new KeyboardEvent('keydown', { 
+          key: 'p',
+          bubbles: true 
+        });
+        Object.defineProperty(event, 'target', { value: div, enumerable: true });
+        window.dispatchEvent(event);
+      });
+
+      // Should NOT step backward - still at step 0
+      expect(result.current.currentStep).toBe(0);
+
+      document.body.removeChild(div);
+    });
+
+    it('ignores shortcuts when typing in Monaco editor', () => {
+      const { result } = renderHook(() => useDebugger(sendMessage));
+
+      act(() => {
+        result.current.setTrace(mockTrace);
+      });
+
+      expect(result.current.currentStep).toBe(0);
+
+      // Create mock Monaco editor structure
+      const monacoEditor = document.createElement('div');
+      monacoEditor.className = 'monaco-editor';
+      const textarea = document.createElement('textarea');
+      monacoEditor.appendChild(textarea);
+      document.body.appendChild(monacoEditor);
+
+      // Simulate typing 'p' in the Monaco editor
+      act(() => {
+        const event = new KeyboardEvent('keydown', { 
+          key: 'p',
+          bubbles: true 
+        });
+        Object.defineProperty(event, 'target', { value: textarea, enumerable: true });
+        window.dispatchEvent(event);
+      });
+
+      // Should NOT step backward - still at step 0
+      expect(result.current.currentStep).toBe(0);
+
+      document.body.removeChild(monacoEditor);
+    });
+
+    it('does not register shortcuts when no trace is active', () => {
+      const { result } = renderHook(() => useDebugger(sendMessage));
+
+      expect(result.current.trace).toBeNull();
+
+      // Try to use shortcut
+      act(() => {
+        window.dispatchEvent(new KeyboardEvent('keydown', { key: 'n' }));
+      });
+
+      // Should still be at 0 and no trace
+      expect(result.current.currentStep).toBe(0);
+      expect(result.current.trace).toBeNull();
+    });
+  });
 });
