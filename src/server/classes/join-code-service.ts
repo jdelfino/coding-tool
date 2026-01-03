@@ -45,5 +45,5 @@ export function isValidJoinCodeFormat(code: string): boolean {
   }
   
   const normalizedCode = code.trim().toUpperCase();
-  return /^[A-Z0-9]{3}-[A-Z0-9]{3}-[A-Z0-9]{3}$/.test(normalizedCode);
+  return /^[A-Z2-9]{6}$/.test(normalizedCode);
 }
