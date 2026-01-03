@@ -628,7 +628,7 @@ export default function CodeEditor({
 
         {/* Mobile: Bottom Execution Settings */}
         {!isDesktop && (
-          <div className="bg-gray-800 border-t border-gray-700">
+          <div className="bg-gray-800 border-t border-gray-700 flex-shrink-0">
             <ExecutionSettingsComponent
               stdin={stdin}
               onStdinChange={handleStdinChange}
@@ -638,7 +638,8 @@ export default function CodeEditor({
               onAttachedFilesChange={onAttachedFilesChange}
               exampleInput={exampleInput}
               readOnly={readOnly}
-              inSidebar={true}
+              inSidebar={false}
+              darkTheme={true}
             />
           </div>
         )}

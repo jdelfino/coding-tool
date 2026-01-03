@@ -12,6 +12,7 @@ interface ExecutionSettingsProps {
   exampleInput?: string;
   readOnly?: boolean;
   inSidebar?: boolean; // New prop to indicate if component is in sidebar
+  darkTheme?: boolean; // Use dark theme styling
 }
 
 export default function ExecutionSettings({
@@ -23,7 +24,8 @@ export default function ExecutionSettings({
   onAttachedFilesChange,
   exampleInput,
   readOnly = false,
-  inSidebar = false
+  inSidebar = false,
+  darkTheme = false
 }: ExecutionSettingsProps) {
   const [expanded, setExpanded] = useState(false);
   const [editingSeed, setEditingSeed] = useState(false);
@@ -36,6 +38,9 @@ export default function ExecutionSettings({
   // When in sidebar, always show expanded (no collapse functionality needed)
   const shouldShowCollapse = !inSidebar;
   const isExpanded = inSidebar ? true : expanded;
+  
+  // Use dark theme if explicitly set or if in sidebar
+  const useDarkTheme = darkTheme || inSidebar;
 
   const handleSaveSeed = () => {
     const seed = seedInput.trim() ? parseInt(seedInput, 10) : undefined;
@@ -90,16 +95,16 @@ export default function ExecutionSettings({
   const hasContent = stdin || randomSeed !== undefined || attachedFiles.length > 0;
 
   // Color scheme based on mode
-  const bgColor = inSidebar ? 'transparent' : '#f5f5f5';
-  const contentBg = inSidebar ? '#1f2937' : 'white'; // gray-800 for sidebar
-  const textColor = inSidebar ? '#e5e7eb' : '#000'; // gray-200 for sidebar
-  const labelColor = inSidebar ? '#d1d5db' : '#000'; // gray-300 for sidebar
-  const inputBg = inSidebar ? '#374151' : '#fff'; // gray-700 for sidebar
-  const inputBorder = inSidebar ? '#4b5563' : '#ccc'; // gray-600 for sidebar
-  const inputText = inSidebar ? '#f3f4f6' : '#000'; // gray-100 for sidebar
-  const buttonBg = inSidebar ? '#374151' : '#f5f5f5'; // gray-700 for sidebar
-  const buttonHoverBg = inSidebar ? '#4b5563' : '#e5e5e5'; // gray-600 for sidebar
-  const borderColor = inSidebar ? '#374151' : '#ccc'; // gray-700 for sidebar
+  const bgColor = useDarkTheme ? 'transparent' : '#f5f5f5';
+  const contentBg = useDarkTheme ? '#1f2937' : 'white'; // gray-800 for dark theme
+  const textColor = useDarkTheme ? '#e5e7eb' : '#000'; // gray-200 for dark theme
+  const labelColor = useDarkTheme ? '#d1d5db' : '#000'; // gray-300 for dark theme
+  const inputBg = useDarkTheme ? '#374151' : '#fff'; // gray-700 for dark theme
+  const inputBorder = useDarkTheme ? '#4b5563' : '#ccc'; // gray-600 for dark theme
+  const inputText = useDarkTheme ? '#f3f4f6' : '#000'; // gray-100 for dark theme
+  const buttonBg = useDarkTheme ? '#374151' : '#f5f5f5'; // gray-700 for dark theme
+  const buttonHoverBg = useDarkTheme ? '#4b5563' : '#e5e5e5'; // gray-600 for dark theme
+  const borderColor = useDarkTheme ? '#374151' : '#ccc'; // gray-700 for dark theme
 
   return (
     <div style={{

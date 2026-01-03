@@ -110,8 +110,8 @@ describe('CodeEditor Responsive Layout', () => {
       );
 
       const settings = screen.getByTestId('execution-settings');
-      expect(settings).toHaveAttribute('data-in-sidebar', 'true');
-      expect(settings).toHaveTextContent('(Sidebar)');
+      expect(settings).toHaveAttribute('data-in-sidebar', 'false');
+      expect(settings).toHaveTextContent('(Bottom)');
     });
 
     it('should not render sidebar collapse button on mobile', () => {
@@ -155,7 +155,7 @@ describe('CodeEditor Responsive Layout', () => {
       // Execution settings should be at the bottom of the layout, not inside flex-row
       const settings = screen.getByTestId('execution-settings');
       expect(settings).toBeInTheDocument();
-      expect(settings).toHaveAttribute('data-in-sidebar', 'true');
+      expect(settings).toHaveAttribute('data-in-sidebar', 'false');
     });
   });
 
