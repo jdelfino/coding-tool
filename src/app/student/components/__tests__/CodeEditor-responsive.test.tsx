@@ -1,8 +1,8 @@
 /**
  * Tests for CodeEditor responsive layout
- * 
+ *
  * Tests the responsive layout behavior added to better utilize screen space on large displays.
- * 
+ *
  * @jest-environment jsdom
  */
 
@@ -110,8 +110,8 @@ describe('CodeEditor Responsive Layout', () => {
       );
 
       const settings = screen.getByTestId('execution-settings');
-      expect(settings).toHaveAttribute('data-in-sidebar', 'false');
-      expect(settings).toHaveTextContent('(Bottom)');
+      expect(settings).toHaveAttribute('data-in-sidebar', 'true');
+      expect(settings).toHaveTextContent('(Sidebar)');
     });
 
     it('should not render sidebar collapse button on mobile', () => {
@@ -155,7 +155,7 @@ describe('CodeEditor Responsive Layout', () => {
       // Execution settings should be at the bottom of the layout, not inside flex-row
       const settings = screen.getByTestId('execution-settings');
       expect(settings).toBeInTheDocument();
-      expect(settings).toHaveAttribute('data-in-sidebar', 'false');
+      expect(settings).toHaveAttribute('data-in-sidebar', 'true');
     });
   });
 
@@ -218,7 +218,7 @@ describe('CodeEditor Responsive Layout', () => {
 
       const sidebarButton = screen.getByRole('button', { name: /execution settings/i });
       expect(sidebarButton).toBeInTheDocument();
-      
+
       // Settings panel should not be rendered when collapsed
       expect(screen.queryByTestId('execution-settings')).not.toBeInTheDocument();
     });
@@ -240,7 +240,7 @@ describe('CodeEditor Responsive Layout', () => {
 
       const sidebarButton = screen.getByRole('button', { name: /execution settings/i });
       expect(sidebarButton).toBeInTheDocument();
-      
+
       // Settings panel should be rendered when expanded
       expect(screen.getByTestId('execution-settings')).toBeInTheDocument();
     });
