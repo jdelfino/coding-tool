@@ -114,8 +114,8 @@ export default function CodeEditor({
 
         const containerRect = container.getBoundingClientRect();
         const newHeight = containerRect.bottom - e.clientY;
-        const maxHeight = containerRect.height * 0.4; // Max 40% of container
-        // Constrain height between 100px and 40% of container
+        const maxHeight = containerRect.height * 0.8; // Max 80% of container
+        // Constrain height between 100px and 80% of container
         const constrainedHeight = Math.min(Math.max(newHeight, 100), maxHeight);
         setOutputHeight(constrainedHeight);
       }
@@ -222,7 +222,7 @@ export default function CodeEditor({
       if (!container) return;
 
       const containerHeight = container.getBoundingClientRect().height;
-      const maxHeight = containerHeight * 0.4;
+      const maxHeight = containerHeight * 0.8;
 
       // Estimate needed height based on content
       const hasOutput = effectiveResult.output && effectiveResult.output.length > 0;
@@ -230,7 +230,7 @@ export default function CodeEditor({
 
       let targetHeight = 150; // Minimum
       if (hasOutput || hasError) {
-        // Grow to accommodate content, up to 40%
+        // Grow to accommodate content, up to 80%
         const contentLines = (effectiveResult.output || effectiveResult.error || '').split('\n').length;
         targetHeight = Math.min(150 + (contentLines * 20), maxHeight);
       }
@@ -404,22 +404,22 @@ export default function CodeEditor({
   };
 
   return (
-    /* 
+    /*
      * CRITICAL LAYOUT REQUIREMENTS - DO NOT REMOVE:
-     * 
+     *
      * This component uses flex layout with the following MANDATORY structure:
      * 1. Root div MUST have height: 100% to fill parent container
      * 2. Root div MUST be flex-col to stack header, content, and output vertically
      * 3. Content area MUST have flex-1 AND min-h-0 to allow proper shrinking
      * 4. Activity bar (gray-800 sidebar) MUST have height: 100% to fill its parent
      * 5. All flex containers in the chain MUST have min-h-0 when using flex-1
-     * 
+     *
      * Why min-h-0 is critical:
      * - By default, flex items have min-height: auto, which prevents shrinking below content size
      * - This causes backgrounds (like activity bar) to not extend to parent height
      * - min-h-0 allows flex items to shrink below their content size
      * - This is a common CSS gotcha that has caused this bug repeatedly
-     * 
+     *
      * Testing checklist when modifying:
      * - Desktop: Activity bar background extends to bottom of editor
      * - Mobile: All sections properly fill their containers
@@ -923,7 +923,7 @@ export default function CodeEditor({
           {/* Execution Results or Debugger - Always Visible - Resizable */}
           <div
             ref={outputResizeRef}
-            className="border-t border-gray-300 overflow-y-auto flex-shrink-0 relative"
+            className="border-t border-gray-700 overflow-y-auto flex-shrink-0 relative"
             style={{ height: `${outputHeight}px` }}
           >
             {/* Resize handle (always show) */}
@@ -939,12 +939,12 @@ export default function CodeEditor({
 
             {debuggerHook?.hasTrace ? (
               /* Show debugger output when debugging */
-              <div className="p-4 h-full bg-blue-50 overflow-y-auto">
+              <div className="p-4 h-full bg-gray-900 overflow-y-auto">
                 <div className="flex justify-between items-center mb-2">
-                  <span className="font-bold text-blue-800">
+                  <span className="font-bold text-blue-400">
                     🐛 Debugger Output
                   </span>
-                  <span className="text-sm text-blue-700">
+                  <span className="text-sm text-blue-300">
                     Step {debuggerHook.currentStep + 1} of {debuggerHook.totalSteps}
                   </span>
                 </div>
@@ -959,22 +959,22 @@ export default function CodeEditor({
 
                   return visibleLines.length > 0 ? (
                     <div className="mt-2">
-                      <div className="font-bold text-sm text-blue-800">
+                      <div className="font-bold text-sm text-blue-300">
                         Console Output (up to current step):
                       </div>
-                      <div className="bg-white p-2 rounded border border-blue-200 overflow-x-auto text-sm font-mono mt-1">
+                      <div className="bg-gray-800 p-2 rounded border border-gray-700 overflow-x-auto text-sm font-mono mt-1">
                         {visibleLines.map((line, index) => (
-                          <div key={index} className="flex hover:bg-blue-50">
+                          <div key={index} className="flex hover:bg-gray-750">
                             <span className="text-blue-400 select-none mr-3 flex-shrink-0" style={{ minWidth: '60px' }}>
                               [Step {line.stepNumber}]
                             </span>
-                            <span className="whitespace-pre-wrap break-words flex-1">{line.text}</span>
+                            <span className="whitespace-pre-wrap break-words flex-1 text-gray-200">{line.text}</span>
                           </div>
                         ))}
                       </div>
                     </div>
                   ) : (
-                    <div className="mt-2 text-sm text-blue-700 italic">
+                    <div className="mt-2 text-sm text-blue-300 italic">
                       No console output yet
                     </div>
                   );
@@ -982,32 +982,32 @@ export default function CodeEditor({
 
                 {debuggerHook.error && (
                   <div className="mt-2">
-                    <div className="font-bold text-sm text-red-800">
+                    <div className="font-bold text-sm text-red-400">
                       Error:
                     </div>
-                    <pre className="bg-white p-2 rounded border border-red-300 overflow-x-auto text-sm font-mono mt-1 whitespace-pre-wrap break-words text-red-800">
+                    <pre className="bg-gray-800 p-2 rounded border border-red-900 overflow-x-auto text-sm font-mono mt-1 whitespace-pre-wrap break-words text-red-300">
                       {debuggerHook.error}
                     </pre>
                   </div>
                 )}
 
-                <div className="mt-3 text-xs text-blue-600">
+                <div className="mt-3 text-xs text-blue-300">
                   💡 Step through your code to see how output is generated. Variables and call stack are in the sidebar.
                 </div>
               </div>
             ) : effectiveResult ? (
               /* Show normal output when not debugging */
               <div className={`p-4 h-full ${
-                effectiveResult.success ? 'bg-green-100' : 'bg-red-100'
+                effectiveResult.success ? 'bg-gray-900' : 'bg-gray-900'
               }`}>
                 <div className="flex justify-between items-center mb-2">
                   <span className={`font-bold ${
-                    effectiveResult.success ? 'text-green-800' : 'text-red-800'
+                    effectiveResult.success ? 'text-green-400' : 'text-red-400'
                   }`}>
                     {effectiveResult.success ? '✓ Success' : '✗ Error'}
                   </span>
                   <span className={`text-sm ${
-                    effectiveResult.success ? 'text-green-800' : 'text-red-800'
+                    effectiveResult.success ? 'text-green-300' : 'text-red-300'
                   }`}>
                     Execution time: {effectiveResult.executionTime}ms
                   </span>
@@ -1016,11 +1016,11 @@ export default function CodeEditor({
                 {effectiveResult.output && (
                   <div className="mt-2">
                     <div className={`font-bold text-sm ${
-                      effectiveResult.success ? 'text-green-800' : 'text-red-800'
+                      effectiveResult.success ? 'text-green-300' : 'text-red-300'
                     }`}>
                       Output:
                     </div>
-                    <pre className="bg-white p-2 rounded border border-gray-300 overflow-x-auto text-sm font-mono mt-1 whitespace-pre-wrap break-words">
+                    <pre className="bg-gray-800 text-gray-200 p-2 rounded border border-gray-700 overflow-x-auto text-sm font-mono mt-1 whitespace-pre-wrap break-words">
                       {effectiveResult.output}
                     </pre>
                   </div>
@@ -1028,18 +1028,18 @@ export default function CodeEditor({
 
                 {effectiveResult.error && (
                   <div className="mt-2">
-                    <div className="font-bold text-sm text-red-800">
+                    <div className="font-bold text-sm text-red-400">
                       Error:
                     </div>
-                    <pre className="bg-white p-2 rounded border border-gray-300 overflow-x-auto text-sm font-mono mt-1 whitespace-pre-wrap break-words text-red-800">
+                    <pre className="bg-gray-800 p-2 rounded border border-red-900 overflow-x-auto text-sm font-mono mt-1 whitespace-pre-wrap break-words text-red-300">
                       {effectiveResult.error}
                     </pre>
                   </div>
                 )}
               </div>
             ) : (
-              <div className="p-4 bg-gray-50 h-full flex items-center justify-center">
-                <p className="text-gray-500 text-sm italic">
+              <div className="p-4 bg-gray-900 h-full flex items-center justify-center">
+                <p className="text-gray-400 text-sm italic">
                   Program output will appear here after you run your code
                 </p>
               </div>
