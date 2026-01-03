@@ -49,9 +49,11 @@ export async function GET(
           return {
             id: section.id,
             name: section.name,
+            joinCode: section.joinCode,
             schedule: section.semester, // Using semester field as schedule
             location: '', // Not stored yet
             studentCount,
+            sessionCount: 0, // TODO: Query actual session count
             activeSessionCount: 0,
           };
         })
