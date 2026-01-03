@@ -404,6 +404,28 @@ export default function CodeEditor({
   };
 
   return (
+    /* 
+     * CRITICAL LAYOUT REQUIREMENTS - DO NOT REMOVE:
+     * 
+     * This component uses flex layout with the following MANDATORY structure:
+     * 1. Root div MUST have height: 100% to fill parent container
+     * 2. Root div MUST be flex-col to stack header, content, and output vertically
+     * 3. Content area MUST have flex-1 AND min-h-0 to allow proper shrinking
+     * 4. Activity bar (gray-800 sidebar) MUST have height: 100% to fill its parent
+     * 5. All flex containers in the chain MUST have min-h-0 when using flex-1
+     * 
+     * Why min-h-0 is critical:
+     * - By default, flex items have min-height: auto, which prevents shrinking below content size
+     * - This causes backgrounds (like activity bar) to not extend to parent height
+     * - min-h-0 allows flex items to shrink below their content size
+     * - This is a common CSS gotcha that has caused this bug repeatedly
+     * 
+     * Testing checklist when modifying:
+     * - Desktop: Activity bar background extends to bottom of editor
+     * - Mobile: All sections properly fill their containers
+     * - Resizing: Output panel resizes smoothly without leaving gaps
+     * - Parent height: Works with both percentage and fixed pixel heights
+     */
     <div className="border border-gray-300 rounded flex flex-col" style={{ height: '100%' }}>
       {/* Header */}
       <div className="px-4 py-2 bg-gray-100 border-b border-gray-300 flex justify-between items-center flex-shrink-0">
@@ -462,7 +484,8 @@ export default function CodeEditor({
       </div>
 
       {/* Main Content Area - Responsive Layout */}
-      <div className={`flex flex-col flex-1 ${isDesktop ? 'min-h-0' : 'overflow-y-auto'}`}>
+      {/* CRITICAL: min-h-0 is required on flex-1 parent to allow children to shrink below content size */}
+      <div className={`flex flex-col flex-1 min-h-0 ${!isDesktop ? 'overflow-y-auto' : ''}`}>
         {/* Mobile: Action Bar */}
         {!isDesktop && (
           <div className="bg-gray-800 border-b border-gray-700 flex items-center px-2 py-2 gap-2 flex-shrink-0" style={{ position: 'sticky', top: 0, zIndex: 10 }}>
@@ -580,12 +603,14 @@ export default function CodeEditor({
           </div>
         )}
 
-        <div className={`flex flex-row ${isDesktop ? 'flex-1 min-h-0' : ''}`}>
+        {/* Desktop layout: Activity bar + optional sidebar + editor */}
+        {/* CRITICAL: Parent flex row needs min-h-0 to allow proper height distribution */}
+        <div className={`flex flex-row flex-1 min-h-0 ${!isDesktop ? '' : ''}`}>
           {/* Left Sidebar (Desktop only) - VS Code style */}
           {isDesktop && (
-            <div className="flex flex-row flex-shrink-0" style={{ height: '100%' }}>
-              {/* Activity Bar (Icon bar) */}
-              <div className="w-12 bg-gray-800 flex flex-col items-center py-2 gap-1" style={{ height: '100%' }}>
+            <div className="flex flex-row flex-shrink-0 min-h-0" style={{ height: '100%' }}>
+              {/* Activity Bar (Icon bar) - CRITICAL: Must have full height to fill parent */}
+              <div className="w-12 bg-gray-800 flex flex-col items-center py-2 gap-1 flex-shrink-0" style={{ height: '100%' }}>
               {/* Problem icon (only show if problem exists) */}
               {problem && (
                 <button
