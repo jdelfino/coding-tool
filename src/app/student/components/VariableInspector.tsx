@@ -79,19 +79,25 @@ export function VariableInspector({
   };
 
   return (
-    <div className="bg-white border border-gray-300 rounded-lg overflow-hidden">
-      <div className="bg-gray-100 px-4 py-2 border-b border-gray-300">
-        <h3 className="text-sm font-semibold text-gray-700">Variables</h3>
+    <div className={`rounded-lg overflow-hidden border ${
+      darkTheme ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-300'
+    }`}>
+      <div className={`px-4 py-2 border-b ${
+        darkTheme ? 'bg-gray-900 border-gray-700' : 'bg-gray-100 border-gray-300'
+      }`}>
+        <h3 className={`text-sm font-semibold ${darkTheme ? 'text-gray-200' : 'text-gray-700'}`}>Variables</h3>
       </div>
 
       {/* Local Variables */}
-      <div className="border-b border-gray-200">
+      <div className={darkTheme ? 'border-b border-gray-700' : 'border-b border-gray-200'}>
         <button
           onClick={() => setShowLocals(!showLocals)}
-          className="w-full flex items-center justify-between px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+          className={`w-full flex items-center justify-between px-4 py-2 text-sm font-medium ${
+            darkTheme ? 'text-gray-200 hover:bg-gray-700' : 'text-gray-700 hover:bg-gray-50'
+          }`}
         >
           <span>▼ Local Variables</span>
-          <span className="text-xs text-gray-500">
+          <span className={`text-xs ${darkTheme ? 'text-gray-400' : 'text-gray-500'}`}>
             {Object.keys(locals).length} vars
           </span>
         </button>
@@ -102,10 +108,11 @@ export function VariableInspector({
       <div>
         <button
           onClick={() => setShowGlobals(!showGlobals)}
-          className="w-full flex items-center justify-between px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-        >
+          className={`w-full flex items-center justify-between px-4 py-2 text-sm font-medium ${
+            darkTheme ? 'text-gray-200 hover:bg-gray-700' : 'text-gray-700 hover:bg-gray-50'
+          }`}>
           <span>▼ Global Variables</span>
-          <span className="text-xs text-gray-500">
+          <span className={`text-xs ${darkTheme ? 'text-gray-400' : 'text-gray-500'}`}>
             {Object.keys(globals).length} vars
           </span>
         </button>
