@@ -326,7 +326,7 @@ describe('ProblemCreator Component', () => {
       const onCancel = jest.fn();
       render(<ProblemCreator onCancel={onCancel} />);
 
-      const cancelButton = screen.getByText('Cancel');
+      const cancelButton = screen.getByTitle('Back to Problem Library');
       fireEvent.click(cancelButton);
 
       expect(onCancel).toHaveBeenCalled();
@@ -334,26 +334,14 @@ describe('ProblemCreator Component', () => {
 
     it('should not show cancel button when onCancel not provided', () => {
       render(<ProblemCreator />);
-      expect(screen.queryByText('Cancel')).not.toBeInTheDocument();
+      expect(screen.queryByTitle('Back to Problem Library')).not.toBeInTheDocument();
     });
 
-    it('should disable cancel button while submitting', async () => {
+    it('should show cancel button when onCancel is provided', async () => {
       const onCancel = jest.fn();
-      (global.fetch as jest.Mock).mockImplementation(
-        () => new Promise(() => {}) // Never resolves
-      );
-
       render(<ProblemCreator onCancel={onCancel} />);
 
-      fireEvent.change(screen.getByLabelText(/Title/), {
-        target: { value: 'Test' },
-      });
-      fireEvent.click(screen.getByText('Create Problem'));
-
-      await waitFor(() => {
-        const cancelButton = screen.getByText('Cancel');
-        expect(cancelButton).toBeDisabled();
-      });
+      expect(screen.getByTitle('Back to Problem Library')).toBeInTheDocument();
     });
   });
 

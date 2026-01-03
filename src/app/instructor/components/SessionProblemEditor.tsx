@@ -98,9 +98,9 @@ export default function SessionProblemEditor({
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       {/* Compact header bar matching student view style */}
-      <div style={{ 
-        flexShrink: 0, 
-        padding: '0.75rem 1rem', 
+      <div style={{
+        flexShrink: 0,
+        padding: '0.75rem 1rem',
         backgroundColor: '#f8f9fa',
         borderBottom: '1px solid #dee2e6',
         display: 'flex',

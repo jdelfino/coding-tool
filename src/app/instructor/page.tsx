@@ -50,7 +50,7 @@ function InstructorPage() {
   const { user, signOut } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
-  
+
   // Navigation state - initialize viewMode from URL if present
   const initialView = (searchParams.get('view') as ViewMode) || 'classes';
   const [viewMode, setViewMode] = useState<ViewMode>(initialView);
@@ -59,7 +59,7 @@ function InstructorPage() {
   const [problemSubView, setProblemSubView] = useState<'library' | 'creator'>('library');
   const [editingProblemId, setEditingProblemId] = useState<string | null>(null);
   const [detailsSessionId, setDetailsSessionId] = useState<string | null>(null);
-  
+
   // Session state
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [joinCode, setJoinCode] = useState<string | null>(null);
@@ -76,10 +76,10 @@ function InstructorPage() {
     studentName: string;
   } | null>(null);
   const [showProblemLoader, setShowProblemLoader] = useState(false);
-  
+
   // Refresh trigger for SessionsList (increment to force refresh)
   const [sessionsListRefreshTrigger, setSessionsListRefreshTrigger] = useState(0);
-  
+
   // Session execution settings
   const [sessionProblem, setSessionProblem] = useState<Problem | null>(null);
   const [sessionExecutionSettings, setSessionExecutionSettings] = useState<{
@@ -90,7 +90,7 @@ function InstructorPage() {
 
   // Construct WebSocket URL
   const [wsUrl, setWsUrl] = useState('');
-  
+
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -99,7 +99,7 @@ function InstructorPage() {
       setWsUrl(url);
     }
   }, []);
-  
+
   const { isConnected, connectionStatus, connectionError, lastMessage, sendMessage } = useWebSocket(wsUrl);
 
   // Update URL when viewMode changes to preserve on refresh
@@ -114,7 +114,7 @@ function InstructorPage() {
   //Auto-join session from URL params (e.g., after creating session from problem)
   useEffect(() => {
     const sessionIdParam = searchParams.get('sessionId');
-    
+
     // Only auto-join if:
     // 1. There's a sessionId in the URL
     // 2. WebSocket is connected
@@ -122,7 +122,7 @@ function InstructorPage() {
     if (sessionIdParam && isConnected && sessionId !== sessionIdParam) {
       console.log('[Auto-join] Joining session from URL:', sessionIdParam);
       sendMessage('JOIN_EXISTING_SESSION', { sessionId: sessionIdParam });
-      
+
       // Clear URL params after initiating join
       const timer = setTimeout(() => {
         router.replace('/instructor');
@@ -154,8 +154,8 @@ function InstructorPage() {
         // Restore execution settings from problem
         setSessionProblem(lastMessage.payload.problem || null);
         setSessionExecutionSettings(
-          lastMessage.payload.executionSettings || 
-          lastMessage.payload.problem?.executionSettings || 
+          lastMessage.payload.executionSettings ||
+          lastMessage.payload.problem?.executionSettings ||
           {}
         );
         setViewMode('session');
@@ -178,15 +178,15 @@ function InstructorPage() {
         console.log('[SESSION_ENDED] Current sessionId:', sessionId);
         if (lastMessage.payload.sessionId === sessionId) {
           console.log('[SESSION_ENDED] Received for current session, clearing ALL state');
-          
+
           // Determine navigation target based on where we came from
           // If we're in the sessions view, stay there; otherwise navigate based on context
           const targetView = viewMode === 'sessions' ? 'sessions' : (classContext ? 'sections' : 'classes');
           console.log('[SESSION_ENDED] Target viewMode:', targetView);
-          
+
           // Clear sessionId from URL and set the correct view parameter
           router.replace(`/instructor?view=${targetView}`);
-          
+
           // Clear ALL session-related state
           setSessionId(null);
           setJoinCode(null);
@@ -198,7 +198,7 @@ function InstructorPage() {
           setSessionProblem(null);
           setSessionExecutionSettings({});
           setSessionContext(null);
-          
+
           // Navigate based on where we came from
           console.log('[SESSION_ENDED] Setting viewMode to:', targetView);
           setViewMode(targetView);
@@ -217,7 +217,7 @@ function InstructorPage() {
         setStudents(prev => {
           const exists = prev.find(s => s.id === lastMessage.payload.studentId);
           if (exists) return prev;
-          
+
           return [...prev, {
             id: lastMessage.payload.studentId,
             name: lastMessage.payload.studentName,
@@ -227,7 +227,7 @@ function InstructorPage() {
         break;
 
       case 'STUDENT_LEFT':
-        setStudents(prev => 
+        setStudents(prev =>
           prev.filter(s => s.id !== lastMessage.payload.studentId)
         );
         if (selectedStudentId === lastMessage.payload.studentId) {
@@ -237,11 +237,11 @@ function InstructorPage() {
         break;
 
       case 'CODE_UPDATE':
-        setStudents(prev => 
-          prev.map(s => 
-            s.id === lastMessage.payload.studentId 
-              ? { 
-                  ...s, 
+        setStudents(prev =>
+          prev.map(s =>
+            s.id === lastMessage.payload.studentId
+              ? {
+                  ...s,
                   hasCode: true,
                   randomSeed: lastMessage.payload.randomSeed !== undefined ? lastMessage.payload.randomSeed : s.randomSeed,
                   attachedFiles: lastMessage.payload.attachedFiles !== undefined ? lastMessage.payload.attachedFiles : s.attachedFiles,
@@ -249,7 +249,7 @@ function InstructorPage() {
               : s
           )
         );
-        
+
         if (selectedStudentId === lastMessage.payload.studentId) {
           setSelectedStudentCode(lastMessage.payload.code);
         }
@@ -259,11 +259,11 @@ function InstructorPage() {
         if (lastMessage.payload.studentId === selectedStudentId) {
           setSelectedStudentCode(lastMessage.payload.code);
           // Update student's execution settings in the students array
-          setStudents(prev => 
-            prev.map(s => 
+          setStudents(prev =>
+            prev.map(s =>
               s.id === lastMessage.payload.studentId
-                ? { 
-                    ...s, 
+                ? {
+                    ...s,
                     executionSettings: lastMessage.payload.executionSettings,
                   }
                 : s
@@ -294,7 +294,7 @@ function InstructorPage() {
       const response = await fetch(`/api/classes/${classId}`);
       if (!response.ok) throw new Error('Failed to load class');
       const data = await response.json();
-      
+
       setClassContext({
         classId,
         className: data.class.name,
@@ -326,7 +326,7 @@ function InstructorPage() {
 
   const handleCreateSession = (sectionId: string, sectionName: string) => {
     console.log('[handleCreateSession] Called', { sectionId, sectionName, isConnected });
-    
+
     if (!isConnected) {
       console.error('[handleCreateSession] WebSocket not connected');
       alert('Not connected to server. Please wait for connection or refresh the page.');
@@ -357,7 +357,7 @@ function InstructorPage() {
     setSelectedStudentCode('');
     setExecutionResult(null);
     setRevisionViewerState(null);
-    
+
     // Navigate based on context
     if (classContext) {
       setViewMode('sections');
@@ -371,22 +371,22 @@ function InstructorPage() {
       console.log('[handleEndSession] No sessionId, returning');
       return;
     }
-    
+
     if (confirm('Are you sure you want to end this session? Students will be disconnected.')) {
       console.log('[handleEndSession] User confirmed, ending session:', sessionId);
       console.log('[handleEndSession] Current viewMode:', viewMode);
       console.log('[handleEndSession] classContext:', classContext);
-      
+
       sendMessage('END_SESSION', { sessionId });
-      
+
       // Determine navigation target based on where we came from
       // If we're in the sessions view, stay there; otherwise navigate based on context
       const targetView = viewMode === 'sessions' ? 'sessions' : (classContext ? 'sections' : 'classes');
       console.log('[handleEndSession] Target viewMode:', targetView);
-      
+
       // Clear sessionId from URL and set the correct view parameter
       router.replace(`/instructor?view=${targetView}`);
-      
+
       // Clear ALL session-related state immediately
       console.log('[handleEndSession] Clearing session state...');
       setSessionId(null);
@@ -399,7 +399,7 @@ function InstructorPage() {
       setSessionProblem(null);
       setSessionExecutionSettings({});
       setSessionContext(null);
-      
+
       // Navigate based on context
       console.log('[handleEndSession] Setting viewMode to:', targetView);
       setViewMode(targetView);
@@ -443,7 +443,7 @@ function InstructorPage() {
   const handleSelectStudent = (studentId: string) => {
     setSelectedStudentId(studentId);
     setExecutionResult(null);
-    
+
     sendMessage('REQUEST_STUDENT_CODE', {
       sessionId,
       studentId,
@@ -452,10 +452,10 @@ function InstructorPage() {
 
   const handleExecuteStudentCode = (executionSettings: ExecutionSettings) => {
     if (!selectedStudentId || !sessionId) return;
-    
+
     setIsExecutingCode(true);
     setExecutionResult(null);
-    
+
     sendMessage('EXECUTE_STUDENT_CODE', {
       sessionId,
       studentId: selectedStudentId,
@@ -514,19 +514,7 @@ function InstructorPage() {
     if (viewMode === 'problems') {
       if (problemSubView === 'creator') {
         return (
-          <div className="max-w-4xl mx-auto">
-            <button
-              onClick={() => {
-                setProblemSubView('library');
-                setEditingProblemId(null);
-              }}
-              className="mb-4 text-blue-600 hover:text-blue-700 flex items-center gap-2"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-              </svg>
-              Back to Problem Library
-            </button>
+          <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
             <ProblemCreator
               problemId={editingProblemId}
               onProblemCreated={(id) => {
@@ -544,7 +532,7 @@ function InstructorPage() {
       }
 
       return (
-        <ProblemLibrary 
+        <ProblemLibrary
           onCreateNew={() => {
             setEditingProblemId(null);
             setProblemSubView('creator');
@@ -700,7 +688,7 @@ function InstructorPage() {
               onClose={handleCloseRevisionViewer}
             />
           )}
-          
+
           {showProblemLoader && (
             <ProblemLoader
               sessionId={sessionId}
@@ -720,7 +708,7 @@ function InstructorPage() {
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
         {/* Header */}
         <div className="bg-white border-b border-gray-200 shadow-sm">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div style={{ maxWidth: viewMode === 'problems' && problemSubView === 'creator' ? 'none' : '80rem', margin: '0 auto', padding: '1rem' }}>
             <div className="flex justify-between items-center">
               <div>
                 <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
@@ -732,7 +720,7 @@ function InstructorPage() {
                   </p>
                 )}
               </div>
-              
+
               <div className="flex items-center gap-4">
                 {/* Connection status */}
                 <div className="flex items-center gap-2">
@@ -759,12 +747,14 @@ function InstructorPage() {
         {/* Main content */}
         <div style={{ width: '100%', height: 'calc(100vh - 5rem)', display: 'flex', flexDirection: 'column', padding: viewMode === 'problems' && problemSubView === 'creator' ? '0' : '2rem 1rem' }}>
           {/* Navigation */}
-          <InstructorNav 
-            currentView={viewMode}
-            onNavigate={handleNavigate}
-            activeSessionId={sessionId}
-            onReturnToSession={() => setViewMode('session')}
-          />
+          {!(viewMode === 'problems' && problemSubView === 'creator') && (
+            <InstructorNav 
+              currentView={viewMode}
+              onNavigate={handleNavigate}
+              activeSessionId={sessionId}
+              onReturnToSession={() => setViewMode('session')}
+            />
+          )}
 
           {connectionError && (
             <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">

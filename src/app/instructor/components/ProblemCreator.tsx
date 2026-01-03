@@ -163,9 +163,9 @@ export default function ProblemCreator({
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       {/* Compact header bar matching student view style */}
-      <div style={{ 
-        flexShrink: 0, 
-        padding: '0.75rem 1rem', 
+      <div style={{
+        flexShrink: 0,
+        padding: '0.75rem 1rem',
         backgroundColor: '#f8f9fa',
         borderBottom: '1px solid #dee2e6',
         display: 'flex',
@@ -173,30 +173,31 @@ export default function ProblemCreator({
         justifyContent: 'space-between',
         minHeight: '3rem'
       }}>
-        <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 600, color: '#212529' }}>
-          {isEditMode ? 'Edit Problem' : 'Create New Problem'}
-        </h2>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           {onCancel && (
             <button
-              type="button"
               onClick={onCancel}
-              disabled={isSubmitting}
               style={{
-                padding: '0.5rem 1rem',
-                fontSize: '0.875rem',
-                fontWeight: 500,
-                color: '#6c757d',
-                backgroundColor: '#e9ecef',
+                padding: '0.25rem',
+                backgroundColor: 'transparent',
                 border: 'none',
-                borderRadius: '0.25rem',
-                cursor: isSubmitting ? 'not-allowed' : 'pointer',
-                opacity: isSubmitting ? 0.5 : 1
+                cursor: 'pointer',
+                color: '#0d6efd',
+                display: 'flex',
+                alignItems: 'center'
               }}
+              title="Back to Problem Library"
             >
-              Cancel
+              <svg style={{ width: '1.25rem', height: '1.25rem' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
             </button>
           )}
+          <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 600, color: '#212529' }}>
+            {isEditMode ? 'Edit Problem' : 'Create New Problem'}
+          </h2>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <button
             type="button"
             onClick={handleSubmit}
