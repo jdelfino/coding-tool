@@ -359,8 +359,8 @@ export default function CodeEditor({
       </div>
 
       {/* Main Content Area - Responsive Layout */}
-      <div className="flex flex-col flex-1 min-h-0">
-        <div className="flex flex-row flex-1 min-h-0">
+      <div className={`flex flex-col flex-1 ${isDesktop ? 'min-h-0' : 'overflow-y-auto'}`}>
+        <div className={`flex flex-row ${isDesktop ? 'flex-1 min-h-0' : ''}`}>
           {/* Left Sidebar (Desktop only) - VS Code style */}
           {isDesktop && (
             <div className="flex flex-row flex-shrink-0" style={{ height: '100%' }}>
@@ -511,9 +511,9 @@ export default function CodeEditor({
         )}
 
         {/* Main Editor Area */}
-        <div className="flex-1 flex flex-col min-w-0 min-h-0">
+        <div className={`flex-1 flex flex-col min-w-0 ${isDesktop ? 'min-h-0' : ''}`} style={!isDesktop ? { minHeight: '400px' } : {}}>
           {/* Code Editor - grows to fill remaining space */}
-          <div className="flex-1 min-h-0">
+          <div className="flex-1" style={!isDesktop ? { minHeight: '300px' } : { minHeight: 0 }}>
             <Editor
               height="100%"
               defaultLanguage="python"

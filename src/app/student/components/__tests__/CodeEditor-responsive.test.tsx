@@ -148,8 +148,8 @@ describe('CodeEditor Responsive Layout', () => {
         />
       );
 
-      // Find the main content area - should have flex-col for vertical stacking
-      const mainContent = container.querySelector('.flex.flex-col.flex-1.min-h-0');
+      // Find the main content area - should have flex-col for vertical stacking and allow scrolling on mobile
+      const mainContent = container.querySelector('.flex.flex-col.flex-1.overflow-y-auto');
       expect(mainContent).toBeInTheDocument();
 
       // Execution settings should be at the bottom of the layout, not inside flex-row
