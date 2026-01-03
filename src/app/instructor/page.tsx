@@ -77,6 +77,9 @@ function InstructorPage() {
   } | null>(null);
   const [showProblemLoader, setShowProblemLoader] = useState(false);
 
+  // Session tab state for instructor session view
+  const [sessionTab, setSessionTab] = useState<'problem' | 'students'>('problem');
+
   // Refresh trigger for SessionsList (increment to force refresh)
   const [sessionsListRefreshTrigger, setSessionsListRefreshTrigger] = useState(0);
 
@@ -643,47 +646,79 @@ function InstructorPage() {
             onLoadProblem={handleOpenProblemLoader}
           />
 
-          <SessionProblemEditor
-            onUpdateProblem={handleUpdateProblem}
-            initialProblem={sessionProblem}
-            initialExecutionSettings={sessionExecutionSettings}
-          />
+          {/* Tabbed Interface */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+            {/* Tab Headers */}
+            <div className="flex border-b border-gray-200">
+              <button
+                onClick={() => setSessionTab('problem')}
+                className={`flex-1 px-6 py-3 text-sm font-medium transition-colors ${
+                  sessionTab === 'problem'
+                    ? 'bg-blue-50 text-blue-700 border-b-2 border-blue-600'
+                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                }`}
+              >
+                📝 Problem Setup
+              </button>
+              <button
+                onClick={() => setSessionTab('students')}
+                className={`flex-1 px-6 py-3 text-sm font-medium transition-colors ${
+                  sessionTab === 'students'
+                    ? 'bg-blue-50 text-blue-700 border-b-2 border-blue-600'
+                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                }`}
+              >
+                👥 Student Code {students.length > 0 && `(${students.length})`}
+              </button>
+            </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <StudentList
-              students={students}
-              onSelectStudent={handleSelectStudent}
-              onShowOnPublicView={handleShowOnPublicView}
-              onViewHistory={handleViewRevisions}
-            />
-
-            {selectedStudentId && (
-              <div>
-                <div style={{ marginBottom: '1rem' }}>
-                  <h3 style={{ margin: '0 0 0.5rem 0' }}>
-                    {students.find(s => s.id === selectedStudentId)?.name || 'Student'}'s Code
-                  </h3>
-                </div>
-                <div style={{ height: '500px' }}>
-                  <CodeEditor
-                    code={selectedStudentCode}
-                    onChange={() => {}} // Read-only for instructor
-                    onRun={handleExecuteStudentCode}
-                    isRunning={isExecutingCode}
-                    exampleInput={sessionExecutionSettings.stdin}
-                    randomSeed={students.find(s => s.id === selectedStudentId)?.executionSettings?.randomSeed}
-                    attachedFiles={students.find(s => s.id === selectedStudentId)?.executionSettings?.attachedFiles}
-                    readOnly
-                    problem={sessionProblem}
+            {/* Tab Content */}
+            <div className="p-6">
+              {sessionTab === 'problem' ? (
+                <SessionProblemEditor
+                  onUpdateProblem={handleUpdateProblem}
+                  initialProblem={sessionProblem}
+                  initialExecutionSettings={sessionExecutionSettings}
+                />
+              ) : (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <StudentList
+                    students={students}
+                    onSelectStudent={handleSelectStudent}
+                    onShowOnPublicView={handleShowOnPublicView}
+                    onViewHistory={handleViewRevisions}
                   />
+
+                  {selectedStudentId && (
+                    <div>
+                      <div style={{ marginBottom: '1rem' }}>
+                        <h3 style={{ margin: '0 0 0.5rem 0' }}>
+                          {students.find(s => s.id === selectedStudentId)?.name || 'Student'}'s Code
+                        </h3>
+                      </div>
+                      <div style={{ height: '500px' }}>
+                        <CodeEditor
+                          code={selectedStudentCode}
+                          onChange={() => {}} // Read-only for instructor
+                          onRun={handleExecuteStudentCode}
+                          isRunning={isExecutingCode}
+                          exampleInput={sessionExecutionSettings.stdin}
+                          randomSeed={students.find(s => s.id === selectedStudentId)?.executionSettings?.randomSeed}
+                          attachedFiles={students.find(s => s.id === selectedStudentId)?.executionSettings?.attachedFiles}
+                          readOnly
+                          problem={sessionProblem}
+                        />
+                      </div>
+                      {executionResult && (
+                        <div style={{ marginTop: '1rem' }}>
+                          <OutputPanel result={executionResult} />
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
-                {executionResult && (
-                  <div style={{ marginTop: '1rem' }}>
-                    <OutputPanel result={executionResult} />
-                  </div>
-                )}
-              </div>
-            )}
+              )}
+            </div>
           </div>
 
           {revisionViewerState && (

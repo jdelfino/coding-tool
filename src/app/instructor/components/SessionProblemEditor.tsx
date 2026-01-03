@@ -96,7 +96,7 @@ export default function SessionProblemEditor({
   const debuggerHook = useDebugger(sendMessage);
 
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ maxHeight: '600px', display: 'flex', flexDirection: 'column' }}>
       {/* Compact header bar matching student view style */}
       <div style={{
         flexShrink: 0,
@@ -127,7 +127,7 @@ export default function SessionProblemEditor({
       </div>
 
       {/* Full-width code editor */}
-      <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+      <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', height: '550px' }}>
         <CodeEditor
           code={starterCode}
           onChange={setStarterCode}

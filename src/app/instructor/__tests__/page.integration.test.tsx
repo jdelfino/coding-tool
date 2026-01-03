@@ -456,6 +456,10 @@ describe('InstructorPage - Integration Tests', () => {
       // Trigger re-render to simulate WebSocket message arrival
       rerender(<InstructorPage />);
 
+      // Click on the Student Code tab to see the students
+      const studentTab = await screen.findByRole('button', { name: /Student Code/i });
+      fireEvent.click(studentTab);
+
       // Verify students appear in the UI
       await waitFor(() => {
         expect(screen.getByText('stu')).toBeInTheDocument();
@@ -523,6 +527,10 @@ describe('InstructorPage - Integration Tests', () => {
       };
       (useWebSocket as jest.Mock).mockReturnValue(mockWebSocketState);
       rerender(<InstructorPage />);
+
+      // Click on the Student Code tab to see the students
+      let studentTab = await screen.findByRole('button', { name: /Student Code/i });
+      fireEvent.click(studentTab);
 
       await waitFor(() => {
         expect(screen.getByText('Old Student')).toBeInTheDocument();
@@ -609,6 +617,10 @@ describe('InstructorPage - Integration Tests', () => {
       (useWebSocket as jest.Mock).mockReturnValue(mockWebSocketState);
       rerender(<InstructorPage />);
 
+      // Click on the Student Code tab to see the empty state
+      const studentTab = await screen.findByRole('button', { name: /Student Code/i });
+      fireEvent.click(studentTab);
+
       // Should show "No students connected yet" message
       await waitFor(() => {
         expect(screen.getByText(/No students connected yet/i)).toBeInTheDocument();
@@ -676,6 +688,10 @@ describe('InstructorPage - Integration Tests', () => {
       };
       (useWebSocket as jest.Mock).mockReturnValue(mockWebSocketState);
       rerender(<InstructorPage />);
+
+      // Click on the Student Code tab to see the students
+      const studentTab = await screen.findByRole('button', { name: /Student Code/i });
+      fireEvent.click(studentTab);
 
       await waitFor(() => {
         expect(screen.getByText('Alice')).toBeInTheDocument();
