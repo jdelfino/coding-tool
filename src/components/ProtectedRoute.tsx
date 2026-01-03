@@ -6,7 +6,7 @@
  * Can check for specific roles OR permissions.
  */
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePermission, useAnyPermission } from '@/hooks/usePermissions';
@@ -32,37 +32,48 @@ export function ProtectedRoute({
   const { user, isLoading } = useAuth();
   const router = useRouter();
   
+  // Track previous user to detect changes
+  const prevUserRef = useRef<typeof user>(undefined);
+  
   // Check permissions
   const hasSinglePermission = usePermission(user, requiredPermission || '');
   const hasAnyPermissions = useAnyPermission(user, requiredPermissions || []);
 
   useEffect(() => {
-    if (!isLoading) {
-      if (!user) {
-        // Not authenticated, redirect to sign-in
-        console.log('[ProtectedRoute] No user, redirecting to', fallbackPath);
-        router.push(fallbackPath);
-      } else if (requiredPermission || requiredPermissions) {
-        // Check permission-based access
-        const hasPermissionAccess = 
-          (requiredPermission && hasSinglePermission) ||
-          (requiredPermissions && hasAnyPermissions);
-        
-        if (!hasPermissionAccess) {
-          // No permission, redirect to appropriate page
-          const defaultPath = user.role === 'instructor' ? '/instructor' : '/student';
-          console.log('[ProtectedRoute] No permission, redirecting to', defaultPath);
-          router.push(defaultPath);
-        }
-      } else if (requiredRole) {
-        // Check role-based access (legacy support)
-        const hasAccess = user.role === requiredRole || (allowAdmin && user.role === 'admin');
-        if (!hasAccess) {
-          // Wrong role, redirect to appropriate page
-          const defaultPath = user.role === 'instructor' ? '/instructor' : '/student';
-          console.log('[ProtectedRoute] Wrong role (expected:', requiredRole, ', got:', user.role, '), redirecting to', defaultPath);
-          router.push(defaultPath);
-        }
+    // CRITICAL: Only perform auth checks after initial load completes
+    // AND if the user actually changed (not just re-rendered)
+    const userChanged = prevUserRef.current !== user;
+    prevUserRef.current = user;
+    
+    // Don't redirect if we're still loading OR if user didn't actually change
+    if (isLoading || !userChanged) {
+      return;
+    }
+    
+    if (!user) {
+      // Not authenticated, redirect to sign-in
+      console.log('[ProtectedRoute] No user after load, redirecting to', fallbackPath);
+      router.push(fallbackPath);
+    } else if (requiredPermission || requiredPermissions) {
+      // Check permission-based access
+      const hasPermissionAccess = 
+        (requiredPermission && hasSinglePermission) ||
+        (requiredPermissions && hasAnyPermissions);
+      
+      if (!hasPermissionAccess) {
+        // No permission, redirect to appropriate page
+        const defaultPath = user.role === 'instructor' ? '/instructor' : '/student';
+        console.log('[ProtectedRoute] No permission, redirecting to', defaultPath);
+        router.push(defaultPath);
+      }
+    } else if (requiredRole) {
+      // Check role-based access (legacy support)
+      const hasAccess = user.role === requiredRole || (allowAdmin && user.role === 'admin');
+      if (!hasAccess) {
+        // Wrong role, redirect to appropriate page
+        const defaultPath = user.role === 'instructor' ? '/instructor' : '/student';
+        console.log('[ProtectedRoute] Wrong role (expected:', requiredRole, ', got:', user.role, '), redirecting to', defaultPath);
+        router.push(defaultPath);
       }
     }
   }, [user, isLoading, requiredRole, requiredPermission, requiredPermissions, hasSinglePermission, hasAnyPermissions, router, fallbackPath, allowAdmin]);
