@@ -2,7 +2,7 @@
  * @jest-environment jsdom
  */
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, act } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import CodeEditor from '../CodeEditor';
 
@@ -95,7 +95,9 @@ describe('CodeEditor - Problem Sidebar', () => {
 
     // Close the panel by clicking the close button
     const closeButton = screen.getByLabelText('Close panel');
-    closeButton.click();
+    await act(async () => {
+      closeButton.click();
+    });
 
     // Wait for localStorage to update
     await waitFor(() => {

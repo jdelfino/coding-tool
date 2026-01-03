@@ -2,7 +2,7 @@
  * @jest-environment jsdom
  */
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import CodeEditor from '../CodeEditor';
 
@@ -78,7 +78,9 @@ describe('CodeEditor - Form Interaction', () => {
 
     // Find and click the Problem toggle button in the activity bar
     const problemToggleButton = screen.getByLabelText('Problem');
-    fireEvent.click(problemToggleButton);
+    await act(async () => {
+      fireEvent.click(problemToggleButton);
+    });
 
     // Form should NOT be submitted
     expect(handleSubmit).not.toHaveBeenCalled();
@@ -101,7 +103,9 @@ describe('CodeEditor - Form Interaction', () => {
 
     // Find and click the Settings toggle button in the activity bar
     const settingsToggleButton = screen.getByLabelText('Execution Settings');
-    fireEvent.click(settingsToggleButton);
+    await act(async () => {
+      fireEvent.click(settingsToggleButton);
+    });
 
     // Form should NOT be submitted
     expect(handleSubmit).not.toHaveBeenCalled();

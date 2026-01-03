@@ -23,13 +23,15 @@ class MockWebSocket {
     this.readyState = MockWebSocket.CONNECTING;
     // Store instance for test access
     (MockWebSocket as any).lastInstance = this;
-    // Automatically trigger onopen after a microtask
-    setTimeout(() => {
-      if (this.onopen && this.readyState === MockWebSocket.CONNECTING) {
-        this.readyState = MockWebSocket.OPEN;
-        this.onopen({});
-      }
-    }, 0);
+    // Don't auto-trigger onopen - tests must explicitly call triggerOpen()
+  }
+
+  // Helper to manually trigger open event
+  triggerOpen() {
+    this.readyState = MockWebSocket.OPEN;
+    if (this.onopen) {
+      this.onopen({});
+    }
   }
 
   send(data: string) {
@@ -90,32 +92,36 @@ describe('useWebSocket', () => {
   });
 
   describe('Initial connection', () => {
-    it('should not connect when URL is empty', () => {
+    it('should not connect when URL is empty', async () => {
       const { result } = renderHook(() => useWebSocket(''));
-      
-      expect(result.current.connectionStatus).toBe('disconnected');
-      expect(result.current.isConnected).toBe(false);
+
+      // Use waitFor to ensure React finishes all pending updates
+      await waitFor(() => {
+        expect(result.current.connectionStatus).toBe('disconnected');
+        expect(result.current.isConnected).toBe(false);
+      });
     });
 
     it('should connect when URL is provided', async () => {
       const { result } = renderHook(() => useWebSocket('ws://localhost:3000/ws'));
-      
+
       expect(result.current.connectionStatus).toBe('connecting');
-      
+
       await act(async () => {
-        jest.runAllTimers();
+        const ws = (MockWebSocket as any).lastInstance as MockWebSocket;
+        ws.triggerOpen();
       });
 
       await waitFor(() => {
         expect(result.current.connectionStatus).toBe('connected');
       });
-      
+
       expect(result.current.isConnected).toBe(true);
     });
 
     it('should handle connection error', async () => {
       const { result } = renderHook(() => useWebSocket('ws://localhost:3000/ws'));
-      
+
       await act(async () => {
         const ws = (MockWebSocket as any).lastInstance as MockWebSocket;
         ws.simulateError();
@@ -128,9 +134,10 @@ describe('useWebSocket', () => {
   describe('Message handling', () => {
     it('should receive and parse messages', async () => {
       const { result } = renderHook(() => useWebSocket('ws://localhost:3000/ws'));
-      
+
       await act(async () => {
-        jest.runAllTimers();
+        const ws = (MockWebSocket as any).lastInstance as MockWebSocket;
+        ws.triggerOpen();
       });
 
       await waitFor(() => {
@@ -138,7 +145,7 @@ describe('useWebSocket', () => {
       });
 
       const testMessage = { type: 'TEST', payload: { data: 'test' } };
-      
+
       await act(async () => {
         const ws = (MockWebSocket as any).lastInstance as MockWebSocket;
         ws.simulateMessage(testMessage);
@@ -149,9 +156,10 @@ describe('useWebSocket', () => {
 
     it('should handle invalid message format', async () => {
       const { result } = renderHook(() => useWebSocket('ws://localhost:3000/ws'));
-      
+
       await act(async () => {
-        jest.runAllTimers();
+        const ws = (MockWebSocket as any).lastInstance as MockWebSocket;
+        ws.triggerOpen();
       });
 
       await waitFor(() => {
@@ -172,46 +180,46 @@ describe('useWebSocket', () => {
   describe('Sending messages', () => {
     it('should send messages when connected', async () => {
       const { result } = renderHook(() => useWebSocket('ws://localhost:3000/ws'));
-      
-      await act(async () => {
-        jest.runAllTimers();
-      });
 
-      await waitFor(() => {
-        expect(result.current.isConnected).toBe(true);
+      await act(async () => {
+        const ws = (MockWebSocket as any).lastInstance as MockWebSocket;
+        ws.triggerOpen();
       });
 
       const ws = (MockWebSocket as any).lastInstance as MockWebSocket;
       const sendSpy = jest.spyOn(ws, 'send');
 
-      act(() => {
+      await act(async () => {
         result.current.sendMessage('TEST', { data: 'test' });
       });
 
-      expect(sendSpy).toHaveBeenCalledWith(JSON.stringify({ 
-        type: 'TEST', 
-        payload: { data: 'test' } 
+      expect(sendSpy).toHaveBeenCalledWith(JSON.stringify({
+        type: 'TEST',
+        payload: { data: 'test' }
       }));
     });
 
     it('should not send messages when disconnected', async () => {
       const { result } = renderHook(() => useWebSocket('ws://localhost:3000/ws'));
-      
-      act(() => {
+
+      await act(async () => {
         result.current.sendMessage('TEST', { data: 'test' });
       });
 
-      expect(result.current.connectionError).toBe('Not connected to server');
+      await waitFor(() => {
+        expect(result.current.connectionError).toBe('Not connected to server');
+      });
     });
   });
 
   describe('Reconnection logic', () => {
     it('should reconnect after unexpected disconnection', async () => {
       const { result } = renderHook(() => useWebSocket('ws://localhost:3000/ws'));
-      
+
       // Wait for initial connection
       await act(async () => {
-        jest.runAllTimers();
+        const ws = (MockWebSocket as any).lastInstance as MockWebSocket;
+        ws.triggerOpen();
       });
 
       await waitFor(() => {
@@ -227,14 +235,11 @@ describe('useWebSocket', () => {
       expect(result.current.connectionStatus).toBe('disconnected');
       expect(result.current.isConnected).toBe(false);
 
-      // Fast-forward reconnection delay
+      // Fast-forward reconnection delay and trigger connection
       await act(async () => {
         jest.advanceTimersByTime(1000);
-      });
-
-      // Wait for reconnection
-      await act(async () => {
-        jest.runAllTimers();
+        const ws = (MockWebSocket as any).lastInstance as MockWebSocket;
+        ws.triggerOpen();
       });
 
       await waitFor(() => {
@@ -244,13 +249,10 @@ describe('useWebSocket', () => {
 
     it('should not reconnect after normal closure (code 1000)', async () => {
       const { result } = renderHook(() => useWebSocket('ws://localhost:3000/ws'));
-      
-      await act(async () => {
-        jest.runAllTimers();
-      });
 
-      await waitFor(() => {
-        expect(result.current.isConnected).toBe(true);
+      await act(async () => {
+        const ws = (MockWebSocket as any).lastInstance as MockWebSocket;
+        ws.triggerOpen();
       });
 
       const initialInstance = (MockWebSocket as any).lastInstance;
@@ -277,9 +279,10 @@ describe('useWebSocket', () => {
         ({ url }) => useWebSocket(url),
         { initialProps: { url: 'ws://localhost:3000/ws' } }
       );
-      
+
       await act(async () => {
-        jest.runAllTimers();
+        const ws = (MockWebSocket as any).lastInstance as MockWebSocket;
+        ws.triggerOpen();
       });
 
       await waitFor(() => {
@@ -298,7 +301,8 @@ describe('useWebSocket', () => {
       // Trigger reconnection
       await act(async () => {
         jest.advanceTimersByTime(1000);
-        jest.runAllTimers();
+        const ws = (MockWebSocket as any).lastInstance as MockWebSocket;
+        ws.triggerOpen();
       });
 
       await waitFor(() => {
@@ -315,9 +319,10 @@ describe('useWebSocket', () => {
         ({ url }) => useWebSocket(url),
         { initialProps: { url: 'ws://localhost:3000/ws' } }
       );
-      
+
       await act(async () => {
-        jest.runAllTimers();
+        const ws = (MockWebSocket as any).lastInstance as MockWebSocket;
+        ws.triggerOpen();
       });
 
       await waitFor(() => {
@@ -331,7 +336,8 @@ describe('useWebSocket', () => {
       rerender({ url: 'ws://localhost:4000/ws' });
 
       await act(async () => {
-        jest.runAllTimers();
+        const ws = (MockWebSocket as any).lastInstance as MockWebSocket;
+        ws.triggerOpen();
       });
 
       // Verify the old connection was closed
@@ -340,9 +346,10 @@ describe('useWebSocket', () => {
 
     it('should clear pending reconnection timeout when unmounted', async () => {
       const { result, unmount } = renderHook(() => useWebSocket('ws://localhost:3000/ws'));
-      
+
       await act(async () => {
-        jest.runAllTimers();
+        const ws = (MockWebSocket as any).lastInstance as MockWebSocket;
+        ws.triggerOpen();
       });
 
       await waitFor(() => {
@@ -353,6 +360,10 @@ describe('useWebSocket', () => {
       await act(async () => {
         const ws = (MockWebSocket as any).lastInstance as MockWebSocket;
         ws.simulateClose(1006);
+      });
+
+      await waitFor(() => {
+        expect(result.current.isConnected).toBe(false);
       });
 
       const clearTimeoutSpy = jest.spyOn(global, 'clearTimeout');
@@ -370,13 +381,14 @@ describe('useWebSocket', () => {
         ({ url }) => useWebSocket(url),
         { initialProps: { url: 'ws://localhost:3000/ws' } }
       );
-      
+
       // Rapidly change URL multiple times
       await act(async () => {
         rerender({ url: 'ws://localhost:4000/ws' });
         rerender({ url: 'ws://localhost:5000/ws' });
         rerender({ url: 'ws://localhost:6000/ws' });
-        jest.runAllTimers();
+        const ws = (MockWebSocket as any).lastInstance as MockWebSocket;
+        ws.triggerOpen();
       });
 
       // Should eventually connect to the last URL
@@ -386,9 +398,10 @@ describe('useWebSocket', () => {
 
     it('should reset reconnection attempts after successful connection', async () => {
       const { result } = renderHook(() => useWebSocket('ws://localhost:3000/ws'));
-      
+
       await act(async () => {
-        jest.runAllTimers();
+        const ws = (MockWebSocket as any).lastInstance as MockWebSocket;
+        ws.triggerOpen();
       });
 
       await waitFor(() => {
@@ -403,7 +416,8 @@ describe('useWebSocket', () => {
 
       await act(async () => {
         jest.advanceTimersByTime(1000);
-        jest.runAllTimers();
+        const ws = (MockWebSocket as any).lastInstance as MockWebSocket;
+        ws.triggerOpen();
       });
 
       await waitFor(() => {

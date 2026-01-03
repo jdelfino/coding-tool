@@ -91,11 +91,16 @@ describe('ProblemLibrary', () => {
     jest.restoreAllMocks();
   });
 
-  it('renders loading state initially', () => {
+  it('renders loading state initially', async () => {
     render(<ProblemLibrary />);
     // Check for loading spinner (animation class)
     const spinner = document.querySelector('.animate-spin');
     expect(spinner).toBeInTheDocument();
+
+    // Wait for loading to complete to prevent act() warnings
+    await waitFor(() => {
+      expect(screen.getByText('Problem Library')).toBeInTheDocument();
+    });
   });
 
   it('fetches and displays problems', async () => {
@@ -246,7 +251,7 @@ describe('ProblemLibrary', () => {
     });
   });
 
-  it('does not fetch problems when user is not authenticated', () => {
+  it('does not fetch problems when user is not authenticated', async () => {
     (useAuth as jest.Mock).mockReturnValue({
       user: null,
       isAuthenticated: false,
@@ -254,7 +259,10 @@ describe('ProblemLibrary', () => {
 
     render(<ProblemLibrary />);
 
-    expect(global.fetch).not.toHaveBeenCalled();
+    // Wait a bit to ensure useEffect has run
+    await waitFor(() => {
+      expect(global.fetch).not.toHaveBeenCalled();
+    });
   });
 
   it('includes authorId in API request', async () => {
