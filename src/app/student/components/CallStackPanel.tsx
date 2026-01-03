@@ -7,17 +7,9 @@ interface CallStackPanelProps {
 }
 
 export function CallStackPanel({ callStack, darkTheme = false }: CallStackPanelProps) {
-  if (callStack.length === 0) {
-    return (
-      <div className={`rounded-lg p-4 border ${
-        darkTheme ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-300'
-      }`}>
-        <h3 className={`text-sm font-semibold mb-2 ${darkTheme ? 'text-gray-200' : 'text-gray-700'}`}>Call Stack</h3>
-        <div className={`text-sm italic ${darkTheme ? 'text-gray-400' : 'text-gray-500'}`}>
-          No active calls
-        </div>
-      </div>
-    );
+  // Hide call stack if there are fewer than 2 entries (just main program)
+  if (callStack.length < 2) {
+    return null;
   }
 
   return (

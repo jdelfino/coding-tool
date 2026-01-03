@@ -7,11 +7,15 @@ import { CallStackPanel } from '../CallStackPanel';
 import { CallFrame } from '@/server/types';
 
 describe('CallStackPanel', () => {
-  it('renders empty state when no call stack', () => {
-    render(<CallStackPanel callStack={[]} />);
+  it('does not render when call stack has fewer than 2 entries', () => {
+    const { container: emptyContainer } = render(<CallStackPanel callStack={[]} />);
+    expect(emptyContainer.firstChild).toBeNull();
 
-    expect(screen.getByText('Call Stack')).toBeInTheDocument();
-    expect(screen.getByText(/no active calls/i)).toBeInTheDocument();
+    const singleFrame: CallFrame[] = [
+      { functionName: '<module>', filename: '<string>', line: 1 }
+    ];
+    const { container: singleContainer } = render(<CallStackPanel callStack={singleFrame} />);
+    expect(singleContainer.firstChild).toBeNull();
   });
 
   it('displays call stack frames', () => {
@@ -30,6 +34,7 @@ describe('CallStackPanel', () => {
 
   it('displays line numbers', () => {
     const callStack: CallFrame[] = [
+      { functionName: 'main', filename: '<string>', line: 10 },
       { functionName: 'test', filename: '<string>', line: 42 }
     ];
 

@@ -354,7 +354,10 @@ describe('DebuggerSidebar', () => {
           onRequestTrace={mockOnRequestTrace}
           hasTrace={true}
           isLoading={false}
-          callStack={[{ name: 'main', line: 5 }]}
+          callStack={[
+            { functionName: '<module>', filename: '<string>', line: 10 },
+            { functionName: 'helper', filename: '<string>', line: 5 }
+          ]}
         />
       );
 

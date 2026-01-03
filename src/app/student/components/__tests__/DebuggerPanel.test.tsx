@@ -54,8 +54,16 @@ describe('DebuggerPanel', () => {
     expect(screen.getByText('x')).toBeInTheDocument();
   });
 
-  it('renders CallStackPanel', () => {
-    render(<DebuggerPanel {...defaultProps} />);
+  it('renders CallStackPanel when call stack has 2+ entries', () => {
+    const props = {
+      ...defaultProps,
+      callStack: [
+        { functionName: '<module>', filename: '<string>', line: 10 },
+        { functionName: 'helper', filename: '<string>', line: 5 }
+      ]
+    };
+
+    render(<DebuggerPanel {...props} />);
 
     expect(screen.getByText('Call Stack')).toBeInTheDocument();
   });
