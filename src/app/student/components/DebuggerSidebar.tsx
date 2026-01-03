@@ -117,25 +117,16 @@ export function DebuggerSidebar({
 
             {/* Navigation controls */}
             <div className="space-y-2">
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-4 gap-2">
                 <button
                   onClick={onJumpToFirst}
                   disabled={!canStepBackward}
-                  className={`px-3 py-2 text-sm font-medium ${buttonTextClass} ${buttonBgClass} border ${borderClass} rounded ${hoverClass} disabled:opacity-50 disabled:cursor-not-allowed`}
+                  className={`px-2 py-2 text-sm font-medium ${buttonTextClass} ${buttonBgClass} border ${borderClass} rounded ${hoverClass} disabled:opacity-50 disabled:cursor-not-allowed`}
                   title="First step (Home)"
+                  aria-label="First step"
                 >
-                  ⏮ First
+                  ⏮
                 </button>
-                <button
-                  onClick={onJumpToLast}
-                  disabled={!canStepForward}
-                  className={`px-3 py-2 text-sm font-medium ${buttonTextClass} ${buttonBgClass} border ${borderClass} rounded ${hoverClass} disabled:opacity-50 disabled:cursor-not-allowed`}
-                  title="Last step (End)"
-                >
-                  Last ⏭
-                </button>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
                 <button
                   onClick={onStepBackward}
                   disabled={!canStepBackward}
@@ -151,6 +142,15 @@ export function DebuggerSidebar({
                   title="Next step (→ or N)"
                 >
                   Next ▶
+                </button>
+                <button
+                  onClick={onJumpToLast}
+                  disabled={!canStepForward}
+                  className={`px-2 py-2 text-sm font-medium ${buttonTextClass} ${buttonBgClass} border ${borderClass} rounded ${hoverClass} disabled:opacity-50 disabled:cursor-not-allowed`}
+                  title="Last step (End)"
+                  aria-label="Last step"
+                >
+                  ⏭
                 </button>
               </div>
             </div>

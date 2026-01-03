@@ -109,10 +109,10 @@ describe('DebuggerSidebar', () => {
       expect(screen.getByText('Active Debugging')).toBeInTheDocument();
       expect(screen.getByText(/Step 3 of 10/)).toBeInTheDocument();
       expect(screen.getByText(/\(Line 5\)/)).toBeInTheDocument();
-      expect(screen.getByText('⏮ First')).toBeInTheDocument();
+      expect(screen.getByText('⏮')).toBeInTheDocument();
       expect(screen.getByText('◀ Prev')).toBeInTheDocument();
       expect(screen.getByText('Next ▶')).toBeInTheDocument();
-      expect(screen.getByText('Last ⏭')).toBeInTheDocument();
+      expect(screen.getByText('⏭')).toBeInTheDocument();
     });
 
     it('calls onStepForward when next button is clicked', () => {
@@ -182,7 +182,7 @@ describe('DebuggerSidebar', () => {
         />
       );
 
-      const firstButton = screen.getByText('⏮ First');
+      const firstButton = screen.getByText('⏮');
       fireEvent.click(firstButton);
       expect(mockOnJumpToFirst).toHaveBeenCalledTimes(1);
     });
@@ -206,7 +206,7 @@ describe('DebuggerSidebar', () => {
         />
       );
 
-      const lastButton = screen.getByText('Last ⏭');
+      const lastButton = screen.getByText('⏭');
       fireEvent.click(lastButton);
       expect(mockOnJumpToLast).toHaveBeenCalledTimes(1);
     });
@@ -254,10 +254,10 @@ describe('DebuggerSidebar', () => {
         />
       );
 
-      expect(screen.getByText('⏮ First')).toBeDisabled();
+      expect(screen.getByText('⏮')).toBeDisabled();
       expect(screen.getByText('◀ Prev')).toBeDisabled();
       expect(screen.getByText('Next ▶')).not.toBeDisabled();
-      expect(screen.getByText('Last ⏭')).not.toBeDisabled();
+      expect(screen.getByText('⏭')).not.toBeDisabled();
     });
 
     it('shows truncation warning when trace is truncated', () => {
