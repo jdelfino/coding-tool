@@ -85,57 +85,64 @@ async function studentJoinAndSubmit(
   // Create a new isolated context for the student to avoid cookie sharing
   const studentContext = await browser.newContext();
   const studentPage = await studentContext.newPage();
-  
+
+  // Listen to console logs to debug ProtectedRoute behavior
+  studentPage.on('console', (msg) => {
+    const text = msg.text();
+    if (text.includes('[ProtectedRoute]') || text.includes('redirecting')) {
+      console.log('🔍 Browser console:', text);
+    }
+  });
+
   // Add a unique identifier to help debugging
   await studentPage.evaluate(() => {
     (window as any)._PLAYWRIGHT_PAGE_ID = 'STUDENT_PAGE';
   });
-  
+
   console.log('Creating student with username:', studentName);
   await loginAsStudent(studentPage, studentName);
   console.log('Student signed in, current URL:', studentPage.url());
-  
-  // Wait a moment for cookies to be set
-  await studentPage.waitForTimeout(500);
-  
-  // Verify who is signed in by checking localStorage and cookies
-  const authInfo = await studentPage.evaluate(() => {
-    return {
-      localStorage: Object.keys(localStorage).reduce((acc: any, key) => {
-        acc[key] = localStorage.getItem(key);
-        return acc;
-      }, {}),
-      cookies: document.cookie
-    };
-  });
-  console.log('Student auth info:', JSON.stringify(authInfo, null, 2));
-  
-  // Also get cookies via Playwright API
-  const playwrightCookies = await studentContext.cookies();
-  console.log('Student cookies via Playwright:', JSON.stringify(playwrightCookies, null, 2));
-  
-  // Navigate to student page to check who is signed in
-  await studentPage.goto('/student');
-  await studentPage.waitForTimeout(1000); // Wait for page to load
-  
-  // Check what user is displayed
-  const displayedUser = await studentPage.evaluate(() => {
-    const signedInText = document.body.textContent || '';
-    if (signedInText.includes('Signed in as')) {
-      const match = signedInText.match(/Signed in as\s+(\S+)/);
-      return match ? match[1] : 'UNKNOWN';
+
+  // CRITICAL: Wait for auth to fully settle by calling the API directly
+  // This ensures the session cookie is properly set and recognized by the server
+  let authVerified = false;
+  let attempts = 0;
+  while (!authVerified && attempts < 10) {
+    attempts++;
+    await studentPage.waitForTimeout(200);
+
+    const apiResponse = await studentPage.evaluate(async () => {
+      try {
+        const response = await fetch('/api/auth/me', { credentials: 'include' });
+        if (!response.ok) return { error: 'Not authenticated', status: response.status };
+        const data = await response.json();
+        return { user: data.user, status: response.status };
+      } catch (error) {
+        return { error: String(error), status: 0 };
+      }
+    });
+
+    console.log(`Auth verification attempt ${attempts}:`, JSON.stringify(apiResponse, null, 2));
+
+    if (apiResponse.user && apiResponse.user.username === studentName) {
+      authVerified = true;
+      console.log(`✅ Student ${studentName} authentication verified via API`);
+    } else if (apiResponse.user) {
+      throw new Error(`FATAL: API returned WRONG user! Expected ${studentName}, got ${apiResponse.user.username}`);
     }
-    return 'NO_SIGNED_IN_TEXT';
-  });
-  console.log('Displayed user on /student page:', displayedUser);
-  
-  if (displayedUser === 'test-public-view-instructor') {
-    throw new Error(`ERROR: Student page is showing instructor user! Expected ${studentName}, got ${displayedUser}`);
   }
-  
-  if (displayedUser !== studentName && displayedUser !== 'NO_SIGNED_IN_TEXT') {
-    console.warn(`WARNING: Expected user ${studentName}, but page shows ${displayedUser}`);
+
+  if (!authVerified) {
+    throw new Error(`FATAL: Could not verify student ${studentName} authentication after ${attempts} attempts`);
   }
+
+  // Double-check cookies are set
+  const playwrightCookies = await studentContext.cookies();
+  const sessionCookie = playwrightCookies.find(c => c.name === 'sessionId');
+  if (!sessionCookie) {
+    throw new Error('FATAL: No sessionId cookie found after authentication!');
+  }
+  console.log('Student sessionId cookie:', sessionCookie.value.substring(0, 8) + '...');
 
   // Navigate to sections page
   await studentPage.goto('/sections');
@@ -163,15 +170,48 @@ async function studentJoinAndSubmit(
   console.log('Waiting for navigation to /student?sessionId=...');
   await studentPage.waitForURL(/\/student\?sessionId=/, { timeout: 5000 });
   console.log('Navigated to:', studentPage.url());
-  
-  // Verify this is the student page
-  const pageId = await studentPage.evaluate(() => (window as any)._PLAYWRIGHT_PAGE_ID);
-  console.log('Page ID after navigation:', pageId);
-  if (pageId !== 'STUDENT_PAGE') {
-    throw new Error(`ERROR: Not on student page! Page ID: ${pageId}`);
+
+  // Re-verify authentication after navigation to ensure correct user is loaded
+  // This is critical because the student page will call /api/auth/me on mount
+  await studentPage.waitForTimeout(500); // Give AuthContext time to load
+
+  const postNavAuth = await studentPage.evaluate(async () => {
+    try {
+      const response = await fetch('/api/auth/me', { credentials: 'include' });
+      if (!response.ok) return { error: 'Not authenticated', status: response.status };
+      const data = await response.json();
+      return { user: data.user, status: response.status };
+    } catch (error) {
+      return { error: String(error), status: 0 };
+    }
+  });
+
+  console.log('Post-navigation auth check:', JSON.stringify(postNavAuth, null, 2));
+
+  if (!postNavAuth.user || postNavAuth.user.username !== studentName) {
+    throw new Error(`FATAL: After navigation, API returned wrong user! Expected ${studentName}, got ${postNavAuth.user?.username || 'none'}`);
   }
 
   // Wait for session to load AND for the student to be fully joined (SESSION_JOINED message received)
+  // CRITICAL: Check what's actually on the page before looking for Leave Session button
+  const pageDebug = await studentPage.evaluate(() => {
+    const bodyText = document.body.textContent || '';
+    return {
+      url: window.location.href,
+      title: document.title,
+      h1Text: document.querySelector('h1')?.textContent || 'NO_H1',
+      signedInText: bodyText.match(/Signed in as\s+(\S+)/)?.[1] || 'NO_SIGNED_IN_TEXT',
+      hasLeaveButton: bodyText.includes('Leave Session'),
+      bodySnippet: bodyText.substring(0, 300).replace(/\s+/g, ' ')
+    };
+  });
+  console.log('📊 Page state before looking for Leave Session button:', JSON.stringify(pageDebug, null, 2));
+  
+  // If we're seeing the instructor dashboard, this is the bug
+  if (pageDebug.h1Text?.includes('Instructor')) {
+    throw new Error(`🐛 BUG REPRODUCED! Student page is showing Instructor Dashboard. URL: ${pageDebug.url}, User shown: ${pageDebug.signedInText}`);
+  }
+  
   await expect(studentPage.locator('button:has-text("Leave Session")')).toBeVisible({ timeout: 5000 });
   console.log('Leave Session button visible, student has joined');
 

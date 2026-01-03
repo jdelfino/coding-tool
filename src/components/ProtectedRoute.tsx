@@ -40,6 +40,7 @@ export function ProtectedRoute({
     if (!isLoading) {
       if (!user) {
         // Not authenticated, redirect to sign-in
+        console.log('[ProtectedRoute] No user, redirecting to', fallbackPath);
         router.push(fallbackPath);
       } else if (requiredPermission || requiredPermissions) {
         // Check permission-based access
@@ -50,6 +51,7 @@ export function ProtectedRoute({
         if (!hasPermissionAccess) {
           // No permission, redirect to appropriate page
           const defaultPath = user.role === 'instructor' ? '/instructor' : '/student';
+          console.log('[ProtectedRoute] No permission, redirecting to', defaultPath);
           router.push(defaultPath);
         }
       } else if (requiredRole) {
@@ -58,6 +60,7 @@ export function ProtectedRoute({
         if (!hasAccess) {
           // Wrong role, redirect to appropriate page
           const defaultPath = user.role === 'instructor' ? '/instructor' : '/student';
+          console.log('[ProtectedRoute] Wrong role (expected:', requiredRole, ', got:', user.role, '), redirecting to', defaultPath);
           router.push(defaultPath);
         }
       }
