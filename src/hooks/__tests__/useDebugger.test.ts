@@ -354,9 +354,9 @@ describe('useDebugger', () => {
 
       // Simulate typing 'p' in the input field
       act(() => {
-        const event = new KeyboardEvent('keydown', { 
+        const event = new KeyboardEvent('keydown', {
           key: 'p',
-          bubbles: true 
+          bubbles: true
         });
         Object.defineProperty(event, 'target', { value: input, enumerable: true });
         window.dispatchEvent(event);
@@ -383,9 +383,9 @@ describe('useDebugger', () => {
 
       // Simulate typing 'n' in the textarea
       act(() => {
-        const event = new KeyboardEvent('keydown', { 
+        const event = new KeyboardEvent('keydown', {
           key: 'n',
-          bubbles: true 
+          bubbles: true
         });
         Object.defineProperty(event, 'target', { value: textarea, enumerable: true });
         window.dispatchEvent(event);
@@ -413,9 +413,9 @@ describe('useDebugger', () => {
 
       // Simulate typing 'p' in the contenteditable
       act(() => {
-        const event = new KeyboardEvent('keydown', { 
+        const event = new KeyboardEvent('keydown', {
           key: 'p',
-          bubbles: true 
+          bubbles: true
         });
         Object.defineProperty(event, 'target', { value: div, enumerable: true });
         window.dispatchEvent(event);
@@ -445,9 +445,9 @@ describe('useDebugger', () => {
 
       // Simulate typing 'p' in the Monaco editor
       act(() => {
-        const event = new KeyboardEvent('keydown', { 
+        const event = new KeyboardEvent('keydown', {
           key: 'p',
-          bubbles: true 
+          bubbles: true
         });
         Object.defineProperty(event, 'target', { value: textarea, enumerable: true });
         window.dispatchEvent(event);

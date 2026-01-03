@@ -118,7 +118,7 @@ export function useDebugger(sendMessage: (type: string, payload: any) => void) {
 
       // Don't intercept keyboard shortcuts if user is typing in an input field
       const target = e.target as HTMLElement;
-      const isEditableElement = 
+      const isEditableElement =
         target.tagName === 'INPUT' ||
         target.tagName === 'TEXTAREA' ||
         target.isContentEditable ||
