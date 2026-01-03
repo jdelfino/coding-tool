@@ -1,6 +1,6 @@
 /**
  * Membership repository implementation with local file-based storage
- * 
+ *
  * Manages user enrollments in sections with persistence to data/memberships.json
  * Handles duplicate detection and aggregate queries
  */
@@ -118,10 +118,10 @@ export class MembershipRepository implements IMembershipRepository {
     // Convert Map to object for JSON serialization
     const obj = Object.fromEntries(this.memberships);
     const json = JSON.stringify(obj, null, 2);
-    
+
     // Atomic write: write to temp file, then rename
     const tempPath = `${this.filePath}.tmp`;
-    
+
     // Open file, write, and fsync to ensure data reaches disk
     const fileHandle = await fs.open(tempPath, 'w');
     try {
@@ -130,7 +130,7 @@ export class MembershipRepository implements IMembershipRepository {
     } finally {
       await fileHandle.close();
     }
-    
+
     await fs.rename(tempPath, this.filePath);
   }
 
@@ -154,7 +154,7 @@ export class MembershipRepository implements IMembershipRepository {
     };
 
     this.memberships.set(newMembership.id, newMembership);
-    
+
     // Update indexes
     if (!this.userSectionIndex.has(newMembership.userId)) {
       this.userSectionIndex.set(newMembership.userId, new Set());
@@ -184,7 +184,7 @@ export class MembershipRepository implements IMembershipRepository {
 
     // Remove from maps
     this.memberships.delete(membership.id);
-    
+
     // Update indexes
     this.userSectionIndex.get(userId)?.delete(membership.id);
     this.sectionUserIndex.get(sectionId)?.delete(membership.id);
@@ -206,7 +206,7 @@ export class MembershipRepository implements IMembershipRepository {
 
     // Get membership IDs for this user
     const membershipIds = this.userSectionIndex.get(userId) || new Set();
-    
+
     // Get memberships and filter by role if specified
     let memberships = Array.from(membershipIds)
       .map(id => this.memberships.get(id))
@@ -218,7 +218,7 @@ export class MembershipRepository implements IMembershipRepository {
 
     // Get section and class details
     const sectionsWithClass: SectionWithClass[] = [];
-    
+
     for (const membership of memberships) {
       const section = await this.sectionRepository.getSection(membership.sectionId);
       if (!section) continue;
@@ -260,7 +260,7 @@ export class MembershipRepository implements IMembershipRepository {
 
     // Get membership IDs for this section
     const membershipIds = this.sectionUserIndex.get(sectionId) || new Set();
-    
+
     // Get memberships and filter by role if specified
     let memberships = Array.from(membershipIds)
       .map(id => this.memberships.get(id))
@@ -272,7 +272,7 @@ export class MembershipRepository implements IMembershipRepository {
 
     // Get user details
     const users: User[] = [];
-    
+
     for (const membership of memberships) {
       const user = await this.userRepository.getUser(membership.userId);
       if (user) {
@@ -306,7 +306,7 @@ export class MembershipRepository implements IMembershipRepository {
 
     // Use index to find membership IDs for this user
     const membershipIds = this.userSectionIndex.get(userId) || new Set();
-    
+
     // Find membership for this specific section
     for (const id of Array.from(membershipIds)) {
       const membership = this.memberships.get(id);
@@ -331,7 +331,7 @@ export class MembershipRepository implements IMembershipRepository {
 
   /**
    * Validate a join code and return the section
-   * 
+   *
    * @param code - The join code to validate
    * @returns The section if code is valid and active, null otherwise
    */
@@ -342,27 +342,27 @@ export class MembershipRepository implements IMembershipRepository {
 
     // Normalize the code (uppercase, trim whitespace)
     const normalizedCode = code.trim().toUpperCase();
-    
+
     if (!this.sectionRepository) {
       throw new Error('Section repository not set');
     }
 
     const section = await this.sectionRepository.getSectionByJoinCode(normalizedCode);
-    
+
     // Return section only if it exists and is active
     if (section && section.active) {
       return section;
     }
-    
+
     return null;
   }
 
   /**
    * Join a section using a join code
-   * 
+   *
    * Creates a membership with role 'student'. If the user is already
    * a member, returns the existing membership (idempotent).
-   * 
+   *
    * @param userId - The user ID attempting to join
    * @param joinCode - The join code for the section
    * @returns The created or existing membership
@@ -371,7 +371,7 @@ export class MembershipRepository implements IMembershipRepository {
   async joinSection(userId: string, joinCode: string): Promise<SectionMembership> {
     // Validate the join code
     const section = await this.validateJoinCode(joinCode);
-    
+
     if (!section) {
       throw new Error('Invalid or inactive join code');
     }

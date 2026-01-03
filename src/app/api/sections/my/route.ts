@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
       sectionsWithClass.map(async (sectionWithClass: any) => {
         // Get the membership to find the role
         const membership = await membershipRepo.getMembership(session.user.id, sectionWithClass.id);
-        
+
         return {
           ...sectionWithClass,
           className: sectionWithClass.class.name,

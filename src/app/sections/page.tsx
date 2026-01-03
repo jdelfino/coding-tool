@@ -91,7 +91,7 @@ export default function SectionsPage() {
             {Object.entries(groupedSections).map(([className, classSections]) => (
               <div key={className}>
                 <h2 className="text-2xl font-semibold text-gray-900 mb-4">{className}</h2>
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                <div className="space-y-3">
                   {classSections.map((section) => (
                     <SectionCard
                       key={section.id}
