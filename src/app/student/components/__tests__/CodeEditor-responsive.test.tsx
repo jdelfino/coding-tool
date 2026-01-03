@@ -101,7 +101,7 @@ describe('CodeEditor Responsive Layout', () => {
       useResponsiveLayout.mockReturnValue(false); // Mobile
     });
 
-    it('should render execution settings at bottom on mobile', () => {
+    it('should render mobile action bar with toggleable settings on mobile', () => {
       render(
         <CodeEditor
           code="print('hello')"
@@ -109,9 +109,12 @@ describe('CodeEditor Responsive Layout', () => {
         />
       );
 
-      const settings = screen.getByTestId('execution-settings');
-      expect(settings).toHaveAttribute('data-in-sidebar', 'false');
-      expect(settings).toHaveTextContent('(Bottom)');
+      // Should have action bar with settings button
+      const settingsButton = screen.getByRole('button', { name: /toggle settings/i });
+      expect(settingsButton).toBeInTheDocument();
+      
+      // Settings should be collapsed by default (not visible)
+      expect(screen.queryByTestId('execution-settings')).not.toBeInTheDocument();
     });
 
     it('should not render sidebar collapse button on mobile', () => {
@@ -140,22 +143,36 @@ describe('CodeEditor Responsive Layout', () => {
       expect(activityBar).not.toBeInTheDocument();
     });
 
-    it('should render execution settings below editor, not to the right on mobile', () => {
+    it('should render problem and settings buttons in action bar on mobile', () => {
+      const problem = {
+        id: 'test-problem',
+        title: 'Test Problem',
+        description: 'Test description',
+        starterCode: '',
+        authorId: 'instructor-1',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
       const { container } = render(
         <CodeEditor
           code="print('hello')"
           onChange={jest.fn()}
+          problem={problem}
         />
       );
 
-      // Find the main content area - should have flex-col for vertical stacking and allow scrolling on mobile
-      const mainContent = container.querySelector('.flex.flex-col.flex-1.overflow-y-auto');
-      expect(mainContent).toBeInTheDocument();
+      // Find the mobile action bar
+      const actionBar = container.querySelector('.bg-gray-800.border-b.border-gray-700');
+      expect(actionBar).toBeInTheDocument();
 
-      // Execution settings should be at the bottom of the layout, not inside flex-row
-      const settings = screen.getByTestId('execution-settings');
-      expect(settings).toBeInTheDocument();
-      expect(settings).toHaveAttribute('data-in-sidebar', 'false');
+      // Should have both problem and settings buttons
+      expect(screen.getByRole('button', { name: /toggle problem/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /toggle settings/i })).toBeInTheDocument();
+      
+      // Both sections should be collapsed by default (not visible)
+      expect(screen.queryByTestId('execution-settings')).not.toBeInTheDocument();
+      expect(screen.queryByText('Test Problem')).not.toBeInTheDocument();
     });
   });
 

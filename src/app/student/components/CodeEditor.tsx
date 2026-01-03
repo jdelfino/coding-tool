@@ -69,6 +69,10 @@ export default function CodeEditor({
   const isDesktop = useResponsiveLayout(1024);
   const { isCollapsed: isSettingsCollapsed, toggle: toggleSettings, setCollapsed: setSettingsCollapsed } = useSidebarSection('execution-settings', false);
   const { isCollapsed: isProblemCollapsed, toggle: toggleProblem, setCollapsed: setProblemCollapsed } = useSidebarSection('problem-panel', false);
+  
+  // Mobile-specific state (separate from desktop sidebar state)
+  const [mobileProblemCollapsed, setMobileProblemCollapsed] = useState(true);
+  const [mobileSettingsCollapsed, setMobileSettingsCollapsed] = useState(true);
 
   // Sidebar resize state
   const [sidebarWidth, setSidebarWidth] = useState(320); // 320px = w-80
@@ -360,6 +364,81 @@ export default function CodeEditor({
 
       {/* Main Content Area - Responsive Layout */}
       <div className={`flex flex-col flex-1 ${isDesktop ? 'min-h-0' : 'overflow-y-auto'}`}>
+        {/* Mobile: Action Bar */}
+        {!isDesktop && (
+          <div className="bg-gray-800 border-b border-gray-700 flex items-center px-2 py-2 gap-2 flex-shrink-0" style={{ position: 'sticky', top: 0, zIndex: 10 }}>
+            {problem && (
+              <button
+                type="button"
+                onClick={() => setMobileProblemCollapsed(!mobileProblemCollapsed)}
+                className={`px-3 py-2 rounded text-sm font-medium transition-colors ${
+                  !mobileProblemCollapsed
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-700 text-gray-200 hover:bg-gray-600'
+                }`}
+                aria-label="Toggle Problem"
+              >
+                📄 Problem
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => setMobileSettingsCollapsed(!mobileSettingsCollapsed)}
+              className={`px-3 py-2 rounded text-sm font-medium transition-colors ${
+                !mobileSettingsCollapsed
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-700 text-gray-200 hover:bg-gray-600'
+              }`}
+              aria-label="Toggle Settings"
+            >
+              ⚙️ Settings
+            </button>
+          </div>
+        )}
+
+        {/* Mobile: Problem Section */}
+        {!isDesktop && !mobileProblemCollapsed && problem && (
+          <div className="bg-gray-800 text-gray-200 border-b border-gray-700 flex-shrink-0">
+            <div className="p-4">
+              <h2 className="text-xl font-bold mb-4 text-gray-100">{problem.title}</h2>
+              {problem.description && (
+                <div className="prose prose-invert prose-sm max-w-none">
+                  <pre className="whitespace-pre-wrap text-gray-300 text-sm font-sans">
+                    {problem.description}
+                  </pre>
+                </div>
+              )}
+              {problem.starterCode && onLoadStarterCode && (
+                <button
+                  type="button"
+                  onClick={() => onLoadStarterCode(problem.starterCode || '')}
+                  className="mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm"
+                >
+                  Load Starter Code
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Mobile: Settings Section */}
+        {!isDesktop && !mobileSettingsCollapsed && (
+          <div className="bg-gray-800 border-b border-gray-700 flex-shrink-0">
+            <ExecutionSettingsComponent
+              stdin={stdin}
+              onStdinChange={handleStdinChange}
+              randomSeed={randomSeed}
+              onRandomSeedChange={onRandomSeedChange}
+              attachedFiles={attachedFiles}
+              onAttachedFilesChange={onAttachedFilesChange}
+              exampleInput={exampleInput}
+              readOnly={readOnly}
+              inSidebar={false}
+              darkTheme={true}
+            />
+          </div>
+        )}
+
         <div className={`flex flex-row ${isDesktop ? 'flex-1 min-h-0' : ''}`}>
           {/* Left Sidebar (Desktop only) - VS Code style */}
           {isDesktop && (
@@ -625,24 +704,6 @@ export default function CodeEditor({
           </div>
         </div>
         </div>
-
-        {/* Mobile: Bottom Execution Settings */}
-        {!isDesktop && (
-          <div className="bg-gray-800 border-t border-gray-700 flex-shrink-0">
-            <ExecutionSettingsComponent
-              stdin={stdin}
-              onStdinChange={handleStdinChange}
-              randomSeed={randomSeed}
-              onRandomSeedChange={onRandomSeedChange}
-              attachedFiles={attachedFiles}
-              onAttachedFilesChange={onAttachedFilesChange}
-              exampleInput={exampleInput}
-              readOnly={readOnly}
-              inSidebar={false}
-              darkTheme={true}
-            />
-          </div>
-        )}
       </div>
     </div>
   );
