@@ -9,7 +9,7 @@ export default defineConfig({
 
   /* Run tests in files in parallel */
   fullyParallel: false,  // Disabled due to shared data directory causing race conditions
-  
+
   /* Run tests serially with single worker to avoid data conflicts */
   workers: 1,
 
