@@ -7,8 +7,8 @@ interface VariableInspectorProps {
   previousGlobals?: Record<string, any>;
 }
 
-export function VariableInspector({ 
-  locals, 
+export function VariableInspector({
+  locals,
   globals,
   previousLocals = {},
   previousGlobals = {}
@@ -40,7 +40,7 @@ export function VariableInspector({
       const valStr = String(value);
       return !valStr.startsWith('<function') && !valStr.startsWith('<built-in function');
     });
-    
+
     if (entries.length === 0) {
       return (
         <div className="text-sm text-gray-500 italic p-2">

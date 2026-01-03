@@ -9,7 +9,7 @@ import { CallFrame } from '@/server/types';
 describe('CallStackPanel', () => {
   it('renders empty state when no call stack', () => {
     render(<CallStackPanel callStack={[]} />);
-    
+
     expect(screen.getByText('Call Stack')).toBeInTheDocument();
     expect(screen.getByText(/no active calls/i)).toBeInTheDocument();
   });
@@ -22,7 +22,7 @@ describe('CallStackPanel', () => {
     ];
 
     render(<CallStackPanel callStack={callStack} />);
-    
+
     expect(screen.getByText('<main program>')).toBeInTheDocument();
     expect(screen.getByText('main')).toBeInTheDocument();
     expect(screen.getByText('factorial')).toBeInTheDocument();
@@ -34,7 +34,7 @@ describe('CallStackPanel', () => {
     ];
 
     render(<CallStackPanel callStack={callStack} />);
-    
+
     expect(screen.getByText('42')).toBeInTheDocument();
   });
 
@@ -45,11 +45,11 @@ describe('CallStackPanel', () => {
     ];
 
     const { container } = render(<CallStackPanel callStack={callStack} />);
-    
+
     // Last frame should have blue highlight
     const highlightedElements = container.querySelectorAll('.bg-blue-50');
     expect(highlightedElements.length).toBe(1);
-    
+
     // Arrow indicator should be present
     expect(screen.getByText('→')).toBeInTheDocument();
   });
@@ -62,7 +62,7 @@ describe('CallStackPanel', () => {
     ];
 
     const { container } = render(<CallStackPanel callStack={callStack} />);
-    
+
     const frames = container.querySelectorAll('.font-mono');
     expect(frames[0]).toHaveTextContent('first');
     expect(frames[2]).toHaveTextContent('second');

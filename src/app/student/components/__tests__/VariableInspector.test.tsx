@@ -8,7 +8,7 @@ import { VariableInspector } from '../VariableInspector';
 describe('VariableInspector', () => {
   it('renders empty state when no variables', () => {
     render(<VariableInspector locals={{}} globals={{}} />);
-    
+
     expect(screen.getByText(/no local variables/i)).toBeInTheDocument();
     expect(screen.getByText(/no global variables/i)).toBeInTheDocument();
   });
@@ -21,7 +21,7 @@ describe('VariableInspector', () => {
     };
 
     render(<VariableInspector locals={locals} globals={{}} />);
-    
+
     expect(screen.getByText('x')).toBeInTheDocument();
     expect(screen.getByText('5')).toBeInTheDocument();
     expect(screen.getByText('name')).toBeInTheDocument();
@@ -37,7 +37,7 @@ describe('VariableInspector', () => {
     };
 
     render(<VariableInspector locals={{}} globals={globals} />);
-    
+
     expect(screen.getByText('result')).toBeInTheDocument();
     expect(screen.getByText('42')).toBeInTheDocument();
     expect(screen.getByText('message')).toBeInTheDocument();
@@ -52,11 +52,11 @@ describe('VariableInspector', () => {
     };
 
     render(<VariableInspector locals={{}} globals={globals} />);
-    
+
     // Functions should be filtered out
     expect(screen.queryByText('factorial')).not.toBeInTheDocument();
     expect(screen.queryByText('helper')).not.toBeInTheDocument();
-    
+
     // Regular variables should still appear
     expect(screen.getByText('x')).toBeInTheDocument();
     expect(screen.getByText('5')).toBeInTheDocument();
@@ -67,13 +67,13 @@ describe('VariableInspector', () => {
     const previousLocals = { x: 5 };
 
     const { container } = render(
-      <VariableInspector 
-        locals={locals} 
+      <VariableInspector
+        locals={locals}
         globals={{}}
         previousLocals={previousLocals}
       />
     );
-    
+
     // Check for yellow highlight class on changed variable
     const changedElement = container.querySelector('.bg-yellow-50');
     expect(changedElement).toBeInTheDocument();
@@ -84,13 +84,13 @@ describe('VariableInspector', () => {
     const previousLocals = { x: 5 };
 
     const { container } = render(
-      <VariableInspector 
-        locals={locals} 
+      <VariableInspector
+        locals={locals}
         globals={{}}
         previousLocals={previousLocals}
       />
     );
-    
+
     // y is new, should be highlighted
     const highlightedElements = container.querySelectorAll('.bg-yellow-50');
     expect(highlightedElements.length).toBeGreaterThan(0);
@@ -100,7 +100,7 @@ describe('VariableInspector', () => {
     const locals = { value: null };
 
     render(<VariableInspector locals={locals} globals={{}} />);
-    
+
     expect(screen.getByText('None')).toBeInTheDocument();
   });
 
@@ -108,7 +108,7 @@ describe('VariableInspector', () => {
     const locals = { items: [1, 2, 3] };
 
     render(<VariableInspector locals={locals} globals={{}} />);
-    
+
     expect(screen.getByText('[1,2,3]')).toBeInTheDocument();
   });
 
@@ -117,7 +117,7 @@ describe('VariableInspector', () => {
     const globals = { func: '<function>' };
 
     render(<VariableInspector locals={locals} globals={globals} />);
-    
+
     expect(screen.getByText('3 vars')).toBeInTheDocument();
     expect(screen.getByText('1 vars')).toBeInTheDocument();
   });
