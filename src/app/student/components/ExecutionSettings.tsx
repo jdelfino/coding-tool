@@ -38,7 +38,7 @@ export default function ExecutionSettings({
   // When in sidebar, always show expanded (no collapse functionality needed)
   const shouldShowCollapse = !inSidebar;
   const isExpanded = inSidebar ? true : expanded;
-  
+
   // Use dark theme if explicitly set or if in sidebar
   const useDarkTheme = darkTheme || inSidebar;
 
@@ -105,6 +105,11 @@ export default function ExecutionSettings({
   const buttonBg = useDarkTheme ? '#374151' : '#f5f5f5'; // gray-700 for dark theme
   const buttonHoverBg = useDarkTheme ? '#4b5563' : '#e5e5e5'; // gray-600 for dark theme
   const borderColor = useDarkTheme ? '#374151' : '#ccc'; // gray-700 for dark theme
+  const disabledBg = useDarkTheme ? '#1f2937' : '#f5f5f5'; // gray-800 for dark theme, light gray for light theme
+  const displayBg = useDarkTheme ? '#111827' : '#f8f9fa'; // gray-900 for dark theme, lighter gray for light
+  const displayBorder = useDarkTheme ? '#374151' : '#dee2e6'; // gray-700 for dark, light border for light
+  const mutedText = useDarkTheme ? '#9ca3af' : '#666'; // gray-400 for dark, medium gray for light
+  const sectionBorder = useDarkTheme ? '#374151' : '#eee'; // gray-700 for dark, very light for light
 
   return (
     <div style={{
@@ -130,7 +135,7 @@ export default function ExecutionSettings({
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span style={{ 
+            <span style={{
               transition: 'transform 0.2s',
               display: 'inline-block',
               transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
@@ -148,16 +153,16 @@ export default function ExecutionSettings({
       )}
 
       {isExpanded && (
-        <div style={{ 
-          padding: '1rem', 
+        <div style={{
+          padding: '1rem',
           backgroundColor: contentBg,
           borderTop: shouldShowCollapse ? `1px solid ${borderColor}` : 'none',
           color: textColor,
         }}>
           {/* Program Input */}
           <div style={{ marginBottom: '1rem' }}>
-            <label style={{ 
-              display: 'block', 
+            <label style={{
+              display: 'block',
               marginBottom: '0.5rem',
               fontWeight: 'bold',
               fontSize: '0.9rem',
@@ -165,7 +170,7 @@ export default function ExecutionSettings({
             }}>
               Program Input (stdin):
               {exampleInput && (
-                <span style={{ 
+                <span style={{
                   marginLeft: '0.5rem',
                   fontSize: '0.8rem',
                   color: inSidebar ? '#9ca3af' : '#666',
@@ -189,14 +194,14 @@ export default function ExecutionSettings({
                 border: `1px solid ${inputBorder}`,
                 borderRadius: '4px',
                 resize: 'vertical',
-                backgroundColor: readOnly ? (inSidebar ? '#1f2937' : '#f5f5f5') : inputBg,
+                backgroundColor: readOnly ? disabledBg : inputBg,
                 color: inputText,
               }}
             />
           </div>
 
           {/* Random Seed */}
-          <div style={{ marginBottom: '1rem', paddingTop: '1rem', borderTop: `1px solid ${inSidebar ? '#374151' : '#eee'}` }}>
+          <div style={{ marginBottom: '1rem', paddingTop: '1rem', borderTop: `1px solid ${sectionBorder}` }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
               <h4 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 'bold', color: labelColor }}>Random Seed:</h4>
               {!readOnly && !editingSeed && (
@@ -222,10 +227,10 @@ export default function ExecutionSettings({
             </div>
 
             {!editingSeed ? (
-              <div style={{ 
-                padding: '0.5rem', 
-                backgroundColor: inSidebar ? '#111827' : '#f8f9fa',
-                border: `1px solid ${inSidebar ? '#374151' : '#dee2e6'}`,
+              <div style={{
+                padding: '0.5rem',
+                backgroundColor: displayBg,
+                border: `1px solid ${displayBorder}`,
                 borderRadius: '4px',
                 fontSize: '0.9rem',
                 color: textColor,
@@ -233,7 +238,7 @@ export default function ExecutionSettings({
                 {randomSeed !== undefined ? (
                   <code>{randomSeed}</code>
                 ) : (
-                  <span style={{ color: inSidebar ? '#9ca3af' : '#666', fontStyle: 'italic' }}>No seed set (random)</span>
+                  <span style={{ color: mutedText, fontStyle: 'italic' }}>No seed set (random)</span>
                 )}
               </div>
             ) : (
@@ -285,13 +290,13 @@ export default function ExecutionSettings({
                 </button>
               </div>
             )}
-            <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.8rem', color: inSidebar ? '#9ca3af' : '#666' }}>
+            <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.8rem', color: mutedText }}>
               Makes random numbers predictable. Same seed = same "random" results.
             </p>
           </div>
 
           {/* Attached Files */}
-          <div style={{ paddingTop: '1rem', borderTop: `1px solid ${inSidebar ? '#374151' : '#eee'}` }}>
+          <div style={{ paddingTop: '1rem', borderTop: `1px solid ${sectionBorder}` }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
               <h4 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 'bold', color: labelColor }}>Attached Files:</h4>
               {!readOnly && !editingFiles && (
@@ -319,25 +324,25 @@ export default function ExecutionSettings({
             {!editingFiles ? (
               <>
                 {attachedFiles.length === 0 ? (
-                  <div style={{ 
-                    padding: '0.5rem', 
-                    backgroundColor: inSidebar ? '#111827' : '#f8f9fa',
-                    border: `1px solid ${inSidebar ? '#374151' : '#dee2e6'}`,
+                  <div style={{
+                    padding: '0.5rem',
+                    backgroundColor: displayBg,
+                    border: `1px solid ${displayBorder}`,
                     borderRadius: '4px',
                     fontSize: '0.9rem',
                     color: textColor,
                   }}>
-                    <span style={{ color: inSidebar ? '#9ca3af' : '#666', fontStyle: 'italic' }}>No files attached</span>
+                    <span style={{ color: mutedText, fontStyle: 'italic' }}>No files attached</span>
                   </div>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                     {attachedFiles.map((file, index) => (
-                      <div 
+                      <div
                         key={index}
                         style={{
                           padding: '0.75rem',
-                          backgroundColor: inSidebar ? '#111827' : '#f8f9fa',
-                          border: `1px solid ${inSidebar ? '#374151' : '#dee2e6'}`,
+                          backgroundColor: displayBg,
+                          border: `1px solid ${displayBorder}`,
                           borderRadius: '4px',
                           color: textColor,
                         }}
@@ -391,7 +396,7 @@ export default function ExecutionSettings({
                 {localFiles.length > 0 && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                     {localFiles.map((file, index) => (
-                      <div 
+                      <div
                         key={index}
                         style={{
                           padding: '0.5rem',
@@ -442,8 +447,8 @@ export default function ExecutionSettings({
                 )}
 
                 {/* Add new file form */}
-                <div style={{ 
-                  padding: '0.75rem', 
+                <div style={{
+                  padding: '0.75rem',
                   backgroundColor: '#f8f9fa',
                   border: '1px solid #dee2e6',
                   borderRadius: '4px',
