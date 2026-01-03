@@ -86,6 +86,9 @@ async function studentJoinAndSubmit(
   const studentContext = await browser.newContext();
   const studentPage = await studentContext.newPage();
   await loginAsStudent(studentPage, studentName);
+  
+  // Wait for auth to fully settle after login
+  await studentPage.waitForTimeout(1000);
 
   // Navigate to sections page
   await studentPage.goto('/sections');
