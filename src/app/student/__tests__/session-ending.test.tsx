@@ -27,7 +27,7 @@ jest.mock('next/navigation', () => ({
     replace: jest.fn(),
   }),
   useSearchParams: () => ({
-    get: jest.fn(() => null),
+    get: jest.fn((key: string) => key === 'sessionId' ? 'session1' : null),
   }),
 }));
 
