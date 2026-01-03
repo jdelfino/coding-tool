@@ -41,7 +41,6 @@ describe('LocalSessionRepository - Cross-Process Data Reloading', () => {
     // Repository 1 creates a session
     const session: Session = {
       id: 'session-123',
-      joinCode: 'ABC123',
       problem: {
         id: 'problem-1',
         title: 'Test problem',
@@ -65,7 +64,6 @@ describe('LocalSessionRepository - Cross-Process Data Reloading', () => {
     
     expect(retrievedSession).not.toBeNull();
     expect(retrievedSession?.id).toBe('session-123');
-    expect(retrievedSession?.joinCode).toBe('ABC123');
     expect(retrievedSession?.sectionId).toBe('section-1');
   });
 
@@ -73,7 +71,6 @@ describe('LocalSessionRepository - Cross-Process Data Reloading', () => {
     // Repository 1 creates a session
     const session: Session = {
       id: 'session-456',
-      joinCode: 'DEF456',
       problem: {
         id: 'problem-2',
         title: 'Original problem',
@@ -114,7 +111,6 @@ describe('LocalSessionRepository - Cross-Process Data Reloading', () => {
     // Repository 1 creates a session
     const session: Session = {
       id: 'session-789',
-      joinCode: 'GHI789',
       problem: {
         id: 'problem-3',
         title: 'Test problem',
@@ -158,7 +154,6 @@ describe('LocalSessionRepository - Cross-Process Data Reloading', () => {
     // Repository 1 creates a session
     const session: Session = {
       id: 'session-delete',
-      joinCode: 'DEL123',
       problem: {
         id: 'problem-4',
         title: 'To be deleted',
@@ -193,7 +188,6 @@ describe('LocalSessionRepository - Cross-Process Data Reloading', () => {
     // Repository 1 creates multiple sessions
     const session1: Session = {
       id: 'session-list-1',
-      joinCode: 'LIST01',
       problem: {
         id: 'problem-5',
         title: 'Problem 1',
@@ -212,7 +206,6 @@ describe('LocalSessionRepository - Cross-Process Data Reloading', () => {
     };
     const session2: Session = {
       id: 'session-list-2',
-      joinCode: 'LIST02',
       problem: {
         id: 'problem-6',
         title: 'Problem 2',

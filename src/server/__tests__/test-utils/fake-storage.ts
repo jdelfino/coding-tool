@@ -207,10 +207,6 @@ export class FakeSessionRepository implements ISessionRepository {
     return Array.from(this.sessions.values());
   }
 
-  async getSessionByJoinCode(joinCode: string): Promise<StoredSession | null> {
-    return Array.from(this.sessions.values()).find(s => s.joinCode === joinCode) || null;
-  }
-
   async countSessions(): Promise<number> {
     return this.sessions.size;
   }

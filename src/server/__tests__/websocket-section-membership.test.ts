@@ -9,8 +9,8 @@ import { Problem } from '../types/problem';
 
 // Mock the classes module
 const classRepo = new FakeClassRepository();
-const sectionRepo = new FakeSectionRepository(classRepo);
-const membershipRepo = new FakeMembershipRepository(sectionRepo);
+const sectionRepo = new FakeSectionRepository();
+const membershipRepo = new FakeMembershipRepository();
 
 jest.mock('../classes', () => ({
   getClassRepository: jest.fn(() => Promise.resolve(classRepo)),
@@ -23,7 +23,6 @@ const mockProblem: Problem = {
   title: 'Test Problem',
   description: 'A test problem',
   starterCode: 'print("Hello, world!")',
-  language: 'python',
   executionSettings: {},
   authorId: 'instructor-1',
   createdAt: new Date(),
@@ -54,13 +53,14 @@ describe('Section Membership Verification', () => {
     const classData = await classRepo.createClass({
       name: 'Test Class',
       description: 'Test class for section membership',
-      instructorIds: [instructorId],
+      createdBy: instructorId,
     });
     classId = classData.id;
 
     const section = await sectionRepo.createSection({
       classId,
       name: 'Section A',
+      active: true,
       instructorIds: [instructorId],
     });
     sectionId = section.id;

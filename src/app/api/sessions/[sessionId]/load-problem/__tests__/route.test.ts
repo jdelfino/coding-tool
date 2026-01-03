@@ -74,7 +74,6 @@ describe('POST /api/sessions/:sessionId/load-problem', () => {
 
   const mockSession: Session = {
     id: 'session-123',
-    joinCode: 'ABC123',
     creatorId: 'instructor-1',
     students: new Map(),
     createdAt: new Date(),
