@@ -14,7 +14,7 @@ export async function GET(
 ) {
   try {
     const { id: classId } = await params;
-    
+
     // Check authentication
     const auth = await requireAuth(request);
     if (auth instanceof NextResponse) {
@@ -44,7 +44,7 @@ export async function GET(
         classSections.map(async (section) => {
           const students = await membershipRepo.getSectionMembers(section.id, 'student');
           const studentCount = students.length;
-          
+
           // TODO: Add active session count when we have a way to query sessions by section
           return {
             id: section.id,
@@ -62,7 +62,7 @@ export async function GET(
     }
 
     // For students, just return basic section info
-    return NextResponse.json({ 
+    return NextResponse.json({
       sections: classSections.map(s => ({
         id: s.id,
         name: s.name,
@@ -84,7 +84,7 @@ export async function POST(
 ) {
   try {
     const { id: classId } = await params;
-    
+
     // Check authentication and authorization
     const auth = await requirePermission(request, 'session.create');
     if (auth instanceof NextResponse) {
