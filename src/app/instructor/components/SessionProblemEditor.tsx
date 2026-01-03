@@ -10,6 +10,7 @@
 
 import React, { useState, useEffect } from 'react';
 import CodeEditor from '@/app/student/components/CodeEditor';
+import { EditorContainer } from '@/app/student/components/EditorContainer';
 import { Problem } from '@/server/types/problem';
 import { useDebugger } from '@/hooks/useDebugger';
 import { useWebSocket } from '@/hooks/useWebSocket';
@@ -127,7 +128,7 @@ export default function SessionProblemEditor({
       </div>
 
       {/* Full-width code editor */}
-      <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+      <EditorContainer variant="flex">
         <CodeEditor
           code={starterCode}
           onChange={setStarterCode}
@@ -148,7 +149,7 @@ export default function SessionProblemEditor({
           }}
           editableProblem={true}
         />
-      </div>
+      </EditorContainer>
     </div>
   );
 }

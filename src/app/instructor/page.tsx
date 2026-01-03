@@ -10,6 +10,7 @@ import SectionView from './components/SectionView';
 import SessionControls from './components/SessionControls';
 import StudentList from './components/StudentList';
 import CodeEditor from '@/app/student/components/CodeEditor';
+import { EditorContainer } from '@/app/student/components/EditorContainer';
 import OutputPanel from '@/app/student/components/OutputPanel';
 import RevisionViewer from './components/RevisionViewer';
 import InstructorNav from './components/InstructorNav';
@@ -693,7 +694,7 @@ function InstructorPage() {
                           {students.find(s => s.id === selectedStudentId)?.name || 'Student'}'s Code
                         </h3>
                       </div>
-                      <div style={{ height: '500px' }}>
+                      <EditorContainer height="500px">
                         <CodeEditor
                           code={selectedStudentCode}
                           onChange={() => {}} // Read-only for instructor
@@ -705,7 +706,7 @@ function InstructorPage() {
                           readOnly
                           problem={sessionProblem}
                         />
-                      </div>
+                      </EditorContainer>
                       {executionResult && (
                         <div style={{ marginTop: '1rem' }}>
                           <OutputPanel result={executionResult} />

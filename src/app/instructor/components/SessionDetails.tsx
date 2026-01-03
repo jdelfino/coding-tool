@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import CodeEditor from '@/app/student/components/CodeEditor';
+import { EditorContainer } from '@/app/student/components/EditorContainer';
 
 interface SessionDetailsProps {
   sessionId: string;
@@ -199,14 +200,14 @@ export default function SessionDetails({ sessionId, onClose }: SessionDetailsPro
                     Last updated: {new Date(selectedStudent.lastUpdate).toLocaleString()}
                   </span>
                 </div>
-                <div style={{ height: '500px' }}>
+                <EditorContainer height="500px">
                   <CodeEditor
                     code={selectedStudent.code || session.starterCode || '# No code submitted'}
                     onChange={() => {}} // Read-only
                     onRun={() => {}} // Read-only, no execution
                     readOnly
                   />
-                </div>
+                </EditorContainer>
                 {!selectedStudent.code && (
                   <p className="text-sm text-gray-500 mt-2 text-center">
                     This student did not submit any code.

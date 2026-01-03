@@ -9,6 +9,7 @@ import { useSessionHistory, SessionHistory } from '@/hooks/useSessionHistory';
 import { Problem, ExecutionSettings } from '@/server/types/problem';
 import { useDebugger } from '@/hooks/useDebugger';
 import CodeEditor from './components/CodeEditor';
+import { EditorContainer } from './components/EditorContainer';
 import SessionEndedNotification from './components/SessionEndedNotification';
 
 function StudentPage() {
@@ -460,7 +461,7 @@ function StudentPage() {
         />
       )}
 
-      <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+      <EditorContainer variant="flex">
         <CodeEditor
           code={code}
           onChange={setCode}
@@ -477,7 +478,7 @@ function StudentPage() {
           externalEditorRef={editorRef}
           debugger={debuggerHook}
         />
-      </div>
+      </EditorContainer>
     </main>
   );
 }
