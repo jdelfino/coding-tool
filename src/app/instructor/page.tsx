@@ -638,7 +638,6 @@ function InstructorPage() {
       return (
         <div className="space-y-6">
           <SessionControls
-            joinCode={joinCode}
             sessionId={sessionId}
             sectionName={sessionContext?.sectionName}
             onEndSession={handleEndSession}

@@ -432,7 +432,7 @@ describe('InstructorPage - Integration Tests', () => {
 
       // Wait for session view to render
       await waitFor(() => {
-        expect(screen.getByText('ABC123')).toBeInTheDocument();
+        expect(screen.getByText('Active Session')).toBeInTheDocument();
       });
 
       // Now simulate receiving a STUDENT_LIST_UPDATE message
@@ -511,7 +511,7 @@ describe('InstructorPage - Integration Tests', () => {
       rerender(<InstructorPage />);
 
       await waitFor(() => {
-        expect(screen.getByText('ABC123')).toBeInTheDocument();
+        expect(screen.getByText('Active Session')).toBeInTheDocument();
       });
 
       // Send a STUDENT_JOINED message
@@ -601,7 +601,7 @@ describe('InstructorPage - Integration Tests', () => {
       rerender(<InstructorPage />);
 
       await waitFor(() => {
-        expect(screen.getByText('ABC123')).toBeInTheDocument();
+        expect(screen.getByText('Active Session')).toBeInTheDocument();
       });
 
       // Send STUDENT_LIST_UPDATE with empty students array
@@ -672,7 +672,7 @@ describe('InstructorPage - Integration Tests', () => {
       rerender(<InstructorPage />);
 
       await waitFor(() => {
-        expect(screen.getByText('ABC123')).toBeInTheDocument();
+        expect(screen.getByText('Active Session')).toBeInTheDocument();
       });
 
       // Add a student
@@ -871,8 +871,7 @@ describe('InstructorPage - Integration Tests', () => {
 
       // Verify we're in session view
       await waitFor(() => {
-        const joinCodeElement = screen.queryByText(/ABC123/);
-        expect(joinCodeElement).toBeInTheDocument();
+        expect(screen.getByText('Active Session')).toBeInTheDocument();
       });
 
       // Simulate session ended
@@ -891,7 +890,7 @@ describe('InstructorPage - Integration Tests', () => {
 
       // Verify instructor is back at dashboard (not in session)
       await waitFor(() => {
-        expect(screen.queryByText(/ABC123/)).not.toBeInTheDocument();
+        expect(screen.queryByText('Active Session')).not.toBeInTheDocument();
       });
 
       // Should see dashboard navigation
@@ -948,7 +947,7 @@ describe('InstructorPage - Integration Tests', () => {
       rerender(<InstructorPage />);
 
       await waitFor(() => {
-        expect(screen.queryByText(/ABC123/)).toBeInTheDocument();
+        expect(screen.getByText('Active Session')).toBeInTheDocument();
       });
 
       // Add a student
@@ -983,7 +982,7 @@ describe('InstructorPage - Integration Tests', () => {
 
       // Verify we're back at dashboard with no session state
       await waitFor(() => {
-        expect(screen.queryByText(/ABC123/)).not.toBeInTheDocument();
+        expect(screen.queryByText('Active Session')).not.toBeInTheDocument();
       });
       expect(screen.queryByText('Student1')).not.toBeInTheDocument();
     });
@@ -1047,7 +1046,7 @@ describe('InstructorPage - Integration Tests', () => {
       rerender(<InstructorPage />);
 
       await waitFor(() => {
-        expect(screen.getByText('XYZ789')).toBeInTheDocument();
+        expect(screen.getByText('Active Session')).toBeInTheDocument();
       });
 
       // Verify execution settings are loaded (check for attached files in ProblemInput)
@@ -1113,7 +1112,7 @@ describe('InstructorPage - Integration Tests', () => {
       rerender(<InstructorPage />);
 
       await waitFor(() => {
-        expect(screen.getByText('ABC456')).toBeInTheDocument();
+        expect(screen.getByText('Active Session')).toBeInTheDocument();
       });
 
       // Verify execution settings are loaded from problem (check for attached files)
@@ -1175,7 +1174,7 @@ describe('InstructorPage - Integration Tests', () => {
       rerender(<InstructorPage />);
 
       await waitFor(() => {
-        expect(screen.getByText('DEF789')).toBeInTheDocument();
+        expect(screen.getByText('Active Session')).toBeInTheDocument();
       });
 
       // Session should render without errors (no attached files section shown)

@@ -4,7 +4,6 @@ import React from 'react';
 
 interface SessionControlsProps {
   sessionId: string;
-  joinCode: string;
   sectionName?: string;
   onEndSession: () => void;
   onLeaveSession: () => void;
@@ -13,7 +12,6 @@ interface SessionControlsProps {
 
 export default function SessionControls({ 
   sessionId, 
-  joinCode, 
   sectionName,
   onEndSession,
   onLeaveSession,
@@ -63,16 +61,6 @@ export default function SessionControls({
             End Session
           </button>
         </div>
-      </div>
-      
-      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-6 border-2 border-blue-300">
-        <p className="text-sm text-gray-600 mb-2">Student Join Code</p>
-        <div className="text-5xl font-bold text-blue-600 font-mono tracking-wider">
-          {joinCode}
-        </div>
-        <p className="text-sm text-gray-600 mt-3">
-          Share this code with students so they can join the session
-        </p>
       </div>
     </div>
   );
