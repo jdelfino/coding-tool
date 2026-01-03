@@ -2,7 +2,7 @@
 
 /**
  * Problem Creator Component
- * 
+ *
  * Allows instructors to create or edit programming problems with:
  * - Title and description
  * - Starter code template (with Monaco editor and run capability)
@@ -13,6 +13,8 @@
 import React, { useState, useEffect } from 'react';
 import type { ProblemInput } from '@/server/types/problem';
 import CodeEditor from '@/app/student/components/CodeEditor';
+import { useDebugger } from '@/hooks/useDebugger';
+import { useWebSocket } from '@/hooks/useWebSocket';
 
 interface ProblemCreatorProps {
   problemId?: string | null;
@@ -33,7 +35,7 @@ export default function ProblemCreator({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+
   // Execution settings
   const [stdin, setStdin] = useState('');
   const [randomSeed, setRandomSeed] = useState<number | undefined>(undefined);
@@ -60,7 +62,7 @@ export default function ProblemCreator({
       setTitle(problem.title || '');
       setDescription(problem.description || '');
       setStarterCode(problem.starterCode || '');
-      
+
       // Load execution settings
       const execSettings = problem.executionSettings;
       setStdin(execSettings?.stdin || '');
@@ -92,13 +94,13 @@ export default function ProblemCreator({
         testCases: [], // Test cases added separately
         classId: classId || undefined,
       };
-      
+
       // Only include executionSettings if at least one field is set
       const execSettings: any = {};
       if (stdin.trim()) execSettings.stdin = stdin.trim();
       if (randomSeed !== undefined) execSettings.randomSeed = randomSeed;
       if (attachedFiles.length > 0) execSettings.attachedFiles = attachedFiles;
-      
+
       if (Object.keys(execSettings).length > 0) {
         problemInput.executionSettings = execSettings;
       }
@@ -126,7 +128,7 @@ export default function ProblemCreator({
       }
 
       const { problem } = await response.json();
-      
+
       if (!isEditMode) {
         // Reset form only when creating
         setTitle('');
@@ -146,108 +148,83 @@ export default function ProblemCreator({
     }
   };
 
+  // Setup debugger
+  const [wsUrl, setWsUrl] = useState('');
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const host = window.location.host;
+      setWsUrl(`${protocol}//${host}/ws`);
+    }
+  }, []);
+  const { sendMessage } = useWebSocket(wsUrl);
+  const debuggerHook = useDebugger(sendMessage);
+
   return (
-    <div className="w-full p-6 bg-white rounded-lg shadow-md">
-      <h2 className="text-2xl font-bold mb-6">{isEditMode ? 'Edit Problem' : 'Create New Problem'}</h2>
-
-      {isLoading && (
-        <div className="mb-4 p-3 bg-blue-100 border border-blue-400 text-blue-700 rounded">
-          Loading problem...
-        </div>
-      )}
-
-      {error && (
-        <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
-          {error}
-        </div>
-      )}
-
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Title */}
-        <div>
-          <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
-            Title *
-          </label>
-          <input
-            id="title"
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="e.g., Two Sum Problem"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            required
-          />
-        </div>
-
-        {/* Description */}
-        <div>
-          <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
-            Description
-          </label>
-          <textarea
-            id="description"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="Describe the problem, requirements, and any constraints..."
-            rows={6}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
-          />
-          <p className="mt-1 text-xs text-gray-500">
-            Supports Markdown formatting
-          </p>
-        </div>
-
-        {/* Starter Code */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Starter Code
-          </label>
-          <CodeEditor
-            code={starterCode}
-            onChange={setStarterCode}
-            useApiExecution={true}
-            title="Starter Code"
-            exampleInput={stdin}
-            onStdinChange={setStdin}
-            randomSeed={randomSeed}
-            onRandomSeedChange={setRandomSeed}
-            attachedFiles={attachedFiles}
-            onAttachedFilesChange={setAttachedFiles}
-          />
-          <p className="mt-2 text-xs text-gray-500">
-            Template code shown to students. Click "Run Code" to test it before saving.
-          </p>
-        </div>
-
-        {/* Actions */}
-        <div className="flex justify-end space-x-3 pt-4 border-t">
-          {onCancel && (
+    <div className="h-full flex flex-col">
+      {/* Header with save button */}
+      <div className="flex-shrink-0 px-6 py-4 bg-white border-b border-gray-300">
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-bold">{isEditMode ? 'Edit Problem' : 'Create New Problem'}</h2>
+          <div className="flex items-center space-x-3">
+            {onCancel && (
+              <button
+                type="button"
+                onClick={onCancel}
+                disabled={isSubmitting}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+            )}
             <button
               type="button"
-              onClick={onCancel}
-              disabled={isSubmitting}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 disabled:opacity-50"
+              onClick={handleSubmit}
+              disabled={isSubmitting || isLoading || !title.trim()}
+              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Cancel
+              {isSubmitting ? (isEditMode ? 'Updating...' : 'Creating...') : (isEditMode ? 'Update Problem' : 'Create Problem')}
             </button>
-          )}
-          <button
-            type="submit"
-            disabled={isSubmitting || isLoading || !title.trim()}
-            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isSubmitting ? (isEditMode ? 'Updating...' : 'Creating...') : (isEditMode ? 'Update Problem' : 'Create Problem')}
-          </button>
+          </div>
         </div>
-      </form>
 
-      <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-md">
-        <p className="text-sm text-blue-800">
-          <strong>Note:</strong> {isEditMode 
-            ? 'Test cases are managed separately and are not affected by this update.' 
-            : 'After creating the problem, you can add test cases in the next step.'}
-        </p>
+        {isLoading && (
+          <div className="mt-2 p-3 bg-blue-100 border border-blue-400 text-blue-700 rounded">
+            Loading problem...
+          </div>
+        )}
+
+        {error && (
+          <div className="mt-2 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+            {error}
+          </div>
+        )}
       </div>
+
+      {/* Full-width code editor */}
+      <div className="flex-1 min-h-0">
+        <CodeEditor
+          code={starterCode}
+          onChange={setStarterCode}
+          useApiExecution={true}
+          title="Starter Code"
+          exampleInput={stdin}
+          onStdinChange={setStdin}
+          randomSeed={randomSeed}
+          onRandomSeedChange={setRandomSeed}
+          attachedFiles={attachedFiles}
+          onAttachedFilesChange={setAttachedFiles}
+          problem={{ title, description, starterCode }}
+          onLoadStarterCode={setStarterCode}
+          debugger={debuggerHook}
+          onProblemEdit={(updates) => {
+            if (updates.title !== undefined) setTitle(updates.title);
+            if (updates.description !== undefined) setDescription(updates.description);
+          }}
+          editableProblem={true}
+        />
+      </div>
+
     </div>
   );
 }

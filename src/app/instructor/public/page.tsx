@@ -5,6 +5,8 @@ import { useSearchParams } from 'next/navigation';
 import { MessageType } from '@/server/types';
 import { ExecutionSettings, Problem } from '@/server/types/problem';
 import CodeEditor from '@/app/student/components/CodeEditor';
+import { useDebugger } from '@/hooks/useDebugger';
+import { useWebSocket } from '@/hooks/useWebSocket';
 
 interface ExecutionResult {
   success: boolean;
@@ -16,7 +18,7 @@ interface ExecutionResult {
 function PublicViewContent() {
   const searchParams = useSearchParams();
   const sessionId = searchParams.get('sessionId');
-  
+
   const [ws, setWs] = useState<WebSocket | null>(null);
   const [joinCode, setJoinCode] = useState('');
   const [problem, setProblem] = useState<Problem | null>(null);
@@ -28,6 +30,18 @@ function PublicViewContent() {
   const [exampleInput, setExampleInput] = useState('');
   const [randomSeed, setRandomSeed] = useState<number | undefined>(undefined);
   const [attachedFiles, setAttachedFiles] = useState<Array<{ name: string; content: string }>>([]);
+
+  // Setup debugger
+  const [wsUrl, setWsUrl] = useState('');
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const host = window.location.host;
+      setWsUrl(`${protocol}//${host}/ws`);
+    }
+  }, []);
+  const { sendMessage } = useWebSocket(wsUrl);
+  const debuggerHook = useDebugger(sendMessage);
 
   useEffect(() => {
     if (!sessionId) return;
@@ -48,7 +62,7 @@ function PublicViewContent() {
 
     websocket.onmessage = (event) => {
       const message = JSON.parse(event.data);
-      
+
       switch (message.type) {
         case MessageType.PUBLIC_SUBMISSION_UPDATE:
           if (message.payload.joinCode !== undefined) {
@@ -72,19 +86,19 @@ function PublicViewContent() {
             setAttachedFiles(effectiveSettings?.attachedFiles || []);
           }
           break;
-          
+
         case MessageType.EXECUTION_RESULT:
           setIsExecuting(false);
           setExecutionResult(message.payload);
           break;
-          
+
           case MessageType.PROBLEM_UPDATE:
           setProblemText(message.payload.problemText);
           setExampleInput(message.payload.exampleInput || '');
           setRandomSeed(message.payload.randomSeed);
           setAttachedFiles(message.payload.attachedFiles || []);
           break;
-          
+
         case MessageType.ERROR:
           console.error('Error:', message.payload.error);
           break;
@@ -118,10 +132,10 @@ function PublicViewContent() {
 
   const handleRun = (executionSettings: ExecutionSettings) => {
     if (!ws || ws.readyState !== WebSocket.OPEN) return;
-    
+
     setIsExecuting(true);
     setExecutionResult(null);
-    
+
     ws.send(JSON.stringify({
       type: MessageType.PUBLIC_EXECUTE_CODE,
       payload: { code, executionSettings },
@@ -130,18 +144,18 @@ function PublicViewContent() {
 
   if (!sessionId) {
     return (
-      <div style={{ 
-        minHeight: '100vh', 
-        backgroundColor: '#f9fafb', 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'center' 
+      <div style={{
+        minHeight: '100vh',
+        backgroundColor: '#f9fafb',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
       }}>
-        <div style={{ 
-          backgroundColor: 'white', 
-          padding: '2rem', 
+        <div style={{
+          backgroundColor: 'white',
+          padding: '2rem',
           border: '1px solid #ccc',
-          borderRadius: '4px' 
+          borderRadius: '4px'
         }}>
           <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1rem' }}>No Session</h1>
           <p style={{ color: '#666' }}>Please provide a sessionId in the URL.</p>
@@ -151,20 +165,20 @@ function PublicViewContent() {
   }
 
   return (
-    <main style={{ 
-      padding: '1rem', 
-      width: '100%', 
-      height: '100vh', 
+    <main style={{
+      padding: '1rem',
+      width: '100%',
+      height: '100vh',
       boxSizing: 'border-box',
       display: 'flex',
       flexDirection: 'column'
     }}>
       <h1 style={{ marginBottom: '1rem', flexShrink: 0 }}>Public Display</h1>
-      
+
       {/* Compact Header with Problem and Join Code */}
-      <div style={{ 
-        padding: '1rem', 
-        border: '1px solid #ccc', 
+      <div style={{
+        padding: '1rem',
+        border: '1px solid #ccc',
         borderRadius: '4px',
         marginBottom: '1rem',
         display: 'flex',
@@ -176,8 +190,8 @@ function PublicViewContent() {
         <div style={{ flex: 1, minWidth: 0 }}>
           <h2 style={{ marginTop: 0, marginBottom: '0.5rem', fontSize: '1.25rem' }}>Problem</h2>
           {problemText ? (
-            <pre style={{ 
-              whiteSpace: 'pre-wrap', 
+            <pre style={{
+              whiteSpace: 'pre-wrap',
               color: '#333',
               fontFamily: 'inherit',
               fontSize: '0.9rem',
@@ -189,16 +203,16 @@ function PublicViewContent() {
             <p style={{ color: '#999', fontStyle: 'italic', margin: 0 }}>No problem set yet</p>
           )}
         </div>
-        <div style={{ 
+        <div style={{
           textAlign: 'right',
           flexShrink: 0,
           borderLeft: '2px solid #ddd',
           paddingLeft: '1.5rem'
         }}>
           <p style={{ fontSize: '0.75rem', color: '#666', marginBottom: '0.25rem', marginTop: 0 }}>Join Code</p>
-          <p style={{ 
-            fontSize: '2rem', 
-            fontWeight: 'bold', 
+          <p style={{
+            fontSize: '2rem',
+            fontWeight: 'bold',
             color: '#0070f3',
             fontFamily: 'monospace',
             margin: 0
@@ -210,8 +224,8 @@ function PublicViewContent() {
 
       {/* Featured Submission */}
       {hasFeaturedSubmission ? (
-        <div style={{ 
-          padding: '1rem', 
+        <div style={{
+          padding: '1rem',
           border: '1px solid #ccc',
           borderRadius: '4px',
           flex: 1,
@@ -231,12 +245,13 @@ function PublicViewContent() {
               executionResult={executionResult}
               problem={problem}
               title="Featured Code"
+              debugger={debuggerHook}
             />
           </div>
         </div>
       ) : (
-        <div style={{ 
-          padding: '3rem', 
+        <div style={{
+          padding: '3rem',
           border: '1px solid #ccc',
           borderRadius: '4px',
           textAlign: 'center'
@@ -256,12 +271,12 @@ function PublicViewContent() {
 export default function PublicInstructorView() {
   return (
     <Suspense fallback={
-      <div style={{ 
-        minHeight: '100vh', 
-        backgroundColor: '#f9fafb', 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'center' 
+      <div style={{
+        minHeight: '100vh',
+        backgroundColor: '#f9fafb',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
       }}>
         <div style={{ fontSize: '1.25rem', color: '#666' }}>Loading...</div>
       </div>

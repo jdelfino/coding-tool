@@ -32,10 +32,12 @@ interface CodeEditorProps {
   useApiExecution?: boolean;
   title?: string;
   showRunButton?: boolean;
-  problem?: Problem | null;
+  problem?: Problem | { title: string; description?: string; starterCode?: string } | null;
   onLoadStarterCode?: (starterCode: string) => void;
   externalEditorRef?: React.MutableRefObject<any>;
   debugger?: ReturnType<typeof import('@/hooks/useDebugger').useDebugger>;
+  onProblemEdit?: (updates: { title?: string; description?: string }) => void;
+  editableProblem?: boolean;
 }
 
 export default function CodeEditor({
@@ -58,6 +60,8 @@ export default function CodeEditor({
   onLoadStarterCode,
   externalEditorRef,
   debugger: debuggerHook,
+  onProblemEdit,
+  editableProblem = false,
 }: CodeEditorProps) {
   const editorRef = useRef<any>(null);
   const [stdin, setStdin] = useState('');
@@ -645,22 +649,66 @@ export default function CodeEditor({
                   </button>
                 </div>
                 <div className="flex-1 overflow-y-auto p-4">
-                  <h2 className="text-xl font-bold mb-4">{problem.title}</h2>
-                  {problem.description && (
-                    <div className="prose prose-invert prose-sm max-w-none">
-                      <pre className="whitespace-pre-wrap text-gray-300 text-sm font-sans">
-                        {problem.description}
-                      </pre>
-                    </div>
-                  )}
-                  {problem.starterCode && onLoadStarterCode && (
-                    <button
-                      type="button"
-                      onClick={() => onLoadStarterCode(problem.starterCode || '')}
-                      className="mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm"
-                    >
-                      Load Starter Code
-                    </button>
+                  {editableProblem && onProblemEdit ? (
+                    /* Editable problem view for instructor */
+                    <>
+                      <div className="mb-4">
+                        <label htmlFor="problem-title" className="block text-xs font-medium text-gray-400 mb-1">
+                          Title *
+                        </label>
+                        <input
+                          id="problem-title"
+                          type="text"
+                          value={problem.title || ''}
+                          onChange={(e) => onProblemEdit({ title: e.target.value })}
+                          placeholder="e.g., Two Sum Problem"
+                          className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                        />
+                      </div>
+                      <div className="mb-4">
+                        <label htmlFor="problem-description" className="block text-xs font-medium text-gray-400 mb-1">
+                          Description
+                        </label>
+                        <textarea
+                          id="problem-description"
+                          value={problem.description || ''}
+                          onChange={(e) => onProblemEdit({ description: e.target.value })}
+                          placeholder="Describe the problem, requirements, and any constraints..."
+                          rows={12}
+                          className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+                        />
+                      </div>
+                      {problem.starterCode && onLoadStarterCode && (
+                        <button
+                          type="button"
+                          onClick={() => onLoadStarterCode(problem.starterCode || '')}
+                          className="mt-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm w-full"
+                        >
+                          Load Starter Code
+                        </button>
+                      )}
+                    </>
+                  ) : (
+                    /* Read-only problem view for student */
+                    <>
+                      <h2 className="text-xl font-bold mb-4">{problem.title}</h2>
+                      {problem.description && (
+                        <div className="prose prose-invert prose-sm max-w-none">
+                          <pre className="whitespace-pre-wrap text-gray-300 text-sm font-sans">
+                            {problem.description}
+                          </pre>
+                        </div>
+                      )}
+                      {problem.starterCode && onLoadStarterCode && (
+                        <button
+                          type="button"
+                          onClick={() => onLoadStarterCode(problem.starterCode || '')}
+                          className="mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm"
+                        >
+                          Load Starter Code
+                        </button>
+                      )}
+                    </>
                   )}
                 </div>
                 {/* Resize handle */}

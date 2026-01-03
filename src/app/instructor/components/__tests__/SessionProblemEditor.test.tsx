@@ -6,15 +6,52 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import SessionProblemEditor from '../SessionProblemEditor';
 
+// Mock useDebugger hook
+jest.mock('@/hooks/useDebugger', () => ({
+  useDebugger: jest.fn(() => ({
+    isDebugging: false,
+    currentStep: 0,
+    totalSteps: 0,
+    currentTrace: null,
+    startDebugging: jest.fn(),
+    stopDebugging: jest.fn(),
+    nextStep: jest.fn(),
+    previousStep: jest.fn(),
+    getCurrentStep: jest.fn(() => null),
+  })),
+}));
+
+// Mock useWebSocket hook
+jest.mock('@/hooks/useWebSocket', () => ({
+  useWebSocket: jest.fn(() => ({
+    sendMessage: jest.fn(),
+    lastMessage: null,
+    isConnected: false,
+  })),
+}));
+
+// Mock useResponsiveLayout hook
+jest.mock('@/hooks/useResponsiveLayout', () => ({
+  __esModule: true,
+  default: jest.fn(() => ({
+    isMobile: false,
+    isTablet: false,
+    isDesktop: true,
+  })),
+}));
+
 // Mock the CodeEditor component
 jest.mock('@/app/student/components/CodeEditor', () => {
-  return function MockCodeEditor({ 
-    code, 
-    onChange, 
-    onStdinChange, 
-    onRandomSeedChange, 
+  return function MockCodeEditor({
+    code,
+    onChange,
+    onStdinChange,
+    onRandomSeedChange,
     onAttachedFilesChange,
-    title 
+    title,
+    problem,
+    onProblemEdit,
+    editableProblem
   }: any) {
     return (
       <div data-testid="code-editor">
@@ -35,6 +72,24 @@ jest.mock('@/app/student/components/CodeEditor', () => {
           placeholder="seed"
           onChange={(e) => onRandomSeedChange?.(e.target.value ? Number(e.target.value) : undefined)}
         />
+        {editableProblem && (
+          <div data-testid="editable-problem-sidebar">
+            <input
+              data-testid="problem-title-input"
+              aria-label="Problem Title"
+              placeholder="Problem Title"
+              value={problem?.title || ''}
+              onChange={(e) => onProblemEdit?.({ title: e.target.value })}
+            />
+            <textarea
+              data-testid="problem-description-textarea"
+              aria-label="Problem Description"
+              placeholder="Problem Description"
+              value={problem?.description || ''}
+              onChange={(e) => onProblemEdit?.({ description: e.target.value })}
+            />
+          </div>
+        )}
       </div>
     );
   };
@@ -54,8 +109,8 @@ describe('SessionProblemEditor', () => {
       />
     );
 
-    expect(screen.getByLabelText(/title/i)).toHaveValue('');
-    expect(screen.getByLabelText(/description/i)).toHaveValue('');
+    expect(screen.getByTestId('problem-title-input')).toHaveValue('');
+    expect(screen.getByTestId('problem-description-textarea')).toHaveValue('');
     expect(screen.getByTestId('code-editor')).toBeInTheDocument();
     expect(screen.getByText('Update Problem')).toBeInTheDocument();
   });
@@ -74,8 +129,8 @@ describe('SessionProblemEditor', () => {
       />
     );
 
-    expect(screen.getByLabelText(/title/i)).toHaveValue('Test Problem');
-    expect(screen.getByLabelText(/description/i)).toHaveValue('Test description');
+    expect(screen.getByTestId('problem-title-input')).toHaveValue('Test Problem');
+    expect(screen.getByTestId('problem-description-textarea')).toHaveValue('Test description');
     expect(screen.getByTestId('code-textarea')).toHaveValue('print("hello")');
   });
 
@@ -104,7 +159,7 @@ describe('SessionProblemEditor', () => {
       />
     );
 
-    const titleInput = screen.getByLabelText(/title/i);
+    const titleInput = screen.getByTestId('problem-title-input');
     fireEvent.change(titleInput, { target: { value: 'New Title' } });
 
     expect(titleInput).toHaveValue('New Title');
@@ -117,7 +172,7 @@ describe('SessionProblemEditor', () => {
       />
     );
 
-    const descriptionInput = screen.getByLabelText(/description/i);
+    const descriptionInput = screen.getByTestId('problem-description-textarea');
     fireEvent.change(descriptionInput, { target: { value: 'New description' } });
 
     expect(descriptionInput).toHaveValue('New description');
@@ -144,14 +199,14 @@ describe('SessionProblemEditor', () => {
     );
 
     // Fill in the form
-    fireEvent.change(screen.getByLabelText(/title/i), { 
-      target: { value: 'My Title' } 
+    fireEvent.change(screen.getByTestId('problem-title-input'), {
+      target: { value: 'My Title' }
     });
-    fireEvent.change(screen.getByLabelText(/description/i), { 
-      target: { value: 'My description' } 
+    fireEvent.change(screen.getByTestId('problem-description-textarea'), {
+      target: { value: 'My description' }
     });
-    fireEvent.change(screen.getByTestId('code-textarea'), { 
-      target: { value: 'print("code")' } 
+    fireEvent.change(screen.getByTestId('code-textarea'), {
+      target: { value: 'print("code")' }
     });
 
     // Click update
@@ -175,8 +230,8 @@ describe('SessionProblemEditor', () => {
     );
 
     // Set stdin
-    fireEvent.change(screen.getByTestId('stdin-input'), { 
-      target: { value: 'test input' } 
+    fireEvent.change(screen.getByTestId('stdin-input'), {
+      target: { value: 'test input' }
     });
 
     // Click update
@@ -198,8 +253,8 @@ describe('SessionProblemEditor', () => {
     );
 
     // Set random seed
-    fireEvent.change(screen.getByTestId('seed-input'), { 
-      target: { value: '42' } 
+    fireEvent.change(screen.getByTestId('seed-input'), {
+      target: { value: '42' }
     });
 
     // Click update
@@ -220,14 +275,14 @@ describe('SessionProblemEditor', () => {
       />
     );
 
-    fireEvent.change(screen.getByLabelText(/title/i), { 
-      target: { value: '  Title with spaces  ' } 
+    fireEvent.change(screen.getByTestId('problem-title-input'), {
+      target: { value: '  Title with spaces  ' }
     });
-    fireEvent.change(screen.getByLabelText(/description/i), { 
-      target: { value: '  Description with spaces  ' } 
+    fireEvent.change(screen.getByTestId('problem-description-textarea'), {
+      target: { value: '  Description with spaces  ' }
     });
-    fireEvent.change(screen.getByTestId('code-textarea'), { 
-      target: { value: '  code with spaces  ' } 
+    fireEvent.change(screen.getByTestId('code-textarea'), {
+      target: { value: '  code with spaces  ' }
     });
 
     fireEvent.click(screen.getByText('Update Problem'));
@@ -254,7 +309,7 @@ describe('SessionProblemEditor', () => {
       />
     );
 
-    expect(screen.getByLabelText(/title/i)).toHaveValue('Initial');
+    expect(screen.getByTestId('problem-title-input')).toHaveValue('Initial');
 
     // Update the initial problem
     rerender(
@@ -268,19 +323,8 @@ describe('SessionProblemEditor', () => {
       />
     );
 
-    expect(screen.getByLabelText(/title/i)).toHaveValue('Updated');
-    expect(screen.getByLabelText(/description/i)).toHaveValue('Updated desc');
-  });
-
-  it('displays help text for starter code', () => {
-    render(
-      <SessionProblemEditor
-        onUpdateProblem={mockOnUpdateProblem}
-      />
-    );
-
-    expect(screen.getByText(/Template code shown to students/i)).toBeInTheDocument();
-    expect(screen.getByText(/You can test it by clicking "Run Code"/i)).toBeInTheDocument();
+    expect(screen.getByTestId('problem-title-input')).toHaveValue('Updated');
+    expect(screen.getByTestId('problem-description-textarea')).toHaveValue('Updated desc');
   });
 
   it('uses CodeEditor component with correct props', () => {

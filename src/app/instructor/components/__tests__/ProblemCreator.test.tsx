@@ -1,13 +1,13 @@
 /**
  * Tests for ProblemCreator component
- * 
+ *
  * Tests both create and edit modes with all fields:
  * - Loading existing problem data
  * - Editing all fields (title, description, starterCode)
  * - Form submission and validation
  * - Error handling
  * - Cancel functionality
- * 
+ *
  * @jest-environment jsdom
  */
 
@@ -19,11 +19,76 @@ import ProblemCreator from '../ProblemCreator';
 // Mock fetch globally
 global.fetch = jest.fn();
 
+// Mock useDebugger hook
+jest.mock('@/hooks/useDebugger', () => ({
+  useDebugger: () => ({
+    trace: null,
+    currentStep: 0,
+    isLoading: false,
+    error: null,
+    hasTrace: false,
+    totalSteps: 0,
+    canStepForward: false,
+    canStepBackward: false,
+    requestTrace: jest.fn(),
+    setTrace: jest.fn(),
+    stepForward: jest.fn(),
+    stepBackward: jest.fn(),
+    jumpToStep: jest.fn(),
+    jumpToFirst: jest.fn(),
+    jumpToLast: jest.fn(),
+    reset: jest.fn(),
+    getCurrentStep: jest.fn(() => null),
+    getCurrentLocals: jest.fn(() => ({})),
+    getCurrentGlobals: jest.fn(() => ({})),
+    getCurrentCallStack: jest.fn(() => []),
+    getPreviousStep: jest.fn(() => null)
+  })
+}));
+
+// Mock useWebSocket hook
+jest.mock('@/hooks/useWebSocket', () => ({
+  useWebSocket: () => ({
+    isConnected: false,
+    connectionStatus: 'disconnected',
+    connectionError: null,
+    lastMessage: null,
+    sendMessage: jest.fn()
+  })
+}));
+
+// Mock useResponsiveLayout
+jest.mock('@/hooks/useResponsiveLayout', () => ({
+  useResponsiveLayout: () => true,
+  useSidebarSection: () => ({
+    isCollapsed: true,
+    toggle: jest.fn(),
+    setCollapsed: jest.fn()
+  })
+}));
+
 // Mock CodeEditor component
 jest.mock('@/app/student/components/CodeEditor', () => {
-  return function MockCodeEditor({ code, onChange, title, useApiExecution }: any) {
+  return function MockCodeEditor({ code, onChange, title, useApiExecution, problem, onProblemEdit, editableProblem }: any) {
     return (
       <div data-testid={`code-editor-${title}`}>
+        {/* Show editable problem fields if in edit mode */}
+        {editableProblem && problem && onProblemEdit && (
+          <div data-testid="editable-problem-sidebar">
+            <label htmlFor="problem-title">Title *</label>
+            <input
+              id="problem-title"
+              value={problem.title || ''}
+              onChange={(e) => onProblemEdit({ title: e.target.value })}
+            />
+            <label htmlFor="problem-description">Description</label>
+            <textarea
+              id="problem-description"
+              value={problem.description || ''}
+              onChange={(e) => onProblemEdit({ description: e.target.value })}
+            />
+          </div>
+        )}
         <label htmlFor={`code-${title}`}>{title}</label>
         <textarea
           id={`code-${title}`}
@@ -46,22 +111,23 @@ describe('ProblemCreator Component', () => {
   describe('Create Mode', () => {
     it('should render form in create mode when no problemId provided', () => {
       render(<ProblemCreator />);
-      
+
       expect(screen.getByText('Create New Problem')).toBeInTheDocument();
-      expect(screen.getByLabelText(/Title/)).toHaveValue('');
-      expect(screen.getByLabelText(/Description/)).toHaveValue('');
+      // Fields are now in the editable problem sidebar within CodeEditor
+      expect(screen.getByLabelText('Title *')).toHaveValue('');
+      expect(screen.getByLabelText('Description')).toHaveValue('');
       expect(screen.getByLabelText(/Starter Code/)).toHaveValue('');
       expect(screen.getByText('Create Problem')).toBeInTheDocument();
     });
 
     it('should validate required title field', async () => {
       render(<ProblemCreator />);
-      
+
       const submitButton = screen.getByText('Create Problem');
-      
+
       // Button should be disabled when title is empty
       expect(submitButton).toBeDisabled();
-      
+
       // The component prevents submission when title is empty through disabled button
       // This is the actual validation mechanism in the implementation
       expect(global.fetch).not.toHaveBeenCalled();
@@ -82,12 +148,12 @@ describe('ProblemCreator Component', () => {
       });
 
       render(<ProblemCreator onProblemCreated={onProblemCreated} />);
-      
-      // Fill in form
-      fireEvent.change(screen.getByLabelText(/Title/), {
+
+      // Fill in fields (now in editable sidebar)
+      fireEvent.change(screen.getByLabelText('Title *'), {
         target: { value: 'Test Problem' },
       });
-      fireEvent.change(screen.getByLabelText(/Description/), {
+      fireEvent.change(screen.getByLabelText('Description'), {
         target: { value: 'Test description' },
       });
       fireEvent.change(screen.getByLabelText(/Starter Code/), {
@@ -123,7 +189,7 @@ describe('ProblemCreator Component', () => {
       });
 
       render(<ProblemCreator />);
-      
+
       fireEvent.change(screen.getByLabelText(/Title/), {
         target: { value: 'Test Problem' },
       });
@@ -300,7 +366,7 @@ describe('ProblemCreator Component', () => {
 
     it('should enable submit button when title is provided', () => {
       render(<ProblemCreator />);
-      
+
       fireEvent.change(screen.getByLabelText(/Title/), {
         target: { value: 'Test' },
       });
@@ -315,7 +381,7 @@ describe('ProblemCreator Component', () => {
       );
 
       render(<ProblemCreator />);
-      
+
       fireEvent.change(screen.getByLabelText(/Title/), {
         target: { value: 'Test' },
       });
@@ -326,14 +392,14 @@ describe('ProblemCreator Component', () => {
       });
     });
   });
-  
+
   describe('Execution Settings', () => {
     it('should pass execution settings to CodeEditor components', () => {
       render(<ProblemCreator />);
-      
+
       // Verify CodeEditor component is rendered
       expect(screen.getByTestId('code-editor-Starter Code')).toBeInTheDocument();
-      
+
       // Note: stdin, Random Seed, and Attached Files are now in CodeEditor's ExecutionSettings
       // These are tested in the CodeEditor component tests
     });
@@ -351,13 +417,13 @@ describe('ProblemCreator Component', () => {
       });
 
       const { rerender } = render(<ProblemCreator onProblemCreated={onProblemCreated} />);
-      
+
       // Fill in basic fields
       fireEvent.change(screen.getByLabelText(/Title/), {
         target: { value: 'Test Problem' },
       });
 
-      // Note: ExecutionSettings (stdin, random seed, attached files) are now handled 
+      // Note: ExecutionSettings (stdin, random seed, attached files) are now handled
       // inside CodeEditor component via onStdinChange callback
       // This is tested in the CodeEditor component tests
 
@@ -421,7 +487,7 @@ describe('ProblemCreator Component', () => {
       });
 
       render(<ProblemCreator />);
-      
+
       // Fill in fields
       fireEvent.change(screen.getByLabelText(/Title/), {
         target: { value: 'Test' },
