@@ -448,30 +448,29 @@ class WebSocketHandler {
       return;
     }
 
-    // Auto-enroll student in section if session is scoped to a section
+    // Verify section membership if session is scoped to a section
     if (session.sectionId && connection.userId) {
-      console.log('[JOIN_SESSION] Checking/creating section membership for user:', connection.userId);
-      const membershipRepo = await getMembershipRepository();
+      console.log('[JOIN_SESSION] Checking section membership for user:', connection.userId);
       
-      // Check if already a member
-      const existingMembership = await membershipRepo.getMembership(connection.userId, session.sectionId);
+      // Check if user is section instructor first
+      const sectionRepo = await getSectionRepository();
+      const section = await sectionRepo.getSection(session.sectionId);
+      const isInstructor = section?.instructorIds.includes(connection.userId);
       
-      if (!existingMembership) {
-        console.log('[JOIN_SESSION] Auto-enrolling student in section:', session.sectionId);
-        try {
-          await membershipRepo.addMembership({
-            userId: connection.userId,
-            sectionId: session.sectionId,
-            role: 'student',
-          });
-          console.log('[JOIN_SESSION] Student successfully enrolled in section');
-        } catch (error) {
-          console.error('[JOIN_SESSION] Error enrolling student:', error);
-          this.sendError(ws, 'Failed to join session. Please try again.');
+      if (!isInstructor) {
+        // Not an instructor, so verify student enrollment
+        const membershipRepo = await getMembershipRepository();
+        const existingMembership = await membershipRepo.getMembership(connection.userId, session.sectionId);
+        
+        if (!existingMembership) {
+          console.log('[JOIN_SESSION] User not enrolled in section:', session.sectionId);
+          this.sendError(ws, 'You must be enrolled in this section to join the session. Please join the section first using the section join code.');
           return;
         }
+        
+        console.log('[JOIN_SESSION] User is enrolled in section');
       } else {
-        console.log('[JOIN_SESSION] Student already enrolled in section');
+        console.log('[JOIN_SESSION] User is section instructor, bypassing enrollment check');
       }
     } else if (session.sectionId && !connection.userId) {
       // Session requires section membership but user is not authenticated
