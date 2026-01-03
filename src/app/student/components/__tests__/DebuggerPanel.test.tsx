@@ -2,7 +2,7 @@
  * @jest-environment jsdom
  */
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { DebuggerPanel } from '../DebuggerPanel';
 
 describe('DebuggerPanel', () => {
@@ -15,24 +15,12 @@ describe('DebuggerPanel', () => {
     previousLocals: {},
     previousGlobals: {},
     callStack: [],
-    canStepForward: true,
-    canStepBackward: false,
-    onStepForward: jest.fn(),
-    onStepBackward: jest.fn(),
-    onJumpToFirst: jest.fn(),
-    onJumpToLast: jest.fn(),
-    onExit: jest.fn()
   };
 
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
-
-  it('renders debugger title and controls', () => {
+  it('renders debugger output title', () => {
     render(<DebuggerPanel {...defaultProps} />);
     
-    expect(screen.getByText('Debugger')).toBeInTheDocument();
-    expect(screen.getByText('Exit Debug Mode')).toBeInTheDocument();
+    expect(screen.getByText('Debugger Output')).toBeInTheDocument();
   });
 
   it('displays step counter', () => {
@@ -51,64 +39,6 @@ describe('DebuggerPanel', () => {
     render(<DebuggerPanel {...defaultProps} truncated={true} />);
     
     expect(screen.getByText(/trace truncated/i)).toBeInTheDocument();
-  });
-
-  it('calls onStepForward when Next button clicked', () => {
-    render(<DebuggerPanel {...defaultProps} />);
-    
-    fireEvent.click(screen.getByText(/next/i));
-    expect(defaultProps.onStepForward).toHaveBeenCalledTimes(1);
-  });
-
-  it('calls onStepBackward when Prev button clicked', () => {
-    const props = { ...defaultProps, canStepBackward: true };
-    render(<DebuggerPanel {...props} />);
-    
-    fireEvent.click(screen.getByText(/prev/i));
-    expect(defaultProps.onStepBackward).toHaveBeenCalledTimes(1);
-  });
-
-  it('calls onJumpToFirst when First button clicked', () => {
-    const props = { ...defaultProps, canStepBackward: true };
-    render(<DebuggerPanel {...props} />);
-    
-    fireEvent.click(screen.getByText(/first/i));
-    expect(defaultProps.onJumpToFirst).toHaveBeenCalledTimes(1);
-  });
-
-  it('calls onJumpToLast when Last button clicked', () => {
-    render(<DebuggerPanel {...defaultProps} />);
-    
-    fireEvent.click(screen.getByText(/last/i));
-    expect(defaultProps.onJumpToLast).toHaveBeenCalledTimes(1);
-  });
-
-  it('calls onExit when Exit button clicked', () => {
-    render(<DebuggerPanel {...defaultProps} />);
-    
-    fireEvent.click(screen.getByText('Exit Debug Mode'));
-    expect(defaultProps.onExit).toHaveBeenCalledTimes(1);
-  });
-
-  it('disables Prev and First buttons when canStepBackward is false', () => {
-    render(<DebuggerPanel {...defaultProps} />);
-    
-    const prevButton = screen.getByText(/prev/i);
-    const firstButton = screen.getByText(/first/i);
-    
-    expect(prevButton).toBeDisabled();
-    expect(firstButton).toBeDisabled();
-  });
-
-  it('disables Next and Last buttons when canStepForward is false', () => {
-    const props = { ...defaultProps, canStepForward: false };
-    render(<DebuggerPanel {...props} />);
-    
-    const nextButton = screen.getByText(/next/i);
-    const lastButton = screen.getByText(/last/i);
-    
-    expect(nextButton).toBeDisabled();
-    expect(lastButton).toBeDisabled();
   });
 
   it('renders VariableInspector with props', () => {
@@ -130,9 +60,21 @@ describe('DebuggerPanel', () => {
     expect(screen.getByText('Call Stack')).toBeInTheDocument();
   });
 
-  it('shows keyboard shortcut hints', () => {
+  it('does not render navigation controls', () => {
     render(<DebuggerPanel {...defaultProps} />);
     
-    expect(screen.getByText(/keyboard:/i)).toBeInTheDocument();
+    // These should NOT be in the panel anymore
+    expect(screen.queryByText(/prev/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/next/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/first/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/last/i)).not.toBeInTheDocument();
+    expect(screen.queryByText('Exit Debug Mode')).not.toBeInTheDocument();
+  });
+
+  it('does not render keyboard shortcut hints', () => {
+    render(<DebuggerPanel {...defaultProps} />);
+    
+    // Keyboard hints should be in the sidebar, not the output panel
+    expect(screen.queryByText(/keyboard:/i)).not.toBeInTheDocument();
   });
 });

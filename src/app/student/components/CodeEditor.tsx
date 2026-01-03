@@ -4,6 +4,7 @@ import Editor from '@monaco-editor/react';
 import React, { useEffect, useRef, useState } from 'react';
 import ExecutionSettingsComponent from './ExecutionSettings';
 import { DebuggerPanel } from './DebuggerPanel';
+import { DebuggerSidebar } from './DebuggerSidebar';
 import type { ExecutionSettings } from '@/server/types/problem';
 import { useResponsiveLayout, useSidebarSection } from '@/hooks/useResponsiveLayout';
 import type { Problem } from '@/server/types/problem';
@@ -72,10 +73,12 @@ export default function CodeEditor({
   const isDesktop = useResponsiveLayout(1024);
   const { isCollapsed: isSettingsCollapsed, toggle: toggleSettings, setCollapsed: setSettingsCollapsed } = useSidebarSection('execution-settings', false);
   const { isCollapsed: isProblemCollapsed, toggle: toggleProblem, setCollapsed: setProblemCollapsed } = useSidebarSection('problem-panel', false);
+  const { isCollapsed: isDebuggerCollapsed, toggle: toggleDebugger, setCollapsed: setDebuggerCollapsed } = useSidebarSection('debugger-panel', true);
 
   // Mobile-specific state (separate from desktop sidebar state)
   const [mobileProblemCollapsed, setMobileProblemCollapsed] = useState(true);
   const [mobileSettingsCollapsed, setMobileSettingsCollapsed] = useState(true);
+  const [mobileDebuggerCollapsed, setMobileDebuggerCollapsed] = useState(true);
 
   // Sidebar resize state
   const [sidebarWidth, setSidebarWidth] = useState(320); // 320px = w-80
@@ -141,32 +144,57 @@ export default function CodeEditor({
   useEffect(() => {
     if (!hasMountedRef.current) {
       hasMountedRef.current = true;
-      if (!isSettingsCollapsed && !isProblemCollapsed) {
-        // Both are open - close settings, keep problem open if it exists, otherwise keep settings
-        if (problem && setSettingsCollapsed) {
+      const openPanels = [
+        !isSettingsCollapsed,
+        !isProblemCollapsed,
+        !isDebuggerCollapsed
+      ].filter(Boolean).length;
+      
+      if (openPanels > 1) {
+        // Multiple panels open - keep only one
+        if (debuggerHook?.hasTrace && !isDebuggerCollapsed) {
+          // Prioritize debugger if active
           setSettingsCollapsed(true);
-        } else if (setProblemCollapsed) {
           setProblemCollapsed(true);
+        } else if (problem && !isProblemCollapsed) {
+          // Then problem if it exists
+          setSettingsCollapsed(true);
+          setDebuggerCollapsed(true);
+        } else {
+          // Otherwise keep settings
+          setProblemCollapsed(true);
+          setDebuggerCollapsed(true);
         }
       }
     }
-  }, [isSettingsCollapsed, isProblemCollapsed, problem, setSettingsCollapsed, setProblemCollapsed]);
+  }, [isSettingsCollapsed, isProblemCollapsed, isDebuggerCollapsed, problem, debuggerHook?.hasTrace, setSettingsCollapsed, setProblemCollapsed, setDebuggerCollapsed]);
 
   // Ensure only one sidebar is open at a time
   const handleToggleProblem = () => {
     if (isProblemCollapsed) {
-      // Opening problem panel - close settings
+      // Opening problem panel - close others
       setSettingsCollapsed(true);
+      setDebuggerCollapsed(true);
     }
     toggleProblem();
   };
 
   const handleToggleSettings = () => {
     if (isSettingsCollapsed) {
-      // Opening settings panel - close problem
+      // Opening settings panel - close others
       setProblemCollapsed(true);
+      setDebuggerCollapsed(true);
     }
     toggleSettings();
+  };
+
+  const handleToggleDebugger = () => {
+    if (isDebuggerCollapsed) {
+      // Opening debugger panel - close others
+      setProblemCollapsed(true);
+      setSettingsCollapsed(true);
+    }
+    toggleDebugger();
   };
 
   // Wrapper to call both internal state and parent callback
@@ -217,6 +245,16 @@ export default function CodeEditor({
       setStdin(exampleInput);
     }
   }, [exampleInput]);
+
+  // Auto-open debugger sidebar when debugging starts (desktop only)
+  useEffect(() => {
+    if (debuggerHook?.hasTrace && isDesktop && setDebuggerCollapsed) {
+      setDebuggerCollapsed(false);
+      // Close other sidebars
+      setSettingsCollapsed(true);
+      setProblemCollapsed(true);
+    }
+  }, [debuggerHook?.hasTrace, isDesktop, setDebuggerCollapsed, setSettingsCollapsed, setProblemCollapsed]);
 
   // Update line highlighting when debugging
   useEffect(() => {
@@ -325,42 +363,18 @@ export default function CodeEditor({
         <span className="font-bold">{title}</span>
         <div className="flex gap-2">
           {showRunButton && (
-            <>
-              <button
-                type="button"
-                onClick={handleRun}
-                disabled={effectiveIsRunning}
-                className={`px-4 py-2 rounded text-white ${
-                  effectiveIsRunning
-                    ? 'bg-gray-500 cursor-not-allowed'
-                    : 'bg-green-600 hover:bg-green-700 cursor-pointer'
-                }`}
-              >
-                {effectiveIsRunning ? '⏳ Running...' : '▶ Run Code'}
-              </button>
-              {debuggerHook && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (debuggerHook.hasTrace) {
-                      debuggerHook.reset();
-                    } else {
-                      debuggerHook.requestTrace(code, stdin || undefined);
-                    }
-                  }}
-                  disabled={debuggerHook.isLoading || !code.trim()}
-                  className={`px-4 py-2 rounded text-white ${
-                    debuggerHook.isLoading || !code.trim()
-                      ? 'bg-gray-500 cursor-not-allowed'
-                      : debuggerHook.hasTrace
-                      ? 'bg-red-600 hover:bg-red-700 cursor-pointer'
-                      : 'bg-blue-600 hover:bg-blue-700 cursor-pointer'
-                  }`}
-                >
-                  {debuggerHook.isLoading ? '⏳ Loading...' : debuggerHook.hasTrace ? '✕ Exit Debug' : '🐛 Debug'}
-                </button>
-              )}
-            </>
+            <button
+              type="button"
+              onClick={handleRun}
+              disabled={effectiveIsRunning}
+              className={`px-4 py-2 rounded text-white ${
+                effectiveIsRunning
+                  ? 'bg-gray-500 cursor-not-allowed'
+                  : 'bg-green-600 hover:bg-green-700 cursor-pointer'
+              }`}
+            >
+              {effectiveIsRunning ? '⏳ Running...' : '▶ Run Code'}
+            </button>
           )}
         </div>
       </div>
@@ -396,6 +410,20 @@ export default function CodeEditor({
             >
               ⚙️ Settings
             </button>
+            {debuggerHook && (
+              <button
+                type="button"
+                onClick={() => setMobileDebuggerCollapsed(!mobileDebuggerCollapsed)}
+                className={`px-3 py-2 rounded text-sm font-medium transition-colors ${
+                  !mobileDebuggerCollapsed
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-700 text-gray-200 hover:bg-gray-600'
+                }`}
+                aria-label="Toggle Debugger"
+              >
+                🐛 Debugger
+              </button>
+            )}
           </div>
         )}
 
@@ -437,6 +465,29 @@ export default function CodeEditor({
               exampleInput={exampleInput}
               readOnly={readOnly}
               inSidebar={true}
+              darkTheme={true}
+            />
+          </div>
+        )}
+
+        {/* Mobile: Debugger Section */}
+        {!isDesktop && !mobileDebuggerCollapsed && debuggerHook && (
+          <div className="bg-gray-800 border-b border-gray-700 flex-shrink-0">
+            <DebuggerSidebar
+              currentStep={debuggerHook.currentStep}
+              totalSteps={debuggerHook.totalSteps}
+              currentLine={debuggerHook.getCurrentStep()?.line || 0}
+              canStepForward={debuggerHook.canStepForward}
+              canStepBackward={debuggerHook.canStepBackward}
+              onStepForward={debuggerHook.stepForward}
+              onStepBackward={debuggerHook.stepBackward}
+              onJumpToFirst={debuggerHook.jumpToFirst}
+              onJumpToLast={debuggerHook.jumpToLast}
+              onExit={debuggerHook.reset}
+              truncated={debuggerHook.trace?.truncated}
+              onRequestTrace={() => debuggerHook.requestTrace(code, stdin || undefined)}
+              hasTrace={debuggerHook.hasTrace}
+              isLoading={debuggerHook.isLoading}
               darkTheme={true}
             />
           </div>
@@ -497,7 +548,34 @@ export default function CodeEditor({
                   <line x1="17" y1="16" x2="23" y2="16" />
                 </svg>
               </button>
-              {/* Future icons will go here */}
+
+              {/* Debugger icon (only show if debuggerHook exists) */}
+              {debuggerHook && (
+                <button
+                  type="button"
+                  onClick={handleToggleDebugger}
+                  className={`w-10 h-10 flex items-center justify-center rounded transition-colors ${
+                    !isDebuggerCollapsed
+                      ? 'bg-gray-700 text-white'
+                      : 'text-gray-400 hover:text-white hover:bg-gray-700'
+                  }`}
+                  aria-label="Debugger"
+                  title="Debugger"
+                >
+                  {/* Bug icon */}
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M12 2a4 4 0 0 1 4 4v2h-8V6a4 4 0 0 1 4-4z" />
+                    <path d="M8 8v8a4 4 0 0 0 8 0V8" />
+                    <line x1="4" y1="10" x2="8" y2="10" />
+                    <line x1="4" y1="14" x2="8" y2="14" />
+                    <line x1="16" y1="10" x2="20" y2="10" />
+                    <line x1="16" y1="14" x2="20" y2="14" />
+                    <line x1="12" y1="2" x2="12" y2="6" />
+                    <line x1="8" y1="18" x2="6" y2="21" />
+                    <line x1="16" y1="18" x2="18" y2="21" />
+                  </svg>
+                </button>
+              )}
             </div>
 
             {/* Side Panel (expands when active) */}
@@ -589,6 +667,53 @@ export default function CodeEditor({
                 />
               </div>
             )}
+
+            {!isDebuggerCollapsed && debuggerHook && (
+              <div
+                className="bg-gray-800 text-gray-200 border-r border-gray-700 flex flex-col flex-shrink-0 relative"
+                style={{ width: `${sidebarWidth}px`, maxHeight: '100%', height: '100%' }}
+              >
+                <div className="px-4 py-2 bg-gray-900 border-b border-gray-700 font-bold flex items-center justify-between flex-shrink-0">
+                  <span>Debugger</span>
+                  <button
+                    type="button"
+                    onClick={toggleDebugger}
+                    className="text-gray-400 hover:text-gray-100 text-xl leading-none"
+                    aria-label="Close panel"
+                  >
+                    ×
+                  </button>
+                </div>
+                <div className="flex-1 overflow-y-auto">
+                  <DebuggerSidebar
+                    currentStep={debuggerHook.currentStep}
+                    totalSteps={debuggerHook.totalSteps}
+                    currentLine={debuggerHook.getCurrentStep()?.line || 0}
+                    canStepForward={debuggerHook.canStepForward}
+                    canStepBackward={debuggerHook.canStepBackward}
+                    onStepForward={debuggerHook.stepForward}
+                    onStepBackward={debuggerHook.stepBackward}
+                    onJumpToFirst={debuggerHook.jumpToFirst}
+                    onJumpToLast={debuggerHook.jumpToLast}
+                    onExit={debuggerHook.reset}
+                    truncated={debuggerHook.trace?.truncated}
+                    onRequestTrace={() => debuggerHook.requestTrace(code, stdin || undefined)}
+                    hasTrace={debuggerHook.hasTrace}
+                    isLoading={debuggerHook.isLoading}
+                    darkTheme={true}
+                  />
+                </div>
+                {/* Resize handle */}
+                <div
+                  onMouseDown={handleMouseDown}
+                  className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-blue-500 transition-colors"
+                  style={{
+                    background: isResizing ? '#3b82f6' : 'transparent',
+                  }}
+                  title="Drag to resize"
+                />
+              </div>
+            )}
           </div>
         )}
 
@@ -664,13 +789,6 @@ export default function CodeEditor({
                 previousLocals={debuggerHook.getPreviousStep()?.locals || {}}
                 previousGlobals={debuggerHook.getPreviousStep()?.globals || {}}
                 callStack={debuggerHook.getCurrentCallStack()}
-                canStepForward={debuggerHook.canStepForward}
-                canStepBackward={debuggerHook.canStepBackward}
-                onStepForward={debuggerHook.stepForward}
-                onStepBackward={debuggerHook.stepBackward}
-                onJumpToFirst={debuggerHook.jumpToFirst}
-                onJumpToLast={debuggerHook.jumpToLast}
-                onExit={debuggerHook.reset}
                 truncated={debuggerHook.trace?.truncated}
               />
             ) : effectiveResult ? (

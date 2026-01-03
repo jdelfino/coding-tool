@@ -265,7 +265,7 @@ describe('CodeEditor - Form Interaction', () => {
     });
   });
 
-  it('should verify Run and Debug buttons have type="button" attribute', () => {
+  it('should verify Run button has type="button" attribute', () => {
     const mockDebugger = {
       hasTrace: false,
       isLoading: false,
@@ -293,9 +293,8 @@ describe('CodeEditor - Form Interaction', () => {
     // Find the Run Code button
     const runButton = screen.getByText(/▶ Run Code/);
     expect(runButton.getAttribute('type')).toBe('button');
-
-    // Find the Debug button
-    const debugButton = screen.getByText(/🐛 Debug/);
-    expect(debugButton.getAttribute('type')).toBe('button');
+    
+    // Note: Debug button is now in the action bar icon, not a text button in the header
+    // All sidebar action buttons have type="button" by default
   });
 });

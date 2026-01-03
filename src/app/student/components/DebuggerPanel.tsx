@@ -11,13 +11,6 @@ interface DebuggerPanelProps {
   previousLocals: Record<string, any>;
   previousGlobals: Record<string, any>;
   callStack: any[];
-  canStepForward: boolean;
-  canStepBackward: boolean;
-  onStepForward: () => void;
-  onStepBackward: () => void;
-  onJumpToFirst: () => void;
-  onJumpToLast: () => void;
-  onExit: () => void;
   truncated?: boolean;
 }
 
@@ -30,31 +23,14 @@ export function DebuggerPanel({
   previousLocals,
   previousGlobals,
   callStack,
-  canStepForward,
-  canStepBackward,
-  onStepForward,
-  onStepBackward,
-  onJumpToFirst,
-  onJumpToLast,
-  onExit,
   truncated
 }: DebuggerPanelProps) {
   return (
     <div className="h-full flex flex-col bg-gray-50">
-      {/* Header with controls */}
-      <div className="bg-white border-b border-gray-300 p-4">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-semibold text-gray-800">Debugger</h2>
-          <button
-            onClick={onExit}
-            className="px-3 py-1 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 rounded hover:bg-gray-50"
-          >
-            Exit Debug Mode
-          </button>
-        </div>
-
-        {/* Step counter and truncation warning */}
-        <div className="mb-3">
+      {/* Header with step info */}
+      <div className="bg-white border-b border-gray-300 px-4 py-2">
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-gray-800">Debugger Output</h2>
           <div className="text-sm text-gray-600">
             Step {currentStep + 1} of {totalSteps}
             {currentLine > 0 && (
@@ -63,53 +39,12 @@ export function DebuggerPanel({
               </span>
             )}
           </div>
-          {truncated && (
-            <div className="mt-2 text-sm text-yellow-700 bg-yellow-50 border border-yellow-200 rounded px-3 py-2">
-              ⚠️ Program exceeded step limit - trace truncated
-            </div>
-          )}
         </div>
-
-        {/* Navigation controls */}
-        <div className="flex items-center gap-2">
-          <button
-            onClick={onJumpToFirst}
-            disabled={!canStepBackward}
-            className="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            title="First step (Home)"
-          >
-            ⏮ First
-          </button>
-          <button
-            onClick={onStepBackward}
-            disabled={!canStepBackward}
-            className="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            title="Previous step (← or P)"
-          >
-            ◀ Prev
-          </button>
-          <button
-            onClick={onStepForward}
-            disabled={!canStepForward}
-            className="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            title="Next step (→ or N)"
-          >
-            Next ▶
-          </button>
-          <button
-            onClick={onJumpToLast}
-            disabled={!canStepForward}
-            className="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            title="Last step (End)"
-          >
-            Last ⏭
-          </button>
-        </div>
-
-        {/* Keyboard shortcuts hint */}
-        <div className="mt-2 text-xs text-gray-500">
-          Keyboard: ← / → to step, Home / End to jump, Esc to exit
-        </div>
+        {truncated && (
+          <div className="mt-2 text-sm text-yellow-700 bg-yellow-50 border border-yellow-200 rounded px-3 py-2">
+            ⚠️ Program exceeded step limit - trace truncated
+          </div>
+        )}
       </div>
 
       {/* Scrollable content area */}

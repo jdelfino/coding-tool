@@ -41,6 +41,7 @@ jest.mock('@/hooks/useResponsiveLayout', () => ({
   useSidebarSection: jest.fn(() => ({
     isCollapsed: false,
     toggle: jest.fn(),
+    setCollapsed: jest.fn(),
   })),
 }));
 
@@ -246,6 +247,7 @@ describe('CodeEditor Responsive Layout', () => {
       useSidebarSection.mockReturnValue({
         isCollapsed: false,
         toggle: jest.fn(),
+        setCollapsed: jest.fn(),
       });
 
       render(
@@ -265,8 +267,13 @@ describe('CodeEditor Responsive Layout', () => {
 
   describe('Read-only Mode', () => {
     it('should support responsive layout in read-only mode', () => {
-      const { useResponsiveLayout } = require('@/hooks/useResponsiveLayout');
+      const { useResponsiveLayout, useSidebarSection } = require('@/hooks/useResponsiveLayout');
       useResponsiveLayout.mockReturnValue(true);
+      useSidebarSection.mockReturnValue({
+        isCollapsed: false,
+        toggle: jest.fn(),
+        setCollapsed: jest.fn(),
+      });
 
       render(
         <CodeEditor
