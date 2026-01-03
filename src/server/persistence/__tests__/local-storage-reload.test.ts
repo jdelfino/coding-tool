@@ -1,6 +1,6 @@
 /**
  * Integration tests for LocalSessionRepository cross-process data reloading
- * 
+ *
  * These tests verify that session updates made by one repository instance
  * are visible to another instance (simulating cross-process behavior)
  */
@@ -19,12 +19,12 @@ describe('LocalSessionRepository - Cross-Process Data Reloading', () => {
   beforeEach(async () => {
     // Create a temporary directory for test data
     testDir = await fs.mkdtemp(path.join(os.tmpdir(), 'session-repo-test-'));
-    
+
     // Create two repository instances pointing to the same data directory
     const config = { type: 'local' as const, baseDir: testDir };
     repository1 = new LocalSessionRepository(config);
     repository2 = new LocalSessionRepository(config);
-    
+
     await repository1.initialize();
     await repository2.initialize();
   });
@@ -32,7 +32,7 @@ describe('LocalSessionRepository - Cross-Process Data Reloading', () => {
   afterEach(async () => {
     await repository1.shutdown();
     await repository2.shutdown();
-    
+
     // Clean up test directory
     await fs.rm(testDir, { recursive: true, force: true });
   });
@@ -61,7 +61,7 @@ describe('LocalSessionRepository - Cross-Process Data Reloading', () => {
 
     // Repository 2 should see the session
     const retrievedSession = await repository2.getSession('session-123');
-    
+
     expect(retrievedSession).not.toBeNull();
     expect(retrievedSession?.id).toBe('session-123');
     expect(retrievedSession?.sectionId).toBe('section-1');
@@ -102,7 +102,7 @@ describe('LocalSessionRepository - Cross-Process Data Reloading', () => {
 
     // Repository 2 should see the updated session
     const retrievedSession = await repository2.getSession('session-456');
-    
+
     expect(retrievedSession).not.toBeNull();
     expect(retrievedSession?.problem?.title).toBe('Updated problem');
   });
@@ -141,7 +141,7 @@ describe('LocalSessionRepository - Cross-Process Data Reloading', () => {
 
     // Repository 2 should see the students
     const retrievedSession = await repository2.getSession('session-789');
-    
+
     expect(retrievedSession).not.toBeNull();
     expect(retrievedSession?.students.size).toBe(2);
     expect(retrievedSession?.students.get('student-1')?.name).toBe('Alice');
@@ -228,7 +228,7 @@ describe('LocalSessionRepository - Cross-Process Data Reloading', () => {
 
     // Repository 2 should see both sessions
     const sessions = await repository2.listAllSessions();
-    
+
     expect(sessions).toHaveLength(2);
     const ids = sessions.map(s => s.id).sort();
     expect(ids).toEqual(['session-list-1', 'session-list-2']);

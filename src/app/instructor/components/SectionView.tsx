@@ -32,12 +32,12 @@ interface SectionViewProps {
   onJoinSession: (sessionId: string) => void;
 }
 
-export default function SectionView({ 
-  classId, 
-  className, 
-  onBack, 
+export default function SectionView({
+  classId,
+  className,
+  onBack,
   onCreateSession,
-  onJoinSession 
+  onJoinSession
 }: SectionViewProps) {
   const [sections, setSections] = useState<SectionInfo[]>([]);
   const [selectedSection, setSelectedSection] = useState<SectionInfo | null>(null);
@@ -243,10 +243,10 @@ export default function SectionView({
                         </p>
                       )}
                     </div>
-                    <svg 
-                      className="w-6 h-6 text-gray-400 group-hover:text-blue-600 transition-colors flex-shrink-0 ml-2" 
-                      fill="none" 
-                      stroke="currentColor" 
+                    <svg
+                      className="w-6 h-6 text-gray-400 group-hover:text-blue-600 transition-colors flex-shrink-0 ml-2"
+                      fill="none"
+                      stroke="currentColor"
                       viewBox="0 0 24 24"
                     >
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -321,10 +321,22 @@ export default function SectionView({
 
       <div className="mb-6">
         <h2 className="text-2xl font-bold text-gray-900 mb-1">{selectedSection.name}</h2>
-        <p className="text-gray-600">
-          {selectedSection.schedule && `${selectedSection.schedule} • `}
-          {selectedSection.studentCount} students enrolled
-        </p>
+        <div className="flex items-center gap-4 text-gray-600">
+          <div className="flex items-center">
+            <span className="mr-2">Join Code:</span>
+            <span className="inline-flex items-center px-3 py-1 bg-blue-100 text-blue-800 text-sm font-mono font-bold rounded-lg">
+              <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+              </svg>
+              {selectedSection.joinCode}
+            </span>
+          </div>
+          <span>•</span>
+          <span>
+            {selectedSection.schedule && `${selectedSection.schedule} • `}
+            {selectedSection.studentCount} students enrolled
+          </span>
+        </div>
       </div>
 
       <div className="mb-6 flex justify-between items-center">
@@ -391,8 +403,8 @@ export default function SectionView({
               )}
               <div className="flex items-center justify-between text-xs text-gray-500 pt-3 border-t border-gray-100">
                 <span className={`px-2 py-1 rounded-full ${
-                  session.status === 'active' 
-                    ? 'bg-green-100 text-green-700' 
+                  session.status === 'active'
+                    ? 'bg-green-100 text-green-700'
                     : 'bg-gray-100 text-gray-700'
                 }`}>
                   {session.status}

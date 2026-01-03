@@ -112,7 +112,7 @@ export class MembershipRepository implements IMembershipRepository {
   }
 
   /**
-   * Save memberships to disk atomically
+   * Save memberships to disk atomically with guaranteed flush
    */
   private async save(): Promise<void> {
     // Convert Map to object for JSON serialization
@@ -121,7 +121,16 @@ export class MembershipRepository implements IMembershipRepository {
     
     // Atomic write: write to temp file, then rename
     const tempPath = `${this.filePath}.tmp`;
-    await fs.writeFile(tempPath, json, 'utf-8');
+    
+    // Open file, write, and fsync to ensure data reaches disk
+    const fileHandle = await fs.open(tempPath, 'w');
+    try {
+      await fileHandle.writeFile(json, 'utf-8');
+      await fileHandle.sync(); // Force flush to disk
+    } finally {
+      await fileHandle.close();
+    }
+    
     await fs.rename(tempPath, this.filePath);
   }
 

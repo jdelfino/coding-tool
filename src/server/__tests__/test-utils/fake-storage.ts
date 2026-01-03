@@ -3,14 +3,14 @@
  * Provides in-memory implementations of all storage interfaces.
  */
 
-import { 
-  IStorageBackend, 
-  ISessionRepository, 
+import {
+  IStorageBackend,
+  ISessionRepository,
   IRevisionRepository,
   IUserRepository,
 } from '../../persistence/interfaces';
-import { 
-  StoredSession, 
+import {
+  StoredSession,
   StoredRevision,
   StorageMetadata,
 } from '../../persistence/types';
@@ -23,7 +23,7 @@ import { User } from '../../auth/types';
 export class FakeRevisionRepository implements IRevisionRepository {
   private revisions: Map<string, StoredRevision> = new Map();
   private sessionRevisions: Map<string, Map<string, StoredRevision[]>> = new Map();
-  
+
   // Spy arrays to track method calls
   public saveRevisionCalls: StoredRevision[] = [];
   public getRevisionsCalls: Array<{ sessionId: string; studentId: string }> = [];
@@ -41,10 +41,10 @@ export class FakeRevisionRepository implements IRevisionRepository {
         version: 1,
       },
     };
-    
+
     this.saveRevisionCalls.push(stored);
     this.revisions.set(revision.id, stored);
-    
+
     // Index by session and student
     const sessionKey = `${revision.sessionId}-${revision.studentId}`;
     let sessionMap = this.sessionRevisions.get(revision.sessionId);
@@ -52,25 +52,25 @@ export class FakeRevisionRepository implements IRevisionRepository {
       sessionMap = new Map();
       this.sessionRevisions.set(revision.sessionId, sessionMap);
     }
-    
+
     let studentRevisions = sessionMap.get(revision.studentId);
     if (!studentRevisions) {
       studentRevisions = [];
       sessionMap.set(revision.studentId, studentRevisions);
     }
-    
+
     studentRevisions.push(stored);
     studentRevisions.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
-    
+
     return revision.id;
   }
 
   async getRevisions(sessionId: string, studentId: string): Promise<StoredRevision[]> {
     this.getRevisionsCalls.push({ sessionId, studentId });
-    
+
     const sessionMap = this.sessionRevisions.get(sessionId);
     if (!sessionMap) return [];
-    
+
     return sessionMap.get(studentId) || [];
   }
 
@@ -90,7 +90,7 @@ export class FakeRevisionRepository implements IRevisionRepository {
   async deleteSessionRevisions(sessionId: string): Promise<number> {
     const sessionMap = this.sessionRevisions.get(sessionId);
     if (!sessionMap) return 0;
-    
+
     let count = 0;
     for (const [studentId, revisions] of sessionMap) {
       count += revisions.length;
@@ -98,7 +98,7 @@ export class FakeRevisionRepository implements IRevisionRepository {
         this.revisions.delete(rev.id);
       }
     }
-    
+
     this.sessionRevisions.delete(sessionId);
     return count;
   }
@@ -106,12 +106,12 @@ export class FakeRevisionRepository implements IRevisionRepository {
   async deleteStudentRevisions(sessionId: string, studentId: string): Promise<number> {
     const sessionMap = this.sessionRevisions.get(sessionId);
     if (!sessionMap) return 0;
-    
+
     const revisions = sessionMap.get(studentId) || [];
     for (const rev of revisions) {
       this.revisions.delete(rev.id);
     }
-    
+
     sessionMap.delete(studentId);
     return revisions.length;
   }
@@ -133,10 +133,10 @@ export class FakeRevisionRepository implements IRevisionRepository {
       const revisions = await this.getRevisions(sessionId, studentId);
       return revisions.length;
     }
-    
+
     const sessionMap = this.sessionRevisions.get(sessionId);
     if (!sessionMap) return 0;
-    
+
     let total = 0;
     for (const revisions of sessionMap.values()) {
       total += revisions.length;

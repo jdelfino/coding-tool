@@ -118,7 +118,7 @@ export default function ClassList({ onSelectClass }: ClassListProps) {
           </button>
         </div>
         {showCreateModal && (
-          <CreateClassModal 
+          <CreateClassModal
             onClose={() => setShowCreateModal(false)}
             onSuccess={() => {
               setShowCreateModal(false);
@@ -161,10 +161,10 @@ export default function ClassList({ onSelectClass }: ClassListProps) {
                     </p>
                   )}
                 </div>
-                <svg 
-                  className="w-6 h-6 text-gray-400 group-hover:text-blue-600 transition-colors flex-shrink-0" 
-                  fill="none" 
-                  stroke="currentColor" 
+                <svg
+                  className="w-6 h-6 text-gray-400 group-hover:text-blue-600 transition-colors flex-shrink-0"
+                  fill="none"
+                  stroke="currentColor"
                   viewBox="0 0 24 24"
                 >
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -177,7 +177,7 @@ export default function ClassList({ onSelectClass }: ClassListProps) {
                 <span>{classInfo.sectionCount} {classInfo.sectionCount === 1 ? 'section' : 'sections'}</span>
               </div>
             </button>
-            
+
             {/* Delete button */}
             <button
               onClick={(e) => {
@@ -200,7 +200,7 @@ export default function ClassList({ onSelectClass }: ClassListProps) {
         ))}
       </div>
       {showCreateModal && (
-        <CreateClassModal 
+        <CreateClassModal
           onClose={() => setShowCreateModal(false)}
           onSuccess={() => {
             setShowCreateModal(false);

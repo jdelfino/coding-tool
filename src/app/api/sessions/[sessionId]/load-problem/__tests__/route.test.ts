@@ -107,7 +107,7 @@ describe('POST /api/sessions/:sessionId/load-problem', () => {
   function createRequest(body: any, sessionId: string = 'session-123'): NextRequest {
     const headers = new Headers();
     headers.set('cookie', 'sessionId=auth-session-123');
-    
+
     return new NextRequest('http://localhost:3000/api/sessions/' + sessionId + '/load-problem', {
       method: 'POST',
       headers,
@@ -137,7 +137,7 @@ describe('POST /api/sessions/:sessionId/load-problem', () => {
       const data = await response.json();
       expect(data.success).toBe(true);
       expect(data.message).toContain('FizzBuzz');
-      
+
       expect(sessionManagerHolder.instance.updateSessionProblem).toHaveBeenCalledWith(
         'session-123',
         mockProblem,
@@ -272,9 +272,9 @@ describe('POST /api/sessions/:sessionId/load-problem', () => {
     });
 
     it('should return 403 when instructor tries to access private problem of another instructor', async () => {
-      const privateProblem = { 
-        ...mockProblem, 
-        authorId: 'other-instructor' 
+      const privateProblem = {
+        ...mockProblem,
+        authorId: 'other-instructor'
       };
       mockStorage.problems.getById.mockResolvedValue(privateProblem);
 
