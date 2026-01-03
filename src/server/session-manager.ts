@@ -251,10 +251,15 @@ export class SessionManager {
     // Check if student already exists (rejoining)
     const existingStudent = session.students.get(studentId);
     
+    // Initialize with starter code if this is the first join, otherwise preserve existing code
+    const initialCode = existingStudent?.code !== undefined 
+      ? existingStudent.code 
+      : (session.problem?.starterCode || '');
+    
     const student: Student = {
       id: studentId,
       name,
-      code: existingStudent?.code || '', // Preserve existing code if rejoining
+      code: initialCode,
       lastUpdate: new Date(),
     };
     
@@ -271,7 +276,11 @@ export class SessionManager {
         participants: session.participants,
         lastActivity: new Date(),
       });
-      console.log(`Added student ${name} (${studentId}) to session ${sessionId}${existingStudent ? ' (rejoining with existing code)' : ''}`);
+      
+      const logMessage = existingStudent 
+        ? `Added student ${name} (${studentId}) to session ${sessionId} (rejoining with existing code)`
+        : `Added student ${name} (${studentId}) to session ${sessionId} (initialized with starter code)`;
+      console.log(logMessage);
       return true;
     } catch (error) {
       console.error(`Failed to add student to session ${sessionId}:`, error);

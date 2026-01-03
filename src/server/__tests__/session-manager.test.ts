@@ -402,6 +402,47 @@ describe('SessionManager', () => {
       const student = updated?.students.get('student-1');
       expect(student?.lastUpdate).toBeInstanceOf(Date);
     });
+
+    it('should initialize student code with starter code on first join', async () => {
+      // Create session with a problem that has starter code
+      const problem = {
+        title: 'Test Problem',
+        description: 'Test description',
+        starterCode: '# Starter code\nprint("Hello")',
+      };
+      
+      const sessionWithProblem = await sessionManager.createSession(
+        'test-instructor',
+        'test-section-id',
+        'Test Section',
+        problem
+      );
+
+      // Add a new student
+      await sessionManager.addStudent(sessionWithProblem.id, 'student-1', 'Alice');
+      
+      const updated = await sessionManager.getSession(sessionWithProblem.id);
+      const student = updated?.students.get('student-1');
+      expect(student?.code).toBe('# Starter code\nprint("Hello")');
+    });
+
+    it('should preserve existing code when student rejoins', async () => {
+      // Add student first time
+      await sessionManager.addStudent(session.id, 'student-1', 'Alice');
+      
+      // Update their code
+      await sessionManager.updateStudentCode(session.id, 'student-1', '# Modified code');
+      
+      // Remove student (simulating disconnect)
+      await sessionManager.removeStudent(session.id, 'student-1');
+      
+      // Add student again (rejoining)
+      await sessionManager.addStudent(session.id, 'student-1', 'Alice');
+      
+      const updated = await sessionManager.getSession(session.id);
+      const student = updated?.students.get('student-1');
+      expect(student?.code).toBe('# Modified code');
+    });
   });
 
   describe('Problem Management', () => {
