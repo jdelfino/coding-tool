@@ -173,7 +173,7 @@ describe('CodeEditor - Form Interaction', () => {
     expect(handleRun).toHaveBeenCalled();
   });
 
-  it('should not submit parent form when clicking Load Starter Code button', async () => {
+  it('should not submit parent form when clicking Restore Starter Code button', async () => {
     const handleSubmit = jest.fn((e) => e.preventDefault());
     const handleCodeChange = jest.fn();
     const handleLoadStarterCode = jest.fn();
@@ -207,8 +207,8 @@ describe('CodeEditor - Form Interaction', () => {
       </form>
     );
 
-    // Find and click the Load Starter Code button
-    const loadStarterButton = screen.getByText('Load Starter Code');
+    // Find and click the Restore Starter Code button
+    const loadStarterButton = screen.getByText('Restore Starter Code');
     fireEvent.click(loadStarterButton);
 
     // Form should NOT be submitted, but onLoadStarterCode should be called

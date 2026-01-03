@@ -333,6 +333,14 @@ function InstructorPage() {
       return;
     }
 
+    // Check if instructor already has an active session
+    if (sessionId) {
+      const message = 'You already have an active session running. Please end your current session before starting a new one.';
+      alert(message);
+      setError(message);
+      return;
+    }
+
     console.log('[handleCreateSession] Setting state and sending message');
     setIsCreatingSession(true);
     setSessionContext({ sectionId, sectionName });
@@ -748,7 +756,7 @@ function InstructorPage() {
         <div style={{ width: '100%', height: 'calc(100vh - 5rem)', display: 'flex', flexDirection: 'column', padding: viewMode === 'problems' && problemSubView === 'creator' ? '0' : '2rem 1rem' }}>
           {/* Navigation */}
           {!(viewMode === 'problems' && problemSubView === 'creator') && (
-            <InstructorNav 
+            <InstructorNav
               currentView={viewMode}
               onNavigate={handleNavigate}
               activeSessionId={sessionId}

@@ -64,7 +64,7 @@ describe('CodeEditor - Problem Sidebar', () => {
     });
 
     expect(screen.getByText('This is a test problem description')).toBeInTheDocument();
-    expect(screen.getByText('Load Starter Code')).toBeInTheDocument();
+    expect(screen.getByText('Restore Starter Code')).toBeInTheDocument();
   });
 
   it('should persist sidebar state in localStorage', async () => {

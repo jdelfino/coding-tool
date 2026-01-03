@@ -131,7 +131,7 @@ describe('StudentPage - Starter Code with Edit History', () => {
 
     // Wait for the session to be joined
     await waitFor(() => {
-      expect(screen.getByText('Load Starter Code')).toBeInTheDocument();
+      expect(screen.getByText('Restore Starter Code')).toBeInTheDocument();
     });
 
     // Get reference to mock editor
@@ -141,8 +141,8 @@ describe('StudentPage - Starter Code with Edit History', () => {
     // Clear previous calls
     mockEditor.executeEdits.mockClear();
 
-    // Click the "Load Starter Code" button
-    const loadButton = screen.getByText('Load Starter Code');
+    // Click the "Restore Starter Code" button
+    const loadButton = screen.getByText('Restore Starter Code');
     fireEvent.click(loadButton);
 
     // Verify that executeEdits was called with the correct parameters
@@ -202,7 +202,7 @@ describe('StudentPage - Starter Code with Edit History', () => {
 
     // Wait for the session to be joined
     await waitFor(() => {
-      expect(screen.getByText('Load Starter Code')).toBeInTheDocument();
+      expect(screen.getByText('Restore Starter Code')).toBeInTheDocument();
     });
 
     // Get reference to mock editor
@@ -212,8 +212,8 @@ describe('StudentPage - Starter Code with Edit History', () => {
     // Clear previous calls
     mockEditor.executeEdits.mockClear();
 
-    // Click the "Load Starter Code" button
-    const loadButton = screen.getByText('Load Starter Code');
+    // Click the "Restore Starter Code" button
+    const loadButton = screen.getByText('Restore Starter Code');
     fireEvent.click(loadButton);
 
     // Verify confirm was called
@@ -273,7 +273,7 @@ describe('StudentPage - Starter Code with Edit History', () => {
 
     // Wait for the session to be joined
     await waitFor(() => {
-      expect(screen.getByText('Load Starter Code')).toBeInTheDocument();
+      expect(screen.getByText('Restore Starter Code')).toBeInTheDocument();
     });
 
     // Get reference to mock editor
@@ -283,8 +283,8 @@ describe('StudentPage - Starter Code with Edit History', () => {
     // Clear previous calls
     mockEditor.executeEdits.mockClear();
 
-    // Click the "Load Starter Code" button
-    const loadButton = screen.getByText('Load Starter Code');
+    // Click the "Restore Starter Code" button
+    const loadButton = screen.getByText('Restore Starter Code');
     fireEvent.click(loadButton);
 
     // Verify confirm was called
@@ -332,14 +332,14 @@ describe('StudentPage - Starter Code with Edit History', () => {
 
     // Wait for the session to be joined
     await waitFor(() => {
-      expect(screen.getByText('Load Starter Code')).toBeInTheDocument();
+      expect(screen.getByText('Restore Starter Code')).toBeInTheDocument();
     });
 
     // Get reference to mock editor
     const mockEditor = (window as any).__mockEditor;
 
     // Load starter code
-    const loadButton = screen.getByText('Load Starter Code');
+    const loadButton = screen.getByText('Restore Starter Code');
     fireEvent.click(loadButton);
 
     // Verify executeEdits was used (this enables undo)

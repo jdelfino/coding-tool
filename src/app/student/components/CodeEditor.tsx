@@ -486,13 +486,13 @@ export default function CodeEditor({
                   </pre>
                 </div>
               )}
-              {problem.starterCode && onLoadStarterCode && (
+              {problem.starterCode && onLoadStarterCode && !editableProblem && (
                 <button
                   type="button"
                   onClick={() => onLoadStarterCode(problem.starterCode || '')}
                   className="mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm"
                 >
-                  Load Starter Code
+                  Restore Starter Code
                 </button>
               )}
             </div>
@@ -678,13 +678,13 @@ export default function CodeEditor({
                           className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
                         />
                       </div>
-                      {problem.starterCode && onLoadStarterCode && (
+                      {problem.starterCode && onLoadStarterCode && !editableProblem && (
                         <button
                           type="button"
                           onClick={() => onLoadStarterCode(problem.starterCode || '')}
                           className="mt-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm w-full"
                         >
-                          Load Starter Code
+                          Restore Starter Code
                         </button>
                       )}
                     </>
@@ -699,13 +699,13 @@ export default function CodeEditor({
                           </pre>
                         </div>
                       )}
-                      {problem.starterCode && onLoadStarterCode && (
+                      {problem.starterCode && onLoadStarterCode && !editableProblem && (
                         <button
                           type="button"
                           onClick={() => onLoadStarterCode(problem.starterCode || '')}
                           className="mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm"
                         >
-                          Load Starter Code
+                          Restore Starter Code
                         </button>
                       )}
                     </>
