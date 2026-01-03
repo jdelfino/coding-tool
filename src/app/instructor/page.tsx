@@ -124,7 +124,6 @@ function InstructorPage() {
     // 2. WebSocket is connected
     // 3. We're not already in that specific session (allow switching sessions)
     if (sessionIdParam && isConnected && sessionId !== sessionIdParam) {
-      console.log('[Auto-join] Joining session from URL:', sessionIdParam);
       sendMessage('JOIN_EXISTING_SESSION', { sessionId: sessionIdParam });
 
       // Clear URL params after initiating join
@@ -135,20 +134,12 @@ function InstructorPage() {
     }
   }, [searchParams, isConnected, sessionId, router, sendMessage]);
 
-  // Debug: Log state changes
-  useEffect(() => {
-    console.log('[State] sessionId:', sessionId, 'viewMode:', viewMode, 'joinCode:', joinCode);
-  }, [sessionId, viewMode, joinCode]);
-
   // Handle incoming WebSocket messages
   useEffect(() => {
     if (!lastMessage) return;
 
-    console.log('[WebSocket] Received message:', lastMessage.type, lastMessage.payload);
-
     switch (lastMessage.type) {
       case 'SESSION_CREATED':
-        console.log('[SESSION_CREATED] Setting session state');
         setSessionId(lastMessage.payload.sessionId);
         setSessionContext({
           sectionId: lastMessage.payload.sectionId,
@@ -176,15 +167,10 @@ function InstructorPage() {
         break;
 
       case 'SESSION_ENDED':
-        console.log('[SESSION_ENDED] Message received:', lastMessage.payload);
-        console.log('[SESSION_ENDED] Current sessionId:', sessionId);
         if (lastMessage.payload.sessionId === sessionId) {
-          console.log('[SESSION_ENDED] Received for current session, clearing ALL state');
-
           // Determine navigation target based on where we came from
           // If we're in the sessions view, stay there; otherwise navigate based on context
           const targetView = viewMode === 'sessions' ? 'sessions' : (classContext ? 'sections' : 'classes');
-          console.log('[SESSION_ENDED] Target viewMode:', targetView);
 
           // Clear sessionId from URL and set the correct view parameter
           router.replace(`/instructor?view=${targetView}`);
@@ -202,16 +188,12 @@ function InstructorPage() {
           setSessionContext(null);
 
           // Navigate based on where we came from
-          console.log('[SESSION_ENDED] Setting viewMode to:', targetView);
           setViewMode(targetView);
-          console.log('[SESSION_ENDED] State clearing complete');
-        } else {
-          console.log('[SESSION_ENDED] Ignoring - different session');
         }
+        
         break;
 
       case 'STUDENT_LIST_UPDATE':
-        console.log('[STUDENT_LIST_UPDATE] Updating students list');
         setStudents(lastMessage.payload.students || []);
         break;
 
@@ -327,8 +309,6 @@ function InstructorPage() {
   };
 
   const handleCreateSession = (sectionId: string, sectionName: string) => {
-    console.log('[handleCreateSession] Called', { sectionId, sectionName, isConnected });
-
     if (!isConnected) {
       console.error('[handleCreateSession] WebSocket not connected');
       alert('Not connected to server. Please wait for connection or refresh the page.');
@@ -343,12 +323,10 @@ function InstructorPage() {
       return;
     }
 
-    console.log('[handleCreateSession] Setting state and sending message');
     setIsCreatingSession(true);
     setSessionContext({ sectionId, sectionName });
     setViewMode('session'); // Switch to session view to show "Creating session..." message
     sendMessage('CREATE_SESSION', { sectionId });
-    console.log('[handleCreateSession] Message sent');
   };
 
   const handleJoinSession = (sessionId: string) => {
@@ -378,27 +356,20 @@ function InstructorPage() {
 
   const handleEndSession = () => {
     if (!sessionId) {
-      console.log('[handleEndSession] No sessionId, returning');
       return;
     }
 
     if (confirm('Are you sure you want to end this session? Students will be disconnected.')) {
-      console.log('[handleEndSession] User confirmed, ending session:', sessionId);
-      console.log('[handleEndSession] Current viewMode:', viewMode);
-      console.log('[handleEndSession] classContext:', classContext);
-
       sendMessage('END_SESSION', { sessionId });
 
       // Determine navigation target based on where we came from
       // If we're in the sessions view, stay there; otherwise navigate based on context
       const targetView = viewMode === 'sessions' ? 'sessions' : (classContext ? 'sections' : 'classes');
-      console.log('[handleEndSession] Target viewMode:', targetView);
 
       // Clear sessionId from URL and set the correct view parameter
       router.replace(`/instructor?view=${targetView}`);
 
       // Clear ALL session-related state immediately
-      console.log('[handleEndSession] Clearing session state...');
       setSessionId(null);
       setJoinCode(null);
       setStudents([]);
@@ -411,12 +382,9 @@ function InstructorPage() {
       setSessionContext(null);
 
       // Navigate based on context
-      console.log('[handleEndSession] Setting viewMode to:', targetView);
       setViewMode(targetView);
-      console.log('[handleEndSession] handleEndSession complete');
-    } else {
-      console.log('[handleEndSession] User cancelled');
     }
+    
   };
 
   const handleOpenProblemLoader = () => {
@@ -428,7 +396,6 @@ function InstructorPage() {
   };
 
   const handleProblemLoaded = (problemId: string) => {
-    console.log('Problem loaded:', problemId);
     // The problem will be broadcast via WebSocket PROBLEM_UPDATE message
     // which will update the session state automatically
     setShowProblemLoader(false);
@@ -528,7 +495,6 @@ function InstructorPage() {
             <ProblemCreator
               problemId={editingProblemId}
               onProblemCreated={(id) => {
-                console.log('Problem created:', id);
                 setProblemSubView('library');
                 setEditingProblemId(null);
               }}

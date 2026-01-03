@@ -47,7 +47,6 @@ function StudentPage() {
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       const host = window.location.host;
       const url = `${protocol}//${host}/ws`;
-      console.log('WebSocket URL:', url);
       setWsUrl(url);
     }
   }, []);
@@ -68,7 +67,6 @@ function StudentPage() {
     // Use username from auth context
     const studentName = user?.username || 'Student';
 
-    console.log('[JOIN] Joining session with username:', studentName, 'user:', user);
     setError(null);
     setIsJoining(true);
     sendMessage('JOIN_SESSION', { sessionId, studentName });
@@ -96,7 +94,6 @@ function StudentPage() {
 
       // Priority 1: Join session from URL parameter
       if (sessionIdFromUrl) {
-        console.log('Joining session from URL:', sessionIdFromUrl);
         handleRejoinSession(sessionIdFromUrl);
         return;
       }
@@ -109,16 +106,13 @@ function StudentPage() {
         // If exactly one active session, auto-rejoin
         if (activeSessions.length === 1) {
           const session = activeSessions[0];
-          console.log('Auto-rejoining session:', session.id);
           handleRejoinSession(session.id);
         } else {
           // Multiple or no active sessions - redirect to sections page
-          console.log('Multiple or no active sessions - redirecting to /sections');
           window.location.href = '/sections';
         }
       } else {
         // No sessions at all - redirect to sections page
-        console.log('No sessions - redirecting to /sections');
         window.location.href = '/sections';
       }
     }
@@ -130,7 +124,6 @@ function StudentPage() {
     if (isConnected && currentSessionId && joined && !isJoining) {
       const session = sessions.find(s => s.id === currentSessionId);
       if (session) {
-        console.log('WebSocket reconnected, rejoining session:', session.id);
         setJoined(false); // Reset joined state
         handleRejoinSession(session.id);
       }
@@ -140,8 +133,6 @@ function StudentPage() {
   // Handle incoming WebSocket messages
   useEffect(() => {
     if (!lastMessage) return;
-
-    console.log('Received message:', lastMessage.type);
 
     switch (lastMessage.type) {
       case 'SESSION_JOINED':

@@ -23,7 +23,6 @@ export function useWebSocket(url: string) {
   const connect = useCallback(() => {
     // Don't attempt connection if URL is empty (SSR or not yet initialized)
     if (!url) {
-      console.log('WebSocket URL not yet available, skipping connection');
       return;
     }
 
@@ -44,21 +43,18 @@ export function useWebSocket(url: string) {
     if (wsRef.current) {
       const currentState = wsRef.current.readyState;
       if (currentState === WebSocket.CONNECTING || currentState === WebSocket.OPEN) {
-        console.log('Closing existing WebSocket before creating new connection');
         wsRef.current.close();
       }
       wsRef.current = null;
     }
 
     try {
-      console.log('Attempting WebSocket connection to:', url);
       setConnectionStatus('connecting');
       setConnectionError(null);
       const ws = new WebSocket(url);
       wsRef.current = ws;
 
       ws.onopen = () => {
-        console.log('WebSocket connected to:', url);
         setIsConnected(true);
         setConnectionStatus('connected');
         setConnectionError(null);
@@ -76,7 +72,6 @@ export function useWebSocket(url: string) {
       };
 
       ws.onclose = (event) => {
-        console.log('WebSocket disconnected from:', url, 'Code:', event.code);
         setIsConnected(false);
         setConnectionStatus('disconnected');
         
@@ -92,7 +87,6 @@ export function useWebSocket(url: string) {
         if (reconnectAttempts.current < maxReconnectAttempts) {
           setConnectionError(`Connection lost. Reconnecting in ${Math.ceil(delay / 1000)}s...`);
           reconnectTimeoutRef.current = setTimeout(() => {
-            console.log(`Reconnecting... (attempt ${reconnectAttempts.current})`);
             // Call the latest version of connect via the ref
             connectRef.current?.();
           }, delay);

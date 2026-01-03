@@ -114,14 +114,12 @@ export class LocalAuthProvider implements IAuthProvider {
       }
       
       user = await this.createUser(normalizedUsername, role);
-      console.log(`[Auth] Created new ${role} account: ${normalizedUsername}`);
     } else {
       // Check if existing user should be elevated to admin
       const adminEmail = process.env.ADMIN_EMAIL?.trim();
       if (adminEmail && 
           normalizedUsername.toLowerCase() === adminEmail.toLowerCase() &&
           user.role !== 'admin') {
-        console.log(`[Auth] Elevating user to admin: ${normalizedUsername}`);
         await this.userRepository.updateUser(user.id, { role: 'admin' });
         user = await this.userRepository.getUser(user.id) as User;
       }
@@ -133,7 +131,6 @@ export class LocalAuthProvider implements IAuthProvider {
       
       // Refresh user object
       user = await this.userRepository.getUser(user.id) as User;
-      console.log(`[Auth] User logged in: ${normalizedUsername} (${user.role})`);
     }
 
     return user;

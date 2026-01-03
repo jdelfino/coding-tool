@@ -62,8 +62,6 @@ export class RevisionBuffer {
     this.backgroundFlushInterval = setInterval(async () => {
       await this.flushAll();
     }, this.BACKGROUND_FLUSH_MS);
-
-    console.log('[RevisionBuffer] Auto-flush started (every 30s)');
   }
 
   /**
@@ -73,7 +71,6 @@ export class RevisionBuffer {
     if (this.backgroundFlushInterval) {
       clearInterval(this.backgroundFlushInterval);
       this.backgroundFlushInterval = undefined;
-      console.log('[RevisionBuffer] Auto-flush stopped');
     }
   }
 
@@ -151,7 +148,6 @@ export class RevisionBuffer {
 
     // Check buffer size limit
     if (state.buffer.length >= this.MAX_BUFFER_SIZE) {
-      console.log(`[RevisionBuffer] Buffer full for ${key}, flushing`);
       await this.flushBuffer(sessionId, studentId);
       return;
     }
@@ -162,7 +158,6 @@ export class RevisionBuffer {
     }
 
     state.flushTimer = setTimeout(async () => {
-      console.log(`[RevisionBuffer] Typing paused for ${key}, flushing`);
       await this.flushBuffer(sessionId, studentId);
     }, this.TYPING_PAUSE_MS);
   }
@@ -184,8 +179,6 @@ export class RevisionBuffer {
         clearTimeout(state.flushTimer);
         state.flushTimer = undefined;
       }
-
-      console.log(`[RevisionBuffer] Flushing ${state.buffer.length} revisions for ${key}`);
 
       // Save all buffered revisions to persistence
       for (const buffered of state.buffer) {
@@ -220,8 +213,6 @@ export class RevisionBuffer {
       return;
     }
 
-    console.log(`[RevisionBuffer] Background flush: ${keys.length} students`);
-
     for (const key of keys) {
       const [sessionId, studentId] = key.split('-');
       await this.flushBuffer(sessionId, studentId);
@@ -234,8 +225,6 @@ export class RevisionBuffer {
   async flushSession(sessionId: string): Promise<void> {
     const keys = Array.from(this.stateMap.keys()).filter(k => k.startsWith(sessionId + '-'));
     
-    console.log(`[RevisionBuffer] Flushing session ${sessionId}: ${keys.length} students`);
-
     for (const key of keys) {
       const [, studentId] = key.split('-');
       await this.flushBuffer(sessionId, studentId);
@@ -277,13 +266,9 @@ export class RevisionBuffer {
    * Shutdown: flush all and stop timers
    */
   async shutdown(): Promise<void> {
-    console.log('[RevisionBuffer] Shutting down...');
-    
     this.stopAutoFlush();
     await this.flushAll();
     this.stateMap.clear();
-    
-    console.log('[RevisionBuffer] Shutdown complete');
   }
 
   private getKey(sessionId: string, studentId: string): string {

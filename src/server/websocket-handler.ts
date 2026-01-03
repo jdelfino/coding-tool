@@ -62,8 +62,6 @@ class WebSocketHandler {
     }, 30000); // 30 seconds
 
     wss.on('connection', async (ws: WebSocket, request: IncomingMessage) => {
-      console.log('New WebSocket connection');
-
       // Extract user authentication from cookies
       let userId: string | undefined;
       let user: User | undefined;
@@ -84,15 +82,9 @@ class WebSocketHandler {
             if (session && session.user) {
               userId = session.user.id;
               user = session.user; // Store full user object
-              console.log('[WS Auth] Authenticated as user:', userId, '(', session.user.username, session.user.role, ')');
             } else if (session) {
-              console.log('[WS Auth] Session found but user property is missing!');
             }
-          } else {
-            console.log('[WS Auth] No sessionId cookie found');
           }
-        } else {
-          console.log('[WS Auth] No cookies in request headers');
         }
       } catch (error) {
         console.error('[WS Auth] Error extracting user authentication:', error);
@@ -137,8 +129,6 @@ class WebSocketHandler {
   private async handleMessage(ws: WebSocket, message: WebSocketMessage) {
     const connection = this.connections.get(ws);
     if (!connection) return;
-
-    console.log('Received message:', message.type);
 
     switch (message.type) {
       case MessageType.CREATE_SESSION:
@@ -216,7 +206,6 @@ class WebSocketHandler {
 
   private async handleCreateSession(ws: WebSocket, connection: Connection, payload: any) {
     try {
-      console.log('[handleCreateSession] Starting, payload:', payload);
       const { sectionId } = payload;
 
       if (!sectionId || typeof sectionId !== 'string') {
@@ -231,7 +220,6 @@ class WebSocketHandler {
         return;
       }
 
-      console.log('[handleCreateSession] Fetching section:', sectionId);
       // Validate instructor has access to this section
       const sectionRepo = await getSectionRepository();
       const section = await sectionRepo.getSection(sectionId);
@@ -242,7 +230,6 @@ class WebSocketHandler {
         return;
       }
 
-      console.log('[handleCreateSession] Checking instructor access, section.instructorIds:', section.instructorIds, 'userId:', connection.userId);
       // Check if user is instructor of this section
       const isInstructor = section.instructorIds.includes(connection.userId);
       if (!isInstructor) {
@@ -251,7 +238,6 @@ class WebSocketHandler {
         return;
       }
 
-      console.log('[handleCreateSession] Creating session...');
       // Create session with section context
       const session = await sessionManagerHolder.instance.createSession(
         connection.userId,
@@ -259,11 +245,9 @@ class WebSocketHandler {
         section.name
       );
 
-      console.log('[handleCreateSession] Session created:', session.id);
       connection.role = 'instructor';
       connection.sessionId = session.id;
 
-      console.log('[handleCreateSession] Sending SESSION_CREATED response');
       this.send(ws, {
         type: MessageType.SESSION_CREATED,
         payload: {
@@ -273,7 +257,6 @@ class WebSocketHandler {
           problem: session.problem,
         },
       });
-      console.log('[handleCreateSession] Response sent successfully');
     } catch (error) {
       console.error('[handleCreateSession] Error:', error);
       this.sendError(ws, 'Failed to create session: ' + (error instanceof Error ? error.message : String(error)));
@@ -306,26 +289,20 @@ class WebSocketHandler {
   private async handleJoinExistingSession(ws: WebSocket, connection: Connection, payload: any) {
     const { sessionId } = payload;
 
-    console.log('[handleJoinExistingSession] Attempting to join session:', sessionId, 'for user:', connection.userId);
-
     if (!sessionId || typeof sessionId !== 'string') {
-      console.log('[handleJoinExistingSession] Invalid session ID');
       this.sendError(ws, 'Invalid session ID');
       return;
     }
 
     const session = await sessionManagerHolder.instance.getSession(sessionId);
-    console.log('[handleJoinExistingSession] Session lookup result:', session ? 'Found' : 'Not found');
 
     if (!session) {
-      console.log('[handleJoinExistingSession] Session not found:', sessionId);
       this.sendError(ws, 'Session not found');
       return;
     }
 
     // Don't allow rejoining completed/ended sessions
     if (session.status === 'completed') {
-      console.log('[handleJoinExistingSession] Session has ended:', sessionId);
       this.sendError(ws, 'This session has ended and cannot be rejoined');
       return;
     }
@@ -447,8 +424,6 @@ class WebSocketHandler {
 
     // Verify section membership if session is scoped to a section
     if (session.sectionId && connection.userId) {
-      console.log('[JOIN_SESSION] Checking section membership for user:', connection.userId);
-
       // Check if user is section instructor first
       const sectionRepo = await getSectionRepository();
       const section = await sectionRepo.getSection(session.sectionId);
@@ -460,14 +435,9 @@ class WebSocketHandler {
         const existingMembership = await membershipRepo.getMembership(connection.userId, session.sectionId);
 
         if (!existingMembership) {
-          console.log('[JOIN_SESSION] User not enrolled in section:', session.sectionId);
           this.sendError(ws, 'You must be enrolled in this section to join the session. Please join the section first using the section join code.');
           return;
         }
-
-        console.log('[JOIN_SESSION] User is enrolled in section');
-      } else {
-        console.log('[JOIN_SESSION] User is section instructor, bypassing enrollment check');
       }
     } else if (session.sectionId && !connection.userId) {
       // Session requires section membership but user is not authenticated
@@ -478,14 +448,12 @@ class WebSocketHandler {
     // Use authenticated user ID if available, otherwise generate a UUID
     // This ensures students can see their session history after signing out and back in
     const studentId = connection.userId || uuidv4();
-    console.log(`[JOIN_SESSION] studentName: ${studentName}, connection.userId: ${connection.userId}, studentId: ${studentId}`);
     connection.role = 'student';
     connection.sessionId = session.id;
     connection.studentId = studentId;
 
     // Check if student has existing code (rejoining)
     const studentData = await sessionManagerHolder.instance.getStudentData(session.id, studentId);
-    console.log(`[JOIN_SESSION] student data for ${studentId}:`, studentData ? `${studentData.code.length} chars` : 'none');
 
     const success = await sessionManagerHolder.instance.addStudent(session.id, studentId, studentName.trim());
     if (!success) {
@@ -579,8 +547,6 @@ class WebSocketHandler {
       connection.studentId,
       executionSettings
     );
-
-    console.log(`Updated student ${connection.studentId} settings:`, executionSettings);
   }
 
   private async handleExecuteCode(ws: WebSocket, connection: Connection, payload: any) {
@@ -692,11 +658,6 @@ class WebSocketHandler {
       this.sendError(ws, 'Student not found');
       return;
     }
-
-    console.log('[REQUEST_STUDENT_CODE] Sending student data:', {
-      studentId,
-      executionSettings: studentData.executionSettings,
-    });
 
     this.send(ws, {
       type: MessageType.STUDENT_CODE,
@@ -952,8 +913,6 @@ class WebSocketHandler {
     const connection = this.connections.get(ws);
     if (!connection) return;
 
-    console.log('WebSocket disconnected');
-
     if (connection.sessionId && connection.studentId) {
       await sessionManagerHolder.instance.removeStudent(connection.sessionId, connection.studentId);
       await this.broadcastStudentList(connection.sessionId);
@@ -1036,7 +995,6 @@ class WebSocketHandler {
   private heartbeat() {
     for (const [ws, connection] of this.connections.entries()) {
       if (!connection.isAlive) {
-        console.log('Terminating dead connection');
         ws.terminate();
         this.connections.delete(ws);
         continue;

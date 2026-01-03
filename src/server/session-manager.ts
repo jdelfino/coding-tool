@@ -172,7 +172,6 @@ export class SessionManager {
         problem: clonedProblem,
         lastActivity: new Date(),
       });
-      console.log(`Updated session ${sessionId} with problem "${clonedProblem.title}"`);
       return true;
     } catch (error) {
       console.error(`Failed to update session problem ${sessionId}:`, error);
@@ -221,7 +220,6 @@ export class SessionManager {
       const logMessage = existingStudent
         ? `Added student ${name} (${studentId}) to session ${sessionId} (rejoining with existing code)`
         : `Added student ${name} (${studentId}) to session ${sessionId} (initialized with starter code)`;
-      console.log(logMessage);
       return true;
     } catch (error) {
       console.error(`Failed to add student to session ${sessionId}:`, error);
@@ -249,7 +247,6 @@ export class SessionManager {
           students: session.students,
           lastActivity: new Date(),
         });
-        console.log(`Disconnected student ${studentId} from session ${sessionId} (code preserved)`);
         return true;
       } catch (error) {
         console.error(`Failed to disconnect student from session ${sessionId}:`, error);
@@ -402,7 +399,6 @@ export class SessionManager {
         featuredCode: student.code,
         lastActivity: new Date(),
       });
-      console.log(`Set featured submission for session ${sessionId}: student ${studentId}`);
       return true;
     } catch (error) {
       console.error(`Failed to set featured submission for session ${sessionId}:`, error);
@@ -484,7 +480,6 @@ export class SessionManager {
         status: 'completed',
         endedAt: new Date(),
       });
-      console.log(`Ended session ${sessionId}`);
       return true;
     } catch (error) {
       console.error(`Failed to end session ${sessionId}:`, error);
@@ -503,7 +498,6 @@ export class SessionManager {
 
     try {
       await this.storage.sessions.deleteSession(sessionId);
-      console.log(`Deleted session ${sessionId}`);
       return true;
     } catch (error) {
       console.error(`Failed to delete session ${sessionId}:`, error);
@@ -575,9 +569,6 @@ export class SessionManager {
         }
       }
 
-      if (cleaned > 0) {
-        console.log(`Cleaned up ${cleaned} old sessions`);
-      }
     } catch (error) {
       console.error('Failed to cleanup old sessions:', error);
     }
