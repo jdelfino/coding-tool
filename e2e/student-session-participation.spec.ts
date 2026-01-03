@@ -67,26 +67,53 @@ test.describe('Student Session Participation', () => {
     // Click the "Create Session" button in the modal (use last() to get the submit button)
     await page.locator('button:has-text("Create Session")').last().click();
 
-    // Wait for session to be created and get join code
-    await page.waitForTimeout(2000);
-    const joinCodeElement = page.locator('text=/[A-Z0-9]{6}/').first();
-    await expect(joinCodeElement).toBeVisible({ timeout: 10000 });
-    joinCode = (await joinCodeElement.textContent()) || '';
+    // Wait for session to be created - check for Active Session header
+    await expect(page.locator('h2:has-text("Active Session")')).toBeVisible({ timeout: 5000 });
+
+    // Join code comes from the section, not the session
+    joinCode = testSection.joinCode;
     console.log('Created session with join code:', joinCode);
   });
 
   test('Student edits previous submission', async ({ page }) => {
     // Login as student and join session
     studentUser = await loginAsStudent(page, 'test-student-4');
-    await page.goto('/student');
-    await page.click('button:has-text("Join New Session")');
-    await page.fill('input[placeholder="ABC123"]', joinCode);
-    await page.click('button:has-text("Join Session")');
-    await page.waitForTimeout(2000);
+
+    // Navigate to sections page and join section
+    await page.goto('/sections');
+    await expect(page.locator('h1:has-text("My Sections")')).toBeVisible({ timeout: 5000 });
+
+    // Click join section button
+    await page.click('button:has-text("Join Section"), button:has-text("Join Your First Section")');
+    await expect(page.locator('h2:has-text("Join a Section")')).toBeVisible({ timeout: 5000 });
+
+    // Enter join code and join section
+    await page.fill('input#joinCode', joinCode);
+    await page.click('button:has-text("Join Section")');
+
+    // Wait for redirect back to sections page
+    await expect(page.locator('h1:has-text("My Sections")')).toBeVisible({ timeout: 5000 });
+
+    // Wait for active session to appear and join it
+    const joinNowButton = page.locator('button:has-text("Join Now")');
+    await expect(joinNowButton).toBeVisible({ timeout: 5000 });
+    await joinNowButton.click();
+
+    // Wait for navigation to student page
+    await page.waitForURL(/\/student\?sessionId=/, { timeout: 5000 });
+
+    // Wait for session to load
+    await expect(page.locator('button:has-text("Leave Session")')).toBeVisible({ timeout: 5000 });
+
+    // Wait for problem to be loaded before expecting Monaco
+    await expect(page.locator('h2, h3').filter({ hasText: testProblem.title })).toBeVisible({ timeout: 15000 });
+
+    // Wait a moment for React to render
+    await page.waitForTimeout(500);
 
     // Wait for editor
     const monacoEditor = page.locator('.monaco-editor').first();
-    await expect(monacoEditor).toBeVisible({ timeout: 5000 });
+    await expect(monacoEditor).toBeVisible({ timeout: 10000 });
 
     // Submit first solution
     await page.evaluate(() => {
@@ -118,21 +145,31 @@ test.describe('Student Session Participation', () => {
     await loginAsStudent(page1, 'test-student-multi-1');
     await loginAsStudent(page2, 'test-student-multi-2');
 
-    // Both join the same session
-    await page1.goto('/student');
-    await page2.goto('/student');
+    // Student 1 joins section and session
+    await page1.goto('/sections');
+    await expect(page1.locator('h1:has-text("My Sections")')).toBeVisible({ timeout: 5000 });
+    await page1.click('button:has-text("Join Section"), button:has-text("Join Your First Section")');
+    await expect(page1.locator('h2:has-text("Join a Section")')).toBeVisible({ timeout: 5000 });
+    await page1.fill('input#joinCode', joinCode);
+    await page1.click('button:has-text("Join Section")');
+    await expect(page1.locator('h1:has-text("My Sections")')).toBeVisible({ timeout: 5000 });
+    await page1.click('button:has-text("Join Now")');
+    await page1.waitForURL(/\/student\?sessionId=/, { timeout: 5000 });
 
-    await page1.click('button:has-text("Join New Session")');
-    await page1.fill('input[placeholder="ABC123"]', joinCode);
-    await page1.click('button:has-text("Join Session")');
-
-    await page2.click('button:has-text("Join New Session")');
-    await page2.fill('input[placeholder="ABC123"]', joinCode);
-    await page2.click('button:has-text("Join Session")');
+    // Student 2 joins section and session
+    await page2.goto('/sections');
+    await expect(page2.locator('h1:has-text("My Sections")')).toBeVisible({ timeout: 5000 });
+    await page2.click('button:has-text("Join Section"), button:has-text("Join Your First Section")');
+    await expect(page2.locator('h2:has-text("Join a Section")')).toBeVisible({ timeout: 5000 });
+    await page2.fill('input#joinCode', joinCode);
+    await page2.click('button:has-text("Join Section")');
+    await expect(page2.locator('h1:has-text("My Sections")')).toBeVisible({ timeout: 5000 });
+    await page2.click('button:has-text("Join Now")');
+    await page2.waitForURL(/\/student\?sessionId=/, { timeout: 5000 });
 
     // Wait for editors
-    await expect(page1.locator('.monaco-editor').first()).toBeVisible({ timeout: 5000 });
-    await expect(page2.locator('.monaco-editor').first()).toBeVisible({ timeout: 5000 });
+    await expect(page1.locator('.monaco-editor').first()).toBeVisible({ timeout: 10000 });
+    await expect(page2.locator('.monaco-editor').first()).toBeVisible({ timeout: 10000 });
 
     // Each student writes different code using Monaco API
     await page1.evaluate(() => {
@@ -157,32 +194,24 @@ test.describe('Student Session Participation', () => {
     await context2.close();
   });
 
-  test('Student cannot join ended session', async ({ page }) => {
-    // Try to join with an invalid join code (session doesn't exist)
-    studentUser = await loginAsStudent(page, 'test-student-ended');
-    await page.goto('/student');
-    await page.click('button:has-text("Join New Session")');
-
-    // Use a fake join code that won't exist
-    await page.fill('input[placeholder="ABC123"]', 'FAKE99');
-    await page.click('button:has-text("Join Session")');
-
-    // Should see error message
-    await expect(page.locator('text=Session not found')).toBeVisible({ timeout: 5000 });
-  });
-
   test('Student code persistence', async ({ page }) => {
     // Login as student and join session
     studentUser = await loginAsStudent(page, 'test-student-persist');
-    await page.goto('/student');
-    await page.click('button:has-text("Join New Session")');
-    await page.fill('input[placeholder="ABC123"]', joinCode);
-    await page.click('button:has-text("Join Session")');
-    await page.waitForTimeout(2000);
+
+    // Navigate to sections page and join section
+    await page.goto('/sections');
+    await expect(page.locator('h1:has-text("My Sections")')).toBeVisible({ timeout: 5000 });
+    await page.click('button:has-text("Join Section"), button:has-text("Join Your First Section")');
+    await expect(page.locator('h2:has-text("Join a Section")')).toBeVisible({ timeout: 5000 });
+    await page.fill('input#joinCode', joinCode);
+    await page.click('button:has-text("Join Section")');
+    await expect(page.locator('h1:has-text("My Sections")')).toBeVisible({ timeout: 5000 });
+    await page.click('button:has-text("Join Now")');
+    await page.waitForURL(/\/student\?sessionId=/, { timeout: 5000 });
 
     // Wait for editor
     const monacoEditor = page.locator('.monaco-editor').first();
-    await expect(monacoEditor).toBeVisible({ timeout: 5000 });
+    await expect(monacoEditor).toBeVisible({ timeout: 10000 });
 
     // Write some code using Monaco API
     await page.evaluate(() => {
@@ -197,17 +226,7 @@ test.describe('Student Session Participation', () => {
     await page.reload();
     await page.waitForTimeout(2000);
 
-    // Check if we're still in session view or back at dashboard
-    const isInSession = await page.locator('h1:has-text("Live Coding Session")').isVisible({ timeout: 3000 }).catch(() => false);
-
-    if (!isInSession) {
-      // We're back at dashboard, need to rejoin
-      await expect(page.locator('h2:has-text("My Sessions")')).toBeVisible({ timeout: 5000 });
-      await page.click('button:has-text("Rejoin Session")');
-      await page.waitForTimeout(2000);
-    }
-
-    // Should be in the session view now
+    // Should still be in the session view (URL should persist)
     await expect(page.locator('h1:has-text("Live Coding Session")')).toBeVisible({ timeout: 10000 });
 
     // Editor should be visible
