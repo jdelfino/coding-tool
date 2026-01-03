@@ -209,15 +209,19 @@ function PublicViewContent() {
           borderLeft: '2px solid #ddd',
           paddingLeft: '1.5rem'
         }}>
-          <p style={{ fontSize: '0.75rem', color: '#666', marginBottom: '0.25rem', marginTop: 0 }}>Join Code</p>
+          <p style={{ fontSize: '0.75rem', color: '#666', marginBottom: '0.25rem', marginTop: 0 }}>Section Join Code</p>
           <p style={{
             fontSize: '2rem',
             fontWeight: 'bold',
             color: '#0070f3',
             fontFamily: 'monospace',
-            margin: 0
+            margin: 0,
+            marginBottom: '0.5rem'
           }}>
             {joinCode || '------'}
+          </p>
+          <p style={{ fontSize: '0.7rem', color: '#666', marginTop: '0.5rem', marginBottom: 0 }}>
+            Students join your section with this code
           </p>
         </div>
       </div>

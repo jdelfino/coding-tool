@@ -845,10 +845,20 @@ class WebSocketHandler {
     // Send current session state
     const featured = await sessionManagerHolder.instance.getFeaturedSubmission(sessionId);
     
+    // Get section join code instead of session join code
+    let displayJoinCode = session.joinCode; // fallback to session join code
+    if (session.sectionId) {
+      const sectionRepo = await getSectionRepository();
+      const section = await sectionRepo.getSection(session.sectionId);
+      if (section) {
+        displayJoinCode = section.joinCode;
+      }
+    }
+    
     this.send(ws, {
       type: MessageType.PUBLIC_SUBMISSION_UPDATE,
       payload: {
-        joinCode: session.joinCode,
+        joinCode: displayJoinCode,
         problem: session.problem,
         code: featured.code,
         hasFeaturedSubmission: !!featured.studentId,
