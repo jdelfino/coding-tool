@@ -5,11 +5,11 @@ import { getStorage } from '@/server/persistence';
 
 /**
  * GET /api/sessions
- * 
+ *
  * List sessions for the authenticated user.
  * - Instructors see their created sessions
  * - Students see sessions they've joined
- * 
+ *
  * Query params:
  * - status?: 'active' | 'completed' (optional - filter by status)
  */
@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
       const queryOptions: any = {
         instructorId: user.id,
       };
-      
+
       if (statusFilter) {
         queryOptions.active = statusFilter === 'active';
       }
@@ -59,9 +59,9 @@ export async function GET(request: NextRequest) {
       // TODO: Add participantId filter to SessionQueryOptions for efficiency
       const allSessions = await storage.sessions.listAllSessions();
       userSessions = allSessions.filter(s => s.participants.includes(user.id));
-      
+
       if (statusFilter) {
-        userSessions = userSessions.filter(s => 
+        userSessions = userSessions.filter(s =>
           statusFilter === 'active' ? s.status === 'active' : s.status === 'completed'
         );
       }
@@ -91,7 +91,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Error listing sessions:', error);
     return NextResponse.json(
-      { 
+      {
         error: 'Failed to list sessions',
         details: error instanceof Error ? error.message : 'Unknown error'
       },
@@ -102,9 +102,9 @@ export async function GET(request: NextRequest) {
 
 /**
  * POST /api/sessions
- * 
+ *
  * Create a new session, optionally from a problem.
- * 
+ *
  * Body:
  * - sectionId: string (required)
  * - problemId?: string (optional - if provided, problem is cloned into session)
@@ -152,14 +152,14 @@ export async function POST(request: NextRequest) {
 
     // Get storage backend and verify section exists
     const storage = await getStorage();
-    
+
     if (!storage.sections || !storage.memberships) {
       return NextResponse.json(
         { error: 'Class/section features not available' },
         { status: 503 }
       );
     }
-    
+
     const section = await storage.sections.getSection(sectionId);
     if (!section) {
       return NextResponse.json(
@@ -173,7 +173,7 @@ export async function POST(request: NextRequest) {
     const isInstructor = section.instructorIds.includes(user.id);
     const membership = await storage.memberships.getMembership(user.id, sectionId);
     const hasInstructorMembership = membership?.role === 'instructor';
-    
+
     if (!isInstructor && !hasInstructorMembership) {
       return NextResponse.json(
         { error: 'Forbidden: You must be an instructor in this section' },
@@ -217,19 +217,19 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Error creating session:', error);
-    
+
     // Handle single-session enforcement error
     if (error instanceof Error && error.message.includes('Cannot create session: User already has')) {
       return NextResponse.json(
-        { 
+        {
           error: error.message,
         },
         { status: 400 }
       );
     }
-    
+
     return NextResponse.json(
-      { 
+      {
         error: 'Failed to create session',
         details: error instanceof Error ? error.message : 'Unknown error'
       },

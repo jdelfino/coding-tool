@@ -21,10 +21,10 @@ export interface Student {
 
 export interface Session {
   id: string;
-  
+
   // Problem object for the session (executionSettings stored within problem.executionSettings)
   problem: Problem;
-  
+
   students: Map<string, Student>; // All students who have joined (preserves code across disconnects)
   instructorWs?: WebSocket;
   publicViewWs?: WebSocket;
@@ -85,7 +85,7 @@ export enum MessageType {
   EXECUTE_CODE = 'EXECUTE_CODE',
   UPDATE_STUDENT_SETTINGS = 'UPDATE_STUDENT_SETTINGS',
   TRACE_REQUEST = 'TRACE_REQUEST',
-  
+
   // Instructor messages
   CREATE_SESSION = 'CREATE_SESSION',
   LIST_SESSIONS = 'LIST_SESSIONS',
@@ -96,12 +96,12 @@ export enum MessageType {
   EXECUTE_STUDENT_CODE = 'EXECUTE_STUDENT_CODE',
   SELECT_SUBMISSION_FOR_PUBLIC = 'SELECT_SUBMISSION_FOR_PUBLIC',
   GET_REVISIONS = 'GET_REVISIONS',
-  
+
   // Public view messages
   JOIN_PUBLIC_VIEW = 'JOIN_PUBLIC_VIEW',
   PUBLIC_CODE_EDIT = 'PUBLIC_CODE_EDIT',
   PUBLIC_EXECUTE_CODE = 'PUBLIC_EXECUTE_CODE',
-  
+
   // Server messages
   SESSION_CREATED = 'SESSION_CREATED',
   SESSION_JOINED = 'SESSION_JOINED',

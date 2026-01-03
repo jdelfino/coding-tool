@@ -6,6 +6,7 @@ import CreateSectionModal from './CreateSectionModal';
 interface SectionInfo {
   id: string;
   name: string;
+  joinCode: string;
   schedule?: string;
   location?: string;
   studentCount: number;
@@ -221,12 +222,18 @@ export default function SectionView({
                   className="w-full text-left p-6 bg-white border-2 border-gray-200 rounded-xl shadow-sm hover:shadow-lg hover:border-blue-400 transition-all duration-200 transform hover:-translate-y-1"
                 >
                   <div className="flex items-start justify-between mb-3">
-                    <div className="flex-1">
+                    <div className="flex-1 pr-12">
                       <h3 className="text-xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors">
                         {section.name}
                       </h3>
+                      <div className="mt-2 inline-flex items-center px-3 py-1 bg-blue-100 text-blue-800 text-sm font-mono font-bold rounded-lg">
+                        <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                        </svg>
+                        {section.joinCode}
+                      </div>
                       {section.schedule && (
-                        <p className="text-sm text-gray-600 mt-1">
+                        <p className="text-sm text-gray-600 mt-2">
                           {section.schedule}
                         </p>
                       )}
@@ -266,7 +273,7 @@ export default function SectionView({
                     handleDeleteSection(section.id, section.name);
                   }}
                   disabled={deletingId === section.id}
-                  className="absolute top-4 right-4 p-2 bg-red-600 text-white rounded-lg opacity-0 group-hover:opacity-100 hover:bg-red-700 transition-all duration-200 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed z-10"
+                  className="absolute top-4 right-4 p-2 bg-red-600 text-white rounded-lg opacity-0 group-hover:opacity-100 hover:bg-red-700 transition-opacity duration-200 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                   title="Delete section"
                 >
                   {deletingId === section.id ? (

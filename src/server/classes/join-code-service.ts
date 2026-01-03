@@ -16,32 +16,28 @@ const CHARSET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 /**
  * Generate a unique join code
  * 
- * Format: ABC-123-XYZ (3 segments of 3 characters each)
+ * Format: ABC123 (6 characters)
  * Uses crypto.randomBytes for cryptographically secure randomness
  * 
  * @returns A join code string
  */
 export function generateJoinCode(): string {
-  const segments: string[] = [];
+  let code = '';
   
-  for (let i = 0; i < 3; i++) {
-    let segment = '';
-    for (let j = 0; j < 3; j++) {
-      const randomByte = crypto.randomBytes(1)[0];
-      const index = randomByte % CHARSET.length;
-      segment += CHARSET[index];
-    }
-    segments.push(segment);
+  for (let i = 0; i < 6; i++) {
+    const randomByte = crypto.randomBytes(1)[0];
+    const index = randomByte % CHARSET.length;
+    code += CHARSET[index];
   }
   
-  return segments.join('-');
+  return code;
 }
 
 /**
  * Validate join code format
  * 
  * @param code - The join code to validate
- * @returns true if format is valid (XXX-XXX-XXX)
+ * @returns true if format is valid (6 characters)
  */
 export function isValidJoinCodeFormat(code: string): boolean {
   if (!code || typeof code !== 'string') {

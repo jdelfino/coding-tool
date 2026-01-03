@@ -63,24 +63,24 @@ class WebSocketHandler {
 
     wss.on('connection', async (ws: WebSocket, request: IncomingMessage) => {
       console.log('New WebSocket connection');
-      
+
       // Extract user authentication from cookies
       let userId: string | undefined;
       let user: User | undefined;
       try {
         const cookies = request.headers.cookie;
-        
+
         if (cookies) {
           const sessionId = cookies
             .split(';')
             .map(c => c.trim())
             .find(c => c.startsWith('sessionId='))
             ?.split('=')[1];
-          
+
           if (sessionId) {
             const authProvider = await getAuthProvider();
             const session = await authProvider.getSession(sessionId);
-            
+
             if (session && session.user) {
               userId = session.user.id;
               user = session.user; // Store full user object
@@ -97,7 +97,7 @@ class WebSocketHandler {
       } catch (error) {
         console.error('[WS Auth] Error extracting user authentication:', error);
       }
-      
+
       const connection: Connection = {
         ws,
         role: 'student', // Will be set when they identify themselves
@@ -105,7 +105,7 @@ class WebSocketHandler {
         user, // Store full user object for permission checks
         isAlive: true,
       };
-      
+
       this.connections.set(ws, connection);
 
       // Set up pong handler for heartbeat
@@ -156,59 +156,59 @@ class WebSocketHandler {
       case MessageType.END_SESSION:
         await this.handleEndSession(ws, connection, message.payload);
         break;
-        
+
       case MessageType.JOIN_SESSION:
         await this.handleJoinSession(ws, connection, message.payload);
         break;
-        
+
       case MessageType.UPDATE_PROBLEM:
         await this.handleUpdateProblem(connection, message.payload);
         break;
-        
+
       case MessageType.CODE_UPDATE:
         await this.handleCodeUpdate(connection, message.payload);
         break;
-        
+
       case MessageType.UPDATE_STUDENT_SETTINGS:
         await this.handleUpdateStudentSettings(connection, message.payload);
         break;
-        
+
       case MessageType.EXECUTE_CODE:
         await this.handleExecuteCode(ws, connection, message.payload);
         break;
-        
+
       case MessageType.EXECUTE_STUDENT_CODE:
         await this.handleExecuteStudentCode(ws, connection, message.payload);
         break;
-        
+
       case MessageType.REQUEST_STUDENT_CODE:
         await this.handleRequestStudentCode(ws, connection, message.payload);
         break;
-        
+
       case MessageType.GET_REVISIONS:
         await this.handleGetRevisions(ws, connection, message.payload);
         break;
-        
+
       case MessageType.SELECT_SUBMISSION_FOR_PUBLIC:
         await this.handleSelectSubmissionForPublic(connection, message.payload);
         break;
-        
+
       case MessageType.JOIN_PUBLIC_VIEW:
         await this.handleJoinPublicView(ws, connection, message.payload);
         break;
-        
+
       case MessageType.PUBLIC_CODE_EDIT:
         await this.handlePublicCodeEdit(connection, message.payload);
         break;
-        
+
       case MessageType.PUBLIC_EXECUTE_CODE:
         await this.handlePublicExecuteCode(ws, connection, message.payload);
         break;
-        
+
       case MessageType.TRACE_REQUEST:
         await this.handleTraceRequest(ws, connection, message.payload);
         break;
-        
+
       default:
         this.sendError(ws, 'Unknown message type');
     }
@@ -218,7 +218,7 @@ class WebSocketHandler {
     try {
       console.log('[handleCreateSession] Starting, payload:', payload);
       const { sectionId } = payload;
-      
+
       if (!sectionId || typeof sectionId !== 'string') {
         console.error('[handleCreateSession] Invalid sectionId');
         this.sendError(ws, 'Section ID is required to create a session');
@@ -235,7 +235,7 @@ class WebSocketHandler {
       // Validate instructor has access to this section
       const sectionRepo = await getSectionRepository();
       const section = await sectionRepo.getSection(sectionId);
-      
+
       if (!section) {
         console.error('[handleCreateSession] Section not found:', sectionId);
         this.sendError(ws, 'Section not found');
@@ -258,11 +258,11 @@ class WebSocketHandler {
         sectionId,
         section.name
       );
-      
+
       console.log('[handleCreateSession] Session created:', session.id);
       connection.role = 'instructor';
       connection.sessionId = session.id;
-      
+
       console.log('[handleCreateSession] Sending SESSION_CREATED response');
       this.send(ws, {
         type: MessageType.SESSION_CREATED,
@@ -283,7 +283,7 @@ class WebSocketHandler {
   private async handleListSessions(ws: WebSocket, connection: Connection) {
     try {
       const sessions = await sessionManagerHolder.instance.listSessions();
-      
+
       // Convert sessions to a serializable format (without Maps)
       const sessionList = sessions.map(session => ({
         id: session.id,
@@ -305,9 +305,9 @@ class WebSocketHandler {
 
   private async handleJoinExistingSession(ws: WebSocket, connection: Connection, payload: any) {
     const { sessionId } = payload;
-    
+
     console.log('[handleJoinExistingSession] Attempting to join session:', sessionId, 'for user:', connection.userId);
-    
+
     if (!sessionId || typeof sessionId !== 'string') {
       console.log('[handleJoinExistingSession] Invalid session ID');
       this.sendError(ws, 'Invalid session ID');
@@ -316,7 +316,7 @@ class WebSocketHandler {
 
     const session = await sessionManagerHolder.instance.getSession(sessionId);
     console.log('[handleJoinExistingSession] Session lookup result:', session ? 'Found' : 'Not found');
-    
+
     if (!session) {
       console.log('[handleJoinExistingSession] Session not found:', sessionId);
       this.sendError(ws, 'Session not found');
@@ -334,7 +334,7 @@ class WebSocketHandler {
     if (session.sectionId && connection.userId) {
       const sectionRepo = await getSectionRepository();
       const section = await sectionRepo.getSection(session.sectionId);
-      
+
       if (!section) {
         this.sendError(ws, 'Section not found');
         return;
@@ -342,11 +342,11 @@ class WebSocketHandler {
 
       // Check if user is section instructor OR a member
       const isInstructor = section.instructorIds.includes(connection.userId);
-      
+
       if (!isInstructor) {
         const membershipRepo = await getMembershipRepository();
         const membership = await membershipRepo.getMembership(connection.userId, session.sectionId);
-        
+
         if (!membership) {
           this.sendError(ws, 'You are not authorized to access this section\'s session.');
           return;
@@ -375,7 +375,7 @@ class WebSocketHandler {
 
   private async handleEndSession(ws: WebSocket, connection: Connection, payload: any) {
     const { sessionId } = payload;
-    
+
     if (!sessionId || typeof sessionId !== 'string') {
       this.sendError(ws, 'Invalid session ID');
       return;
@@ -389,7 +389,7 @@ class WebSocketHandler {
 
     try {
       const ended = await sessionManagerHolder.instance.endSession(sessionId);
-      
+
       if (ended) {
         // Flush all revisions for this session before ending
         if (revisionBufferHolder.instance) {
@@ -422,23 +422,23 @@ class WebSocketHandler {
 
   private async handleJoinSession(ws: WebSocket, connection: Connection, payload: any) {
     const { sessionId, studentName } = payload;
-    
+
     // Validate inputs
     if (!sessionId || typeof sessionId !== 'string') {
       this.sendError(ws, 'Invalid session ID');
       return;
     }
-    
+
     if (!studentName || typeof studentName !== 'string' || studentName.trim().length === 0) {
       this.sendError(ws, 'Invalid student name');
       return;
     }
-    
+
     if (studentName.trim().length > 50) {
       this.sendError(ws, 'Student name is too long (max 50 characters)');
       return;
     }
-    
+
     const session = await sessionManagerHolder.instance.getSession(sessionId);
     if (!session) {
       this.sendError(ws, 'Session not found.');
@@ -448,23 +448,23 @@ class WebSocketHandler {
     // Verify section membership if session is scoped to a section
     if (session.sectionId && connection.userId) {
       console.log('[JOIN_SESSION] Checking section membership for user:', connection.userId);
-      
+
       // Check if user is section instructor first
       const sectionRepo = await getSectionRepository();
       const section = await sectionRepo.getSection(session.sectionId);
       const isInstructor = section?.instructorIds.includes(connection.userId);
-      
+
       if (!isInstructor) {
         // Not an instructor, so verify student enrollment
         const membershipRepo = await getMembershipRepository();
         const existingMembership = await membershipRepo.getMembership(connection.userId, session.sectionId);
-        
+
         if (!existingMembership) {
           console.log('[JOIN_SESSION] User not enrolled in section:', session.sectionId);
           this.sendError(ws, 'You must be enrolled in this section to join the session. Please join the section first using the section join code.');
           return;
         }
-        
+
         console.log('[JOIN_SESSION] User is enrolled in section');
       } else {
         console.log('[JOIN_SESSION] User is section instructor, bypassing enrollment check');
@@ -521,24 +521,24 @@ class WebSocketHandler {
     }
 
     const { problem, executionSettings } = payload;
-    
+
     if (!problem) {
       console.error('Problem object is required');
       return;
     }
-    
+
     await sessionManagerHolder.instance.updateSessionProblem(
-      connection.sessionId, 
+      connection.sessionId,
       problem,
       executionSettings
     );
-    
+
     // Broadcast to all students and public views
     this.broadcastToSession(connection.sessionId, {
       type: MessageType.PROBLEM_UPDATE,
       payload: { problem },
     }, 'student');
-    
+
     this.broadcastToSession(connection.sessionId, {
       type: MessageType.PROBLEM_UPDATE,
       payload: { problem },
@@ -568,18 +568,18 @@ class WebSocketHandler {
     }
 
     const { executionSettings } = payload;
-    
+
     if (!executionSettings) {
       console.error('executionSettings object is required');
       return;
     }
-    
+
     await sessionManagerHolder.instance.updateStudentSettings(
-      connection.sessionId, 
-      connection.studentId, 
+      connection.sessionId,
+      connection.studentId,
       executionSettings
     );
-    
+
     console.log(`Updated student ${connection.studentId} settings:`, executionSettings);
   }
 
@@ -591,22 +591,22 @@ class WebSocketHandler {
 
     try {
       const { code, executionSettings: payloadSettings } = payload;
-      
+
       if (!code || typeof code !== 'string') {
         this.sendError(ws, 'Invalid code provided');
         return;
       }
-      
+
       // Get student-specific settings
       const studentData = connection.sessionId && connection.studentId
         ? await sessionManagerHolder.instance.getStudentData(connection.sessionId, connection.studentId)
         : null;
-      
+
       // Get session defaults
-      const session = connection.sessionId 
+      const session = connection.sessionId
         ? await sessionManagerHolder.instance.getSession(connection.sessionId)
         : null;
-      
+
       // Merge payload settings (highest priority), student settings, then session defaults
       const executionSettings = this.getEffectiveExecutionSettings(
         payloadSettings,
@@ -615,9 +615,9 @@ class WebSocketHandler {
           session?.problem.executionSettings
         )
       );
-      
-      const result = await executeCodeSafe({ 
-        code, 
+
+      const result = await executeCodeSafe({
+        code,
         executionSettings,
       });
 
@@ -640,15 +640,15 @@ class WebSocketHandler {
 
     try {
       const { studentId, executionSettings: payloadSettings } = payload;
-      
+
       if (!studentId || typeof studentId !== 'string') {
         this.sendError(ws, 'Invalid student ID');
         return;
       }
-      
+
       // Get student-specific data including code, randomSeed, and attachedFiles
       const studentData = await sessionManagerHolder.instance.getStudentData(connection.sessionId, studentId);
-      
+
       if (!studentData || !studentData.code) {
         this.sendError(ws, 'Student code not found or empty');
         return;
@@ -656,7 +656,7 @@ class WebSocketHandler {
 
       // Get session defaults for fallback
       const session = await sessionManagerHolder.instance.getSession(connection.sessionId);
-      
+
       // Merge payload settings (highest priority), student settings, then session defaults
       const executionSettings = this.getEffectiveExecutionSettings(
         payloadSettings,
@@ -665,9 +665,9 @@ class WebSocketHandler {
           session?.problem.executionSettings
         )
       );
-      
-      const result = await executeCodeSafe({ 
-        code: studentData.code, 
+
+      const result = await executeCodeSafe({
+        code: studentData.code,
         executionSettings,
       });
 
@@ -687,7 +687,7 @@ class WebSocketHandler {
 
     const { studentId } = payload;
     const studentData = await sessionManagerHolder.instance.getStudentData(connection.sessionId, studentId);
-    
+
     if (!studentData) {
       this.sendError(ws, 'Student not found');
       return;
@@ -700,8 +700,8 @@ class WebSocketHandler {
 
     this.send(ws, {
       type: MessageType.STUDENT_CODE,
-      payload: { 
-        studentId, 
+      payload: {
+        studentId,
         code: studentData.code,
         executionSettings: studentData.executionSettings,
       },
@@ -713,18 +713,18 @@ class WebSocketHandler {
     if (!this.hasPermission(connection, 'data.viewAll') || !connection.sessionId) return;
 
     const { studentId } = payload;
-    
+
     try {
       const storage = await getStorage();
       const storedRevisions = await storage.revisions.getRevisions(connection.sessionId, studentId);
-      
+
       // Reconstruct full code for each revision from diffs
       const dmp = new DiffMatchPatch.diff_match_patch();
       const revisions = [];
-      
+
       for (const rev of storedRevisions) {
         let fullCode: string;
-        
+
         if (rev.isDiff && rev.diff) {
           // Apply diff to reconstruct code
           // Find the previous full snapshot
@@ -732,15 +732,15 @@ class WebSocketHandler {
             .slice(0, storedRevisions.indexOf(rev))
             .reverse()
             .find(r => !r.isDiff && r.fullCode !== undefined);
-          
+
           if (prevSnapshot && prevSnapshot.fullCode !== undefined) {
             // Start with previous snapshot
             let currentCode = prevSnapshot.fullCode;
-            
+
             // Apply all diffs between snapshot and current revision
             const startIdx = storedRevisions.indexOf(prevSnapshot) + 1;
             const endIdx = storedRevisions.indexOf(rev) + 1;
-            
+
             for (let i = startIdx; i < endIdx; i++) {
               const r = storedRevisions[i];
               if (r.isDiff && r.diff) {
@@ -761,14 +761,14 @@ class WebSocketHandler {
         } else {
           fullCode = '';
         }
-        
+
         revisions.push({
           id: rev.id,
           timestamp: rev.timestamp,
           code: fullCode,
         });
       }
-      
+
       this.send(ws, {
         type: MessageType.REVISIONS_DATA,
         payload: {
@@ -791,7 +791,7 @@ class WebSocketHandler {
 
     const { studentId } = payload;
     const sessionId = connection.sessionId;
-    
+
     if (studentId) {
       // Get session and student data BEFORE writing to storage
       const session = await sessionManagerHolder.instance.getSession(sessionId);
@@ -799,20 +799,20 @@ class WebSocketHandler {
         console.error('Session not found');
         return;
       }
-      
+
       const student = session.students.get(studentId);
       if (!student) {
         console.error('Student not found in session');
         return;
       }
-      
+
       // Set featured submission (writes to storage asynchronously)
       const success = await sessionManagerHolder.instance.setFeaturedSubmission(sessionId, studentId);
       if (!success) {
         console.error('Failed to set featured submission');
         return;
       }
-      
+
       // Broadcast with the data we already have in memory
       await this.broadcastPublicSubmissionUpdate(sessionId, {
         studentId,
@@ -829,7 +829,7 @@ class WebSocketHandler {
 
   private async handleJoinPublicView(ws: WebSocket, connection: Connection, payload: any) {
     const { sessionId } = payload;
-    
+
     const session = await sessionManagerHolder.instance.getSession(sessionId);
     if (!session) {
       this.sendError(ws, 'Session not found');
@@ -841,7 +841,7 @@ class WebSocketHandler {
 
     // Send current session state
     const featured = await sessionManagerHolder.instance.getFeaturedSubmission(sessionId);
-    
+
     // Get section join code (sessions no longer have join codes)
     let displayJoinCode: string | undefined;
     if (session.sectionId) {
@@ -851,7 +851,7 @@ class WebSocketHandler {
         displayJoinCode = section.joinCode;
       }
     }
-    
+
     this.send(ws, {
       type: MessageType.PUBLIC_SUBMISSION_UPDATE,
       payload: {
@@ -885,23 +885,23 @@ class WebSocketHandler {
 
     try {
       const { code, executionSettings: payloadSettings } = payload;
-      
+
       if (!code || typeof code !== 'string') {
         this.sendError(ws, 'Invalid code provided');
         return;
       }
-      
+
       // Get session to access executionSettings
       const session = await sessionManagerHolder.instance.getSession(connection.sessionId);
-      
+
       // Merge payload settings with session defaults
       const executionSettings = this.getEffectiveExecutionSettings(
         payloadSettings,
         session?.problem?.executionSettings
       );
-      
-      const result = await executeCodeSafe({ 
-        code, 
+
+      const result = await executeCodeSafe({
+        code,
         executionSettings,
       });
 
@@ -916,7 +916,7 @@ class WebSocketHandler {
   }
 
   private async broadcastPublicSubmissionUpdate(
-    sessionId: string, 
+    sessionId: string,
     featuredData?: { studentId?: string; code?: string; executionSettings?: any }
   ) {
     const session = await sessionManagerHolder.instance.getSession(sessionId);
@@ -925,7 +925,7 @@ class WebSocketHandler {
     // Use provided featured data if available (avoids storage read race condition)
     // Otherwise fall back to reading from storage (for cases like handleJoinPublicView)
     const featured = featuredData || await sessionManagerHolder.instance.getFeaturedSubmission(sessionId);
-    
+
     // Get section join code (sessions no longer have join codes)
     let displayJoinCode: string | undefined;
     if (session.sectionId) {
@@ -935,7 +935,7 @@ class WebSocketHandler {
         displayJoinCode = section.joinCode;
       }
     }
-    
+
     this.broadcastToSession(sessionId, {
       type: MessageType.PUBLIC_SUBMISSION_UPDATE,
       payload: {
@@ -977,7 +977,7 @@ class WebSocketHandler {
   private async broadcastStudentList(sessionId: string) {
     const session = await sessionManagerHolder.instance.getSession(sessionId);
     if (!session) return;
-    
+
     const students = await sessionManagerHolder.instance.getStudents(sessionId);
     const studentList = students.map((s: Student) => ({
       id: s.id,

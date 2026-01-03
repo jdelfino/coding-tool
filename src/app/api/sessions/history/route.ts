@@ -8,7 +8,7 @@ import { requireAuth } from '@/server/auth/api-helpers';
  * Get session history for the current user
  * - Instructors see sessions they created
  * - Students see sessions they participated in
- * 
+ *
  * Query Parameters:
  * - status: 'active' | 'completed' | 'all' (default: 'all')
  * - classId: filter by class ID
@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
 
     const user = auth.user;
     let sessions;
-    
+
     // Check permission for viewing sessions
     if (auth.rbac.hasPermission(user, 'session.viewAll')) {
       // Instructors see sessions they created
@@ -60,13 +60,13 @@ export async function GET(request: NextRequest) {
 
     // Filter by search query (section name)
     if (searchQuery) {
-      filteredSessions = filteredSessions.filter(s => 
+      filteredSessions = filteredSessions.filter(s =>
         s.sectionName.toLowerCase().includes(searchQuery)
       );
     }
 
     // Sort by lastActivity (most recent first)
-    filteredSessions.sort((a, b) => 
+    filteredSessions.sort((a, b) =>
       b.lastActivity.getTime() - a.lastActivity.getTime()
     );
 

@@ -14,6 +14,7 @@ import SessionEndedNotification from './components/SessionEndedNotification';
 function StudentPage() {
   const { user, signOut } = useAuth();
   const { sessions, isLoading: isLoadingSessions, refetch: refetchSessions } = useSessionHistory();
+  const [hasSections, setHasSections] = useState<boolean | null>(null);
   const [joined, setJoined] = useState(false);
   const [studentId, setStudentId] = useState<string | null>(null);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
@@ -38,7 +39,7 @@ function StudentPage() {
 
   // Construct WebSocket URL - only initialize on client side
   const [wsUrl, setWsUrl] = useState('');
-  
+
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -48,9 +49,28 @@ function StudentPage() {
       setWsUrl(url);
     }
   }, []);
-  
+
+  // Check if student has any sections
+  useEffect(() => {
+    const checkSections = async () => {
+      try {
+        const response = await fetch('/api/sections/my');
+        if (response.ok) {
+          const data = await response.json();
+          setHasSections(data.sections && data.sections.length > 0);
+        }
+      } catch (err) {
+        console.error('Failed to check sections:', err);
+        setHasSections(false);
+      }
+    };
+    if (user) {
+      checkSections();
+    }
+  }, [user]);
+
   const { isConnected, connectionStatus, connectionError, lastMessage, sendMessage } = useWebSocket(wsUrl);
-  
+
   // Debugger state
   const debuggerHook = useDebugger(sendMessage);
 
@@ -69,7 +89,7 @@ function StudentPage() {
     setError(null);
     setIsJoining(true);
     sendMessage('JOIN_SESSION', { sessionId, studentName });
-    
+
     // Set timeout for join operation
     setTimeout(() => {
       setIsJoining(prev => {
@@ -90,11 +110,11 @@ function StudentPage() {
   useEffect(() => {
     if (!hasCheckedAutoRejoin && !isLoadingSessions && isConnected) {
       setHasCheckedAutoRejoin(true);
-      
+
       if (sessions.length > 0) {
         // Filter active sessions
         const activeSessions = sessions.filter(s => s.status === 'active');
-        
+
         // If exactly one active session, auto-rejoin
         if (activeSessions.length === 1) {
           const session = activeSessions[0];
@@ -190,10 +210,10 @@ function StudentPage() {
     if (!joined || !studentId || !studentExecutionSettings) return;
 
     // Only send if student has explicitly set values (not null = never set)
-    sendMessage('UPDATE_STUDENT_SETTINGS', { 
+    sendMessage('UPDATE_STUDENT_SETTINGS', {
       executionSettings: {
         randomSeed: studentExecutionSettings.randomSeed,
-        attachedFiles: studentExecutionSettings.attachedFiles !== undefined ? studentExecutionSettings.attachedFiles : undefined 
+        attachedFiles: studentExecutionSettings.attachedFiles !== undefined ? studentExecutionSettings.attachedFiles : undefined
       }
     });
   }, [studentExecutionSettings, joined, studentId, sendMessage]);
@@ -214,7 +234,7 @@ function StudentPage() {
     setCode('');
     setExecutionResult(null);
     setSessionEnded(false);
-    
+
     // Refresh sessions
     refetchSessions();
   };
@@ -271,11 +291,11 @@ function StudentPage() {
     setError(null);
     setIsRunning(true);
     setExecutionResult(null);
-    sendMessage('EXECUTE_CODE', { 
-      code, 
+    sendMessage('EXECUTE_CODE', {
+      code,
       executionSettings
     });
-    
+
     // Set timeout for execution
     setTimeout(() => {
       if (isRunning) {
@@ -300,9 +320,9 @@ function StudentPage() {
     return (
       <main style={{ padding: '2rem' }}>
         {/* Header with Sign Out */}
-        <div style={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
           alignItems: 'center',
           marginBottom: '2rem'
         }}>
@@ -312,9 +332,9 @@ function StudentPage() {
               Student Dashboard
             </p>
           </div>
-          <div style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
             gap: '1rem',
             padding: '0.5rem 1rem',
             backgroundColor: '#f8f9fa',
@@ -323,8 +343,8 @@ function StudentPage() {
           }}>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
               <span style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>{user?.username}</span>
-              <span style={{ 
-                fontSize: '0.75rem', 
+              <span style={{
+                fontSize: '0.75rem',
                 color: '#28a745',
                 fontWeight: '500'
               }}>Student</span>
@@ -357,11 +377,11 @@ function StudentPage() {
         </div>
 
         {/* Connection Status */}
-        <div style={{ 
-          textAlign: 'center', 
+        <div style={{
+          textAlign: 'center',
           marginBottom: '1rem',
           padding: '0.5rem',
-          backgroundColor: connectionStatus === 'connected' ? '#d4edda' : 
+          backgroundColor: connectionStatus === 'connected' ? '#d4edda' :
                           connectionStatus === 'connecting' ? '#fff3cd' : '#f8d7da',
           borderRadius: '4px'
         }}>
@@ -416,12 +436,35 @@ function StudentPage() {
         )}
 
         {/* Dashboard */}
-        <StudentDashboard
-          sessions={sessions}
-          onJoinNewSession={handleShowJoinForm}
-          onRejoinSession={handleRejoinSession}
-          disabled={!isConnected || connectionStatus === 'failed'}
-        />
+        {hasSections === false ? (
+          <div className="text-center py-16 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border-2 border-dashed border-blue-300">
+            <div className="flex justify-center mb-6">
+              <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center">
+                <svg className="w-10 h-10 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+              </div>
+            </div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Join a Section</h2>
+            <p className="text-gray-600 mb-6">You're not enrolled in any sections yet. Enter a section join code to get started.</p>
+            <button
+              onClick={() => window.location.href = '/sections/join'}
+              className="inline-flex items-center px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-lg hover:bg-blue-700 hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200"
+            >
+              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+              </svg>
+              Enter Section Join Code
+            </button>
+          </div>
+        ) : (
+          <StudentDashboard
+            sessions={sessions}
+            onJoinNewSession={handleShowJoinForm}
+            onRejoinSession={handleRejoinSession}
+            disabled={!isConnected || connectionStatus === 'failed'}
+          />
+        )}
       </main>
     );
   }
@@ -440,18 +483,18 @@ function StudentPage() {
   return (
     <main style={{ padding: '1rem', width: '100%', height: '100vh', boxSizing: 'border-box', display: 'flex', flexDirection: 'column' }}>
       {/* Header with Sign Out */}
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
         alignItems: 'center',
         marginBottom: '1rem',
         flexShrink: 0
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
           <h1 style={{ margin: 0 }}>Live Coding Session</h1>
-          <div style={{ 
+          <div style={{
             padding: '0.5rem 1rem',
-            backgroundColor: connectionStatus === 'connected' ? '#d4edda' : 
+            backgroundColor: connectionStatus === 'connected' ? '#d4edda' :
                             connectionStatus === 'connecting' ? '#fff3cd' : '#f8d7da',
             borderRadius: '4px',
             fontSize: '0.9rem'
@@ -462,9 +505,9 @@ function StudentPage() {
             {connectionStatus === 'failed' && '✕ Connection Lost'}
           </div>
         </div>
-        <div style={{ 
-          display: 'flex', 
-          alignItems: 'center', 
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
           gap: '0.5rem'
         }}>
           <button
@@ -481,9 +524,9 @@ function StudentPage() {
           >
             Leave Session
           </button>
-          <div style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
             gap: '1rem',
             padding: '0.5rem 1rem',
             backgroundColor: '#f8f9fa',
@@ -492,8 +535,8 @@ function StudentPage() {
           }}>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
               <span style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>{user?.username}</span>
-              <span style={{ 
-                fontSize: '0.75rem', 
+              <span style={{
+                fontSize: '0.75rem',
                 color: '#28a745',
                 fontWeight: '500'
               }}>Student</span>
@@ -566,7 +609,7 @@ function StudentPage() {
 
       {/* Session Ended Notification */}
       {sessionEnded && (
-        <SessionEndedNotification 
+        <SessionEndedNotification
           onLeaveToDashboard={handleLeaveSession}
         />
       )}

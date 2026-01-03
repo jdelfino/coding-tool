@@ -153,7 +153,7 @@ export default function ClassList({ onSelectClass }: ClassListProps) {
               className="w-full text-left p-6 bg-white border-2 border-gray-200 rounded-xl shadow-sm hover:shadow-lg hover:border-blue-400 transition-all duration-200 transform hover:-translate-y-1 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <div className="flex items-start justify-between mb-3">
-                <div className="flex-1 pr-8">
+                <div className="flex-1 pr-12">
                   <h3 className="text-xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors">{classInfo.name}</h3>
                   {classInfo.description && (
                     <p className="text-sm text-gray-600 mt-1 line-clamp-2">

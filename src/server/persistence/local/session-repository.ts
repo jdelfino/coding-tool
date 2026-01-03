@@ -31,9 +31,9 @@ export class LocalSessionRepository implements ISessionRepository {
   async initialize(): Promise<void> {
     const baseDir = this.config.baseDir || './data';
     await ensureDir(baseDir);
-    
+
     await this.reloadFromDisk();
-    
+
     this.initialized = true;
   }
 
@@ -46,7 +46,7 @@ export class LocalSessionRepository implements ISessionRepository {
       this.filePath,
       {}
     );
-    
+
     this.cache.clear();
     for (const [id, session] of Object.entries(sessions)) {
       this.cache.set(id, session);
@@ -85,17 +85,17 @@ export class LocalSessionRepository implements ISessionRepository {
       ...session,
       _metadata: createMetadata(),
     };
-    
+
     if (this.cache.has(session.id)) {
       throw new PersistenceError(
         `Session already exists: ${session.id}`,
         PersistenceErrorCode.ALREADY_EXISTS
       );
     }
-    
+
     this.cache.set(session.id, stored);
     await this.flush();
-    
+
     return session.id;
   }
 
@@ -113,14 +113,14 @@ export class LocalSessionRepository implements ISessionRepository {
         PersistenceErrorCode.NOT_FOUND
       );
     }
-    
+
     const updated: StoredSession = {
       ...existing,
       ...updates,
       id: sessionId, // Ensure ID doesn't change
       _metadata: createMetadata(existing._metadata),
     };
-    
+
     this.cache.set(sessionId, updated);
     await this.flush();
   }
@@ -132,7 +132,7 @@ export class LocalSessionRepository implements ISessionRepository {
         PersistenceErrorCode.NOT_FOUND
       );
     }
-    
+
     this.cache.delete(sessionId);
     await this.flush();
   }
@@ -146,15 +146,15 @@ export class LocalSessionRepository implements ISessionRepository {
   async listAllSessions(options?: SessionQueryOptions): Promise<StoredSession[]> {
     // Reload from disk to get latest data from other processes
     await this.reloadFromDisk();
-    
+
     let sessions = Array.from(this.cache.values());
-    
+
     // Apply filters
     if (options?.active !== undefined) {
       // Note: This assumes Session type will have an 'active' field
       // sessions = sessions.filter(s => s.active === options.active);
     }
-    
+
     // Apply limit and offset
     if (options?.offset) {
       sessions = sessions.slice(options.offset);
@@ -162,7 +162,7 @@ export class LocalSessionRepository implements ISessionRepository {
     if (options?.limit) {
       sessions = sessions.slice(0, options.limit);
     }
-    
+
     // Apply sorting
     if (options?.sortBy) {
       const order = options.sortOrder === 'desc' ? -1 : 1;
@@ -175,7 +175,7 @@ export class LocalSessionRepository implements ISessionRepository {
         return 0;
       });
     }
-    
+
     return sessions;
   }
 
