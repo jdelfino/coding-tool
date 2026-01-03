@@ -359,12 +359,13 @@ export default function CodeEditor({
       </div>
 
       {/* Main Content Area - Responsive Layout */}
-      <div className="flex flex-row flex-1 min-h-0">
-        {/* Left Sidebar (Desktop only) - VS Code style */}
-        {isDesktop && (
-          <div className="flex flex-row flex-shrink-0" style={{ height: '100%' }}>
-            {/* Activity Bar (Icon bar) */}
-            <div className="w-12 bg-gray-800 flex flex-col items-center py-2 gap-1" style={{ height: '100%' }}>
+      <div className="flex flex-col flex-1 min-h-0">
+        <div className="flex flex-row flex-1 min-h-0">
+          {/* Left Sidebar (Desktop only) - VS Code style */}
+          {isDesktop && (
+            <div className="flex flex-row flex-shrink-0" style={{ height: '100%' }}>
+              {/* Activity Bar (Icon bar) */}
+              <div className="w-12 bg-gray-800 flex flex-col items-center py-2 gap-1" style={{ height: '100%' }}>
               {/* Problem icon (only show if problem exists) */}
               {problem && (
                 <button
@@ -622,6 +623,7 @@ export default function CodeEditor({
               </div>
             )}
           </div>
+        </div>
         </div>
 
         {/* Mobile: Bottom Execution Settings */}

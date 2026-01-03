@@ -139,6 +139,24 @@ describe('CodeEditor Responsive Layout', () => {
       const activityBar = container.querySelector('.w-12.bg-gray-800');
       expect(activityBar).not.toBeInTheDocument();
     });
+
+    it('should render execution settings below editor, not to the right on mobile', () => {
+      const { container } = render(
+        <CodeEditor
+          code="print('hello')"
+          onChange={jest.fn()}
+        />
+      );
+
+      // Find the main content area - should have flex-col for vertical stacking
+      const mainContent = container.querySelector('.flex.flex-col.flex-1.min-h-0');
+      expect(mainContent).toBeInTheDocument();
+
+      // Execution settings should be at the bottom of the layout, not inside flex-row
+      const settings = screen.getByTestId('execution-settings');
+      expect(settings).toBeInTheDocument();
+      expect(settings).toHaveAttribute('data-in-sidebar', 'false');
+    });
   });
 
   describe('Responsive Execution Results', () => {
