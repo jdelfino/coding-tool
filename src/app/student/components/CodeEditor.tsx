@@ -798,11 +798,46 @@ export default function CodeEditor({
             />
 
             {debuggerHook?.hasTrace ? (
-              /* Show message when debugging - variables/call stack are in sidebar */
-              <div className="p-4 bg-blue-50 h-full flex items-center justify-center">
-                <p className="text-blue-700 text-sm">
-                  🐛 Debugging active - view variables and call stack in the sidebar
-                </p>
+              /* Show debugger output when debugging */
+              <div className="p-4 h-full bg-blue-50 overflow-y-auto">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="font-bold text-blue-800">
+                    🐛 Debugger Output
+                  </span>
+                  <span className="text-sm text-blue-700">
+                    Step {debuggerHook.currentStep + 1} of {debuggerHook.totalSteps}
+                  </span>
+                </div>
+
+                {debuggerHook.getCurrentStep()?.stdout ? (
+                  <div className="mt-2">
+                    <div className="font-bold text-sm text-blue-800">
+                      Console Output (up to current step):
+                    </div>
+                    <pre className="bg-white p-2 rounded border border-blue-200 overflow-x-auto text-sm font-mono mt-1 whitespace-pre-wrap break-words">
+                      {debuggerHook.getCurrentStep()?.stdout}
+                    </pre>
+                  </div>
+                ) : (
+                  <div className="mt-2 text-sm text-blue-700 italic">
+                    No console output yet
+                  </div>
+                )}
+
+                {debuggerHook.error && (
+                  <div className="mt-2">
+                    <div className="font-bold text-sm text-red-800">
+                      Error:
+                    </div>
+                    <pre className="bg-white p-2 rounded border border-red-300 overflow-x-auto text-sm font-mono mt-1 whitespace-pre-wrap break-words text-red-800">
+                      {debuggerHook.error}
+                    </pre>
+                  </div>
+                )}
+
+                <div className="mt-3 text-xs text-blue-600">
+                  💡 Step through your code to see how output is generated. Variables and call stack are in the sidebar.
+                </div>
               </div>
             ) : effectiveResult ? (
               /* Show normal output when not debugging */
