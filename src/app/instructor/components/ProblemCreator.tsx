@@ -161,48 +161,77 @@ export default function ProblemCreator({
   const debuggerHook = useDebugger(sendMessage);
 
   return (
-    <div className="h-full flex flex-col">
-      {/* Header with save button */}
-      <div className="flex-shrink-0 px-6 py-4 bg-white border-b border-gray-300">
-        <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-bold">{isEditMode ? 'Edit Problem' : 'Create New Problem'}</h2>
-          <div className="flex items-center space-x-3">
-            {onCancel && (
-              <button
-                type="button"
-                onClick={onCancel}
-                disabled={isSubmitting}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 disabled:opacity-50"
-              >
-                Cancel
-              </button>
-            )}
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+      {/* Compact header bar matching student view style */}
+      <div style={{ 
+        flexShrink: 0, 
+        padding: '0.75rem 1rem', 
+        backgroundColor: '#f8f9fa',
+        borderBottom: '1px solid #dee2e6',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        minHeight: '3rem'
+      }}>
+        <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 600, color: '#212529' }}>
+          {isEditMode ? 'Edit Problem' : 'Create New Problem'}
+        </h2>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          {onCancel && (
             <button
               type="button"
-              onClick={handleSubmit}
-              disabled={isSubmitting || isLoading || !title.trim()}
-              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={onCancel}
+              disabled={isSubmitting}
+              style={{
+                padding: '0.5rem 1rem',
+                fontSize: '0.875rem',
+                fontWeight: 500,
+                color: '#6c757d',
+                backgroundColor: '#e9ecef',
+                border: 'none',
+                borderRadius: '0.25rem',
+                cursor: isSubmitting ? 'not-allowed' : 'pointer',
+                opacity: isSubmitting ? 0.5 : 1
+              }}
             >
-              {isSubmitting ? (isEditMode ? 'Updating...' : 'Creating...') : (isEditMode ? 'Update Problem' : 'Create Problem')}
+              Cancel
             </button>
-          </div>
+          )}
+          <button
+            type="button"
+            onClick={handleSubmit}
+            disabled={isSubmitting || isLoading || !title.trim()}
+            style={{
+              padding: '0.5rem 1rem',
+              fontSize: '0.875rem',
+              fontWeight: 500,
+              color: 'white',
+              backgroundColor: '#0d6efd',
+              border: 'none',
+              borderRadius: '0.25rem',
+              cursor: (isSubmitting || isLoading || !title.trim()) ? 'not-allowed' : 'pointer',
+              opacity: (isSubmitting || isLoading || !title.trim()) ? 0.5 : 1
+            }}
+          >
+            {isSubmitting ? (isEditMode ? 'Updating...' : 'Creating...') : (isEditMode ? 'Update Problem' : 'Create Problem')}
+          </button>
         </div>
-
-        {isLoading && (
-          <div className="mt-2 p-3 bg-blue-100 border border-blue-400 text-blue-700 rounded">
-            Loading problem...
-          </div>
-        )}
-
-        {error && (
-          <div className="mt-2 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
-            {error}
-          </div>
-        )}
       </div>
 
+      {isLoading && (
+        <div style={{ padding: '0.75rem 1rem', backgroundColor: '#cfe2ff', borderBottom: '1px solid #9ec5fe', color: '#084298' }}>
+          Loading problem...
+        </div>
+      )}
+
+      {error && (
+        <div style={{ padding: '0.75rem 1rem', backgroundColor: '#f8d7da', borderBottom: '1px solid #f5c2c7', color: '#842029' }}>
+          {error}
+        </div>
+      )}
+
       {/* Full-width code editor */}
-      <div className="flex-1 min-h-0">
+      <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
         <CodeEditor
           code={starterCode}
           onChange={setStarterCode}

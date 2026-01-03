@@ -757,7 +757,7 @@ function InstructorPage() {
         </div>
 
         {/* Main content */}
-        <div className="w-full px-4 sm:px-6 lg:px-8 py-8">
+        <div style={{ width: '100%', height: 'calc(100vh - 5rem)', display: 'flex', flexDirection: 'column', padding: viewMode === 'problems' && problemSubView === 'creator' ? '0' : '2rem 1rem' }}>
           {/* Navigation */}
           <InstructorNav 
             currentView={viewMode}

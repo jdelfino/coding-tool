@@ -96,22 +96,38 @@ export default function SessionProblemEditor({
   const debuggerHook = useDebugger(sendMessage);
 
   return (
-    <div className="h-full flex flex-col bg-white rounded-lg shadow-md">
-      {/* Header with update button */}
-      <div className="flex-shrink-0 px-6 py-3 border-b border-gray-200">
-        <div className="flex items-center justify-between">
-          <h3 className="text-xl font-bold text-gray-800">Problem Setup</h3>
-          <button
-            onClick={handleUpdate}
-            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
-          >
-            Update Problem
-          </button>
-        </div>
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+      {/* Compact header bar matching student view style */}
+      <div style={{ 
+        flexShrink: 0, 
+        padding: '0.75rem 1rem', 
+        backgroundColor: '#f8f9fa',
+        borderBottom: '1px solid #dee2e6',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        minHeight: '3rem'
+      }}>
+        <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 600, color: '#212529' }}>Problem Setup</h3>
+        <button
+          onClick={handleUpdate}
+          style={{
+            padding: '0.5rem 1rem',
+            fontSize: '0.875rem',
+            fontWeight: 500,
+            color: 'white',
+            backgroundColor: '#0d6efd',
+            border: 'none',
+            borderRadius: '0.25rem',
+            cursor: 'pointer'
+          }}
+        >
+          Update Problem
+        </button>
       </div>
 
       {/* Full-width code editor */}
-      <div className="flex-1 min-h-0">
+      <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
         <CodeEditor
           code={starterCode}
           onChange={setStarterCode}
