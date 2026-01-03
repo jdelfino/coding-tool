@@ -199,7 +199,7 @@ export default function SessionDetails({ sessionId, onClose }: SessionDetailsPro
                     Last updated: {new Date(selectedStudent.lastUpdate).toLocaleString()}
                   </span>
                 </div>
-                <div className="border border-gray-200 rounded-lg overflow-hidden" style={{ height: '500px' }}>
+                <div style={{ height: '500px' }}>
                   <CodeEditor
                     code={selectedStudent.code || session.starterCode || '# No code submitted'}
                     onChange={() => {}} // Read-only
