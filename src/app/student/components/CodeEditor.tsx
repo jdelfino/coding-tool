@@ -626,7 +626,7 @@ export default function CodeEditor({
                 scrollBeyondLastLine: false,
                 automaticLayout: true,
                 readOnly: isReadOnly,
-                readOnlyMessage: debuggerHook?.hasTrace 
+                readOnlyMessage: debuggerHook?.hasTrace
                   ? { value: 'Exit debug mode to edit code' }
                   : undefined,
                 glyphMargin: true,
