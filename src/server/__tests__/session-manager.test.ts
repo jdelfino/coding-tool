@@ -1,6 +1,6 @@
 /**
  * Unit tests for SessionManager
- * 
+ *
  * Comprehensive test coverage for the session lifecycle manager including:
  * - Session creation and join code management
  * - Student operations (add, remove, rejoin)
@@ -186,7 +186,7 @@ describe('SessionManager', () => {
       // Verify each user has one active session
       const activeSessions1 = await sessionManager.getActiveSessionsForUser('instructor-1');
       const activeSessions2 = await sessionManager.getActiveSessionsForUser('instructor-2');
-      
+
       expect(activeSessions1).toHaveLength(1);
       expect(activeSessions2).toHaveLength(1);
     });
@@ -282,7 +282,7 @@ describe('SessionManager', () => {
 
     it('should normalize join codes to uppercase', async () => {
       const session = await sessionManager.createSession('test-instructor', 'test-section-id', 'Test Section');
-      
+
       // Test case-insensitive lookup
       const found = await sessionManager.getSessionByJoinCode(session.joinCode.toLowerCase());
       expect(found).toBeDefined();
@@ -306,7 +306,7 @@ describe('SessionManager', () => {
     it('should handle case-insensitive join code lookup', async () => {
       const session = await sessionManager.createSession('test-instructor', 'test-section-id', 'Test Section');
       const lowerCode = session.joinCode.toLowerCase();
-      const mixedCode = session.joinCode.split('').map((c, i) => 
+      const mixedCode = session.joinCode.split('').map((c, i) =>
         i % 2 === 0 ? c.toLowerCase() : c.toUpperCase()
       ).join('');
 
@@ -397,7 +397,7 @@ describe('SessionManager', () => {
 
     it('should update student last update time', async () => {
       await sessionManager.addStudent(session.id, 'student-1', 'Alice');
-      
+
       const updated = await sessionManager.getSession(session.id);
       const student = updated?.students.get('student-1');
       expect(student?.lastUpdate).toBeInstanceOf(Date);
@@ -406,11 +406,15 @@ describe('SessionManager', () => {
     it('should initialize student code with starter code on first join', async () => {
       // Create session with a problem that has starter code
       const problem = {
+        id: 'test-problem-id',
         title: 'Test Problem',
         description: 'Test description',
         starterCode: '# Starter code\nprint("Hello")',
+        authorId: 'test-instructor',
+        createdAt: new Date(),
+        updatedAt: new Date(),
       };
-      
+
       const sessionWithProblem = await sessionManager.createSession(
         'test-instructor',
         'test-section-id',
@@ -420,7 +424,7 @@ describe('SessionManager', () => {
 
       // Add a new student
       await sessionManager.addStudent(sessionWithProblem.id, 'student-1', 'Alice');
-      
+
       const updated = await sessionManager.getSession(sessionWithProblem.id);
       const student = updated?.students.get('student-1');
       expect(student?.code).toBe('# Starter code\nprint("Hello")');
@@ -429,16 +433,16 @@ describe('SessionManager', () => {
     it('should preserve existing code when student rejoins', async () => {
       // Add student first time
       await sessionManager.addStudent(session.id, 'student-1', 'Alice');
-      
+
       // Update their code
       await sessionManager.updateStudentCode(session.id, 'student-1', '# Modified code');
-      
+
       // Remove student (simulating disconnect)
       await sessionManager.removeStudent(session.id, 'student-1');
-      
+
       // Add student again (rejoining)
       await sessionManager.addStudent(session.id, 'student-1', 'Alice');
-      
+
       const updated = await sessionManager.getSession(session.id);
       const student = updated?.students.get('student-1');
       expect(student?.code).toBe('# Modified code');
@@ -470,7 +474,7 @@ describe('SessionManager', () => {
     it('should update problem with new content', async () => {
       const problem1 = createTestProblem({ description: 'Some problem' });
       await sessionManager.updateSessionProblem(session.id, problem1);
-      
+
       const problem2 = createTestProblem({ description: '' });
       await sessionManager.updateSessionProblem(session.id, problem2);
 
@@ -492,10 +496,10 @@ describe('SessionManager', () => {
 
     it('should update last activity on problem change', async () => {
       const before = session.lastActivity;
-      
+
       // Wait a bit to ensure different timestamp
       await new Promise(resolve => setTimeout(resolve, 10));
-      
+
       const problem = createTestProblem({ description: 'New problem' });
       await sessionManager.updateSessionProblem(session.id, problem);
 
@@ -567,7 +571,7 @@ describe('SessionManager', () => {
 
     it('should update code timestamp', async () => {
       await sessionManager.updateStudentCode(session.id, 'student-1', 'code v1');
-      
+
       const updated = await sessionManager.getSession(session.id);
       const student = updated?.students.get('student-1');
       const timestamp1 = student?.lastUpdate;
@@ -619,7 +623,7 @@ describe('SessionManager', () => {
 
     it('should delete session and cleanup', async () => {
       const session = await sessionManager.createSession('test-instructor', 'test-section-id', 'Test Section');
-      
+
       const result = await sessionManager.deleteSession(session.id);
       expect(result).toBe(true);
 
@@ -706,7 +710,7 @@ describe('SessionManager', () => {
     it('should handle batch cleanup performance', async () => {
       // Create multiple old sessions
       const oldDate = new Date(Date.now() - 25 * 60 * 60 * 1000);
-      
+
       for (let i = 0; i < 10; i++) {
         const session = await sessionManager.createSession(`test-instructor-${i}`, 'test-section-id', 'Test Section');
         await storage.sessions.updateSession(session.id, { lastActivity: oldDate });
@@ -792,7 +796,7 @@ describe('SessionManager', () => {
     it('should handle creator and participant overlap', async () => {
       const session1 = await sessionManager.createSession('user-1', 'section-1', 'Section 1');
       const session2 = await sessionManager.createSession('user-2', 'section-2', 'Section 2');
-      
+
       await sessionManager.addStudent(session2.id, 'user-1', 'User 1');
 
       const asCreator = await sessionManager.getSessionsByCreator('user-1');
@@ -814,7 +818,7 @@ describe('SessionManager', () => {
 
     it('should handle storage errors during update', async () => {
       const session = await sessionManager.createSession('test-instructor', 'test-section-id', 'Test Section');
-      
+
       storage.sessions.updateSession = jest.fn().mockRejectedValue(new Error('Update failed'));
 
       const problem = createTestProblem({ description: 'New problem' });
@@ -961,7 +965,7 @@ describe('SessionManager', () => {
   describe('End Session', () => {
     it('should end session and set status to completed', async () => {
       const session = await sessionManager.createSession('test-instructor', 'test-section-id', 'Test Section');
-      
+
       const result = await sessionManager.endSession(session.id);
       expect(result).toBe(true);
 

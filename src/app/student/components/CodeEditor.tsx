@@ -391,12 +391,47 @@ export default function CodeEditor({
     return annotatedLines;
   };
 
+  const handleUndo = () => {
+    if (editorRef.current) {
+      editorRef.current.trigger('keyboard', 'undo', null);
+    }
+  };
+
+  const handleRedo = () => {
+    if (editorRef.current) {
+      editorRef.current.trigger('keyboard', 'redo', null);
+    }
+  };
+
   return (
     <div className="border border-gray-300 rounded flex flex-col" style={{ height: '100%' }}>
       {/* Header */}
       <div className="px-4 py-2 bg-gray-100 border-b border-gray-300 flex justify-between items-center flex-shrink-0">
         <span className="font-bold">{title}</span>
         <div className="flex gap-2">
+          {/* Undo/Redo buttons - only show when not read-only */}
+          {!isReadOnly && (
+            <>
+              <button
+                type="button"
+                onClick={handleUndo}
+                className="px-3 py-2 rounded text-gray-700 bg-gray-200 hover:bg-gray-300 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
+                title="Undo (Ctrl+Z)"
+                aria-label="Undo"
+              >
+                ↶
+              </button>
+              <button
+                type="button"
+                onClick={handleRedo}
+                className="px-3 py-2 rounded text-gray-700 bg-gray-200 hover:bg-gray-300 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
+                title="Redo (Ctrl+Y)"
+                aria-label="Redo"
+              >
+                ↷
+              </button>
+            </>
+          )}
           {showRunButton && (
             <>
               {debuggerHook?.hasTrace ? (

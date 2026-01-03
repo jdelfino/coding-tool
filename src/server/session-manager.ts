@@ -28,16 +28,16 @@ export class SessionManager {
    */
   async initialize(): Promise<void> {
     if (!this.storage) return;
-    
+
     try {
       // Load all sessions from storage
       const sessions = await this.storage.sessions.listAllSessions();
-      
+
       // Rebuild join code index
       for (const session of sessions) {
         this.sessionsByJoinCode.set(session.joinCode, session.id);
       }
-      
+
     } catch (error) {
       console.error('Failed to load sessions from storage:', error);
       throw error;
@@ -53,12 +53,12 @@ export class SessionManager {
     for (let i = 0; i < 6; i++) {
       code += characters.charAt(Math.floor(Math.random() * characters.length));
     }
-    
+
     // Ensure uniqueness (very unlikely to collide, but check anyway)
     if (this.sessionsByJoinCode.has(code)) {
       return this.generateJoinCode();
     }
-    
+
     return code;
   }
 
@@ -69,14 +69,14 @@ export class SessionManager {
    * @param problem - Optional problem to clone into session
    */
   async createSession(
-    creatorId: string, 
-    sectionId: string, 
+    creatorId: string,
+    sectionId: string,
     sectionName: string,
     problem?: Problem
   ): Promise<Session> {
     // Ensure storage is initialized (auto-init for API routes)
     const storage = await this.ensureStorage();
-    
+
     // Enforce single active session per user
     const existingActiveSessions = await this.getActiveSessionsForUser(creatorId);
     if (existingActiveSessions.length > 0) {
@@ -84,10 +84,10 @@ export class SessionManager {
         `Cannot create session: User already has ${existingActiveSessions.length} active session(s). End your current session before starting a new one.`
       );
     }
-    
+
     const sessionId = uuidv4();
     const joinCode = this.generateJoinCode();
-    
+
     const session: Session = {
       id: sessionId,
       joinCode,
@@ -101,7 +101,7 @@ export class SessionManager {
       sectionId,
       sectionName,
     };
-    
+
     // Persist to storage
     try {
       await storage.sessions.createSession(session);
@@ -109,9 +109,9 @@ export class SessionManager {
       console.error('Failed to persist session to storage:', error);
       throw error;
     }
-    
+
     this.sessionsByJoinCode.set(joinCode, sessionId);
-    
+
     return session;
   }
 
@@ -143,7 +143,7 @@ export class SessionManager {
       testCases: problem.testCases ? [...problem.testCases.map(tc => ({ ...tc }))] : undefined,
       executionSettings: problem.executionSettings ? {
         ...problem.executionSettings,
-        attachedFiles: problem.executionSettings.attachedFiles 
+        attachedFiles: problem.executionSettings.attachedFiles
           ? problem.executionSettings.attachedFiles.map(f => ({ ...f }))
           : undefined,
       } : undefined,
@@ -155,20 +155,20 @@ export class SessionManager {
    */
   async getSessionByJoinCode(joinCode: string): Promise<Session | null> {
     const upperJoinCode = joinCode.toUpperCase();
-    
+
     // Ensure storage is initialized (auto-init for API routes)
     const storage = await this.ensureStorage();
-    
+
     // First check in-memory index
     const sessionId = this.sessionsByJoinCode.get(upperJoinCode);
     if (sessionId) {
       const session = await storage.sessions.getSession(sessionId);
       return session;
     }
-    
+
     // Not in index - search all sessions in storage (handles cross-process session creation)
     const allSessions = await storage.sessions.listAllSessions();
-    
+
     for (const session of allSessions) {
       if (session.joinCode === upperJoinCode) {
         // Update our index for future lookups
@@ -176,7 +176,7 @@ export class SessionManager {
         return session;
       }
     }
-    
+
     return null;
   }
 
@@ -186,7 +186,7 @@ export class SessionManager {
   async getSession(sessionId: string): Promise<Session | null> {
     // Ensure storage is initialized (auto-init for API routes)
     const storage = await this.ensureStorage();
-    
+
     const session = await storage.sessions.getSession(sessionId);
     return session;
   }
@@ -197,7 +197,7 @@ export class SessionManager {
   async getActiveSessionsForUser(creatorId: string): Promise<Session[]> {
     // Ensure storage is initialized
     const storage = await this.ensureStorage();
-    
+
     // Get all sessions and filter by creator and active status
     const allSessions = await storage.sessions.listAllSessions();
     return allSessions.filter(
@@ -209,24 +209,24 @@ export class SessionManager {
    * Update session with a problem object
    */
   async updateSessionProblem(
-    sessionId: string, 
+    sessionId: string,
     problem: Problem,
     executionSettings?: ExecutionSettings
   ): Promise<boolean> {
     if (!this.storage) return false;
-    
+
     try {
       const session = await this.getSession(sessionId);
       if (!session) return false;
-      
+
       // Clone the problem to avoid mutation
       const clonedProblem = this.cloneProblem(problem);
-      
+
       // Merge executionSettings into the cloned problem
       if (executionSettings !== undefined) {
         clonedProblem.executionSettings = executionSettings;
       }
-      
+
       await this.storage.sessions.updateSession(sessionId, {
         problem: clonedProblem,
         lastActivity: new Date(),
@@ -244,40 +244,40 @@ export class SessionManager {
    */
   async addStudent(sessionId: string, studentId: string, name: string): Promise<boolean> {
     if (!this.storage) return false;
-    
+
     const session = await this.getSession(sessionId);
     if (!session) return false;
-    
+
     // Check if student already exists (rejoining)
     const existingStudent = session.students.get(studentId);
-    
+
     // Initialize with starter code if this is the first join, otherwise preserve existing code
-    const initialCode = existingStudent?.code !== undefined 
-      ? existingStudent.code 
+    const initialCode = existingStudent?.code !== undefined
+      ? existingStudent.code
       : (session.problem?.starterCode || '');
-    
+
     const student: Student = {
       id: studentId,
       name,
       code: initialCode,
       lastUpdate: new Date(),
     };
-    
+
     session.students.set(studentId, student);
-    
+
     // Add to participants list if not already there
     if (!session.participants.includes(studentId)) {
       session.participants.push(studentId);
     }
-    
+
     try {
       await this.storage.sessions.updateSession(sessionId, {
         students: session.students,
         participants: session.participants,
         lastActivity: new Date(),
       });
-      
-      const logMessage = existingStudent 
+
+      const logMessage = existingStudent
         ? `Added student ${name} (${studentId}) to session ${sessionId} (rejoining with existing code)`
         : `Added student ${name} (${studentId}) to session ${sessionId} (initialized with starter code)`;
       console.log(logMessage);
@@ -293,16 +293,16 @@ export class SessionManager {
    */
   async removeStudent(sessionId: string, studentId: string): Promise<boolean> {
     if (!this.storage) return false;
-    
+
     const session = await this.getSession(sessionId);
     if (!session) return false;
-    
+
     const student = session.students.get(studentId);
     if (student) {
       // Don't delete the student - just clear the WebSocket reference
       // This preserves their code for when they reconnect
       student.ws = undefined;
-      
+
       try {
         await this.storage.sessions.updateSession(sessionId, {
           students: session.students,
@@ -323,16 +323,16 @@ export class SessionManager {
    */
   async updateStudentCode(sessionId: string, studentId: string, code: string): Promise<boolean> {
     if (!this.storage) return false;
-    
+
     const session = await this.getSession(sessionId);
     if (!session) return false;
-    
+
     const student = session.students.get(studentId);
     if (!student) return false;
-    
+
     student.code = code;
     student.lastUpdate = new Date();
-    
+
     try {
       await this.storage.sessions.updateSession(sessionId, {
         students: session.students,
@@ -349,27 +349,27 @@ export class SessionManager {
    * Update student-specific settings (randomSeed and attachedFiles)
    */
   async updateStudentSettings(
-    sessionId: string, 
-    studentId: string, 
+    sessionId: string,
+    studentId: string,
     executionSettings: ExecutionSettings
   ): Promise<void> {
     const session = await this.getSession(sessionId);
     if (!session) {
       throw new Error('Session not found');
     }
-    
+
     const student = session.students.get(studentId);
     if (!student) {
       throw new Error('Student not found');
     }
-    
+
     // Merge with existing settings (allows partial updates)
     student.executionSettings = {
       ...student.executionSettings,
       ...executionSettings
     };
     student.lastUpdate = new Date();
-    
+
     if (this.storage) {
       try {
         await this.storage.sessions.updateSession(sessionId, {
@@ -392,30 +392,30 @@ export class SessionManager {
   } | undefined> {
     const session = await this.getSession(sessionId);
     if (!session) return undefined;
-    
+
     const student = session.students.get(studentId);
     if (!student) return undefined;
-    
+
     // Merge execution settings: problem defaults → student overrides
     const problemSettings = session.problem.executionSettings;
     const studentSettings = student.executionSettings;
-    
+
     // Build merged execution settings
     const mergedSettings: ExecutionSettings = {
       stdin: studentSettings?.stdin ?? problemSettings?.stdin,
-      randomSeed: studentSettings?.randomSeed !== undefined 
-        ? studentSettings.randomSeed 
+      randomSeed: studentSettings?.randomSeed !== undefined
+        ? studentSettings.randomSeed
         : problemSettings?.randomSeed,
       attachedFiles: studentSettings?.attachedFiles !== undefined
         ? studentSettings.attachedFiles // explicit student override, even if empty array
         : problemSettings?.attachedFiles,
     };
-    
+
     // Only include executionSettings if at least one field is defined
-    const hasSettings = mergedSettings.stdin !== undefined || 
-                       mergedSettings.randomSeed !== undefined || 
+    const hasSettings = mergedSettings.stdin !== undefined ||
+                       mergedSettings.randomSeed !== undefined ||
                        mergedSettings.attachedFiles !== undefined;
-    
+
     return {
       code: student.code,
       executionSettings: hasSettings ? mergedSettings : undefined,
@@ -428,7 +428,7 @@ export class SessionManager {
   async getStudentCode(sessionId: string, studentId: string): Promise<string | undefined> {
     const session = await this.getSession(sessionId);
     if (!session) return undefined;
-    
+
     const student = session.students.get(studentId);
     return student?.code;
   }
@@ -439,7 +439,7 @@ export class SessionManager {
   async getStudents(sessionId: string): Promise<Student[]> {
     const session = await this.getSession(sessionId);
     if (!session) return [];
-    
+
     return Array.from(session.students.values());
   }
 
@@ -448,13 +448,13 @@ export class SessionManager {
    */
   async setFeaturedSubmission(sessionId: string, studentId: string): Promise<boolean> {
     if (!this.storage) return false;
-    
+
     const session = await this.getSession(sessionId);
     if (!session) return false;
-    
+
     const student = session.students.get(studentId);
     if (!student) return false;
-    
+
     try {
       await this.storage.sessions.updateSession(sessionId, {
         featuredStudentId: studentId,
@@ -474,7 +474,7 @@ export class SessionManager {
    */
   async clearFeaturedSubmission(sessionId: string): Promise<boolean> {
     if (!this.storage) return false;
-    
+
     try {
       await this.storage.sessions.updateSession(sessionId, {
         featuredStudentId: undefined,
@@ -493,7 +493,7 @@ export class SessionManager {
    */
   async updateFeaturedCode(sessionId: string, code: string): Promise<boolean> {
     if (!this.storage) return false;
-    
+
     try {
       await this.storage.sessions.updateSession(sessionId, {
         featuredCode: code,
@@ -509,19 +509,19 @@ export class SessionManager {
   /**
    * Get featured submission data
    */
-  async getFeaturedSubmission(sessionId: string): Promise<{ 
-    studentId?: string; 
+  async getFeaturedSubmission(sessionId: string): Promise<{
+    studentId?: string;
     code?: string;
     executionSettings?: ExecutionSettings;
   }> {
     const session = await this.getSession(sessionId);
     if (!session) return {};
-    
+
     // Get the student data if we have a featured student
-    const student = session.featuredStudentId 
+    const student = session.featuredStudentId
       ? session.students.get(session.featuredStudentId)
       : null;
-    
+
     return {
       studentId: session.featuredStudentId,
       code: session.featuredCode,
@@ -534,10 +534,10 @@ export class SessionManager {
    */
   async endSession(sessionId: string): Promise<boolean> {
     if (!this.storage) return false;
-    
+
     const session = await this.getSession(sessionId);
     if (!session) return false;
-    
+
     try {
       await this.storage.sessions.updateSession(sessionId, {
         status: 'completed',
@@ -556,10 +556,10 @@ export class SessionManager {
    */
   async deleteSession(sessionId: string): Promise<boolean> {
     if (!this.storage) return false;
-    
+
     const session = await this.getSession(sessionId);
     if (!session) return false;
-    
+
     try {
       await this.storage.sessions.deleteSession(sessionId);
       this.sessionsByJoinCode.delete(session.joinCode);
@@ -576,7 +576,7 @@ export class SessionManager {
    */
   async getSessionsBySection(sectionId: string): Promise<Session[]> {
     const storage = await this.ensureStorage();
-    
+
     try {
       const allSessions = await storage.sessions.listAllSessions();
       return allSessions.filter(s => s.sectionId === sectionId);
@@ -593,17 +593,17 @@ export class SessionManager {
   async isSectionMember(sessionId: string, userId: string): Promise<boolean> {
     const session = await this.getSession(sessionId);
     if (!session) return false;
-    
+
     // If session has no section, allow access (backwards compatibility)
     if (!session.sectionId) return true;
-    
+
     // Check section membership
     const storage = await this.ensureStorage();
     if (!storage.memberships) {
       console.warn('Membership repository not available');
       return false;
     }
-    
+
     try {
       const membership = await storage.memberships.getMembership(userId, session.sectionId);
       return membership !== null;
@@ -619,14 +619,14 @@ export class SessionManager {
    */
   async cleanupOldSessions(): Promise<number> {
     if (!this.storage) return 0;
-    
+
     const now = new Date();
     const maxAge = 24 * 60 * 60 * 1000; // 24 hours
     let cleaned = 0;
-    
+
     try {
       const sessions = await this.storage.sessions.listAllSessions();
-      
+
       for (const session of sessions) {
         const age = now.getTime() - session.lastActivity.getTime();
         if (age > maxAge) {
@@ -634,14 +634,14 @@ export class SessionManager {
           cleaned++;
         }
       }
-      
+
       if (cleaned > 0) {
         console.log(`Cleaned up ${cleaned} old sessions`);
       }
     } catch (error) {
       console.error('Failed to cleanup old sessions:', error);
     }
-    
+
     return cleaned;
   }
 
@@ -650,7 +650,7 @@ export class SessionManager {
    */
   async getSessionCount(): Promise<number> {
     if (!this.storage) return 0;
-    
+
     try {
       return await this.storage.sessions.countSessions();
     } catch (error) {
@@ -664,7 +664,7 @@ export class SessionManager {
    */
   async listSessions(): Promise<Session[]> {
     if (!this.storage) return [];
-    
+
     try {
       return await this.storage.sessions.listAllSessions();
     } catch (error) {
@@ -678,7 +678,7 @@ export class SessionManager {
    */
   async getSessionsByCreator(creatorId: string): Promise<Session[]> {
     const storage = await this.ensureStorage();
-    
+
     try {
       const allSessions = await storage.sessions.listAllSessions();
       return allSessions.filter(s => s.creatorId === creatorId);
@@ -696,7 +696,7 @@ export class SessionManager {
    */
   async getSessionsByParticipant(userId: string): Promise<Session[]> {
     const storage = await this.ensureStorage();
-    
+
     try {
       const allSessions = await storage.sessions.listAllSessions();
       return allSessions.filter(s => s.participants.includes(userId));
