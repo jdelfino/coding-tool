@@ -1,4 +1,6 @@
 import React from 'react';
+import { VariableInspector } from './VariableInspector';
+import { CallStackPanel } from './CallStackPanel';
 
 interface DebuggerSidebarProps {
   currentStep: number;
@@ -16,6 +18,11 @@ interface DebuggerSidebarProps {
   hasTrace: boolean;
   isLoading: boolean;
   darkTheme?: boolean;
+  locals?: Record<string, any>;
+  globals?: Record<string, any>;
+  previousLocals?: Record<string, any>;
+  previousGlobals?: Record<string, any>;
+  callStack?: any[];
 }
 
 export function DebuggerSidebar({
@@ -33,7 +40,12 @@ export function DebuggerSidebar({
   onRequestTrace,
   hasTrace,
   isLoading,
-  darkTheme = false
+  darkTheme = false,
+  locals = {},
+  globals = {},
+  previousLocals = {},
+  previousGlobals = {},
+  callStack = []
 }: DebuggerSidebarProps) {
   const bgClass = darkTheme ? 'bg-gray-800' : 'bg-white';
   const textClass = darkTheme ? 'text-gray-200' : 'text-gray-800';
@@ -143,19 +155,38 @@ export function DebuggerSidebar({
               </div>
             </div>
 
-            {/* Keyboard shortcuts */}
-            <div className={`text-xs ${darkTheme ? 'text-gray-400' : 'text-gray-500'} space-y-1`}>
-              <p className="font-semibold">Keyboard shortcuts:</p>
-              <ul className="space-y-1">
-                <li>← / → : Step backward / forward</li>
-                <li>P / N : Previous / Next step</li>
-                <li>Home / End : First / Last step</li>
-                <li>Esc : Exit debug mode</li>
-              </ul>
+            {/* Variable Inspector */}
+            <div className="mt-4">
+              <VariableInspector
+                locals={locals}
+                globals={globals}
+                previousLocals={previousLocals}
+                previousGlobals={previousGlobals}
+              />
+            </div>
+
+            {/* Call Stack */}
+            <div className="mt-4">
+              <CallStackPanel callStack={callStack} />
             </div>
           </>
         )}
       </div>
+
+      {/* Keyboard shortcuts at the bottom */}
+      {hasTrace && (
+        <div className={`mt-auto border-t ${borderClass} p-4`}>
+          <div className={`text-xs ${darkTheme ? 'text-gray-400' : 'text-gray-500'} space-y-1`}>
+            <p className="font-semibold">Keyboard shortcuts:</p>
+            <ul className="space-y-1">
+              <li>← / → : Step backward / forward</li>
+              <li>P / N : Previous / Next step</li>
+              <li>Home / End : First / Last step</li>
+              <li>Esc : Exit debug mode</li>
+            </ul>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

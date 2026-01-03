@@ -3,7 +3,6 @@
 import Editor from '@monaco-editor/react';
 import React, { useEffect, useRef, useState } from 'react';
 import ExecutionSettingsComponent from './ExecutionSettings';
-import { DebuggerPanel } from './DebuggerPanel';
 import { DebuggerSidebar } from './DebuggerSidebar';
 import type { ExecutionSettings } from '@/server/types/problem';
 import { useResponsiveLayout, useSidebarSection } from '@/hooks/useResponsiveLayout';
@@ -149,7 +148,7 @@ export default function CodeEditor({
         !isProblemCollapsed,
         !isDebuggerCollapsed
       ].filter(Boolean).length;
-      
+
       if (openPanels > 1) {
         // Multiple panels open - keep only one
         if (debuggerHook?.hasTrace && !isDebuggerCollapsed) {
@@ -489,6 +488,11 @@ export default function CodeEditor({
               hasTrace={debuggerHook.hasTrace}
               isLoading={debuggerHook.isLoading}
               darkTheme={true}
+              locals={debuggerHook.getCurrentLocals()}
+              globals={debuggerHook.getCurrentGlobals()}
+              previousLocals={debuggerHook.getPreviousStep()?.locals || {}}
+              previousGlobals={debuggerHook.getPreviousStep()?.globals || {}}
+              callStack={debuggerHook.getCurrentCallStack()}
             />
           </div>
         )}
@@ -701,6 +705,11 @@ export default function CodeEditor({
                     hasTrace={debuggerHook.hasTrace}
                     isLoading={debuggerHook.isLoading}
                     darkTheme={true}
+                    locals={debuggerHook.getCurrentLocals()}
+                    globals={debuggerHook.getCurrentGlobals()}
+                    previousLocals={debuggerHook.getPreviousStep()?.locals || {}}
+                    previousGlobals={debuggerHook.getPreviousStep()?.globals || {}}
+                    callStack={debuggerHook.getCurrentCallStack()}
                   />
                 </div>
                 {/* Resize handle */}
@@ -779,18 +788,12 @@ export default function CodeEditor({
             )}
 
             {debuggerHook?.hasTrace ? (
-              /* Show debugger panel when trace is active */
-              <DebuggerPanel
-                currentStep={debuggerHook.currentStep}
-                totalSteps={debuggerHook.totalSteps}
-                currentLine={debuggerHook.getCurrentStep()?.line || 0}
-                locals={debuggerHook.getCurrentLocals()}
-                globals={debuggerHook.getCurrentGlobals()}
-                previousLocals={debuggerHook.getPreviousStep()?.locals || {}}
-                previousGlobals={debuggerHook.getPreviousStep()?.globals || {}}
-                callStack={debuggerHook.getCurrentCallStack()}
-                truncated={debuggerHook.trace?.truncated}
-              />
+              /* Show message when debugging - variables/call stack are in sidebar */
+              <div className="p-4 bg-blue-50 h-full flex items-center justify-center">
+                <p className="text-blue-700 text-sm">
+                  🐛 Debugging active - view variables and call stack in the sidebar
+                </p>
+              </div>
             ) : effectiveResult ? (
               /* Show normal output when not debugging */
               <div className={`p-4 h-full ${

@@ -293,7 +293,7 @@ describe('CodeEditor - Form Interaction', () => {
     // Find the Run Code button
     const runButton = screen.getByText(/▶ Run Code/);
     expect(runButton.getAttribute('type')).toBe('button');
-    
+
     // Note: Debug button is now in the action bar icon, not a text button in the header
     // All sidebar action buttons have type="button" by default
   });

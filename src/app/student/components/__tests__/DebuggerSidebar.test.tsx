@@ -310,4 +310,55 @@ describe('DebuggerSidebar', () => {
       expect(mainDiv.className).toContain('text-gray-200');
     });
   });
+
+  describe('variables and call stack', () => {
+    it('renders variables when trace is active', () => {
+      render(
+        <DebuggerSidebar
+          currentStep={2}
+          totalSteps={10}
+          currentLine={5}
+          canStepForward={true}
+          canStepBackward={true}
+          onStepForward={mockOnStepForward}
+          onStepBackward={mockOnStepBackward}
+          onJumpToFirst={mockOnJumpToFirst}
+          onJumpToLast={mockOnJumpToLast}
+          onExit={mockOnExit}
+          onRequestTrace={mockOnRequestTrace}
+          hasTrace={true}
+          isLoading={false}
+          locals={{ x: 5, y: 10 }}
+          globals={{ result: 15 }}
+        />
+      );
+
+      expect(screen.getByText('Variables')).toBeInTheDocument();
+      expect(screen.getByText('x')).toBeInTheDocument();
+      expect(screen.getByText('result')).toBeInTheDocument();
+    });
+
+    it('renders call stack when trace is active', () => {
+      render(
+        <DebuggerSidebar
+          currentStep={2}
+          totalSteps={10}
+          currentLine={5}
+          canStepForward={true}
+          canStepBackward={true}
+          onStepForward={mockOnStepForward}
+          onStepBackward={mockOnStepBackward}
+          onJumpToFirst={mockOnJumpToFirst}
+          onJumpToLast={mockOnJumpToLast}
+          onExit={mockOnExit}
+          onRequestTrace={mockOnRequestTrace}
+          hasTrace={true}
+          isLoading={false}
+          callStack={[{ name: 'main', line: 5 }]}
+        />
+      );
+
+      expect(screen.getByText('Call Stack')).toBeInTheDocument();
+    });
+  });
 });
