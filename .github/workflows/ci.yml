@@ -58,9 +58,6 @@ jobs:
       - name: Initialize data directory
         run: npm run clear-data
 
-      - name: Seed test data
-        run: npm run seed-data
-
       - name: Run E2E tests
         run: npm run test:e2e
 

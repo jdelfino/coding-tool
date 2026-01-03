@@ -32,11 +32,11 @@ test.describe('Instructor Problem Management', () => {
     await page.click('button:has-text("Create New Problem")');
     
     // Wait for problem creator form to appear
-    await expect(page.locator('h1:has-text("Create New Problem"), h2:has-text("Create New Problem")')).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('h2:has-text("Create New Problem")')).toBeVisible({ timeout: 5000 });
     
-    // Fill in all fields
-    await page.fill('input#title', 'Test Problem: Sum Two Numbers');
-    await page.fill('textarea#description', 'Write a function that adds two numbers together');
+    // Fill in all fields (these are in the CodeEditor component)
+    await page.fill('input#problem-title', 'Test Problem: Sum Two Numbers');
+    await page.fill('textarea#problem-description', 'Write a function that adds two numbers together');
     
     // Fill starter code using Monaco editor
     const monacoEditor = page.locator('.monaco-editor').first();
@@ -67,7 +67,7 @@ test.describe('Instructor Problem Management', () => {
     await expect(page.locator('h1:has-text("Create New Problem"), h2:has-text("Create New Problem")')).toBeVisible({ timeout: 5000 });
     
     // Fill only the required title field
-    await page.fill('input#title', 'Minimal Problem');
+    await page.fill('input#problem-title', 'Minimal Problem');
     
     // Submit form
     await page.click('button:has-text("Save Problem"), button:has-text("Create Problem")');
@@ -109,7 +109,7 @@ test.describe('Instructor Problem Management', () => {
     }
     
     // Now fill required field and verify submission succeeds
-    await page.fill('input#title', 'Valid Problem');
+    await page.fill('input#problem-title', 'Valid Problem');
     await expect(submitButton).toBeEnabled();
     await submitButton.click();
     
@@ -122,8 +122,8 @@ test.describe('Instructor Problem Management', () => {
     // First, create a test problem
     await page.click('button:has-text("Create New Problem")');
     await expect(page.locator('h1:has-text("Create New Problem"), h2:has-text("Create New Problem")')).toBeVisible({ timeout: 5000 });
-    await page.fill('input#title', 'Problem to Edit');
-    await page.fill('textarea#description', 'Original description');
+    await page.fill('input#problem-title', 'Problem to Edit');
+    await page.fill('textarea#problem-description', 'Original description');
     await page.click('button:has-text("Save Problem"), button:has-text("Create Problem")');
     await expect(page.locator('h2:has-text("Problem Library")')).toBeVisible({ timeout: 10000 });
     await expect(page.locator('text=Problem to Edit')).toBeVisible({ timeout: 5000 });
@@ -140,12 +140,12 @@ test.describe('Instructor Problem Management', () => {
     await expect(page.locator('h1:has-text("Edit Problem"), h2:has-text("Edit Problem")').or(page.locator('input#problem-title'))).toBeVisible({ timeout: 5000 });
     
     // Verify form is pre-filled with existing data
-    const titleInput = page.locator('input#title');
+    const titleInput = page.locator('input#problem-title');
     await expect(titleInput).toHaveValue('Problem to Edit');
     
     // Modify the fields
     await titleInput.fill('Updated Problem Title');
-    await page.fill('textarea#description', 'Updated description');
+    await page.fill('textarea#problem-description', 'Updated description');
     
     // Save changes
     await page.click('button:has-text("Save"), button:has-text("Update")');
@@ -164,8 +164,8 @@ test.describe('Instructor Problem Management', () => {
     // First, create a test problem
     await page.click('button:has-text("Create New Problem")');
     await expect(page.locator('h1:has-text("Create New Problem"), h2:has-text("Create New Problem")')).toBeVisible({ timeout: 5000 });
-    await page.fill('input#title', 'Problem to Delete');
-    await page.fill('textarea#description', 'This will be deleted');
+    await page.fill('input#problem-title', 'Problem to Delete');
+    await page.fill('textarea#problem-description', 'This will be deleted');
     await page.click('button:has-text("Save Problem"), button:has-text("Create Problem")');
     await expect(page.locator('h2:has-text("Problem Library")')).toBeVisible({ timeout: 10000 });
     await expect(page.locator('text=Problem to Delete')).toBeVisible({ timeout: 5000 });
@@ -209,8 +209,8 @@ test.describe('Instructor Problem Management', () => {
     await expect(page.locator('h1:has-text("Create New Problem"), h2:has-text("Create New Problem")')).toBeVisible({ timeout: 5000 });
     
     // Fill some fields
-    await page.fill('input#title', 'Problem to Cancel');
-    await page.fill('textarea#description', 'This should not be saved');
+    await page.fill('input#problem-title', 'Problem to Cancel');
+    await page.fill('textarea#problem-description', 'This should not be saved');
     
     // Click cancel button
     await page.click('button:has-text("Cancel")');

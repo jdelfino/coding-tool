@@ -6,33 +6,36 @@ import { defineConfig, devices } from '@playwright/test';
  */
 export default defineConfig({
   testDir: './e2e',
-  
+
   /* Run tests in files in parallel */
-  fullyParallel: true,
+  fullyParallel: false,  // Disabled due to shared data directory causing race conditions
   
+  /* Run tests serially with single worker to avoid data conflicts */
+  workers: 1,
+
   /* Fail the build on CI if you accidentally left test.only in the source code */
   forbidOnly: !!process.env.CI,
-  
+
   /* Retry on CI only */
   retries: process.env.CI ? 2 : 0,
-  
+
   /* Reporter to use */
   reporter: [
     ['html', { outputFolder: 'playwright-report', open: 'never' }],
     ['list']
   ],
-  
+
   /* Shared settings for all the projects below */
   use: {
     /* Base URL to use in actions like `await page.goto('/')` */
     baseURL: 'http://localhost:3000',
-    
+
     /* Collect trace when retrying the failed test */
     trace: 'on-first-retry',
-    
+
     /* Screenshot only on failure */
     screenshot: 'only-on-failure',
-    
+
     /* Video only on failure */
     video: 'retain-on-failure',
   },

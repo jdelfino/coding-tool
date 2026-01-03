@@ -16,7 +16,8 @@
 	"customizations": {
 		"vscode": {
 			"extensions": [
-				"planet57.vscode-beads"
+				"planet57.vscode-beads",
+				"ms-playwright.playwright"
 			]
 		}
 	}
