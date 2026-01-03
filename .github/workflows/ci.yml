@@ -55,6 +55,9 @@ jobs:
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps
       
+      - name: Initialize data directory
+        run: npm run clear-data
+      
       - name: Seed test data
         run: npm run seed-data
       
