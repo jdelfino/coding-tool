@@ -261,6 +261,19 @@ export default function CodeEditor({
     if (!isReadOnly) {
       editor.focus();
     }
+
+    // Add handler to show message when trying to edit in debug mode
+    if (editor.onDidAttemptReadOnlyEdit) {
+      editor.onDidAttemptReadOnlyEdit(() => {
+        if (debuggerHook?.hasTrace) {
+          // Show a notification that explains why editing is disabled
+          const messageWidget = editor.getContribution('editor.contrib.messageController');
+          if (messageWidget) {
+            messageWidget.showMessage('Exit debug mode to edit code', editor.getPosition());
+          }
+        }
+      });
+    }
   };
 
   const handleRunViaApi = async () => {
