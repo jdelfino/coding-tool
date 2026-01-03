@@ -1,9 +1,11 @@
 /**
- * E2E tests for student session participation and code submission
- * @see coding-tool-diq.3
+ * E2E tests for student session participation edge cases
  * 
- * These tests verify student workflows for joining sessions, viewing problems,
- * submitting code, and code persistence.
+ * These tests cover edge cases and advanced workflows not covered by the critical path test:
+ * - Editing previous submissions
+ * - Multiple concurrent students
+ * - Joining ended sessions (error handling)
+ * - Code persistence across page reloads
  */
 
 import { test, expect } from './helpers/setup';
@@ -71,79 +73,6 @@ test.describe('Student Session Participation', () => {
     await expect(joinCodeElement).toBeVisible({ timeout: 10000 });
     joinCode = (await joinCodeElement.textContent()) || '';
     console.log('Created session with join code:', joinCode);
-  });
-
-  test('Student joins active session', async ({ page }) => {
-    // Login as student
-    studentUser = await loginAsStudent(page, 'test-student-1');
-    
-    // Navigate to student dashboard
-    await page.goto('/student');
-    
-    // Wait for dashboard to load
-    await expect(page.locator('h2:has-text("My Sessions")')).toBeVisible({ timeout: 10000 });
-    
-    // Click "Join New Session"
-    await page.click('button:has-text("Join New Session")');
-    
-    // Wait for join form to appear
-    await expect(page.locator('h2:has-text("Join Coding Session")')).toBeVisible({ timeout: 5000 });
-    
-    // Enter join code (find the input by placeholder)
-    await page.fill('input[placeholder="ABC123"]', joinCode);
-    
-    // Click Join button
-    await page.click('button:has-text("Join Session")');
-    
-    // Verify entered session view
-    await expect(page.locator('h1:has-text("Live Coding Session")')).toBeVisible({ timeout: 10000 });
-    await expect(page.locator('h2:has-text("Two Sum Problem")')).toBeVisible({ timeout: 5000 });
-  });
-
-  test('Student views problem in session', async ({ page }) => {
-    // Login as student and join session
-    studentUser = await loginAsStudent(page, 'test-student-2');
-    await page.goto('/student');
-    await page.click('button:has-text("Join New Session")');
-    await page.fill('input[placeholder="ABC123"]', joinCode);
-    await page.click('button:has-text("Join Session")');
-    
-    // Wait for session to load
-    await page.waitForTimeout(2000);
-    
-    // Verify problem details are displayed
-    await expect(page.locator(`text=${testProblem.title}`)).toBeVisible({ timeout: 5000 });
-    await expect(page.locator(`text=${testProblem.description}`)).toBeVisible({ timeout: 5000 });
-    
-    // Verify Monaco editor loaded
-    const monacoEditor = page.locator('.monaco-editor').first();
-    await expect(monacoEditor).toBeVisible({ timeout: 5000 });
-  });
-
-  test('Student writes and submits solution', async ({ page }) => {
-    // Login as student and join session
-    studentUser = await loginAsStudent(page, 'test-student-3');
-    await page.goto('/student');
-    await page.click('button:has-text("Join New Session")');
-    await page.fill('input[placeholder="ABC123"]', joinCode);
-    await page.click('button:has-text("Join Session")');
-    await page.waitForTimeout(2000);
-    
-    // Wait for editor to load
-    const monacoEditor = page.locator('.monaco-editor').first();
-    await expect(monacoEditor).toBeVisible({ timeout: 5000 });
-    
-    // Write code in Monaco editor using Monaco API
-    await page.evaluate(() => {
-      const model = (window as any).monaco.editor.getModels()[0];
-      model.setValue('print("Hello World")');
-    });
-    
-    // Submit code (look for Run button)
-    await page.click('button:has-text("Run")');
-    
-    // Verify execution output appears
-    await expect(page.locator('pre:has-text("Hello World")')).toBeVisible({ timeout: 10000 });
   });
 
   test('Student edits previous submission', async ({ page }) => {
