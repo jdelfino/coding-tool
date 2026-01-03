@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { useAuth } from '@/contexts/AuthContext';
@@ -13,6 +14,8 @@ import SessionEndedNotification from './components/SessionEndedNotification';
 
 function StudentPage() {
   const { user, signOut } = useAuth();
+  const searchParams = useSearchParams();
+  const sessionIdFromUrl = searchParams.get('sessionId');
   const { sessions, isLoading: isLoadingSessions, refetch: refetchSessions } = useSessionHistory();
   const [hasSections, setHasSections] = useState<boolean | null>(null);
   const [joined, setJoined] = useState(false);
@@ -106,11 +109,19 @@ function StudentPage() {
     handleJoin(sessionId);
   }, [handleJoin]);
 
-  // Auto-rejoin logic: check for active sessions on mount (only after WebSocket connects)
+  // Auto-rejoin logic: check for sessionId in URL or active sessions on mount
   useEffect(() => {
     if (!hasCheckedAutoRejoin && !isLoadingSessions && isConnected) {
       setHasCheckedAutoRejoin(true);
 
+      // Priority 1: Join session from URL parameter
+      if (sessionIdFromUrl) {
+        console.log('Joining session from URL:', sessionIdFromUrl);
+        handleRejoinSession(sessionIdFromUrl);
+        return;
+      }
+
+      // Priority 2: Auto-rejoin if exactly one active session
       if (sessions.length > 0) {
         // Filter active sessions
         const activeSessions = sessions.filter(s => s.status === 'active');
@@ -127,7 +138,7 @@ function StudentPage() {
         // No sessions at all - show dashboard
       }
     }
-  }, [hasCheckedAutoRejoin, isLoadingSessions, isConnected, sessions, handleRejoinSession]);
+  }, [hasCheckedAutoRejoin, isLoadingSessions, isConnected, sessions, sessionIdFromUrl, handleRejoinSession]);
 
   // Handle WebSocket reconnection - rejoin session if we were in one
   useEffect(() => {

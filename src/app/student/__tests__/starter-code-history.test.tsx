@@ -16,6 +16,15 @@ jest.mock('@/hooks/useWebSocket');
 jest.mock('@/components/ProtectedRoute', () => ({
   ProtectedRoute: ({ children }: any) => <div>{children}</div>,
 }));
+jest.mock('next/navigation', () => ({
+  useRouter: () => ({
+    push: jest.fn(),
+    replace: jest.fn(),
+  }),
+  useSearchParams: () => ({
+    get: jest.fn(() => null),
+  }),
+}));
 
 // Mock Monaco Editor with executeEdits support
 jest.mock('@monaco-editor/react', () => {

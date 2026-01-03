@@ -26,6 +26,9 @@ jest.mock('next/navigation', () => ({
     push: jest.fn(),
     replace: jest.fn(),
   }),
+  useSearchParams: () => ({
+    get: jest.fn(() => null),
+  }),
 }));
 
 const mockUseWebSocket = useWebSocket as jest.MockedFunction<typeof useWebSocket>;
