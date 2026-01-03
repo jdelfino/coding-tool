@@ -162,12 +162,13 @@ export function DebuggerSidebar({
                 globals={globals}
                 previousLocals={previousLocals}
                 previousGlobals={previousGlobals}
+                darkTheme={darkTheme}
               />
             </div>
 
             {/* Call Stack */}
             <div className="mt-4">
-              <CallStackPanel callStack={callStack} />
+              <CallStackPanel callStack={callStack} darkTheme={darkTheme} />
             </div>
           </>
         )}

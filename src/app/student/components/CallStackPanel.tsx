@@ -3,14 +3,17 @@ import { CallFrame } from '@/server/types';
 
 interface CallStackPanelProps {
   callStack: CallFrame[];
+  darkTheme?: boolean;
 }
 
-export function CallStackPanel({ callStack }: CallStackPanelProps) {
+export function CallStackPanel({ callStack, darkTheme = false }: CallStackPanelProps) {
   if (callStack.length === 0) {
     return (
-      <div className="bg-white border border-gray-300 rounded-lg p-4">
-        <h3 className="text-sm font-semibold text-gray-700 mb-2">Call Stack</h3>
-        <div className="text-sm text-gray-500 italic">
+      <div className={`rounded-lg p-4 border ${
+        darkTheme ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-300'
+      }`}>
+        <h3 className={`text-sm font-semibold mb-2 ${darkTheme ? 'text-gray-200' : 'text-gray-700'}`}>Call Stack</h3>
+        <div className={`text-sm italic ${darkTheme ? 'text-gray-400' : 'text-gray-500'}`}>
           No active calls
         </div>
       </div>
@@ -18,29 +21,33 @@ export function CallStackPanel({ callStack }: CallStackPanelProps) {
   }
 
   return (
-    <div className="bg-white border border-gray-300 rounded-lg overflow-hidden">
-      <div className="bg-gray-100 px-4 py-2 border-b border-gray-300">
-        <h3 className="text-sm font-semibold text-gray-700">Call Stack</h3>
+    <div className={`rounded-lg overflow-hidden border ${
+      darkTheme ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-300'
+    }`}>
+      <div className={`px-4 py-2 border-b ${
+        darkTheme ? 'bg-gray-900 border-gray-700' : 'bg-gray-100 border-gray-300'
+      }`}>
+        <h3 className={`text-sm font-semibold ${darkTheme ? 'text-gray-200' : 'text-gray-700'}`}>Call Stack</h3>
       </div>
 
-      <div className="divide-y divide-gray-200">
+      <div className={darkTheme ? 'divide-y divide-gray-700' : 'divide-y divide-gray-200'}>
         {callStack.map((frame, index) => {
           const isCurrentFrame = index === callStack.length - 1;
           return (
             <div
               key={index}
               className={`flex items-center px-4 py-2 text-sm ${
-                isCurrentFrame ? 'bg-blue-50 font-semibold' : ''
+                isCurrentFrame ? (darkTheme ? 'bg-blue-900/30 font-semibold' : 'bg-blue-50 font-semibold') : ''
               }`}
             >
               {isCurrentFrame && (
-                <span className="mr-2 text-blue-600">→</span>
+                <span className={darkTheme ? 'mr-2 text-blue-400' : 'mr-2 text-blue-600'}>→</span>
               )}
-              <span className="font-mono text-gray-900">
+              <span className={`font-mono ${darkTheme ? 'text-gray-200' : 'text-gray-900'}`}>
                 {frame.functionName === '<module>' ? '<main program>' : frame.functionName}
               </span>
-              <span className="mx-2 text-gray-400">:</span>
-              <span className="font-mono text-gray-600">
+              <span className={`mx-2 ${darkTheme ? 'text-gray-500' : 'text-gray-400'}`}>:</span>
+              <span className={`font-mono ${darkTheme ? 'text-gray-400' : 'text-gray-600'}`}>
                 {frame.line}
               </span>
             </div>

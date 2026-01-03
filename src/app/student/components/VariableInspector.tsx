@@ -5,13 +5,15 @@ interface VariableInspectorProps {
   globals: Record<string, any>;
   previousLocals?: Record<string, any>;
   previousGlobals?: Record<string, any>;
+  darkTheme?: boolean;
 }
 
 export function VariableInspector({
   locals,
   globals,
   previousLocals = {},
-  previousGlobals = {}
+  previousGlobals = {},
+  darkTheme = false
 }: VariableInspectorProps) {
   const [showLocals, setShowLocals] = useState(true);
   const [showGlobals, setShowGlobals] = useState(true);
@@ -43,31 +45,31 @@ export function VariableInspector({
 
     if (entries.length === 0) {
       return (
-        <div className="text-sm text-gray-500 italic p-2">
+        <div className={`text-sm italic p-2 ${darkTheme ? 'text-gray-400' : 'text-gray-500'}`}>
           No {label.toLowerCase()} variables
         </div>
       );
     }
 
     return (
-      <div className="divide-y divide-gray-200">
+      <div className={darkTheme ? 'divide-y divide-gray-700' : 'divide-y divide-gray-200'}>
         {entries.map(([name, value]) => {
           const changed = hasChanged(name, value, previous);
           return (
             <div
               key={name}
               className={`flex items-start p-2 text-sm ${
-                changed ? 'bg-yellow-50' : ''
+                changed ? (darkTheme ? 'bg-yellow-900/30' : 'bg-yellow-50') : ''
               }`}
             >
-              <span className="font-mono font-semibold text-gray-700 mr-3 min-w-[100px]">
+              <span className={`font-mono font-semibold mr-3 min-w-[100px] ${darkTheme ? 'text-gray-300' : 'text-gray-700'}`}>
                 {name}
               </span>
-              <span className="font-mono text-gray-900 break-all flex-1">
+              <span className={`font-mono break-all flex-1 ${darkTheme ? 'text-gray-200' : 'text-gray-900'}`}>
                 {formatValue(value)}
               </span>
               {changed && (
-                <span className="ml-2 text-xs text-yellow-600">●</span>
+                <span className={`ml-2 text-xs ${darkTheme ? 'text-yellow-400' : 'text-yellow-600'}`}>●</span>
               )}
             </div>
           );
