@@ -14,7 +14,9 @@ export default function Home() {
       if (user) {
         // Redirect to appropriate page based on role
         let path: string;
-        if (user.role === 'namespace-admin') {
+        if (user.role === 'system-admin') {
+          path = '/system';
+        } else if (user.role === 'namespace-admin') {
           path = '/admin';
         } else if (user.role === 'instructor') {
           path = '/instructor';

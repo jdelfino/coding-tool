@@ -250,6 +250,11 @@ export interface IRBACService {
  */
 export interface INamespaceRepository {
   /**
+   * Initialize the repository (load data from disk, etc.)
+   */
+  initialize(): Promise<void>;
+
+  /**
    * Create a new namespace.
    *
    * @param namespace - Namespace data to create

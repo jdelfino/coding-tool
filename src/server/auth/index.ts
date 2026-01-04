@@ -21,4 +21,4 @@ export * from './permissions';
 export * from './middleware';
 
 // Instance
-export { getAuthProvider, getUserRepository } from './instance';
+export { getAuthProvider, getUserRepository, getNamespaceRepository } from './instance';
