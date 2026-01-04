@@ -1,6 +1,6 @@
 /**
  * Class repository implementation with local file-based storage
- * 
+ *
  * Manages CRUD operations for course classes with persistence to data/classes.json
  */
 
@@ -84,7 +84,7 @@ export class ClassRepository implements IClassRepository {
     // Convert Map to object for JSON serialization
     const obj = Object.fromEntries(this.classes);
     const json = JSON.stringify(obj, null, 2);
-    
+
     // Atomic write: write to temp file, then rename
     const tempPath = `${this.filePath}.tmp`;
     await fs.writeFile(tempPath, json, 'utf-8');
@@ -146,7 +146,7 @@ export class ClassRepository implements IClassRepository {
 
   /**
    * Delete a class
-   * 
+   *
    * Note: Callers should check for existing sections before deleting
    */
   async deleteClass(classId: string): Promise<void> {
@@ -163,12 +163,17 @@ export class ClassRepository implements IClassRepository {
   /**
    * List classes, optionally filtered by creator
    */
-  async listClasses(createdBy?: string): Promise<Class[]> {
+  async listClasses(createdBy?: string, namespaceId?: string): Promise<Class[]> {
     await this.ensureInitialized();
     // Reload from disk to get latest data from other processes
     await this.reloadFromDisk();
 
     let classes = Array.from(this.classes.values());
+
+    // Apply namespace filter
+    if (namespaceId) {
+      classes = classes.filter(c => c.namespaceId === namespaceId);
+    }
 
     if (createdBy) {
       classes = classes.filter(c => c.createdBy === createdBy);

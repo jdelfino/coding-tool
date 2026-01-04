@@ -1,6 +1,6 @@
 /**
  * Unit tests for SectionRepository
- * 
+ *
  * Tests section management, join code generation, and collision handling
  */
 
@@ -26,7 +26,7 @@ describe('SectionRepository', () => {
 
   beforeEach(() => {
     repository = new FakeSectionRepository();
-    
+
     // Reset mock counter
     (generateJoinCode as jest.Mock).mockClear();
     let counter = 0;
@@ -34,7 +34,7 @@ describe('SectionRepository', () => {
       const codes = ['ABC-123-XYZ', 'DEF-456-GHI', 'JKL-789-MNO', 'PQR-234-STU', 'VWX-567-YZA'];
       return codes[counter++ % codes.length];
     });
-    
+
     mockMembershipRepository = new FakeMembershipRepository();
     repository.setMembershipRepository(mockMembershipRepository);
   });
@@ -457,7 +457,7 @@ describe('SectionRepository', () => {
         instructorId: 'instructor-1',
         active: true,
       });
-      
+
       expect(sections).toHaveLength(1);
       expect(sections[0].classId).toBe('class-2');
       expect(sections[0].instructorIds).toContain('instructor-1');
@@ -468,7 +468,7 @@ describe('SectionRepository', () => {
       const sections = await repository.listSections({
         classId: 'non-existent-class',
       });
-      
+
       expect(sections).toEqual([]);
     });
   });
@@ -488,7 +488,7 @@ describe('SectionRepository', () => {
       const newJoinCode = await repository.regenerateJoinCode(created.id);
 
       expect(newJoinCode).not.toBe(oldJoinCode);
-      
+
       // Verify section was updated
       const section = await repository.getSection(created.id);
       expect(section?.joinCode).toBe(newJoinCode);

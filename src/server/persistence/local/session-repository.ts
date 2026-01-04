@@ -137,17 +137,29 @@ export class LocalSessionRepository implements ISessionRepository {
     await this.flush();
   }
 
-  async listActiveSessions(): Promise<StoredSession[]> {
+  async listActiveSessions(namespaceId?: string): Promise<StoredSession[]> {
     // Assuming sessions have an 'active' property (from Session type)
     // If not, we'll return all sessions for now
-    return Array.from(this.cache.values());
+    let sessions = Array.from(this.cache.values());
+
+    // Apply namespace filter
+    if (namespaceId) {
+      sessions = sessions.filter(s => s.namespaceId === namespaceId);
+    }
+
+    return sessions;
   }
 
-  async listAllSessions(options?: SessionQueryOptions): Promise<StoredSession[]> {
+  async listAllSessions(options?: SessionQueryOptions, namespaceId?: string): Promise<StoredSession[]> {
     // Reload from disk to get latest data from other processes
     await this.reloadFromDisk();
 
     let sessions = Array.from(this.cache.values());
+
+    // Apply namespace filter first
+    if (namespaceId) {
+      sessions = sessions.filter(s => s.namespaceId === namespaceId);
+    }
 
     // Apply filters
     if (options?.active !== undefined) {

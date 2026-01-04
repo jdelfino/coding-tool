@@ -1,6 +1,6 @@
 /**
  * Persistence layer type definitions
- * 
+ *
  * This file contains types used across the persistence layer for configuration,
  * error handling, and metadata management.
  */
@@ -13,26 +13,26 @@ import { Session, Student } from '../types';
 export interface StorageConfig {
   /** Type of storage backend to use */
   type: 'local' | 'remote' | 'memory';
-  
+
   /** Base directory for local file storage */
   baseDir?: string;
-  
+
   /** Remote API endpoint (for remote storage) */
   apiEndpoint?: string;
-  
+
   /** Authentication credentials for remote storage */
   credentials?: {
     apiKey?: string;
     username?: string;
     password?: string;
   };
-  
+
   /** Enable caching layer */
   enableCache?: boolean;
-  
+
   /** Cache TTL in milliseconds */
   cacheTtl?: number;
-  
+
   /** Maximum number of items to keep in cache */
   cacheMaxSize?: number;
 }
@@ -43,16 +43,16 @@ export interface StorageConfig {
 export interface StorageMetadata {
   /** When the item was first created */
   createdAt: Date;
-  
+
   /** When the item was last modified */
   updatedAt: Date;
-  
+
   /** Version number for optimistic locking */
   version: number;
-  
+
   /** User or system that created the item */
   createdBy?: string;
-  
+
   /** User or system that last modified the item */
   modifiedBy?: string;
 }
@@ -63,31 +63,31 @@ export interface StorageMetadata {
 export interface CodeRevision {
   /** Unique revision identifier */
   id: string;
-  
+
   /** Namespace this revision belongs to */
   namespaceId: string;
-  
+
   /** Session this revision belongs to */
   sessionId: string;
-  
+
   /** Student who made this revision */
   studentId: string;
-  
+
   /** When this revision was created */
   timestamp: Date;
-  
+
   /** Whether this revision stores a diff or full code snapshot */
   isDiff: boolean;
-  
+
   /** Diff patches (if isDiff is true) */
   diff?: string;
-  
+
   /** Full code snapshot (if isDiff is false) */
   fullCode?: string;
-  
+
   /** Optional: Base revision ID for diff application (future use) */
   baseRevisionId?: string;
-  
+
   /** Optional: execution result if code was run */
   executionResult?: {
     success: boolean;
@@ -102,28 +102,28 @@ export interface CodeRevision {
 export interface ProblemSpec {
   /** Unique problem identifier */
   id: string;
-  
+
   /** Problem title */
   title: string;
-  
+
   /** Problem description/instructions */
   description: string;
-  
+
   /** Starter code template for students */
   starterCode?: string;
-  
+
   /** Expected solution (hidden from students) */
   solution?: string;
-  
+
   /** Difficulty level */
   difficulty?: 'beginner' | 'intermediate' | 'advanced';
-  
+
   /** Topic tags */
   tags?: string[];
-  
+
   /** When this problem was created */
   createdAt: Date;
-  
+
   /** Who created this problem */
   createdBy?: string;
 }
@@ -148,25 +148,25 @@ export class PersistenceError extends Error {
 export enum PersistenceErrorCode {
   /** Item not found in storage */
   NOT_FOUND = 'NOT_FOUND',
-  
+
   /** Item already exists (duplicate key) */
   ALREADY_EXISTS = 'ALREADY_EXISTS',
-  
+
   /** Storage backend is not available */
   UNAVAILABLE = 'UNAVAILABLE',
-  
+
   /** Invalid data format or validation failed */
   INVALID_DATA = 'INVALID_DATA',
-  
+
   /** Operation timed out */
   TIMEOUT = 'TIMEOUT',
-  
+
   /** Permission denied */
   PERMISSION_DENIED = 'PERMISSION_DENIED',
-  
+
   /** Version conflict (optimistic locking) */
   CONFLICT = 'CONFLICT',
-  
+
   /** Generic storage error */
   STORAGE_ERROR = 'STORAGE_ERROR',
 }
@@ -177,10 +177,10 @@ export enum PersistenceErrorCode {
 export interface OperationResult<T = void> {
   /** Whether the operation succeeded */
   success: boolean;
-  
+
   /** Data returned from operation (if any) */
   data?: T;
-  
+
   /** Error information if operation failed */
   error?: {
     code: PersistenceErrorCode;
@@ -195,19 +195,19 @@ export interface OperationResult<T = void> {
 export interface SessionQueryOptions {
   /** Filter by active/inactive status */
   active?: boolean;
-  
+
   /** Filter by instructor ID */
   instructorId?: string;
-  
+
   /** Limit number of results */
   limit?: number;
-  
+
   /** Skip N results (for pagination) */
   offset?: number;
-  
+
   /** Sort field */
   sortBy?: 'createdAt' | 'lastActivity' | 'joinCode';
-  
+
   /** Sort direction */
   sortOrder?: 'asc' | 'desc';
 }

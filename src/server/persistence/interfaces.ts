@@ -109,17 +109,19 @@ export interface ISessionRepository extends IStorageBackend {
   /**
    * List all currently active sessions
    *
+   * @param namespaceId - Optional namespace to filter by (system-admin only)
    * @returns Array of active sessions (where active flag is true)
    */
-  listActiveSessions(): Promise<StoredSession[]>;
+  listActiveSessions(namespaceId?: string): Promise<StoredSession[]>;
 
   /**
    * List all sessions with optional filtering and pagination
    *
    * @param options - Query options for filtering and pagination
+   * @param namespaceId - Optional namespace to filter by (system-admin only)
    * @returns Array of sessions matching the query
    */
-  listAllSessions(options?: SessionQueryOptions): Promise<StoredSession[]>;
+  listAllSessions(options?: SessionQueryOptions, namespaceId?: string): Promise<StoredSession[]>;
 
   /**
    * Count total sessions (optionally filtered)
@@ -160,9 +162,10 @@ export interface IProblemRepository extends IStorageBackend {
    * Returns lightweight metadata for efficient listing.
    *
    * @param filter - Optional filters
+   * @param namespaceId - Optional namespace to filter by (system-admin only)
    * @returns Array of problem metadata
    */
-  getAll(filter?: ProblemFilter): Promise<ProblemMetadata[]>;
+  getAll(filter?: ProblemFilter, namespaceId?: string): Promise<ProblemMetadata[]>;
 
   /**
    * Update an existing problem
@@ -192,27 +195,30 @@ export interface IProblemRepository extends IStorageBackend {
    *
    * @param query - Search query
    * @param filter - Optional additional filters
+   * @param namespaceId - Optional namespace to filter by (system-admin only)
    * @returns Array of matching problem metadata
    */
-  search(query: string, filter?: ProblemFilter): Promise<ProblemMetadata[]>;
+  search(query: string, filter?: ProblemFilter, namespaceId?: string): Promise<ProblemMetadata[]>;
 
   /**
    * Get problems by author
    *
    * @param authorId - Author user ID
    * @param filter - Optional additional filters
+   * @param namespaceId - Optional namespace to filter by (system-admin only)
    * @returns Array of author's problems
    */
-  getByAuthor(authorId: string, filter?: ProblemFilter): Promise<ProblemMetadata[]>;
+  getByAuthor(authorId: string, filter?: ProblemFilter, namespaceId?: string): Promise<ProblemMetadata[]>;
 
   /**
    * Get problems by class
    *
    * @param classId - Class ID
    * @param filter - Optional additional filters
+   * @param namespaceId - Optional namespace to filter by (system-admin only)
    * @returns Array of class problems
    */
-  getByClass(classId: string, filter?: ProblemFilter): Promise<ProblemMetadata[]>;
+  getByClass(classId: string, filter?: ProblemFilter, namespaceId?: string): Promise<ProblemMetadata[]>;
 
   /**
    * Duplicate a problem with new title
@@ -250,9 +256,10 @@ export interface IRevisionRepository extends IStorageBackend {
    *
    * @param sessionId - Session identifier
    * @param studentId - Student identifier
+   * @param namespaceId - Optional namespace to validate (namespace must match session's namespace)
    * @returns Array of revisions
    */
-  getRevisions(sessionId: string, studentId: string): Promise<StoredRevision[]>;
+  getRevisions(sessionId: string, studentId: string, namespaceId?: string): Promise<StoredRevision[]>;
 
   /**
    * Get a specific revision by ID
@@ -296,9 +303,10 @@ export interface IRevisionRepository extends IStorageBackend {
    * Useful for instructor overview of all student work.
    *
    * @param sessionId - Session identifier
+   * @param namespaceId - Optional namespace to validate (namespace must match session's namespace)
    * @returns Map of studentId to array of revisions
    */
-  getAllSessionRevisions(sessionId: string): Promise<Map<string, StoredRevision[]>>;
+  getAllSessionRevisions(sessionId: string, namespaceId?: string): Promise<Map<string, StoredRevision[]>>;
 }
 
 /**

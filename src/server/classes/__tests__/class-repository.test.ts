@@ -1,6 +1,6 @@
 /**
  * Unit tests for ClassRepository
- * 
+ *
  * Tests CRUD operations for course classes using in-memory storage
  */
 
@@ -341,16 +341,116 @@ describe('ClassRepository', () => {
     it('should throw error if section repository not configured', async () => {
       // Create repository without section repository
       const repoWithoutSections = new FakeClassRepository();
-      
+
       const created = await repoWithoutSections.createClass({
       namespaceId: 'default',
         name: 'CS 101',
         createdBy: 'instructor-1',
       });
-      
+
       await expect(
         repoWithoutSections.getClassSections(created.id)
       ).rejects.toThrow('Section repository not configured');
+    });
+  });
+
+  describe('namespace filtering', () => {
+    it('should filter classes by namespace in listClasses()', async () => {
+      // Create classes in different namespaces
+      const class1 = await repository.createClass({
+        namespaceId: 'namespace-a',
+        name: 'CS 101 - Namespace A',
+        createdBy: 'instructor-1',
+      });
+
+      const class2 = await repository.createClass({
+        namespaceId: 'namespace-b',
+        name: 'CS 202 - Namespace B',
+        createdBy: 'instructor-1',
+      });
+
+      const class3 = await repository.createClass({
+        namespaceId: 'namespace-a',
+        name: 'CS 303 - Namespace A',
+        createdBy: 'instructor-2',
+      });
+
+      // Get all classes (no filter) - should return all 3
+      const allClasses = await repository.listClasses();
+      expect(allClasses).toHaveLength(3);
+
+      // Filter by namespace-a - should return 2
+      const namespaceAClasses = await repository.listClasses(undefined, 'namespace-a');
+      expect(namespaceAClasses).toHaveLength(2);
+      expect(namespaceAClasses.every(c => c.name.includes('Namespace A'))).toBe(true);
+
+      // Filter by namespace-b - should return 1
+      const namespaceBClasses = await repository.listClasses(undefined, 'namespace-b');
+      expect(namespaceBClasses).toHaveLength(1);
+      expect(namespaceBClasses[0].name).toBe('CS 202 - Namespace B');
+
+      // Filter by non-existent namespace - should return 0
+      const emptyClasses = await repository.listClasses(undefined, 'non-existent');
+      expect(emptyClasses).toHaveLength(0);
+    });
+
+    it('should combine namespace filter with creator filter', async () => {
+      await repository.createClass({
+        namespaceId: 'namespace-a',
+        name: 'Class 1',
+        createdBy: 'instructor-1',
+      });
+
+      await repository.createClass({
+        namespaceId: 'namespace-a',
+        name: 'Class 2',
+        createdBy: 'instructor-2',
+      });
+
+      await repository.createClass({
+        namespaceId: 'namespace-b',
+        name: 'Class 3',
+        createdBy: 'instructor-1',
+      });
+
+      // Get classes by creator and namespace
+      const results = await repository.listClasses('instructor-1', 'namespace-a');
+      expect(results).toHaveLength(1);
+      expect(results[0].name).toBe('Class 1');
+
+      // Get classes by different creator and namespace
+      const results2 = await repository.listClasses('instructor-2', 'namespace-a');
+      expect(results2).toHaveLength(1);
+      expect(results2[0].name).toBe('Class 2');
+
+      // Get all classes by creator in namespace-b
+      const results3 = await repository.listClasses('instructor-1', 'namespace-b');
+      expect(results3).toHaveLength(1);
+      expect(results3[0].name).toBe('Class 3');
+    });
+
+    it('should enforce namespace isolation', async () => {
+      const class1 = await repository.createClass({
+        namespaceId: 'stanford',
+        name: 'CS 101 - Stanford',
+        createdBy: 'instructor-1',
+      });
+
+      const class2 = await repository.createClass({
+        namespaceId: 'mit',
+        name: 'CS 101 - MIT',
+        createdBy: 'instructor-2',
+      });
+
+      // Namespace-a instructor should only see namespace-a classes
+      const stanfordClasses = await repository.listClasses(undefined, 'stanford');
+      expect(stanfordClasses).toHaveLength(1);
+      expect(stanfordClasses[0].id).toBe(class1.id);
+
+      // Namespace-b instructor should only see namespace-b classes
+      const mitClasses = await repository.listClasses(undefined, 'mit');
+      expect(mitClasses).toHaveLength(1);
+      expect(mitClasses[0].id).toBe(class2.id);
     });
   });
 });

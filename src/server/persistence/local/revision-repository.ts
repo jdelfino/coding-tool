@@ -33,9 +33,9 @@ export class LocalRevisionRepository implements IRevisionRepository {
   async initialize(): Promise<void> {
     const baseDir = this.config.baseDir || './data';
     await ensureDir(baseDir);
-    
+
     await this.reloadFromDisk();
-    
+
     this.initialized = true;
   }
 
@@ -47,7 +47,7 @@ export class LocalRevisionRepository implements IRevisionRepository {
       this.filePath,
       {}
     );
-    
+
     this.cache.clear();
     for (const [key, revs] of Object.entries(revisions)) {
       this.cache.set(key, revs);
@@ -84,24 +84,33 @@ export class LocalRevisionRepository implements IRevisionRepository {
   async saveRevision(revision: CodeRevision): Promise<string> {
     const key = this.getCacheKey(revision.sessionId, revision.studentId);
     const revisions = this.cache.get(key) || [];
-    
+
     const stored: StoredRevision = {
       ...revision,
       _metadata: createMetadata(),
     };
-    
+
     revisions.push(stored);
     this.cache.set(key, revisions);
     await this.flush();
-    
+
     return revision.id;
   }
 
-  async getRevisions(sessionId: string, studentId: string): Promise<StoredRevision[]> {
+  async getRevisions(sessionId: string, studentId: string, namespaceId?: string): Promise<StoredRevision[]> {
     // Reload from disk to get latest data from other processes
     await this.reloadFromDisk();
     const key = this.getCacheKey(sessionId, studentId);
-    return this.cache.get(key) || [];
+    let revisions = this.cache.get(key) || [];
+
+    // Apply namespace filter if provided
+    if (namespaceId && revisions.length > 0) {
+      // All revisions for a session should have the same namespace
+      // Filter based on the first revision's namespace
+      revisions = revisions.filter(r => r.namespaceId === namespaceId);
+    }
+
+    return revisions;
   }
 
   async getRevision(revisionId: string): Promise<StoredRevision | null> {
@@ -144,16 +153,25 @@ export class LocalRevisionRepository implements IRevisionRepository {
     return revisions.length;
   }
 
-  async getAllSessionRevisions(sessionId: string): Promise<Map<string, StoredRevision[]>> {
+  async getAllSessionRevisions(sessionId: string, namespaceId?: string): Promise<Map<string, StoredRevision[]>> {
     const result = new Map<string, StoredRevision[]>();
-    
+
     for (const [key, revisions] of this.cache.entries()) {
       if (key.startsWith(`${sessionId}:`)) {
         const studentId = key.split(':')[1];
-        result.set(studentId, revisions);
+
+        // Apply namespace filter if provided
+        let filteredRevisions = revisions;
+        if (namespaceId && revisions.length > 0) {
+          filteredRevisions = revisions.filter(r => r.namespaceId === namespaceId);
+        }
+
+        if (filteredRevisions.length > 0) {
+          result.set(studentId, filteredRevisions);
+        }
       }
     }
-    
+
     return result;
   }
 }

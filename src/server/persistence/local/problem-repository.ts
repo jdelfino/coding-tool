@@ -1,6 +1,6 @@
 /**
  * Local file-based problem repository
- * 
+ *
  * Stores problems as individual JSON files with an index for fast queries.
  * Designed for single-server deployment with future migration path to database.
  */
@@ -45,14 +45,14 @@ export class LocalProblemRepository implements IProblemRepository {
   async initialize(): Promise<void> {
     try {
       await fs.mkdir(this.problemsDir, { recursive: true });
-      
+
       // Create index if it doesn't exist
       try {
         await fs.access(this.indexPath);
       } catch {
         await this.saveIndex({ problems: [], lastUpdated: new Date().toISOString() });
       }
-      
+
       this.initialized = true;
     } catch (error) {
       throw new PersistenceError(
@@ -126,15 +126,24 @@ export class LocalProblemRepository implements IProblemRepository {
     }
   }
 
-  async getAll(filter?: ProblemFilter): Promise<ProblemMetadata[]> {
+  async getAll(filter?: ProblemFilter, namespaceId?: string): Promise<ProblemMetadata[]> {
     this.ensureInitialized();
 
     const index = await this.loadIndex();
     let problems = index.problems;
 
+    // Apply namespace filter first
+    if (namespaceId) {
+      problems = problems.filter(p => {
+        // Note: We need to load the full problem to check namespaceId
+        // For now, we'll filter after loading. TODO: Add namespaceId to metadata
+        return true; // Will be filtered in applyFilters
+      });
+    }
+
     // Apply filters
-    if (filter) {
-      problems = this.applyFilters(problems, filter);
+    if (filter || namespaceId) {
+      problems = await this.applyFilters(problems, filter, namespaceId);
     }
 
     // Apply sorting
@@ -202,29 +211,29 @@ export class LocalProblemRepository implements IProblemRepository {
     await this.removeFromIndex(id);
   }
 
-  async search(query: string, filter?: ProblemFilter): Promise<ProblemMetadata[]> {
+  async search(query: string, filter?: ProblemFilter, namespaceId?: string): Promise<ProblemMetadata[]> {
     this.ensureInitialized();
 
-    const allProblems = await this.getAll(filter);
-    
+    const allProblems = await this.getAll(filter, namespaceId);
+
     if (!query || query.trim().length === 0) {
       return allProblems;
     }
 
     const searchTerms = query.toLowerCase().split(/\s+/);
-    
+
     return allProblems.filter(problem => {
       const searchText = `${problem.title} ${problem.id}`.toLowerCase();
       return searchTerms.every(term => searchText.includes(term));
     });
   }
 
-  async getByAuthor(authorId: string, filter?: ProblemFilter): Promise<ProblemMetadata[]> {
-    return this.getAll({ ...filter, authorId });
+  async getByAuthor(authorId: string, filter?: ProblemFilter, namespaceId?: string): Promise<ProblemMetadata[]> {
+    return this.getAll({ ...filter, authorId }, namespaceId);
   }
 
-  async getByClass(classId: string, filter?: ProblemFilter): Promise<ProblemMetadata[]> {
-    return this.getAll({ ...filter, classId });
+  async getByClass(classId: string, filter?: ProblemFilter, namespaceId?: string): Promise<ProblemMetadata[]> {
+    return this.getAll({ ...filter, classId }, namespaceId);
   }
 
   async duplicate(id: string, newTitle: string): Promise<Problem> {
@@ -330,7 +339,7 @@ export class LocalProblemRepository implements IProblemRepository {
 
   private async updateIndex(problem: Problem): Promise<void> {
     const index = await this.loadIndex();
-    
+
     const metadata: ProblemMetadata = {
       id: problem.id,
       title: problem.title,
@@ -342,7 +351,7 @@ export class LocalProblemRepository implements IProblemRepository {
 
     // Remove existing entry if present
     index.problems = index.problems.filter(p => p.id !== problem.id);
-    
+
     // Add new entry
     index.problems.push(metadata);
     index.lastUpdated = new Date().toISOString();
@@ -357,8 +366,24 @@ export class LocalProblemRepository implements IProblemRepository {
     await this.saveIndex(index);
   }
 
-  private applyFilters(problems: ProblemMetadata[], filter: ProblemFilter): ProblemMetadata[] {
+  private async applyFilters(problems: ProblemMetadata[], filter?: ProblemFilter, namespaceId?: string): Promise<ProblemMetadata[]> {
     let filtered = problems;
+
+    // Apply namespace filter by loading full problems
+    if (namespaceId) {
+      const namespacedProblems: ProblemMetadata[] = [];
+      for (const metadata of filtered) {
+        const problem = await this.getById(metadata.id);
+        if (problem && problem.namespaceId === namespaceId) {
+          namespacedProblems.push(metadata);
+        }
+      }
+      filtered = namespacedProblems;
+    }
+
+    if (!filter) {
+      return filtered;
+    }
 
     if (filter.authorId) {
       filtered = filtered.filter(p => p.authorName === filter.authorId);

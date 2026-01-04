@@ -62,8 +62,13 @@ export class FakeClassRepository implements IClassRepository {
     this.classes.delete(classId);
   }
 
-  async listClasses(createdBy?: string): Promise<Class[]> {
+  async listClasses(createdBy?: string, namespaceId?: string): Promise<Class[]> {
     let classes = Array.from(this.classes.values());
+
+    // Apply namespace filter first
+    if (namespaceId) {
+      classes = classes.filter(c => c.namespaceId === namespaceId);
+    }
 
     if (createdBy) {
       classes = classes.filter(c => c.createdBy === createdBy);
@@ -180,8 +185,13 @@ export class FakeSectionRepository implements ISectionRepository {
     this.sections.delete(sectionId);
   }
 
-  async listSections(filters?: SectionFilters): Promise<Section[]> {
+  async listSections(filters?: SectionFilters, namespaceId?: string): Promise<Section[]> {
     let sections = Array.from(this.sections.values());
+
+    // Apply namespace filter first
+    if (namespaceId) {
+      sections = sections.filter(s => s.namespaceId === namespaceId);
+    }
 
     if (filters?.classId) {
       sections = sections.filter(s => s.classId === filters.classId);

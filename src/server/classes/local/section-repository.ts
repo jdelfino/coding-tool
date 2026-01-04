@@ -1,6 +1,6 @@
 /**
  * Section repository implementation with local file-based storage
- * 
+ *
  * Manages CRUD operations for sections with persistence to data/sections.json
  * Handles join code generation and collision detection
  */
@@ -92,7 +92,7 @@ export class SectionRepository implements ISectionRepository {
     // Convert Map to object for JSON serialization
     const obj = Object.fromEntries(this.sections);
     const json = JSON.stringify(obj, null, 2);
-    
+
     // Atomic write: write to temp file, then rename
     const tempPath = `${this.filePath}.tmp`;
     await fs.writeFile(tempPath, json, 'utf-8');
@@ -108,12 +108,12 @@ export class SectionRepository implements ISectionRepository {
 
     while (attempts < maxAttempts) {
       const code = generateJoinCode();
-      
+
       // Check if code is already in use
       if (!this.joinCodeIndex.has(code)) {
         return code;
       }
-      
+
       attempts++;
     }
 
@@ -128,7 +128,7 @@ export class SectionRepository implements ISectionRepository {
 
     const now = new Date();
     const joinCode = await this.generateUniqueJoinCode();
-    
+
     const newSection: Section = {
       id: `section-${uuidv4()}`,
       ...sectionData,
@@ -161,12 +161,12 @@ export class SectionRepository implements ISectionRepository {
     await this.ensureInitialized();
     // Reload from disk to get latest data from other processes
     await this.reloadFromDisk();
-    
+
     const sectionId = this.joinCodeIndex.get(joinCode);
     if (!sectionId) {
       return null;
     }
-    
+
     return this.sections.get(sectionId) || null;
   }
 
@@ -187,7 +187,7 @@ export class SectionRepository implements ISectionRepository {
       if (this.joinCodeIndex.has(updates.joinCode)) {
         throw new Error(`Join code already in use: ${updates.joinCode}`);
       }
-      
+
       // Remove old code from index
       this.joinCodeIndex.delete(existingSection.joinCode);
       // Add new code to index
@@ -219,7 +219,7 @@ export class SectionRepository implements ISectionRepository {
 
     // Remove from join code index
     this.joinCodeIndex.delete(section.joinCode);
-    
+
     // Remove section
     this.sections.delete(sectionId);
     await this.save();
@@ -228,24 +228,29 @@ export class SectionRepository implements ISectionRepository {
   /**
    * List sections with optional filtering
    */
-  async listSections(filters?: SectionFilters): Promise<Section[]> {
+  async listSections(filters?: SectionFilters, namespaceId?: string): Promise<Section[]> {
     await this.ensureInitialized();
     // Reload from disk to get latest data from other processes
     await this.reloadFromDisk();
 
     let sections = Array.from(this.sections.values());
 
+    // Apply namespace filter first
+    if (namespaceId) {
+      sections = sections.filter(s => s.namespaceId === namespaceId);
+    }
+
     if (filters) {
       if (filters.classId) {
         sections = sections.filter(s => s.classId === filters.classId);
       }
-      
+
       if (filters.instructorId) {
-        sections = sections.filter(s => 
+        sections = sections.filter(s =>
           s.instructorIds.includes(filters.instructorId!)
         );
       }
-      
+
       if (filters.active !== undefined) {
         sections = sections.filter(s => s.active === filters.active);
       }
@@ -270,17 +275,17 @@ export class SectionRepository implements ISectionRepository {
 
     // Generate new unique code
     const newJoinCode = await this.generateUniqueJoinCode();
-    
+
     // Remove old code from index
     this.joinCodeIndex.delete(section.joinCode);
-    
+
     // Update section with new code
     section.joinCode = newJoinCode;
     section.updatedAt = new Date();
-    
+
     // Add new code to index
     this.joinCodeIndex.set(newJoinCode, sectionId);
-    
+
     await this.save();
 
     return newJoinCode;
@@ -303,7 +308,7 @@ export class SectionRepository implements ISectionRepository {
 
     // Count students in section
     const students = await this.membershipRepository.getSectionMembers(sectionId, 'student');
-    
+
     // TODO: Query session counts when session repository is available
     // For now, return placeholder values
     return {
@@ -318,7 +323,7 @@ export class SectionRepository implements ISectionRepository {
    */
   async addInstructor(sectionId: string, userId: string): Promise<void> {
     await this.ensureInitialized();
-    
+
     const section = this.sections.get(sectionId);
     if (!section) {
       throw new Error(`Section not found: ${sectionId}`);
@@ -336,7 +341,7 @@ export class SectionRepository implements ISectionRepository {
    */
   async removeInstructor(sectionId: string, userId: string): Promise<void> {
     await this.ensureInitialized();
-    
+
     const section = this.sections.get(sectionId);
     if (!section) {
       throw new Error(`Section not found: ${sectionId}`);

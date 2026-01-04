@@ -16,7 +16,7 @@ describe('LocalProblemRepository', () => {
     // Create temporary test directory
     testDir = path.join(__dirname, `test-problems-${Date.now()}`);
     await fs.mkdir(testDir, { recursive: true });
-    
+
     repository = new LocalProblemRepository(testDir);
     await repository.initialize();
   });
@@ -296,7 +296,7 @@ describe('LocalProblemRepository', () => {
       };
 
       const created = await repository.create(input);
-      
+
       const updated = await repository.update(created.id, {
         title: 'Updated Title',
         description: 'Updated description',
@@ -327,7 +327,7 @@ describe('LocalProblemRepository', () => {
       };
 
       const created = await repository.create(input);
-      
+
       await expect(
         repository.update(created.id, { title: '' }) // Empty title
       ).rejects.toThrow();
@@ -347,9 +347,9 @@ describe('LocalProblemRepository', () => {
       };
 
       const created = await repository.create(input);
-      
+
       await repository.delete(created.id);
-      
+
       const retrieved = await repository.getById(created.id);
       expect(retrieved).toBeNull();
     });
@@ -372,9 +372,9 @@ describe('LocalProblemRepository', () => {
       };
 
       const created = await repository.create(input);
-      
+
       await repository.delete(created.id);
-      
+
       const allProblems = await repository.getAll();
       expect(allProblems).toHaveLength(0);
     });
@@ -521,6 +521,221 @@ describe('LocalProblemRepository', () => {
     });
   });
 
+  describe('namespace filtering', () => {
+    it('should filter problems by namespace in getAll()', async () => {
+      // Create problems in different namespaces
+      const input1: ProblemInput = {
+        namespaceId: 'namespace-a',
+        title: 'Problem in Namespace A',
+        description: 'Test',
+        starterCode: '',
+        testCases: [],
+        authorId: 'user-123',
+        classId: undefined,
+      };
+
+      const input2: ProblemInput = {
+        namespaceId: 'namespace-b',
+        title: 'Problem in Namespace B',
+        description: 'Test',
+        starterCode: '',
+        testCases: [],
+        authorId: 'user-123',
+        classId: undefined,
+      };
+
+      const input3: ProblemInput = {
+        namespaceId: 'namespace-a',
+        title: 'Another Problem in Namespace A',
+        description: 'Test',
+        starterCode: '',
+        testCases: [],
+        authorId: 'user-456',
+        classId: undefined,
+      };
+
+      await repository.create(input1);
+      await repository.create(input2);
+      await repository.create(input3);
+
+      // Get all problems (no filter) - should return all 3
+      const allProblems = await repository.getAll();
+      expect(allProblems).toHaveLength(3);
+
+      // Filter by namespace-a - should return 2
+      const namespaceAProblems = await repository.getAll(undefined, 'namespace-a');
+      expect(namespaceAProblems).toHaveLength(2);
+      expect(namespaceAProblems.every(p => p.title.includes('Namespace A'))).toBe(true);
+
+      // Filter by namespace-b - should return 1
+      const namespaceBProblems = await repository.getAll(undefined, 'namespace-b');
+      expect(namespaceBProblems).toHaveLength(1);
+      expect(namespaceBProblems[0].title).toBe('Problem in Namespace B');
+
+      // Filter by non-existent namespace - should return 0
+      const emptyProblems = await repository.getAll(undefined, 'non-existent');
+      expect(emptyProblems).toHaveLength(0);
+    });
+
+    it('should filter problems by namespace in search()', async () => {
+      const input1: ProblemInput = {
+        namespaceId: 'namespace-a',
+        title: 'Search Test Problem A',
+        description: 'Test',
+        starterCode: '',
+        testCases: [],
+        authorId: 'user-123',
+        classId: undefined,
+      };
+
+      const input2: ProblemInput = {
+        namespaceId: 'namespace-b',
+        title: 'Search Test Problem B',
+        description: 'Test',
+        starterCode: '',
+        testCases: [],
+        authorId: 'user-123',
+        classId: undefined,
+      };
+
+      await repository.create(input1);
+      await repository.create(input2);
+
+      // Search without namespace filter - should return 2
+      const allResults = await repository.search('Search Test');
+      expect(allResults).toHaveLength(2);
+
+      // Search with namespace filter - should return 1 each
+      const namespaceAResults = await repository.search('Search Test', undefined, 'namespace-a');
+      expect(namespaceAResults).toHaveLength(1);
+      expect(namespaceAResults[0].title).toContain('Problem A');
+
+      const namespaceBResults = await repository.search('Search Test', undefined, 'namespace-b');
+      expect(namespaceBResults).toHaveLength(1);
+      expect(namespaceBResults[0].title).toContain('Problem B');
+    });
+
+    it('should filter problems by namespace in getByAuthor()', async () => {
+      const input1: ProblemInput = {
+        namespaceId: 'namespace-a',
+        title: 'Problem 1',
+        description: 'Test',
+        starterCode: '',
+        testCases: [],
+        authorId: 'author-123',
+        classId: undefined,
+      };
+
+      const input2: ProblemInput = {
+        namespaceId: 'namespace-b',
+        title: 'Problem 2',
+        description: 'Test',
+        starterCode: '',
+        testCases: [],
+        authorId: 'author-123',
+        classId: undefined,
+      };
+
+      await repository.create(input1);
+      await repository.create(input2);
+
+      // Get all problems by author - should return 2
+      const allAuthorProblems = await repository.getByAuthor('author-123');
+      expect(allAuthorProblems).toHaveLength(2);
+
+      // Filter by namespace - should return 1 each
+      const namespaceAProblems = await repository.getByAuthor('author-123', undefined, 'namespace-a');
+      expect(namespaceAProblems).toHaveLength(1);
+
+      const namespaceBProblems = await repository.getByAuthor('author-123', undefined, 'namespace-b');
+      expect(namespaceBProblems).toHaveLength(1);
+    });
+
+    it('should filter problems by namespace in getByClass()', async () => {
+      const input1: ProblemInput = {
+        namespaceId: 'namespace-a',
+        title: 'Problem 1',
+        description: 'Test',
+        starterCode: '',
+        testCases: [],
+        authorId: 'user-123',
+        classId: 'class-123',
+      };
+
+      const input2: ProblemInput = {
+        namespaceId: 'namespace-b',
+        title: 'Problem 2',
+        description: 'Test',
+        starterCode: '',
+        testCases: [],
+        authorId: 'user-123',
+        classId: 'class-123',
+      };
+
+      await repository.create(input1);
+      await repository.create(input2);
+
+      // Get all problems by class - should return 2
+      const allClassProblems = await repository.getByClass('class-123');
+      expect(allClassProblems).toHaveLength(2);
+
+      // Filter by namespace - should return 1 each
+      const namespaceAProblems = await repository.getByClass('class-123', undefined, 'namespace-a');
+      expect(namespaceAProblems).toHaveLength(1);
+
+      const namespaceBProblems = await repository.getByClass('class-123', undefined, 'namespace-b');
+      expect(namespaceBProblems).toHaveLength(1);
+    });
+
+    it('should combine namespace filter with other filters', async () => {
+      const input1: ProblemInput = {
+        namespaceId: 'namespace-a',
+        title: 'Problem 1',
+        description: 'Test',
+        starterCode: '',
+        testCases: [],
+        authorId: 'author-123',
+        classId: 'class-1',
+      };
+
+      const input2: ProblemInput = {
+        namespaceId: 'namespace-a',
+        title: 'Problem 2',
+        description: 'Test',
+        starterCode: '',
+        testCases: [],
+        authorId: 'author-456',
+        classId: 'class-1',
+      };
+
+      const input3: ProblemInput = {
+        namespaceId: 'namespace-b',
+        title: 'Problem 3',
+        description: 'Test',
+        starterCode: '',
+        testCases: [],
+        authorId: 'author-123',
+        classId: 'class-1',
+      };
+
+      await repository.create(input1);
+      await repository.create(input2);
+      await repository.create(input3);
+
+      // Get all problems by author and namespace
+      const results = await repository.getByAuthor('author-123', undefined, 'namespace-a');
+      expect(results).toHaveLength(1);
+      expect(results[0].title).toBe('Problem 1');
+
+      // Get all problems by class and namespace
+      const classResults = await repository.getByClass('class-1', undefined, 'namespace-a');
+      expect(classResults).toHaveLength(2);
+
+      const classBResults = await repository.getByClass('class-1', undefined, 'namespace-b');
+      expect(classBResults).toHaveLength(1);
+    });
+  });
+
   describe('health', () => {
     it('should return true when healthy', async () => {
       const healthy = await repository.health();
@@ -530,7 +745,7 @@ describe('LocalProblemRepository', () => {
     it('should return false when directory missing', async () => {
       await repository.shutdown();
       await fs.rm(testDir, { recursive: true, force: true });
-      
+
       const healthy = await repository.health();
       expect(healthy).toBe(false);
     });

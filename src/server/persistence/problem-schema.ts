@@ -1,6 +1,6 @@
 /**
  * Problem storage schema definitions
- * 
+ *
  * Defines the structure for persisting problems to storage (JSON files, database, etc.)
  * and provides serialization/deserialization utilities.
  */
@@ -9,10 +9,10 @@ import { Problem, ProblemValidationError } from '../types/problem';
 
 /**
  * JSON schema structure for problem storage
- * 
+ *
  * This matches the Problem interface but documents the expected
  * storage format and provides validation rules.
- * 
+ *
  * Example:
  * ```json
  * {
@@ -33,38 +33,38 @@ import { Problem, ProblemValidationError } from '../types/problem';
 export interface ProblemSchema {
   /** Unique identifier (UUID v4) */
   id: string;
-  
+
   /** Problem title (3-200 characters) */
   title: string;
-  
+
   /** Problem description in markdown (optional, 0-50000 characters) */
   description?: string;
-  
+
   /** Optional starter code template */
   starterCode?: string;
-  
+
   /** Array of test cases (optional) */
   testCases?: unknown[];
-  
+
   /** Execution settings (optional) */
   executionSettings?: {
     stdin?: string;
     randomSeed?: number;
     attachedFiles?: Array<{ name: string; content: string }>;
   };
-  
+
   /** Author user ID */
   authorId: string;
-  
+
   /** Namespace ID (required for multi-tenancy) */
   namespaceId: string;
-  
+
   /** Optional class ID */
   classId?: string;
-  
+
   /** ISO 8601 timestamp */
   createdAt: string;
-  
+
   /** ISO 8601 timestamp */
   updatedAt: string;
 }
@@ -95,15 +95,15 @@ export const PROBLEM_VALIDATION_RULES = {
 
 /**
  * Validate problem data structure
- * 
+ *
  * Checks all required fields and constraints before persisting.
- * 
+ *
  * @param problem - Problem to validate
  * @returns Array of validation errors (empty if valid)
  */
 export function validateProblemSchema(problem: Partial<Problem>): ProblemValidationError[] {
   const errors: ProblemValidationError[] = [];
-  
+
   // Validate title
   if (!problem.title || problem.title.trim().length === 0) {
     errors.push({
@@ -124,7 +124,7 @@ export function validateProblemSchema(problem: Partial<Problem>): ProblemValidat
       code: 'MAX_LENGTH',
     });
   }
-  
+
   // Validate description (optional now)
   if (problem.description && problem.description.length > PROBLEM_VALIDATION_RULES.description.maxLength) {
     errors.push({
@@ -133,7 +133,7 @@ export function validateProblemSchema(problem: Partial<Problem>): ProblemValidat
       code: 'MAX_LENGTH',
     });
   }
-  
+
   // Validate starter code (if provided)
   if (problem.starterCode && problem.starterCode.length > PROBLEM_VALIDATION_RULES.starterCode.maxLength) {
     errors.push({
@@ -142,10 +142,10 @@ export function validateProblemSchema(problem: Partial<Problem>): ProblemValidat
       code: 'MAX_LENGTH',
     });
   }
-  
+
   // Validate test cases (optional now)
   // No validation required as test cases are now optional
-  
+
   // Validate author ID
   if (!problem.authorId || problem.authorId.trim().length === 0) {
     errors.push({
@@ -154,13 +154,13 @@ export function validateProblemSchema(problem: Partial<Problem>): ProblemValidat
       code: 'REQUIRED_FIELD',
     });
   }
-  
+
   return errors;
 }
 
 /**
  * Check if problem is valid
- * 
+ *
  * @param problem - Problem to check
  * @returns true if valid, false otherwise
  */
@@ -170,10 +170,10 @@ export function isValidProblem(problem: Partial<Problem>): boolean {
 
 /**
  * Serialize problem for storage
- * 
+ *
  * Converts Problem object to JSON-serializable format.
  * Handles Date serialization to ISO strings.
- * 
+ *
  * @param problem - Problem to serialize
  * @returns Serialized problem schema
  */
@@ -195,10 +195,10 @@ export function serializeProblem(problem: Problem): ProblemSchema {
 
 /**
  * Deserialize problem from storage
- * 
+ *
  * Converts stored JSON format back to Problem object.
  * Handles Date parsing from ISO strings.
- * 
+ *
  * @param schema - Serialized problem schema
  * @returns Problem object
  */
