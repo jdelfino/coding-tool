@@ -1,6 +1,6 @@
 /**
  * System Admin API - Namespace User Management
- * 
+ *
  * GET /api/system/namespaces/[id]/users - List users in namespace
  * POST /api/system/namespaces/[id]/users - Create user in namespace
  */
@@ -11,12 +11,12 @@ import { getNamespaceRepository, getUserRepository, getAuthProvider } from '@/se
 
 /**
  * GET /api/system/namespaces/[id]/users
- * 
+ *
  * List all users in a namespace (system-admin only)
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Require system-admin permission
@@ -25,8 +25,8 @@ export async function GET(
       return permissionCheck;
     }
 
-    const namespaceId = params.id;
-    
+    const { id: namespaceId } = await params;
+
     // Verify namespace exists
     const namespaceRepo = await getNamespaceRepository();
     const namespace = await namespaceRepo.getNamespace(namespaceId);
@@ -61,25 +61,25 @@ export async function GET(
 
 /**
  * POST /api/system/namespaces/[id]/users
- * 
+ *
  * Create a new user in a namespace (system-admin only)
- * 
+ *
  * Body:
  * - username: string
  * - role: 'namespace-admin' | 'instructor' | 'student'
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Require system-admin permission
-    const permissionCheck = await requirePermission(request, 'user.manageAny');
+    const permissionCheck = await requirePermission(request, 'user.create');
     if (permissionCheck instanceof NextResponse) {
       return permissionCheck;
     }
 
-    const namespaceId = params.id;
+    const { id: namespaceId } = await params;
     const body = await request.json();
     const { username, role } = body;
 

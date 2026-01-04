@@ -14,7 +14,7 @@ const API_BASE_URL = process.env.PLAYWRIGHT_TEST_BASE_URL || 'http://localhost:3
 /**
  * Clears all test data by resetting data directory to empty state
  * Creates empty JSON files with empty objects/arrays
- * 
+ *
  * Note: This clears files directly. The Next.js server needs to restart
  * or reload data to see these changes.
  */
@@ -26,7 +26,8 @@ export async function clearTestData(): Promise<void> {
     'sections.json',
     'memberships.json',
     'sessions.json',
-    'revisions.json'
+    'revisions.json',
+    'namespaces.json'  // Add namespaces to clear
   ];
 
   for (const file of dataFiles) {
@@ -44,7 +45,7 @@ export async function clearTestData(): Promise<void> {
   } else {
     await fs.promises.mkdir(problemsDir, { recursive: true });
   }
-  
+
   // Create empty problem index
   const problemIndexPath = path.join(problemsDir, 'index.json');
   await fs.promises.writeFile(problemIndexPath, JSON.stringify({
@@ -63,14 +64,36 @@ export async function resetTestData(): Promise<void> {
 /**
  * Creates a test user via the authentication API
  * This ensures the user is properly loaded into the in-memory repository
+ *
+ * For system-admin users, this directly creates them in the users.json file
+ * since they can't be created through the normal signin flow without env var.
  */
-export async function createTestUser(userId: string, username: string, role: 'instructor' | 'student'): Promise<void> {
+export async function createTestUser(userId: string, username: string, role: 'system-admin' | 'namespace-admin' | 'instructor' | 'student'): Promise<void> {
   try {
-    // Use the signin endpoint which auto-creates users
+    // For system-admin, we need to create them directly in the database
+    // since the signin flow requires SYSTEM_ADMIN_EMAIL env var
+    if (role === 'system-admin') {
+      const usersFile = path.join(DATA_DIR, 'users.json');
+      const users = await readDataFile('users.json');
+
+      users[userId] = {
+        id: userId,
+        username,
+        role: 'system-admin',
+        namespaceId: null,
+        createdAt: new Date().toISOString(),
+        lastLoginAt: new Date().toISOString(),
+      };
+
+      await writeDataFile('users.json', users);
+      return;
+    }
+
+    // For other roles, use the signin endpoint which auto-creates users
     const response = await fetch(`${API_BASE_URL}/api/auth/signin`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, role }),
+      body: JSON.stringify({ username }),
     });
 
     if (!response.ok) {

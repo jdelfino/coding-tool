@@ -9,7 +9,7 @@ import { Namespace } from '@/server/auth/types';
 
 /**
  * Namespace User Management Page
- * 
+ *
  * Allows system admins to manage users within a specific namespace.
  */
 export default function NamespaceUsersPage() {
@@ -71,7 +71,7 @@ export default function NamespaceUsersPage() {
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
     setActionError(null);
-    
+
     if (!newUsername.trim()) return;
 
     try {
@@ -139,7 +139,7 @@ export default function NamespaceUsersPage() {
         >
           ← Back to System Admin
         </button>
-        
+
         <h1 style={{ marginBottom: '0.5rem' }}>
           {namespace?.displayName || namespaceId}
         </h1>
@@ -312,7 +312,7 @@ export default function NamespaceUsersPage() {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <div style={{ flex: 1 }}>
                   <h3 style={{ margin: 0, marginBottom: '0.5rem' }}>{user.username}</h3>
-                  
+
                   {editingUserId === user.id ? (
                     <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '0.5rem' }}>
                       <select
@@ -364,7 +364,7 @@ export default function NamespaceUsersPage() {
                     <div style={{ marginBottom: '0.5rem' }}>
                       <span style={{
                         padding: '0.25rem 0.75rem',
-                        background: user.role === 'namespace-admin' ? '#ffc107' : 
+                        background: user.role === 'namespace-admin' ? '#ffc107' :
                                    user.role === 'instructor' ? '#0070f3' : '#6c757d',
                         color: user.role === 'namespace-admin' ? '#000' : 'white',
                         borderRadius: '4px',
@@ -375,7 +375,7 @@ export default function NamespaceUsersPage() {
                       </span>
                     </div>
                   )}
-                  
+
                   <div style={{ fontSize: '0.875rem', color: '#666' }}>
                     Created: {new Date(user.createdAt).toLocaleString()}
                   </div>

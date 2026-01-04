@@ -78,10 +78,10 @@ export function useNamespaces(): UseNamespacesResult {
       }
 
       const data = await response.json();
-      
+
       // Refresh namespace list
       await fetchNamespaces();
-      
+
       return data.namespace;
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to create namespace';
@@ -114,10 +114,10 @@ export function useNamespaces(): UseNamespacesResult {
       }
 
       const data = await response.json();
-      
+
       // Refresh namespace list
       await fetchNamespaces();
-      
+
       return data.namespace;
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to update namespace';
@@ -163,7 +163,7 @@ export function useNamespaces(): UseNamespacesResult {
     setError(null);
     try {
       const response = await fetch(`/api/system/namespaces/${namespaceId}/users`);
-      
+
       if (!response.ok) {
         const data = await response.json();
         throw new Error(data.error || 'Failed to fetch users');

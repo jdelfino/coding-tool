@@ -9,7 +9,7 @@ import CreateNamespaceForm from './components/CreateNamespaceForm';
 
 /**
  * System Administration Dashboard
- * 
+ *
  * Only accessible to system-admin role.
  * Provides namespace management and high-level statistics.
  */

@@ -22,9 +22,11 @@ export async function getAuthProvider(): Promise<IAuthProvider> {
   return authProviderInstance;
 }
 
-export function getUserRepository(): IUserRepository {
+export async function getUserRepository(): Promise<IUserRepository> {
   if (!userRepositoryInstance) {
-    userRepositoryInstance = new InMemoryUserRepository();
+    // Use the same repository as the auth provider for consistency
+    const storage = await getStorage();
+    userRepositoryInstance = storage.users;
   }
   return userRepositoryInstance;
 }

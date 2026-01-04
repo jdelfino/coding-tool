@@ -51,10 +51,10 @@ export default function CreateNamespaceForm({ onSubmit, onCancel, loading }: Cre
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     const isIdValid = validateId(id);
     const isDisplayNameValid = validateDisplayName(displayName);
-    
+
     if (!isIdValid || !isDisplayNameValid) {
       return;
     }
@@ -70,7 +70,7 @@ export default function CreateNamespaceForm({ onSubmit, onCancel, loading }: Cre
       borderRadius: '8px'
     }}>
       <h3 style={{ marginTop: 0, marginBottom: '1.5rem' }}>Create New Namespace</h3>
-      
+
       <form onSubmit={handleSubmit}>
         {/* Namespace ID */}
         <div style={{ marginBottom: '1rem' }}>

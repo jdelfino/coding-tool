@@ -15,7 +15,7 @@ export async function POST(
 ) {
   try {
     const { id } = await params;
-    
+
     // Check authentication
     const auth = await requireAuth(request);
     if (auth instanceof NextResponse) {
@@ -59,7 +59,7 @@ export async function POST(
     }
 
     // Find user by email
-    const userRepo = getUserRepository();
+    const userRepo = await getUserRepository();
     const user = await userRepo.getUserByEmail(email.toLowerCase().trim());
 
     if (!user) {

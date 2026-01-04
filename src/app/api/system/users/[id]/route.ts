@@ -1,6 +1,6 @@
 /**
  * System Admin API - Individual User Management
- * 
+ *
  * PUT /api/system/users/[id] - Update user (change role)
  * DELETE /api/system/users/[id] - Delete user
  */
@@ -11,25 +11,25 @@ import { getUserRepository, getAuthProvider } from '@/server/auth';
 
 /**
  * PUT /api/system/users/[id]
- * 
+ *
  * Update a user (system-admin only)
  * Currently supports changing role only
- * 
+ *
  * Body:
  * - role?: 'namespace-admin' | 'instructor' | 'student'
  */
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Require system-admin permission
-    const permissionCheck = await requirePermission(request, 'user.manageAny');
+    const permissionCheck = await requirePermission(request, 'user.changeRole');
     if (permissionCheck instanceof NextResponse) {
       return permissionCheck;
     }
 
-    const userId = params.id;
+    const { id: userId } = await params;
     const body = await request.json();
     const { role } = body;
 
@@ -92,21 +92,21 @@ export async function PUT(
 
 /**
  * DELETE /api/system/users/[id]
- * 
+ *
  * Delete a user (system-admin only)
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Require system-admin permission
-    const permissionCheck = await requirePermission(request, 'user.manageAny');
+    const permissionCheck = await requirePermission(request, 'user.delete');
     if (permissionCheck instanceof NextResponse) {
       return permissionCheck;
     }
 
-    const userId = params.id;
+    const { id: userId } = await params;
 
     // Check if user exists
     const userRepo = await getUserRepository();

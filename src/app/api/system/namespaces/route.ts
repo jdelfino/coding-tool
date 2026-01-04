@@ -1,6 +1,6 @@
 /**
  * System Admin API - Namespace Management
- * 
+ *
  * GET /api/system/namespaces - List all namespaces
  * POST /api/system/namespaces - Create a new namespace
  */
@@ -11,9 +11,9 @@ import { getNamespaceRepository, getUserRepository } from '@/server/auth';
 
 /**
  * GET /api/system/namespaces
- * 
+ *
  * List all namespaces (system-admin only)
- * 
+ *
  * Query params:
  * - includeInactive?: boolean (default: false)
  */
@@ -62,9 +62,9 @@ export async function GET(request: NextRequest) {
 
 /**
  * POST /api/system/namespaces
- * 
+ *
  * Create a new namespace (system-admin only)
- * 
+ *
  * Body:
  * - id: string (slug, 3-32 chars, lowercase, alphanumeric, hyphens)
  * - displayName: string

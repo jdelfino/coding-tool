@@ -29,7 +29,7 @@ export default function NamespaceList({ namespaces, onUpdate, onDelete, loading 
 
   const handleSaveEdit = async (id: string) => {
     if (!editDisplayName.trim()) return;
-    
+
     setActionLoading(true);
     try {
       await onUpdate(id, { displayName: editDisplayName.trim() });
@@ -185,8 +185,8 @@ export default function NamespaceList({ namespaces, onUpdate, onDelete, loading 
           </div>
 
           {/* Namespace Info */}
-          <div style={{ 
-            display: 'flex', 
+          <div style={{
+            display: 'flex',
             gap: '2rem',
             marginBottom: '1rem',
             paddingBottom: '1rem',

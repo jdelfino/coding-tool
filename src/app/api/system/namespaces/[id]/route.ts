@@ -1,6 +1,6 @@
 /**
  * System Admin API - Individual Namespace Management
- * 
+ *
  * GET /api/system/namespaces/[id] - Get namespace details
  * PUT /api/system/namespaces/[id] - Update namespace
  * DELETE /api/system/namespaces/[id] - Delete namespace
@@ -12,12 +12,12 @@ import { getNamespaceRepository } from '@/server/auth';
 
 /**
  * GET /api/system/namespaces/[id]
- * 
+ *
  * Get namespace details (system-admin only)
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Require system-admin permission
@@ -26,7 +26,7 @@ export async function GET(
       return permissionCheck;
     }
 
-    const namespaceId = params.id;
+    const { id: namespaceId } = await params;
     const namespaceRepo = await getNamespaceRepository();
     const namespace = await namespaceRepo.getNamespace(namespaceId);
 
@@ -56,16 +56,16 @@ export async function GET(
 
 /**
  * PUT /api/system/namespaces/[id]
- * 
+ *
  * Update namespace (system-admin only)
- * 
+ *
  * Body:
  * - displayName?: string
  * - active?: boolean
  */
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Require system-admin permission
@@ -74,7 +74,7 @@ export async function PUT(
       return permissionCheck;
     }
 
-    const namespaceId = params.id;
+    const { id: namespaceId } = await params;
     const body = await request.json();
     const { displayName, active } = body;
 
@@ -108,7 +108,7 @@ export async function PUT(
     }
 
     const namespaceRepo = await getNamespaceRepository();
-    
+
     // Check if namespace exists
     const exists = await namespaceRepo.namespaceExists(namespaceId);
     if (!exists) {
@@ -141,13 +141,13 @@ export async function PUT(
 
 /**
  * DELETE /api/system/namespaces/[id]
- * 
+ *
  * Delete namespace (system-admin only)
  * Soft delete by setting active=false
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Require system-admin permission
@@ -156,7 +156,7 @@ export async function DELETE(
       return permissionCheck;
     }
 
-    const namespaceId = params.id;
+    const { id: namespaceId } = await params;
     const namespaceRepo = await getNamespaceRepository();
 
     // Check if namespace exists
