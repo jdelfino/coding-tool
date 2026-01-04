@@ -7,7 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthProvider } from '@/server/auth';
 import type { UserRole } from '@/server/auth/types';
-import { requirePermission } from '@/server/auth/api-helpers';
+import { requirePermission, getNamespaceContext } from '@/server/auth/api-helpers';
 
 export async function GET(request: NextRequest) {
   try {
@@ -16,6 +16,9 @@ export async function GET(request: NextRequest) {
     if (auth instanceof NextResponse) {
       return auth; // Return 401/403 error response
     }
+
+    const { user } = auth;
+    const namespaceId = getNamespaceContext(request, user);
 
     // Get role filter from query params
     const { searchParams } = new URL(request.url);
@@ -31,8 +34,8 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // List users
-    const users = await userRepo.listUsers(roleParam || undefined);
+    // List users, filtered by namespace
+    const users = await userRepo.listUsers(roleParam || undefined, namespaceId);
 
     return NextResponse.json({ users });
   } catch (error) {

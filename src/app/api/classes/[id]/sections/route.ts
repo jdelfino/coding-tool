@@ -4,9 +4,8 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getAuthProvider } from '@/server/auth';
 import { getClassRepository, getSectionRepository, getMembershipRepository } from '@/server/classes';
-import { requireAuth, requirePermission } from '@/server/auth/api-helpers';
+import { requireAuth, requirePermission, getNamespaceContext } from '@/server/auth/api-helpers';
 
 export async function GET(
   request: NextRequest,
@@ -21,9 +20,12 @@ export async function GET(
       return auth; // Return 401 error response
     }
 
+    const { user } = auth;
+    const namespaceId = getNamespaceContext(request, user);
+
     // Verify class exists
     const classRepo = await getClassRepository();
-    const classData = await classRepo.getClass(classId);
+    const classData = await classRepo.getClass(classId, namespaceId);
 
     if (!classData) {
       return NextResponse.json(
@@ -34,14 +36,13 @@ export async function GET(
 
     // Get sections for this class
     const sectionRepo = await getSectionRepository();
-    const allSections = await sectionRepo.listSections();
-    const classSections = allSections.filter(s => s.classId === classId);
+    const allSections = await sectionRepo.listSections({ classId, namespaceId });
 
     // For users with viewAll permission, add student count and active session count
-    if (auth.rbac.hasPermission(auth.user, 'session.viewAll')) {
+    if (auth.rbac.hasPermission(user, 'session.viewAll')) {
       const membershipRepo = await getMembershipRepository();
       const sectionsWithCounts = await Promise.all(
-        classSections.map(async (section) => {
+        allSections.map(async (section) => {
           const students = await membershipRepo.getSectionMembers(section.id, 'student');
           const studentCount = students.length;
 
@@ -63,7 +64,7 @@ export async function GET(
 
     // For students, just return basic section info
     return NextResponse.json({
-      sections: classSections.map(s => ({
+      sections: allSections.map(s => ({
         id: s.id,
         name: s.name,
         schedule: s.semester,
@@ -91,8 +92,11 @@ export async function POST(
       return auth; // Return 401/403 error response
     }
 
+    const { user } = auth;
+    const namespaceId = getNamespaceContext(request, user);
+
     const classRepo = await getClassRepository();
-    const classData = await classRepo.getClass(classId);
+    const classData = await classRepo.getClass(classId, namespaceId);
 
     if (!classData) {
       return NextResponse.json(
@@ -116,9 +120,9 @@ export async function POST(
       classId,
       name: name.trim(),
       semester: semester?.trim() || '',
-      instructorIds: [auth.user.id],
+      instructorIds: [user.id],
       active: true,
-      namespaceId: auth.user.namespaceId!,
+      namespaceId: user.namespaceId!,
     });
 
     return NextResponse.json({ section: newSection }, { status: 201 });

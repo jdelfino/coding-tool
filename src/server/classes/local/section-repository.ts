@@ -147,11 +147,18 @@ export class SectionRepository implements ISectionRepository {
   /**
    * Get a section by ID
    */
-  async getSection(sectionId: string): Promise<Section | null> {
+  async getSection(sectionId: string, namespaceId?: string): Promise<Section | null> {
     await this.ensureInitialized();
     // Reload from disk to get latest data from other processes (e.g., API routes)
     await this.reloadFromDisk();
-    return this.sections.get(sectionId) || null;
+    const section = this.sections.get(sectionId);
+    
+    // If namespaceId is provided, filter by it
+    if (section && namespaceId && section.namespaceId !== namespaceId) {
+      return null;
+    }
+    
+    return section || null;
   }
 
   /**

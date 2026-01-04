@@ -167,3 +167,28 @@ export async function requireAnyPermission(
 
   return auth;
 }
+
+/**
+ * Get the namespace ID to use for a request.
+ * - For system-admin: Uses ?namespace=xxx query param if provided, otherwise user's namespace
+ * - For all other users: Always uses user's namespaceId
+ * 
+ * @param request - Next.js request object
+ * @param user - Authenticated user
+ * @returns Namespace ID to use for filtering
+ */
+export function getNamespaceContext(request: NextRequest, user: User): string {
+  // System admin can specify namespace via query param
+  if (user.role === 'system-admin') {
+    const url = new URL(request.url);
+    const requestedNamespace = url.searchParams.get('namespace');
+    
+    if (requestedNamespace) {
+      return requestedNamespace;
+    }
+  }
+  
+  // All other users, or system-admin without query param, use their own namespace
+  // Use default namespace if user.namespaceId is not set (for backwards compatibility)
+  return user.namespaceId || 'default';
+}

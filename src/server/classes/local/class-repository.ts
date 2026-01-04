@@ -114,11 +114,18 @@ export class ClassRepository implements IClassRepository {
   /**
    * Get a class by ID
    */
-  async getClass(classId: string): Promise<Class | null> {
+  async getClass(classId: string, namespaceId?: string): Promise<Class | null> {
     await this.ensureInitialized();
     // Reload from disk to get latest data from other processes
     await this.reloadFromDisk();
-    return this.classes.get(classId) || null;
+    const cls = this.classes.get(classId);
+    
+    // If namespaceId is provided, filter by it
+    if (cls && namespaceId && cls.namespaceId !== namespaceId) {
+      return null;
+    }
+    
+    return cls || null;
   }
 
   /**
@@ -188,7 +195,7 @@ export class ClassRepository implements IClassRepository {
   /**
    * Get all sections for a class
    */
-  async getClassSections(classId: string): Promise<Section[]> {
+  async getClassSections(classId: string, namespaceId?: string): Promise<Section[]> {
     await this.ensureInitialized();
 
     // Verify class exists
@@ -201,7 +208,12 @@ export class ClassRepository implements IClassRepository {
       throw new Error('Section repository not configured');
     }
 
-    return await this.sectionRepository.listSections({ classId });
+    const filters: any = { classId };
+    if (namespaceId) {
+      filters.namespaceId = namespaceId;
+    }
+    
+    return await this.sectionRepository.listSections(filters);
   }
 
   /**

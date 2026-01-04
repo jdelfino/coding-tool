@@ -4,7 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getAuthProvider } from '@/server/auth';
+import { requireAuth, getNamespaceContext } from '@/server/auth/api-helpers';
 import { getSectionRepository, getMembershipRepository } from '@/server/classes';
 
 export async function GET(
@@ -13,27 +13,16 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const sessionId = request.cookies.get('sessionId')?.value;
-
-    if (!sessionId) {
-      return NextResponse.json(
-        { error: 'Not authenticated' },
-        { status: 401 }
-      );
+    const auth = await requireAuth(request);
+    if (auth instanceof NextResponse) {
+      return auth; // Return 401 error response
     }
 
-    const authProvider = await getAuthProvider();
-    const session = await authProvider.getSession(sessionId);
-
-    if (!session) {
-      return NextResponse.json(
-        { error: 'Session expired' },
-        { status: 401 }
-      );
-    }
+    const { user } = auth;
+    const namespaceId = getNamespaceContext(request, user);
 
     const sectionRepo = await getSectionRepository();
-    const section = await sectionRepo.getSection(id);
+    const section = await sectionRepo.getSection(id, namespaceId);
 
     if (!section) {
       return NextResponse.json(
@@ -65,27 +54,16 @@ export async function PUT(
 ) {
   try {
     const { id } = await params;
-    const sessionId = request.cookies.get('sessionId')?.value;
-
-    if (!sessionId) {
-      return NextResponse.json(
-        { error: 'Not authenticated' },
-        { status: 401 }
-      );
+    const auth = await requireAuth(request);
+    if (auth instanceof NextResponse) {
+      return auth; // Return 401 error response
     }
 
-    const authProvider = await getAuthProvider();
-    const session = await authProvider.getSession(sessionId);
-
-    if (!session) {
-      return NextResponse.json(
-        { error: 'Session expired' },
-        { status: 401 }
-      );
-    }
+    const { user } = auth;
+    const namespaceId = getNamespaceContext(request, user);
 
     const sectionRepo = await getSectionRepository();
-    const section = await sectionRepo.getSection(id);
+    const section = await sectionRepo.getSection(id, namespaceId);
 
     if (!section) {
       return NextResponse.json(
@@ -95,7 +73,7 @@ export async function PUT(
     }
 
     // Check if user is an instructor of this section
-    if (!section.instructorIds.includes(session.user.id)) {
+    if (!section.instructorIds.includes(user.id)) {
       return NextResponse.json(
         { error: 'Only section instructors can update it' },
         { status: 403 }
@@ -126,30 +104,17 @@ export async function DELETE(
   context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const sessionId = request.cookies.get('sessionId')?.value;
-
-    if (!sessionId) {
-      return NextResponse.json(
-        { error: 'Not authenticated' },
-        { status: 401 }
-      );
+    const auth = await requireAuth(request);
+    if (auth instanceof NextResponse) {
+      return auth; // Return 401 error response
     }
 
-    const authProvider = await getAuthProvider();
-    const session = await authProvider.getSession(sessionId);
-
-    if (!session) {
-      return NextResponse.json(
-        { error: 'Session expired' },
-        { status: 401 }
-      );
-    }
-
-    const userId = session.user.id;
+    const { user } = auth;
+    const namespaceId = getNamespaceContext(request, user);
     const { id } = await context.params;
 
     const sectionRepo = await getSectionRepository();
-    const section = await sectionRepo.getSection(id);
+    const section = await sectionRepo.getSection(id, namespaceId);
     if (!section) {
       return NextResponse.json(
         { error: 'Section not found' },
@@ -158,7 +123,7 @@ export async function DELETE(
     }
 
     // Verify the user is an instructor for this section
-    if (!section.instructorIds.includes(userId)) {
+    if (!section.instructorIds.includes(user.id)) {
       return NextResponse.json(
         { error: 'Only section instructors can delete it' },
         { status: 403 }

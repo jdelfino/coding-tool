@@ -152,9 +152,10 @@ export interface IProblemRepository extends IStorageBackend {
    * Retrieve a problem by ID
    *
    * @param id - Unique problem identifier
+   * @param namespaceId - Optional namespace to filter by (system-admin only)
    * @returns The problem data, or null if not found
    */
-  getById(id: string): Promise<Problem | null>;
+  getById(id: string, namespaceId?: string): Promise<Problem | null>;
 
   /**
    * Get all problems with optional filtering

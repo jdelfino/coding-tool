@@ -144,4 +144,7 @@ export interface SectionFilters {
 
   /** Filter by active status */
   active?: boolean;
+  
+  /** Filter by namespace ID */
+  namespaceId?: string;
 }

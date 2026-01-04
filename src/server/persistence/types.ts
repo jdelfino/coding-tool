@@ -210,6 +210,9 @@ export interface SessionQueryOptions {
 
   /** Sort direction */
   sortOrder?: 'asc' | 'desc';
+  
+  /** Filter by namespace ID */
+  namespaceId?: string;
 }
 
 /**

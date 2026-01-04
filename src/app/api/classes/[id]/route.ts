@@ -5,8 +5,8 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getAuthProvider } from '@/server/auth';
-import { getClassRepository, getSectionRepository } from '@/server/classes';
+import { requireAuth, getNamespaceContext } from '@/server/auth/api-helpers';
+import { getClassRepository } from '@/server/classes';
 
 export async function GET(
   request: NextRequest,
@@ -14,27 +14,16 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const sessionId = request.cookies.get('sessionId')?.value;
-
-    if (!sessionId) {
-      return NextResponse.json(
-        { error: 'Not authenticated' },
-        { status: 401 }
-      );
+    const auth = await requireAuth(request);
+    if (auth instanceof NextResponse) {
+      return auth; // Return 401 error response
     }
 
-    const authProvider = await getAuthProvider();
-    const session = await authProvider.getSession(sessionId);
-
-    if (!session) {
-      return NextResponse.json(
-        { error: 'Session expired' },
-        { status: 401 }
-      );
-    }
+    const { user } = auth;
+    const namespaceId = getNamespaceContext(request, user);
 
     const classRepo = await getClassRepository();
-    const classData = await classRepo.getClass(id);
+    const classData = await classRepo.getClass(id, namespaceId);
 
     if (!classData) {
       return NextResponse.json(
@@ -44,7 +33,7 @@ export async function GET(
     }
 
     // Get sections for this class
-    const sections = await classRepo.getClassSections(id);
+    const sections = await classRepo.getClassSections(id, namespaceId);
 
     return NextResponse.json({ 
       class: classData,
@@ -65,27 +54,16 @@ export async function PUT(
 ) {
   try {
     const { id } = await params;
-    const sessionId = request.cookies.get('sessionId')?.value;
-
-    if (!sessionId) {
-      return NextResponse.json(
-        { error: 'Not authenticated' },
-        { status: 401 }
-      );
+    const auth = await requireAuth(request);
+    if (auth instanceof NextResponse) {
+      return auth; // Return 401 error response
     }
 
-    const authProvider = await getAuthProvider();
-    const session = await authProvider.getSession(sessionId);
-
-    if (!session) {
-      return NextResponse.json(
-        { error: 'Session expired' },
-        { status: 401 }
-      );
-    }
+    const { user } = auth;
+    const namespaceId = getNamespaceContext(request, user);
 
     const classRepo = await getClassRepository();
-    const classData = await classRepo.getClass(id);
+    const classData = await classRepo.getClass(id, namespaceId);
 
     if (!classData) {
       return NextResponse.json(
@@ -95,7 +73,7 @@ export async function PUT(
     }
 
     // Check if user is the creator
-    if (classData.createdBy !== session.user.id) {
+    if (classData.createdBy !== user.id) {
       return NextResponse.json(
         { error: 'Only the class creator can update it' },
         { status: 403 }
@@ -127,27 +105,16 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
-    const sessionId = request.cookies.get('sessionId')?.value;
-
-    if (!sessionId) {
-      return NextResponse.json(
-        { error: 'Not authenticated' },
-        { status: 401 }
-      );
+    const auth = await requireAuth(request);
+    if (auth instanceof NextResponse) {
+      return auth; // Return 401 error response
     }
 
-    const authProvider = await getAuthProvider();
-    const session = await authProvider.getSession(sessionId);
-
-    if (!session) {
-      return NextResponse.json(
-        { error: 'Session expired' },
-        { status: 401 }
-      );
-    }
+    const { user } = auth;
+    const namespaceId = getNamespaceContext(request, user);
 
     const classRepo = await getClassRepository();
-    const classData = await classRepo.getClass(id);
+    const classData = await classRepo.getClass(id, namespaceId);
 
     if (!classData) {
       return NextResponse.json(
@@ -157,7 +124,7 @@ export async function DELETE(
     }
 
     // Check if user is the creator
-    if (classData.createdBy !== session.user.id) {
+    if (classData.createdBy !== user.id) {
       return NextResponse.json(
         { error: 'Only the class creator can delete it' },
         { status: 403 }
@@ -165,7 +132,7 @@ export async function DELETE(
     }
 
     // Check if class has sections
-    const sections = await classRepo.getClassSections(id);
+    const sections = await classRepo.getClassSections(id, namespaceId);
 
     if (sections.length > 0) {
       return NextResponse.json(

@@ -6,7 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthProvider } from '@/server/auth';
-import { requirePermission } from '@/server/auth/api-helpers';
+import { requirePermission, getNamespaceContext } from '@/server/auth/api-helpers';
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,6 +15,9 @@ export async function POST(request: NextRequest) {
     if (auth instanceof NextResponse) {
       return auth; // Return 401/403 error response
     }
+
+    const { user } = auth;
+    const namespaceId = getNamespaceContext(request, user);
 
     const body = await request.json();
     const { username } = body;
@@ -26,9 +29,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create the instructor account
+    // Create the instructor account in the user's namespace
     const authProvider = await getAuthProvider();
-    const newUser = await authProvider.createUser(username.trim(), 'instructor');
+    const newUser = await authProvider.createUser(username.trim(), 'instructor', namespaceId);
 
     return NextResponse.json({ 
       user: newUser,

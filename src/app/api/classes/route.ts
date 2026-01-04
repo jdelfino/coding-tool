@@ -4,34 +4,22 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getAuthProvider } from '@/server/auth';
 import { getClassRepository } from '@/server/classes';
-import { requirePermission } from '@/server/auth/api-helpers';
+import { requirePermission, requireAuth, getNamespaceContext } from '@/server/auth/api-helpers';
 
 export async function GET(request: NextRequest) {
   try {
-    const sessionId = request.cookies.get('sessionId')?.value;
-
-    if (!sessionId) {
-      return NextResponse.json(
-        { error: 'Not authenticated' },
-        { status: 401 }
-      );
+    const auth = await requireAuth(request);
+    if (auth instanceof NextResponse) {
+      return auth; // Return 401 error response
     }
 
-    const authProvider = await getAuthProvider();
-    const session = await authProvider.getSession(sessionId);
+    const { user } = auth;
+    const namespaceId = getNamespaceContext(request, user);
 
-    if (!session) {
-      return NextResponse.json(
-        { error: 'Session expired' },
-        { status: 401 }
-      );
-    }
-
-    // Get all classes where user is an instructor
+    // Get all classes where user is an instructor, filtered by namespace
     const classRepo = await getClassRepository();
-    const classes = await classRepo.listClasses(session.user.id);
+    const classes = await classRepo.listClasses(user.id, namespaceId);
 
     return NextResponse.json({ classes });
   } catch (error) {

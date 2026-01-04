@@ -7,7 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getStorage } from '@/server/persistence';
-import { getAuthProvider } from '@/server/auth';
+import { requireAuth, getNamespaceContext } from '@/server/auth/api-helpers';
 import type { ProblemInput } from '@/server/types/problem';
 
 /**
@@ -23,22 +23,13 @@ import type { ProblemInput } from '@/server/types/problem';
  */
 export async function GET(request: NextRequest) {
   try {
-    const sessionId = request.cookies.get('sessionId')?.value;
-    if (!sessionId) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+    const auth = await requireAuth(request);
+    if (auth instanceof NextResponse) {
+      return auth; // Return 401 error response
     }
 
-    const authProvider = await getAuthProvider();
-    const session = await authProvider.getSession(sessionId);
-    if (!session) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
+    const { user } = auth;
+    const namespaceId = getNamespaceContext(request, user);
 
     const searchParams = request.nextUrl.searchParams;
     const authorId = searchParams.get('authorId') || undefined;
@@ -54,6 +45,7 @@ export async function GET(request: NextRequest) {
       includePublic,
       sortBy,
       sortOrder,
+      namespaceId,
     });
 
     return NextResponse.json({ problems });
@@ -74,27 +66,15 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    const sessionId = request.cookies.get('sessionId')?.value;
-    if (!sessionId) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+    const auth = await requireAuth(request);
+    if (auth instanceof NextResponse) {
+      return auth; // Return 401 error response
     }
 
-    const authProvider = await getAuthProvider();
-    const session = await authProvider.getSession(sessionId);
-    if (!session) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
-
-    const user = session.user;
+    const { user } = auth;
 
     // Only instructors and admins can create problems
-    if (user.role !== 'instructor' && user.role !== 'namespace-admin') {
+    if (user.role !== 'instructor' && user.role !== 'namespace-admin' && user.role !== 'system-admin') {
       return NextResponse.json(
         { error: 'Forbidden: Only instructors can create problems' },
         { status: 403 }

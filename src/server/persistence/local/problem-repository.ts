@@ -106,14 +106,21 @@ export class LocalProblemRepository implements IProblemRepository {
     return problem;
   }
 
-  async getById(id: string): Promise<Problem | null> {
+  async getById(id: string, namespaceId?: string): Promise<Problem | null> {
     this.ensureInitialized();
 
     try {
       const filePath = this.getProblemFilePath(id);
       const content = await fs.readFile(filePath, 'utf-8');
       const schema = JSON.parse(content);
-      return deserializeProblem(schema);
+      const problem = deserializeProblem(schema);
+      
+      // If namespaceId is provided, filter by it
+      if (problem && namespaceId && problem.namespaceId !== namespaceId) {
+        return null;
+      }
+      
+      return problem;
     } catch (error: any) {
       if (error.code === 'ENOENT') {
         return null;

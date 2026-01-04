@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAuthProvider } from '@/server/auth';
+import { requireAuth, getNamespaceContext } from '@/server/auth/api-helpers';
 import { getSessionManager } from '@/server/session-manager';
 import { getStorage } from '@/server/persistence';
 
@@ -16,24 +16,13 @@ import { getStorage } from '@/server/persistence';
 export async function GET(request: NextRequest) {
   try {
     // Authenticate user
-    const sessionId = request.cookies.get('sessionId')?.value;
-    if (!sessionId) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+    const auth = await requireAuth(request);
+    if (auth instanceof NextResponse) {
+      return auth; // Return 401 error response
     }
 
-    const authProvider = await getAuthProvider();
-    const session = await authProvider.getSession(sessionId);
-    if (!session) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
-
-    const user = session.user;
+    const { user } = auth;
+    const namespaceId = getNamespaceContext(request, user);
     const storage = await getStorage();
 
     // Get status filter from query params
@@ -42,10 +31,11 @@ export async function GET(request: NextRequest) {
 
     let userSessions;
 
-    if (user.role === 'instructor' || user.role === 'namespace-admin') {
+    if (user.role === 'instructor' || user.role === 'namespace-admin' || user.role === 'system-admin') {
       // Instructors see sessions they created
       const queryOptions: any = {
         instructorId: user.id,
+        namespaceId,
       };
 
       if (statusFilter) {
@@ -57,7 +47,7 @@ export async function GET(request: NextRequest) {
       // Students see sessions they've joined
       // For now, we'll get all sessions and filter by participants
       // TODO: Add participantId filter to SessionQueryOptions for efficiency
-      const allSessions = await storage.sessions.listAllSessions();
+      const allSessions = await storage.sessions.listAllSessions({ namespaceId });
       userSessions = allSessions.filter(s => s.participants.includes(user.id));
 
       if (statusFilter) {
@@ -112,27 +102,16 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     // Authenticate user
-    const sessionId = request.cookies.get('sessionId')?.value;
-    if (!sessionId) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+    const auth = await requireAuth(request);
+    if (auth instanceof NextResponse) {
+      return auth; // Return 401 error response
     }
 
-    const authProvider = await getAuthProvider();
-    const session = await authProvider.getSession(sessionId);
-    if (!session) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
-
-    const user = session.user;
+    const { user } = auth;
+    const namespaceId = getNamespaceContext(request, user);
 
     // Only instructors and namespace admins can create sessions
-    if (user.role !== 'instructor' && user.role !== 'namespace-admin') {
+    if (user.role !== 'instructor' && user.role !== 'namespace-admin' && user.role !== 'system-admin') {
       return NextResponse.json(
         { error: 'Forbidden: Only instructors can create sessions' },
         { status: 403 }
@@ -160,7 +139,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const section = await storage.sections.getSection(sectionId);
+    const section = await storage.sections.getSection(sectionId, namespaceId);
     if (!section) {
       return NextResponse.json(
         { error: 'Section not found' },
@@ -184,7 +163,7 @@ export async function POST(request: NextRequest) {
     // If problemId provided, load the problem
     let problem = undefined;
     if (problemId) {
-      const problemResult = await storage.problems.getById(problemId);
+      const problemResult = await storage.problems.getById(problemId, namespaceId);
       if (!problemResult) {
         return NextResponse.json(
           { error: 'Problem not found' },

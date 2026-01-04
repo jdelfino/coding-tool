@@ -106,6 +106,9 @@ export interface ProblemFilter {
 
   /** Include public problems from other authors */
   includePublic?: boolean;
+  
+  /** Filter by namespace ID */
+  namespaceId?: string;
 }
 
 /**

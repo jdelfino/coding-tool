@@ -8,8 +8,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getStorage } from '@/server/persistence';
-import { getAuthProvider } from '@/server/auth';
-import type { User } from '@/server/auth/types';
+import { requireAuth, getNamespaceContext } from '@/server/auth/api-helpers';
 
 type Params = {
   params: Promise<{
@@ -28,25 +27,16 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const sessionId = request.cookies.get('sessionId')?.value;
-    if (!sessionId) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+    const auth = await requireAuth(request);
+    if (auth instanceof NextResponse) {
+      return auth; // Return 401 error response
     }
 
-    const authProvider = await getAuthProvider();
-    const session = await authProvider.getSession(sessionId);
-    if (!session) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
+    const { user } = auth;
+    const namespaceId = getNamespaceContext(request, user);
 
     const storage = await getStorage();
-    const problem = await storage.problems.getById(id);
+    const problem = await storage.problems.getById(id, namespaceId);
 
     if (!problem) {
       return NextResponse.json(
@@ -78,28 +68,17 @@ export async function PATCH(
 ) {
   try {
     const { id } = await params;
-    const sessionId = request.cookies.get('sessionId')?.value;
-    if (!sessionId) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+    const auth = await requireAuth(request);
+    if (auth instanceof NextResponse) {
+      return auth; // Return 401 error response
     }
 
-    const authProvider = await getAuthProvider();
-    const session = await authProvider.getSession(sessionId);
-    if (!session) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
-
-    const user = session.user;
+    const { user } = auth;
+    const namespaceId = getNamespaceContext(request, user);
     const storage = await getStorage();
 
     // Get existing problem
-    const existing = await storage.problems.getById(id);
+    const existing = await storage.problems.getById(id, namespaceId);
     if (!existing) {
       return NextResponse.json(
         { error: 'Problem not found' },
@@ -108,7 +87,7 @@ export async function PATCH(
     }
 
     // Check permission (author or namespace-admin)
-    if (existing.authorId !== user.id && user.role !== 'namespace-admin') {
+    if (existing.authorId !== user.id && user.role !== 'namespace-admin' && user.role !== 'system-admin') {
       return NextResponse.json(
         { error: 'Forbidden: You can only edit your own problems' },
         { status: 403 }
@@ -156,28 +135,17 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
-    const sessionId = request.cookies.get('sessionId')?.value;
-    if (!sessionId) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+    const auth = await requireAuth(request);
+    if (auth instanceof NextResponse) {
+      return auth; // Return 401 error response
     }
 
-    const authProvider = await getAuthProvider();
-    const session = await authProvider.getSession(sessionId);
-    if (!session) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
-
-    const user = session.user;
+    const { user } = auth;
+    const namespaceId = getNamespaceContext(request, user);
     const storage = await getStorage();
 
     // Get existing problem
-    const existing = await storage.problems.getById(id);
+    const existing = await storage.problems.getById(id, namespaceId);
     if (!existing) {
       return NextResponse.json(
         { error: 'Problem not found' },
@@ -186,7 +154,7 @@ export async function DELETE(
     }
 
     // Check permission (author or namespace-admin)
-    if (existing.authorId !== user.id && user.role !== 'namespace-admin') {
+    if (existing.authorId !== user.id && user.role !== 'namespace-admin' && user.role !== 'system-admin') {
       return NextResponse.json(
         { error: 'Forbidden: You can only delete your own problems' },
         { status: 403 }

@@ -3,29 +3,17 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getAuthProvider } from '@/server/auth';
+import { requireAuth } from '@/server/auth/api-helpers';
 import { getSectionRepository, getMembershipRepository } from '@/server/classes';
 
 export async function POST(request: NextRequest) {
   try {
-    const sessionId = request.cookies.get('sessionId')?.value;
-
-    if (!sessionId) {
-      return NextResponse.json(
-        { error: 'Not authenticated' },
-        { status: 401 }
-      );
+    const auth = await requireAuth(request);
+    if (auth instanceof NextResponse) {
+      return auth; // Return 401 error response
     }
 
-    const authProvider = await getAuthProvider();
-    const session = await authProvider.getSession(sessionId);
-
-    if (!session) {
-      return NextResponse.json(
-        { error: 'Session expired' },
-        { status: 401 }
-      );
-    }
+    const { user } = auth;
 
     const body = await request.json();
     const { joinCode } = body;
@@ -37,7 +25,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Find section by join code
+    // Find section by join code (join codes are globally unique)
     const sectionRepo = await getSectionRepository();
     const section = await sectionRepo.getSectionByJoinCode(joinCode.toUpperCase().trim());
 
@@ -48,9 +36,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Validate user's namespace matches section's namespace
+    if (section.namespaceId !== user.namespaceId) {
+      return NextResponse.json(
+        { error: 'Cannot join section from a different organization' },
+        { status: 403 }
+      );
+    }
+
     // Check if already a member
     const membershipRepo = await getMembershipRepository();
-    const existingMembership = await membershipRepo.getMembership(session.user.id, section.id);
+    const existingMembership = await membershipRepo.getMembership(user.id, section.id);
 
     if (existingMembership) {
       return NextResponse.json(
@@ -61,7 +57,7 @@ export async function POST(request: NextRequest) {
 
     // Add student to section
     await membershipRepo.addMembership({
-      userId: session.user.id,
+      userId: user.id,
       sectionId: section.id,
       role: 'student',
     });

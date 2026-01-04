@@ -193,9 +193,9 @@ export class MembershipRepository implements IMembershipRepository {
   }
 
   /**
-   * Get all sections for a user, optionally filtered by role
+   * Get all sections for a user, optionally filtered by role and namespace
    */
-  async getUserSections(userId: string, role?: 'instructor' | 'student'): Promise<SectionWithClass[]> {
+  async getUserSections(userId: string, namespaceId?: string, role?: 'instructor' | 'student'): Promise<SectionWithClass[]> {
     await this.ensureInitialized();
     // Reload from disk to get latest data from other processes
     await this.reloadFromDisk();
@@ -222,6 +222,11 @@ export class MembershipRepository implements IMembershipRepository {
     for (const membership of memberships) {
       const section = await this.sectionRepository.getSection(membership.sectionId);
       if (!section) continue;
+      
+      // Filter by namespace if provided
+      if (namespaceId && section.namespaceId !== namespaceId) {
+        continue;
+      }
 
       const classInfo = await this.classRepository.getClass(section.classId);
       if (!classInfo) continue;

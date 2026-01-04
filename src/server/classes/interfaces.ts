@@ -41,9 +41,10 @@ export interface IClassRepository {
    * Get a class by ID
    *
    * @param classId - The class ID to retrieve
+   * @param namespaceId - Optional namespace filter
    * @returns The class if found, null otherwise
    */
-  getClass(classId: string): Promise<Class | null>;
+  getClass(classId: string, namespaceId?: string): Promise<Class | null>;
 
   /**
    * Update a class
@@ -78,9 +79,10 @@ export interface IClassRepository {
    * Get all sections for a class
    *
    * @param classId - The class ID
-   * @returns Array of sections belonging to this class
+   * @param namespaceId - Optional namespace filter
+   * @returns Array of sections for the class
    */
-  getClassSections(classId: string): Promise<Section[]>;
+  getClassSections(classId: string, namespaceId?: string): Promise<Section[]>;
 }
 
 /**
@@ -109,9 +111,10 @@ export interface ISectionRepository {
    * Get a section by ID
    *
    * @param sectionId - The section ID to retrieve
+   * @param namespaceId - Optional namespace filter
    * @returns The section if found, null otherwise
    */
-  getSection(sectionId: string): Promise<Section | null>;
+  getSection(sectionId: string, namespaceId?: string): Promise<Section | null>;
 
   /**
    * Get a section by join code
@@ -230,10 +233,11 @@ export interface IMembershipRepository {
    * Returns sections with class information included for display purposes.
    *
    * @param userId - The user ID
+   * @param namespaceId - Optional namespace filter
    * @param role - Optional role filter ('instructor' or 'student')
    * @returns Array of sections with class info
    */
-  getUserSections(userId: string, role?: 'instructor' | 'student'): Promise<SectionWithClass[]>;
+  getUserSections(userId: string, namespaceId?: string, role?: 'instructor' | 'student'): Promise<SectionWithClass[]>;
 
   /**
    * Get all members (users) in a section, optionally filtered by role
