@@ -32,7 +32,7 @@ export default function Home() {
   // Show loading while checking auth
   if (isLoading) {
     return (
-      <main style={{ 
+      <main style={{
         minHeight: '100vh',
         display: 'flex',
         alignItems: 'center',

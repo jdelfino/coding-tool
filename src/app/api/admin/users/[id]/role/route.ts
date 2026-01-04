@@ -1,7 +1,7 @@
 /**
  * Admin API - Change User Role
  * PUT /api/admin/users/[id]/role
- * 
+ *
  * Allows admins to change user roles
  * Requires 'user.changeRole' permission.
  */
@@ -47,8 +47,8 @@ export async function PUT(
     }
 
     // Prevent self-demotion from namespace-admin or system-admin
-    if (actor.id === targetId && 
-        (actor.role === 'namespace-admin' || actor.role === 'system-admin') && 
+    if (actor.id === targetId &&
+        (actor.role === 'namespace-admin' || actor.role === 'system-admin') &&
         newRole !== actor.role) {
       return NextResponse.json(
         { error: 'Cannot change your own admin role' },
@@ -60,7 +60,7 @@ export async function PUT(
     if (target.role === 'namespace-admin' && newRole !== 'namespace-admin') {
       const allUsers = await authProvider.getAllUsers();
       const adminCount = allUsers.filter(u => u.role === 'namespace-admin').length;
-      
+
       if (adminCount <= 1) {
         return NextResponse.json(
           { error: 'Cannot demote the last namespace admin. System must have at least one namespace admin.' },

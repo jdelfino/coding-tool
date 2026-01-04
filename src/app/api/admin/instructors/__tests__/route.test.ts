@@ -45,7 +45,7 @@ describe('POST /api/admin/instructors', () => {
       );
     } else {
       // Check if user has permission (mock RBAC logic)
-      const hasPermission = 
+      const hasPermission =
         (permission === 'user.create' && (user.role === 'instructor' || user.role === 'namespace-admin')) ||
         (user.role === 'namespace-admin'); // Namespace admins have all permissions
 
@@ -89,7 +89,7 @@ describe('POST /api/admin/instructors', () => {
     if (sessionId) {
       Object.defineProperty(request, 'cookies', {
         value: {
-          get: jest.fn((name: string) => 
+          get: jest.fn((name: string) =>
             name === 'sessionId' ? { value: sessionId } : undefined
           ),
         },
@@ -136,7 +136,7 @@ describe('POST /api/admin/instructors', () => {
       const instructor = { id: 'instructor1', username: 'instructor', role: 'instructor' };
       mockRequest = createMockRequest({ username: 'newteacher' }, 'instructor-session');
       mockRequirePermissionForUser(instructor);
-      
+
       mockAuthProvider.createUser.mockResolvedValue({
         id: 'new-id',
         username: 'newteacher',
@@ -157,7 +157,7 @@ describe('POST /api/admin/instructors', () => {
       const admin = { id: 'admin1', username: 'admin', role: 'namespace-admin' };
       mockRequest = createMockRequest({ username: 'newteacher' }, 'admin-session');
       mockRequirePermissionForUser(admin);
-      
+
       mockAuthProvider.createUser.mockResolvedValue({
         id: 'new-id',
         username: 'newteacher',
@@ -189,7 +189,7 @@ describe('POST /api/admin/instructors', () => {
 
   describe('Input Validation', () => {
     const instructor = { id: 'instructor1', username: 'instructor', role: 'instructor' };
-    
+
     beforeEach(() => {
       mockRequirePermissionForUser(instructor);
     });
@@ -233,7 +233,7 @@ describe('POST /api/admin/instructors', () => {
 
   describe('Error Handling', () => {
     const instructor = { id: 'instructor1', username: 'instructor', role: 'instructor' };
-    
+
     beforeEach(() => {
       mockRequirePermissionForUser(instructor);
     });

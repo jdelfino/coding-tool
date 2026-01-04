@@ -5,7 +5,7 @@ import { getStorage } from '@/server/persistence';
 
 /**
  * DELETE /api/sessions/:sessionId
- * 
+ *
  * End a session (mark as completed).
  * Only the session creator or admin can end a session.
  */
@@ -39,7 +39,7 @@ export async function DELETE(
     // Get the session to verify it exists and check ownership
     const storage = await getStorage();
     const codingSession = await storage.sessions.getSession(sessionId);
-    
+
     if (!codingSession) {
       return NextResponse.json(
         { error: 'Session not found' },
@@ -74,7 +74,7 @@ export async function DELETE(
   } catch (error) {
     console.error('Error ending session:', error);
     return NextResponse.json(
-      { 
+      {
         error: 'Failed to end session',
         details: error instanceof Error ? error.message : 'Unknown error'
       },

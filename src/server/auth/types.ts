@@ -42,6 +42,25 @@ export type Permission =
   | 'system.admin';
 
 /**
+ * Represents a namespace (organization/tenant) in the system.
+ * Each namespace represents an organization, institution, or tenant.
+ */
+export interface Namespace {
+  /** Unique identifier for the namespace (URL-safe slug, e.g., 'stanford', 'mit') */
+  id: string;
+  /** Human-readable display name (e.g., 'Stanford University') */
+  displayName: string;
+  /** Whether the namespace is active (soft delete support) */
+  active: boolean;
+  /** When the namespace was created */
+  createdAt: Date;
+  /** User ID of the system admin who created this namespace */
+  createdBy: string;
+  /** When the namespace was last updated */
+  updatedAt: Date;
+}
+
+/**
  * Represents a user account in the system.
  */
 export interface User {

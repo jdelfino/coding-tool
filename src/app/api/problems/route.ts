@@ -1,6 +1,6 @@
 /**
  * Problem API endpoints
- * 
+ *
  * GET /api/problems - List all problems (with filters)
  * POST /api/problems - Create a new problem
  */
@@ -12,7 +12,7 @@ import type { ProblemInput } from '@/server/types/problem';
 
 /**
  * GET /api/problems
- * 
+ *
  * List problems with optional filters
  * Query params:
  * - authorId: Filter by author
@@ -68,7 +68,7 @@ export async function GET(request: NextRequest) {
 
 /**
  * POST /api/problems
- * 
+ *
  * Create a new problem
  * Body: ProblemInput (title, description, starterCode, etc.)
  */
@@ -120,7 +120,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ problem }, { status: 201 });
   } catch (error: any) {
     console.error('Error creating problem:', error);
-    
+
     // Handle validation errors
     if (error.code === 'INVALID_DATA') {
       return NextResponse.json(

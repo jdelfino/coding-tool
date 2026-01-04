@@ -1,7 +1,7 @@
 #!/usr/bin/env tsx
 /**
  * Seed the application with preset test data via the API
- * 
+ *
  * Creates:
  * - 1 namespace-admin user named "admin"
  * - 1 teacher named "teach"
@@ -9,7 +9,7 @@
  * - 4 students named "stu1" through "stu4"
  * - 1 defined problem
  * - Students enrolled in the section
- * 
+ *
  * Usage:
  *   npm run seed-data
  *   # or
@@ -54,7 +54,7 @@ interface Problem {
  */
 async function createAdminUser(): Promise<{ id: string; username: string }> {
   const usersFile = path.join(DATA_DIR, 'users.json');
-  
+
   // Read existing users
   let users: any = {};
   try {
@@ -64,7 +64,7 @@ async function createAdminUser(): Promise<{ id: string; username: string }> {
     // File doesn't exist or is empty, start fresh
     users = {};
   }
-  
+
   // Create namespace-admin user
   const adminId = randomUUID();
   const now = new Date().toISOString();
@@ -75,10 +75,10 @@ async function createAdminUser(): Promise<{ id: string; username: string }> {
     createdAt: now,
     lastLoginAt: now,
   };
-  
+
   // Write back
   await fs.writeFile(usersFile, JSON.stringify(users, null, 2), 'utf-8');
-  
+
   return { id: adminId, username: 'admin' };
 }
 
@@ -100,7 +100,7 @@ async function signIn(username: string): Promise<{ sessionId: string; user: User
   }
 
   const data = await response.json();
-  
+
   // Extract session cookie
   const setCookie = response.headers.get('set-cookie');
   if (!setCookie) {
@@ -277,7 +277,7 @@ async function main() {
     console.log('👑 Creating namespace-admin user...');
     const adminUserData = await createAdminUser();
     console.log(`✅ Namespace-admin user created in data file: ${adminUserData.username} (${adminUserData.id})\n`);
-    
+
     // Sign in as namespace-admin to get a session
     console.log('🔐 Signing in as namespace-admin...');
     const admin = await signIn('admin');
@@ -316,7 +316,7 @@ async function main() {
     // 6. Create students
     console.log('👨‍🎓 Creating students...');
     const students: Array<{ sessionId: string; user: User }> = [];
-    
+
     for (let i = 1; i <= 4; i++) {
       const username = `stu${i}`;
       const student = await signIn(username);

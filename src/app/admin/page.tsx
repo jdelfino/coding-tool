@@ -44,7 +44,7 @@ function AdminPage() {
 
   const loadStats = async () => {
     if (!isAdmin) return;
-    
+
     try {
       const res = await fetch('/api/admin/stats', { credentials: 'include' });
       if (res.ok) {
@@ -118,10 +118,10 @@ function AdminPage() {
 
   const handleChangeRole = async (userId: string, newRole: UserRole) => {
     if (!isAdmin) return;
-    
+
     setRoleChangeLoading(userId);
     setError('');
-    
+
     try {
       const response = await fetch(`/api/admin/users/${userId}/role`, {
         method: 'PUT',
@@ -183,16 +183,16 @@ function AdminPage() {
   return (
     <main style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
       {/* Header */}
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
         alignItems: 'center',
         marginBottom: '2rem'
       }}>
         <h1 style={{ margin: 0 }}>{isAdmin ? 'System Administration' : 'Admin Panel'}</h1>
-        <div style={{ 
-          display: 'flex', 
-          alignItems: 'center', 
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
           gap: '1rem',
           padding: '0.5rem 1rem',
           backgroundColor: '#f8f9fa',
@@ -201,8 +201,8 @@ function AdminPage() {
         }}>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
             <span style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>{user.username}</span>
-            <span style={{ 
-              fontSize: '0.75rem', 
+            <span style={{
+              fontSize: '0.75rem',
               color: getRoleBadgeColor(user.role),
               fontWeight: '500',
               textTransform: 'capitalize'
@@ -242,9 +242,9 @@ function AdminPage() {
       )}
 
       {/* Tabs */}
-      <div style={{ 
-        display: 'flex', 
-        gap: '1rem', 
+      <div style={{
+        display: 'flex',
+        gap: '1rem',
         marginBottom: '2rem',
         borderBottom: '2px solid #dee2e6'
       }}>
@@ -329,15 +329,15 @@ function AdminPage() {
           {activeTab === 'overview' && isAdmin && stats && (
             <div>
               <h2 style={{ marginBottom: '1.5rem' }}>System Overview</h2>
-              <div style={{ 
-                display: 'grid', 
+              <div style={{
+                display: 'grid',
                 gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
                 gap: '1rem',
                 marginBottom: '2rem'
               }}>
-                <div style={{ 
-                  padding: '1.5rem', 
-                  backgroundColor: '#f8f9fa', 
+                <div style={{
+                  padding: '1.5rem',
+                  backgroundColor: '#f8f9fa',
                   borderRadius: '8px',
                   border: '1px solid #dee2e6'
                 }}>
@@ -351,10 +351,10 @@ function AdminPage() {
                     {stats.users.byRole.admin} admin · {stats.users.byRole.instructor} instructors · {stats.users.byRole.student} students
                   </div>
                 </div>
-                
-                <div style={{ 
-                  padding: '1.5rem', 
-                  backgroundColor: '#f8f9fa', 
+
+                <div style={{
+                  padding: '1.5rem',
+                  backgroundColor: '#f8f9fa',
                   borderRadius: '8px',
                   border: '1px solid #dee2e6'
                 }}>
@@ -365,10 +365,10 @@ function AdminPage() {
                     {stats.classes.total}
                   </div>
                 </div>
-                
-                <div style={{ 
-                  padding: '1.5rem', 
-                  backgroundColor: '#f8f9fa', 
+
+                <div style={{
+                  padding: '1.5rem',
+                  backgroundColor: '#f8f9fa',
                   borderRadius: '8px',
                   border: '1px solid #dee2e6'
                 }}>
@@ -379,10 +379,10 @@ function AdminPage() {
                     {stats.sections.total}
                   </div>
                 </div>
-                
-                <div style={{ 
-                  padding: '1.5rem', 
-                  backgroundColor: '#d4edda', 
+
+                <div style={{
+                  padding: '1.5rem',
+                  backgroundColor: '#d4edda',
                   borderRadius: '8px',
                   border: '1px solid #c3e6cb'
                 }}>
@@ -477,9 +477,9 @@ function AdminPage() {
                 <h2 style={{ marginBottom: '1rem' }}>Add New Instructor</h2>
                 <AddInstructorForm onAdd={handleAddInstructor} />
               </div>
-              
+
               <h2 style={{ marginBottom: '1rem' }}>Instructors</h2>
-              <UserList 
+              <UserList
                 users={instructors}
                 currentUserId={user.id}
                 onDelete={handleDeleteUser}
@@ -495,7 +495,7 @@ function AdminPage() {
               <p style={{ color: '#6c757d', marginBottom: '1rem' }}>
                 Students are created automatically when they sign in for the first time.
               </p>
-              <UserList 
+              <UserList
                 users={students}
                 currentUserId={user.id}
                 showActions={false}

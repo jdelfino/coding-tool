@@ -1,11 +1,11 @@
 /**
  * Tests for /api/problems/[id] endpoints
- * 
+ *
  * Tests:
  * - GET /api/problems/[id] - Retrieve specific problem
  * - PATCH /api/problems/[id] - Update problem
  * - DELETE /api/problems/[id] - Delete problem
- * 
+ *
  * Coverage:
  * - Authentication checks
  * - Authorization (author/admin only for updates/deletes)

@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
 
     // Get storage backend and clear all data
     const storage = await getStorage();
-    
+
     // Clear in dependency order:
     // 1. Sessions (depend on users, sections)
     // 2. Memberships (depend on users, sections)
@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
     // 5. Problems (depend on users)
     // 6. Auth sessions (depend on users)
     // 7. Users (last)
-    
+
     // 1. Clear all active sessions via session manager
     const sessionManager = await getSessionManager();
     const allSessions = await storage.sessions.listAllSessions();
@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
         console.error(`[Admin Clear Data] Error ending session ${session.id}:`, error);
       }
     }
-    
+
     // 2. Clear memberships
     if (storage.memberships) {
       const membershipRepo = storage.memberships as any;
@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
         await membershipRepo.clear();
       }
     }
-    
+
     // 3. Clear sections
     if (storage.sections) {
       const sectionRepo = storage.sections as any;
@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
         await sectionRepo.clear();
       }
     }
-    
+
     // 4. Clear classes
     if (storage.classes) {
       const classRepo = storage.classes as any;
@@ -87,7 +87,7 @@ export async function POST(request: NextRequest) {
         await classRepo.clear();
       }
     }
-    
+
     // 5. Clear problems
     const problems = await storage.problems.getAll({});
     for (const problem of problems) {
@@ -97,7 +97,7 @@ export async function POST(request: NextRequest) {
         console.error(`[Admin Clear Data] Error deleting problem ${problem.id}:`, error);
       }
     }
-    
+
     // 6. Clear revisions
     if (storage.revisions) {
       const revisionRepo = storage.revisions as any;
@@ -105,16 +105,16 @@ export async function POST(request: NextRequest) {
         await revisionRepo.clear();
       }
     }
-    
+
     // 7. Clear auth sessions and users
     const users = await authProvider.getAllUsers();
-    
+
     // Clear all auth sessions first
     const allAuthSessions = (authProvider as any).getActiveSessions?.() || [];
     for (const authSession of allAuthSessions) {
       await authProvider.destroySession(authSession.sessionId);
     }
-    
+
     // Delete all users except the current admin/instructor (to prevent lockout)
     let deletedCount = 0;
     for (const user of users) {
@@ -127,7 +127,7 @@ export async function POST(request: NextRequest) {
         }
       }
     }
-    
+
     return NextResponse.json({
       success: true,
       message: 'All data cleared successfully',

@@ -1,6 +1,6 @@
 /**
  * Individual problem API endpoints
- * 
+ *
  * GET /api/problems/[id] - Get a specific problem
  * PATCH /api/problems/[id] - Update a problem
  * DELETE /api/problems/[id] - Delete a problem
@@ -19,7 +19,7 @@ type Params = {
 
 /**
  * GET /api/problems/[id]
- * 
+ *
  * Get a specific problem by ID
  */
 export async function GET(
@@ -69,7 +69,7 @@ export async function GET(
 
 /**
  * PATCH /api/problems/[id]
- * 
+ *
  * Update a problem
  */
 export async function PATCH(
@@ -123,7 +123,7 @@ export async function PATCH(
     return NextResponse.json({ problem });
   } catch (error: any) {
     console.error('Error updating problem:', error);
-    
+
     if (error.code === 'NOT_FOUND') {
       return NextResponse.json(
         { error: 'Problem not found' },
@@ -147,7 +147,7 @@ export async function PATCH(
 
 /**
  * DELETE /api/problems/[id]
- * 
+ *
  * Delete a problem
  */
 export async function DELETE(
@@ -199,7 +199,7 @@ export async function DELETE(
     return NextResponse.json({ success: true });
   } catch (error: any) {
     console.error('Error deleting problem:', error);
-    
+
     if (error.code === 'NOT_FOUND') {
       return NextResponse.json(
         { error: 'Problem not found' },

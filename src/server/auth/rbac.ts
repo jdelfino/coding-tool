@@ -9,7 +9,7 @@ import { ROLE_PERMISSIONS } from './permissions';
 
 /**
  * RBAC service for checking user permissions and access control.
- * 
+ *
  * Note: For session access checks, we need a way to query session data.
  * This will be injected when we integrate with the session manager.
  */

@@ -91,7 +91,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       const data = await response.json();
       setUser(data.user);
       setSessionId(data.sessionId);
-      
+
       // Store session ID in localStorage
       localStorage.setItem('sessionId', data.sessionId);
     } catch (error) {

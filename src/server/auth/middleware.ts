@@ -69,8 +69,8 @@ export function createRoleMiddleware(requiredRole: User['role']) {
     }
 
     if (req.user.role !== requiredRole) {
-      return res.status(403).json({ 
-        error: `Access denied. ${requiredRole} role required.` 
+      return res.status(403).json({
+        error: `Access denied. ${requiredRole} role required.`
       });
     }
 
@@ -88,8 +88,8 @@ export function requireAdmin(req: AuthenticatedRequest, res: Response, next: Nex
   }
 
   if (req.user.role !== 'namespace-admin' && req.user.role !== 'system-admin') {
-    return res.status(403).json({ 
-      error: 'Access denied. Administrator privileges required.' 
+    return res.status(403).json({
+      error: 'Access denied. Administrator privileges required.'
     });
   }
 
@@ -106,8 +106,8 @@ export function createPermissionMiddleware(rbacService: RBACService, permission:
     }
 
     if (!rbacService.hasPermission(req.user, permission)) {
-      return res.status(403).json({ 
-        error: `Access denied. Permission required: ${permission}` 
+      return res.status(403).json({
+        error: `Access denied. Permission required: ${permission}`
       });
     }
 
