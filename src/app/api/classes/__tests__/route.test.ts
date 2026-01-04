@@ -54,7 +54,7 @@ describe('/api/classes', () => {
   describe('GET /api/classes', () => {
     it('should return 401 if not authenticated', async () => {
       const request = new NextRequest('http://localhost/api/classes');
-      
+
       const response = await GET(request);
       const data = await response.json();
 
@@ -64,7 +64,7 @@ describe('/api/classes', () => {
 
     it('should return 401 if session expired', async () => {
       mockAuthProvider.getSession.mockResolvedValue(null);
-      
+
       const request = new NextRequest('http://localhost/api/classes', {
         headers: { Cookie: 'sessionId=test-session' },
       });

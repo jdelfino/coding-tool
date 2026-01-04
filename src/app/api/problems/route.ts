@@ -112,6 +112,7 @@ export async function POST(request: NextRequest) {
       executionSettings: body.executionSettings,
       authorId: user.id,
       classId: body.classId || null,
+      namespaceId: user.namespaceId!,
     };
 
     const storage = await getStorage();

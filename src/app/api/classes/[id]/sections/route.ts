@@ -118,6 +118,7 @@ export async function POST(
       semester: semester?.trim() || '',
       instructorIds: [auth.user.id],
       active: true,
+      namespaceId: auth.user.namespaceId!,
     });
 
     return NextResponse.json({ section: newSection }, { status: 201 });

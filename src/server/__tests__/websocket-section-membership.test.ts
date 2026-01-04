@@ -20,6 +20,7 @@ jest.mock('../classes', () => ({
 
 const mockProblem: Problem = {
   id: 'problem-1',
+  namespaceId: 'default',
   title: 'Test Problem',
   description: 'A test problem',
   starterCode: 'print("Hello, world!")',
@@ -51,6 +52,7 @@ describe('Section Membership Verification', () => {
 
     // Create class and section
     const classData = await classRepo.createClass({
+      namespaceId: 'default',
       name: 'Test Class',
       description: 'Test class for section membership',
       createdBy: instructorId,
@@ -58,6 +60,7 @@ describe('Section Membership Verification', () => {
     classId = classData.id;
 
     const section = await sectionRepo.createSection({
+      namespaceId: 'default',
       classId,
       name: 'Section A',
       active: true,

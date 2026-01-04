@@ -65,7 +65,7 @@ describe('/api/classes/[id]/sections', () => {
       (requireAuth as jest.Mock).mockResolvedValue(
         NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
       );
-      
+
       const request = new NextRequest('http://localhost/api/classes/class-1/sections');
       const params = Promise.resolve({ id: 'class-1' });
 
@@ -80,7 +80,7 @@ describe('/api/classes/[id]/sections', () => {
       (requireAuth as jest.Mock).mockResolvedValue(
         NextResponse.json({ error: 'Session expired' }, { status: 401 })
       );
-      
+
       const request = new NextRequest('http://localhost/api/classes/class-1/sections', {
         headers: { Cookie: 'sessionId=invalid-session' },
       });
@@ -102,7 +102,7 @@ describe('/api/classes/[id]/sections', () => {
         createdAt: new Date(),
       };
       (requireAuth as jest.Mock).mockResolvedValue(createAuthContext(user));
-      
+
       const request = new NextRequest('http://localhost/api/classes/class-1/sections', {
         headers: { Cookie: 'sessionId=valid-session' },
       });
@@ -126,7 +126,7 @@ describe('/api/classes/[id]/sections', () => {
         createdAt: new Date(),
       };
       (requireAuth as jest.Mock).mockResolvedValue(createAuthContext(user));
-      
+
       const request = new NextRequest('http://localhost/api/classes/class-1/sections', {
         headers: { Cookie: 'sessionId=valid-session' },
       });
@@ -221,7 +221,7 @@ describe('/api/classes/[id]/sections', () => {
         createdAt: new Date(),
       };
       (requireAuth as jest.Mock).mockResolvedValue(createAuthContext(student));
-      
+
       const request = new NextRequest('http://localhost/api/classes/class-1/sections', {
         headers: { Cookie: 'sessionId=valid-session' },
       });
@@ -265,7 +265,7 @@ describe('/api/classes/[id]/sections', () => {
         createdAt: new Date(),
       };
       (requirePermission as jest.Mock).mockResolvedValue(createAuthContext(instructor));
-      
+
       const mockAuthProvider = {
         getSession: jest.fn(),
       };
@@ -289,7 +289,7 @@ describe('/api/classes/[id]/sections', () => {
 
       const request = new NextRequest('http://localhost/api/classes/class-1/sections', {
         method: 'POST',
-        headers: { 
+        headers: {
           Cookie: 'sessionId=valid-session',
           'Content-Type': 'application/json',
         },

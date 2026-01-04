@@ -282,15 +282,15 @@ export class FakeUserRepository implements IUserRepository {
 
   async listUsers(role?: any, namespaceId?: string): Promise<User[]> {
     let users = Array.from(this.users.values());
-    
+
     if (namespaceId !== undefined) {
       users = users.filter(user => user.namespaceId === namespaceId);
     }
-    
+
     if (role) {
       users = users.filter(user => user.role === role);
     }
-    
+
     return users;
   }
 

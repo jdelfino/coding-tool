@@ -18,6 +18,7 @@ import { Problem } from '../types/problem';
 function createTestProblem(overrides?: Partial<Problem>): Problem {
   return {
     id: 'test-problem-1',
+    namespaceId: 'default',
     title: 'Test Problem',
     description: 'Write a function to solve this problem',
     authorId: 'test-instructor',

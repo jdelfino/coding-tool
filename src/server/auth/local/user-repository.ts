@@ -47,15 +47,15 @@ export class InMemoryUserRepository implements IUserRepository {
    */
   async listUsers(role?: UserRole, namespaceId?: string): Promise<User[]> {
     let users = Array.from(this.users.values());
-    
+
     if (namespaceId !== undefined) {
       users = users.filter(user => user.namespaceId === namespaceId);
     }
-    
+
     if (role) {
       users = users.filter(user => user.role === role);
     }
-    
+
     return users;
   }
 

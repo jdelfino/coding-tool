@@ -24,6 +24,7 @@ const mockUuid = uuidv4 as jest.MockedFunction<typeof uuidv4>;
 function createTestProblem(overrides?: Partial<Problem>): Problem {
   return {
     id: 'test-problem-1',
+    namespaceId: 'default',
     title: 'Test Problem',
     description: 'Write a function to solve this problem',
     authorId: 'test-instructor',
@@ -360,6 +361,7 @@ describe('SessionManager', () => {
       // Create session with a problem that has starter code
       const problem = {
         id: 'test-problem-id',
+        namespaceId: 'default',
         title: 'Test Problem',
         description: 'Test description',
         starterCode: '# Starter code\nprint("Hello")',

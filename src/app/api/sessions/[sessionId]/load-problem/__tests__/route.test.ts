@@ -60,6 +60,7 @@ describe('POST /api/sessions/:sessionId/load-problem', () => {
 
   const mockProblem: Problem = {
     id: 'problem-123',
+    namespaceId: 'default',
     title: 'FizzBuzz',
     description: 'Implement the FizzBuzz algorithm',
     starterCode: 'def fizzbuzz(n):\n    pass',
@@ -76,12 +77,14 @@ describe('POST /api/sessions/:sessionId/load-problem', () => {
 
   const mockSession: Session = {
     id: 'session-123',
+    namespaceId: 'default',
     creatorId: 'instructor-1',
     students: new Map(),
     createdAt: new Date(),
     lastActivity: new Date(),
     problem: {
       id: 'problem-456',
+      namespaceId: 'default',
       title: 'Test Problem',
       description: 'Test description',
       starterCode: '',

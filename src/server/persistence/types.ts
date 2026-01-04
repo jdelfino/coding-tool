@@ -64,6 +64,9 @@ export interface CodeRevision {
   /** Unique revision identifier */
   id: string;
   
+  /** Namespace this revision belongs to */
+  namespaceId: string;
+  
   /** Session this revision belongs to */
   sessionId: string;
   

@@ -63,7 +63,7 @@ describe('DELETE /api/admin/users/[id]', () => {
     if (sessionId) {
       Object.defineProperty(request, 'cookies', {
         value: {
-          get: jest.fn((name: string) => 
+          get: jest.fn((name: string) =>
             name === 'sessionId' ? { value: sessionId } : undefined
           ),
         },
@@ -86,7 +86,7 @@ describe('DELETE /api/admin/users/[id]', () => {
       mockRequirePermission.mockResolvedValue(
         NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
       );
-      
+
       const request = createMockRequest();
       const params = Promise.resolve({ id: 'user123' });
 
@@ -101,7 +101,7 @@ describe('DELETE /api/admin/users/[id]', () => {
       mockRequirePermission.mockResolvedValue(
         NextResponse.json({ error: 'Invalid session' }, { status: 401 })
       );
-      
+
       const request = createMockRequest('invalid-session');
       const params = Promise.resolve({ id: 'user123' });
 
@@ -123,10 +123,10 @@ describe('DELETE /api/admin/users/[id]', () => {
         createdAt: new Date(),
       };
       mockRequirePermission.mockResolvedValue(createAuthContext(instructor));
-      
+
       const request = createMockRequest('instructor-session');
       const params = Promise.resolve({ id: 'user123' });
-      
+
       mockUserRepository.getUser.mockResolvedValue({
         id: 'user123',
         username: 'student',
@@ -154,10 +154,10 @@ describe('DELETE /api/admin/users/[id]', () => {
         createdAt: new Date(),
       };
       mockRequirePermission.mockResolvedValue(createAuthContext(admin));
-      
+
       const request = createMockRequest('admin-session');
       const params = Promise.resolve({ id: 'user123' });
-      
+
       mockUserRepository.getUser.mockResolvedValue({
         id: 'user123',
         username: 'student',
@@ -178,7 +178,7 @@ describe('DELETE /api/admin/users/[id]', () => {
       mockRequirePermission.mockResolvedValue(
         NextResponse.json({ error: 'Forbidden' }, { status: 403 })
       );
-      
+
       const request = createMockRequest('student-session');
       const params = Promise.resolve({ id: 'user123' });
 
@@ -200,10 +200,10 @@ describe('DELETE /api/admin/users/[id]', () => {
         createdAt: new Date(),
       };
       mockRequirePermission.mockResolvedValue(createAuthContext(instructor));
-      
+
       const request = createMockRequest('instructor-session');
       const params = Promise.resolve({ id: 'instructor1' });
-      
+
       const response = await DELETE(request, { params });
       const data = await response.json();
 
@@ -223,10 +223,10 @@ describe('DELETE /api/admin/users/[id]', () => {
         createdAt: new Date(),
       };
       mockRequirePermission.mockResolvedValue(createAuthContext(admin));
-      
+
       const request = createMockRequest('admin-session');
       const params = Promise.resolve({ id: 'admin2' });
-      
+
       mockUserRepository.getUser.mockResolvedValue({
         id: 'admin2',
         username: 'admin2',
@@ -255,10 +255,10 @@ describe('DELETE /api/admin/users/[id]', () => {
         createdAt: new Date(),
       };
       mockRequirePermission.mockResolvedValue(createAuthContext(admin));
-      
+
       const request = createMockRequest('admin-session');
       const params = Promise.resolve({ id: 'admin2' });
-      
+
       mockUserRepository.getUser.mockResolvedValue({
         id: 'admin2',
         username: 'admin2',
@@ -287,10 +287,10 @@ describe('DELETE /api/admin/users/[id]', () => {
         createdAt: new Date(),
       };
       mockRequirePermission.mockResolvedValue(createAuthContext(admin));
-      
+
       const request = createMockRequest('admin-session');
       const params = Promise.resolve({ id: 'instructor1' });
-      
+
       mockUserRepository.getUser.mockResolvedValue({
         id: 'instructor1',
         username: 'instructor1',
@@ -318,7 +318,7 @@ describe('DELETE /api/admin/users/[id]', () => {
     it('should return 404 when user does not exist', async () => {
       const request = createMockRequest('instructor-session');
       const params = Promise.resolve({ id: 'nonexistent' });
-      
+
       mockUserRepository.getUser.mockResolvedValue(null);
 
       const response = await DELETE(request, { params });
@@ -331,7 +331,7 @@ describe('DELETE /api/admin/users/[id]', () => {
     it('should return 500 for database errors', async () => {
       const request = createMockRequest('instructor-session');
       const params = Promise.resolve({ id: 'user123' });
-      
+
       mockUserRepository.getUser.mockRejectedValue(new Error('Database error'));
 
       const response = await DELETE(request, { params });

@@ -28,6 +28,9 @@ export interface Problem {
   /** Unique identifier */
   id: string;
   
+  /** Namespace this problem belongs to */
+  namespaceId: string;
+  
   /** Problem title */
   title: string;
   

@@ -66,6 +66,7 @@ export async function POST(request: NextRequest) {
       name: name.trim(),
       description: description?.trim() || '',
       createdBy: auth.user.id,
+      namespaceId: auth.user.namespaceId!,
     });
 
     return NextResponse.json({ class: newClass }, { status: 201 });

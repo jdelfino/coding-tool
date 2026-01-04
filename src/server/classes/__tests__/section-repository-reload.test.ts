@@ -32,6 +32,7 @@ describe('SectionRepository - Cross-Process Data Reloading', () => {
   it('should see sections created by another repository instance (simulating cross-process)', async () => {
     // Repository 1 creates a section
     const section = await repository1.createSection({
+      namespaceId: 'default',
       classId: 'class-123',
       name: 'Test Section',
       semester: 'Fall 2024',
@@ -51,6 +52,7 @@ describe('SectionRepository - Cross-Process Data Reloading', () => {
   it('should see sections found by join code across repository instances', async () => {
     // Repository 1 creates a section
     const section = await repository1.createSection({
+      namespaceId: 'default',
       classId: 'class-456',
       name: 'Another Section',
       semester: 'Spring 2025',
@@ -69,6 +71,7 @@ describe('SectionRepository - Cross-Process Data Reloading', () => {
   it('should see updated sections across repository instances', async () => {
     // Repository 1 creates a section
     const section = await repository1.createSection({
+      namespaceId: 'default',
       classId: 'class-789',
       name: 'Original Name',
       semester: 'Fall 2024',
@@ -93,6 +96,7 @@ describe('SectionRepository - Cross-Process Data Reloading', () => {
   it('should see all sections in listSections across repository instances', async () => {
     // Repository 1 creates multiple sections
     await repository1.createSection({
+      namespaceId: 'default',
       classId: 'class-abc',
       name: 'Section 1',
       semester: 'Fall 2024',
@@ -101,6 +105,7 @@ describe('SectionRepository - Cross-Process Data Reloading', () => {
     });
 
     await repository1.createSection({
+      namespaceId: 'default',
       classId: 'class-abc',
       name: 'Section 2',
       semester: 'Fall 2024',
@@ -118,6 +123,7 @@ describe('SectionRepository - Cross-Process Data Reloading', () => {
   it('should not see deleted sections across repository instances', async () => {
     // Repository 1 creates a section
     const section = await repository1.createSection({
+      namespaceId: 'default',
       classId: 'class-xyz',
       name: 'To Be Deleted',
       semester: 'Fall 2024',

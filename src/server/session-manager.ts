@@ -41,13 +41,16 @@ export class SessionManager {
    * Create a new session within a section
    * @param creatorId - User ID of the instructor creating the session
    * @param sectionId - Section ID this session belongs to (required)
+   * @param sectionName - Name of the section for display
    * @param problem - Optional problem to clone into session
+   * @param namespaceId - Namespace ID (required for multi-tenancy)
    */
   async createSession(
     creatorId: string,
     sectionId: string,
     sectionName: string,
-    problem?: Problem
+    problem?: Problem,
+    namespaceId?: string
   ): Promise<Session> {
     // Ensure storage is initialized (auto-init for API routes)
     const storage = await this.ensureStorage();
@@ -64,6 +67,7 @@ export class SessionManager {
 
     const session: Session = {
       id: sessionId,
+      namespaceId: namespaceId || 'default',
       problem: problem ? this.cloneProblem(problem) : this.createEmptyProblem(creatorId),
       students: new Map(),
       createdAt: new Date(),
@@ -92,6 +96,7 @@ export class SessionManager {
   private createEmptyProblem(authorId: string): Problem {
     return {
       id: uuidv4(),
+      namespaceId: 'default',
       title: 'Untitled Session',
       description: '',
       starterCode: '',

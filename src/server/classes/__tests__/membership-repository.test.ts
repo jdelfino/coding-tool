@@ -1,6 +1,6 @@
 /**
  * Unit tests for MembershipRepository
- * 
+ *
  * Tests user enrollment in sections, membership queries, and join code validation
  */
 
@@ -47,7 +47,7 @@ describe('MembershipRepository', () => {
     repository = new FakeMembershipRepository();
     sectionRepository = new FakeSectionRepository();
     classRepository = new FakeClassRepository();
-    
+
     // Mock user repository
     mockUserRepository = {
       getUserById: jest.fn((id: string) => {
@@ -60,12 +60,14 @@ describe('MembershipRepository', () => {
 
     // Create actual sections and class in the fake repositories
     mockClass = await classRepository.createClass({
+      namespaceId: 'default',
       name: 'CS 101',
       description: 'Introduction to CS',
       createdBy: 'instructor-1',
     });
 
     mockSection1 = await sectionRepository.createSection({
+      namespaceId: 'default',
       classId: mockClass.id,
       name: 'Section A',
       instructorIds: ['instructor-1'],
@@ -73,6 +75,7 @@ describe('MembershipRepository', () => {
     });
 
     mockSection2 = await sectionRepository.createSection({
+      namespaceId: 'default',
       classId: mockClass.id,
       name: 'Section B',
       instructorIds: ['instructor-1'],
@@ -256,7 +259,7 @@ describe('MembershipRepository', () => {
 
     it('should sort by joined date (most recent first)', async () => {
       const sections = await repository.getUserSections('user-1');
-      
+
       // Verify sections are present
       expect(sections).toHaveLength(2);
       // The sorting is based on membership joinedAt, most recent first
@@ -267,7 +270,7 @@ describe('MembershipRepository', () => {
 
     it('should throw error if repositories not configured', async () => {
       const repoWithoutDeps = new FakeMembershipRepository();
-      
+
       await expect(
         repoWithoutDeps.getUserSections('user-1')
       ).rejects.toThrow('Repositories not configured');
@@ -317,26 +320,27 @@ describe('MembershipRepository', () => {
     it('should return empty array for section with no members', async () => {
       // Create a new section with no members
       const emptySection = await sectionRepository.createSection({
+        namespaceId: 'default',
         classId: mockClass.id,
         name: 'Empty Section',
         instructorIds: ['instructor-1'],
         active: true,
       });
-      
+
       const members = await repository.getSectionMembers(emptySection.id);
       expect(members).toEqual([]);
     });
 
     it('should sort members by username', async () => {
       const members = await repository.getSectionMembers(mockSection1.id, 'student');
-      
+
       expect(members[0].username).toBe('student1');
       expect(members[1].username).toBe('student2');
     });
 
     it('should throw error if user repository not configured', async () => {
       const repoWithoutDeps = new FakeMembershipRepository();
-      
+
       await expect(
         repoWithoutDeps.getSectionMembers(mockSection1.id)
       ).rejects.toThrow('User repository not configured');
@@ -427,14 +431,14 @@ describe('MembershipRepository', () => {
 
       const section = await repository.validateJoinCode(mockSection1.joinCode);
       expect(section).toBeNull();
-      
+
       // Reactivate for other tests
       await sectionRepository.updateSection(mockSection1.id, { active: true });
     });
 
     it('should throw error if section repository not configured', async () => {
       const repoWithoutDeps = new FakeMembershipRepository();
-      
+
       await expect(
         repoWithoutDeps.validateJoinCode(mockSection1.joinCode)
       ).rejects.toThrow('Section repository not set');
@@ -461,7 +465,7 @@ describe('MembershipRepository', () => {
       const membership2 = await repository.joinSection('user-1', mockSection1.joinCode);
 
       expect(membership1.id).toBe(membership2.id);
-      
+
       // Verify only one membership exists
       const sections = await repository.getUserSections('user-1');
       expect(sections).toHaveLength(1);
@@ -482,6 +486,7 @@ describe('MembershipRepository', () => {
     it('should throw error for inactive section', async () => {
       // Create an inactive section
       const inactiveSection = await sectionRepository.createSection({
+        namespaceId: 'default',
         classId: mockClass.id,
         name: 'Inactive Section',
         instructorIds: ['instructor-1'],

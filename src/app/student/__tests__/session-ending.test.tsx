@@ -46,9 +46,9 @@ describe('StudentPage - Session Ending', () => {
     mockRefetch = jest.fn();
 
     mockUseAuth.mockReturnValue({
-      user: { 
-        id: 'student1', 
-        username: 'TestStudent', 
+      user: {
+        id: 'student1',
+        username: 'TestStudent',
         role: 'student',
         namespaceId: 'default',
         createdAt: new Date().toISOString() as any,

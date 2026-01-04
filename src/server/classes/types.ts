@@ -19,6 +19,9 @@ export interface Class {
   /** Unique identifier for the class */
   id: string;
   
+  /** Namespace this class belongs to */
+  namespaceId: string;
+  
   /** Class name (e.g., "CS 101 - Introduction to Programming") */
   name: string;
   
@@ -45,6 +48,9 @@ export interface Class {
 export interface Section {
   /** Unique identifier for the section */
   id: string;
+  
+  /** Namespace this section belongs to */
+  namespaceId: string;
   
   /** ID of the class this section belongs to */
   classId: string;

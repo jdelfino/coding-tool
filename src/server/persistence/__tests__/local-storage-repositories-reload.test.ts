@@ -1,9 +1,9 @@
 /**
  * Integration tests for LocalStorage repositories cross-process data reloading
- * 
+ *
  * These tests verify that changes made by one repository instance
  * are visible to another instance (simulating cross-process behavior)
- * 
+ *
  * Tests: LocalRevisionRepository, LocalUserRepository
  */
 
@@ -24,11 +24,11 @@ describe('LocalRevisionRepository - Cross-Process Data Reloading', () => {
 
   beforeEach(async () => {
     testDir = await fs.mkdtemp(path.join(os.tmpdir(), 'revision-repo-test-'));
-    
+
     const config = { type: 'local' as const, baseDir: testDir };
     repository1 = new LocalRevisionRepository(config);
     repository2 = new LocalRevisionRepository(config);
-    
+
     await repository1.initialize();
     await repository2.initialize();
   });
@@ -44,6 +44,7 @@ describe('LocalRevisionRepository - Cross-Process Data Reloading', () => {
       id: 'rev-123',
       sessionId: 'session-1',
       studentId: 'student-1',
+      namespaceId: 'default',
       fullCode: 'print("Hello World")',
       isDiff: false,
       timestamp: new Date(),
@@ -52,7 +53,7 @@ describe('LocalRevisionRepository - Cross-Process Data Reloading', () => {
     await repository1.saveRevision(revision);
 
     const revisions = await repository2.getRevisions('session-1', 'student-1');
-    
+
     expect(revisions).toHaveLength(1);
     expect(revisions[0].id).toBe('rev-123');
     expect(revisions[0].fullCode).toBe('print("Hello World")');
@@ -63,6 +64,7 @@ describe('LocalRevisionRepository - Cross-Process Data Reloading', () => {
       id: 'rev-1',
       sessionId: 'session-2',
       studentId: 'student-2',
+      namespaceId: 'default',
       fullCode: 'print("First")',
       isDiff: false,
       timestamp: new Date(),
@@ -72,6 +74,7 @@ describe('LocalRevisionRepository - Cross-Process Data Reloading', () => {
       id: 'rev-2',
       sessionId: 'session-2',
       studentId: 'student-2',
+      namespaceId: 'default',
       fullCode: 'print("Second")',
       isDiff: false,
       timestamp: new Date(Date.now() + 1000),
@@ -81,7 +84,7 @@ describe('LocalRevisionRepository - Cross-Process Data Reloading', () => {
     await repository1.saveRevision(revision2);
 
     const latestRevision = await repository2.getLatestRevision('session-2', 'student-2');
-    
+
     expect(latestRevision).not.toBeNull();
     expect(latestRevision?.id).toBe('rev-2');
     expect(latestRevision?.fullCode).toBe('print("Second")');
@@ -92,6 +95,7 @@ describe('LocalRevisionRepository - Cross-Process Data Reloading', () => {
       id: 'rev-unique',
       sessionId: 'session-3',
       studentId: 'student-3',
+      namespaceId: 'default',
       fullCode: 'print("Unique revision")',
       isDiff: false,
       timestamp: new Date(),
@@ -100,7 +104,7 @@ describe('LocalRevisionRepository - Cross-Process Data Reloading', () => {
     await repository1.saveRevision(revision);
 
     const retrievedRevision = await repository2.getRevision('rev-unique');
-    
+
     expect(retrievedRevision).not.toBeNull();
     expect(retrievedRevision?.id).toBe('rev-unique');
     expect(retrievedRevision?.fullCode).toBe('print("Unique revision")');
@@ -111,6 +115,7 @@ describe('LocalRevisionRepository - Cross-Process Data Reloading', () => {
       id: 'rev-delete',
       sessionId: 'session-4',
       studentId: 'student-4',
+      namespaceId: 'default',
       fullCode: 'print("To be deleted")',
       isDiff: false,
       timestamp: new Date(),
@@ -135,11 +140,11 @@ describe('LocalUserRepository - Cross-Process Data Reloading', () => {
 
   beforeEach(async () => {
     testDir = await fs.mkdtemp(path.join(os.tmpdir(), 'user-repo-test-'));
-    
+
     const config = { type: 'local' as const, baseDir: testDir };
     repository1 = new LocalUserRepository(config);
     repository2 = new LocalUserRepository(config);
-    
+
     await repository1.initialize();
     await repository2.initialize();
   });
@@ -163,7 +168,7 @@ describe('LocalUserRepository - Cross-Process Data Reloading', () => {
     await repository1.saveUser(user);
 
     const retrievedUser = await repository2.getUser('user-123');
-    
+
     expect(retrievedUser).not.toBeNull();
     expect(retrievedUser?.id).toBe('user-123');
     expect(retrievedUser?.username).toBe('testuser');
@@ -183,7 +188,7 @@ describe('LocalUserRepository - Cross-Process Data Reloading', () => {
     await repository1.saveUser(user);
 
     const retrievedUser = await repository2.getUserByUsername('anotheruser');
-    
+
     expect(retrievedUser).not.toBeNull();
     expect(retrievedUser?.id).toBe('user-456');
     expect(retrievedUser?.username).toBe('anotheruser');
@@ -206,7 +211,7 @@ describe('LocalUserRepository - Cross-Process Data Reloading', () => {
     });
 
     const retrievedUser = await repository2.getUser('user-789');
-    
+
     expect(retrievedUser).not.toBeNull();
     expect(retrievedUser?.role).toBe('instructor');
   });
@@ -242,7 +247,7 @@ describe('LocalUserRepository - Cross-Process Data Reloading', () => {
     const allUsers = await repository2.listUsers();
     const students = await repository2.listUsers('student');
     const instructors = await repository2.listUsers('instructor');
-    
+
     expect(allUsers).toHaveLength(3);
     expect(students).toHaveLength(2);
     expect(instructors).toHaveLength(1);

@@ -239,6 +239,7 @@ export class LocalProblemRepository implements IProblemRepository {
     }
 
     const duplicate: ProblemInput = {
+      namespaceId: original.namespaceId,
       title: newTitle,
       description: original.description,
       starterCode: original.starterCode,

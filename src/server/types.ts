@@ -22,6 +22,9 @@ export interface Student {
 export interface Session {
   id: string;
 
+  /** Namespace this session belongs to */
+  namespaceId: string;
+
   // Problem object for the session (executionSettings stored within problem.executionSettings)
   problem: Problem;
 

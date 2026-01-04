@@ -41,8 +41,10 @@ describe('LocalSessionRepository - Cross-Process Data Reloading', () => {
     // Repository 1 creates a session
     const session: Session = {
       id: 'session-123',
+      namespaceId: 'default',
       problem: {
         id: 'problem-1',
+        namespaceId: 'default',
         title: 'Test problem',
         authorId: 'instructor-1',
         createdAt: new Date(),
@@ -71,8 +73,10 @@ describe('LocalSessionRepository - Cross-Process Data Reloading', () => {
     // Repository 1 creates a session
     const session: Session = {
       id: 'session-456',
+      namespaceId: 'default',
       problem: {
         id: 'problem-2',
+        namespaceId: 'default',
         title: 'Original problem',
         authorId: 'instructor-2',
         createdAt: new Date(),
@@ -93,6 +97,7 @@ describe('LocalSessionRepository - Cross-Process Data Reloading', () => {
     await repository1.updateSession('session-456', {
       problem: {
         id: 'problem-2',
+        namespaceId: 'default',
         title: 'Updated problem',
         authorId: 'instructor-2',
         createdAt: new Date(),
@@ -111,8 +116,10 @@ describe('LocalSessionRepository - Cross-Process Data Reloading', () => {
     // Repository 1 creates a session
     const session: Session = {
       id: 'session-789',
+      namespaceId: 'default',
       problem: {
         id: 'problem-3',
+        namespaceId: 'default',
         title: 'Test problem',
         authorId: 'instructor-3',
         createdAt: new Date(),
@@ -154,8 +161,10 @@ describe('LocalSessionRepository - Cross-Process Data Reloading', () => {
     // Repository 1 creates a session
     const session: Session = {
       id: 'session-delete',
+      namespaceId: 'default',
       problem: {
         id: 'problem-4',
+        namespaceId: 'default',
         title: 'To be deleted',
         authorId: 'instructor-4',
         createdAt: new Date(),
@@ -188,8 +197,10 @@ describe('LocalSessionRepository - Cross-Process Data Reloading', () => {
     // Repository 1 creates multiple sessions
     const session1: Session = {
       id: 'session-list-1',
+      namespaceId: 'default',
       problem: {
         id: 'problem-5',
+        namespaceId: 'default',
         title: 'Problem 1',
         authorId: 'instructor-5',
         createdAt: new Date(),
@@ -206,8 +217,10 @@ describe('LocalSessionRepository - Cross-Process Data Reloading', () => {
     };
     const session2: Session = {
       id: 'session-list-2',
+      namespaceId: 'default',
       problem: {
         id: 'problem-6',
+        namespaceId: 'default',
         title: 'Problem 2',
         authorId: 'instructor-6',
         createdAt: new Date(),

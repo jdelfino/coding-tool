@@ -242,7 +242,9 @@ class WebSocketHandler {
       const session = await sessionManagerHolder.instance.createSession(
         connection.userId,
         sectionId,
-        section.name
+        section.name,
+        undefined,
+        section.namespaceId
       );
 
       connection.role = 'instructor';
@@ -524,7 +526,13 @@ class WebSocketHandler {
 
     // Track revision using the revision buffer (generates diffs server-side)
     if (revisionBufferHolder.instance) {
-      await revisionBufferHolder.instance.addRevision(connection.sessionId, connection.studentId, code);
+      const session = await sessionManagerHolder.instance.getSession(connection.sessionId);
+      await revisionBufferHolder.instance.addRevision(
+        connection.sessionId,
+        connection.studentId,
+        code,
+        session?.namespaceId || 'default'
+      );
     }
 
     // Notify instructor

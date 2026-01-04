@@ -6,6 +6,7 @@ import { StorageBackend } from './persistence';
 interface BufferedRevision {
   sessionId: string;
   studentId: string;
+  namespaceId: string;
   code: string;
   timestamp: Date;
   isDiff: boolean;
@@ -77,7 +78,7 @@ export class RevisionBuffer {
   /**
    * Add a code revision. Generates diffs server-side from full code snapshots.
    */
-  async addRevision(sessionId: string, studentId: string, newCode: string): Promise<void> {
+  async addRevision(sessionId: string, studentId: string, newCode: string, namespaceId: string = 'default'): Promise<void> {
     const key = this.getKey(sessionId, studentId);
     let state = this.stateMap.get(key);
 
@@ -133,6 +134,7 @@ export class RevisionBuffer {
     const bufferedRevision: BufferedRevision = {
       sessionId,
       studentId,
+      namespaceId,
       code: newCode,
       timestamp: new Date(),
       isDiff,
@@ -184,6 +186,7 @@ export class RevisionBuffer {
       for (const buffered of state.buffer) {
         const revision: CodeRevision = {
           id: uuidv4(),
+          namespaceId: buffered.namespaceId,
           sessionId: buffered.sessionId,
           studentId: buffered.studentId,
           timestamp: buffered.timestamp,

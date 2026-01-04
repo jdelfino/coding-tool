@@ -1,6 +1,6 @@
 /**
  * Unit tests for RBACService
- * 
+ *
  * Comprehensive test coverage for role-based access control including:
  * - Permission checks for all roles
  * - Session access control
@@ -305,12 +305,12 @@ describe('RBACService', () => {
         // Should log warning and return true
         const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation();
         const canAccess = await rbacWithoutRepo.canAccessSession(student, 'any-session');
-        
+
         expect(canAccess).toBe(true);
         expect(consoleWarnSpy).toHaveBeenCalledWith(
           '[RBAC] Session repository not configured, allowing student access'
         );
-        
+
         consoleWarnSpy.mockRestore();
       });
 
@@ -793,7 +793,7 @@ describe('RBACService', () => {
       ];
 
       const uniquePermissions = Array.from(new Set(allPermissions));
-      
+
       // Ensure we have a comprehensive permission set
       expect(uniquePermissions.length).toBeGreaterThanOrEqual(10);
     });

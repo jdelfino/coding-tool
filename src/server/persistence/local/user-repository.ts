@@ -112,15 +112,15 @@ export class LocalUserRepository implements IUserRepository {
     // Reload from disk to get latest data from other processes
     await this.reloadFromDisk();
     let allUsers = Array.from(this.users.values());
-    
+
     if (role !== undefined) {
       allUsers = allUsers.filter(user => user.role === role);
     }
-    
+
     if (namespaceId !== undefined) {
       allUsers = allUsers.filter(user => user.namespaceId === namespaceId);
     }
-    
+
     return allUsers;
   }
 

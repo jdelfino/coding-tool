@@ -19,6 +19,7 @@ describe('SectionRepository - Helper Methods', () => {
     it('should add instructor to section', async () => {
       // Create a section
       const section = await repository.createSection({
+        namespaceId: 'default',
         classId: 'class-1',
         name: 'Section A',
         semester: 'Fall 2025',
@@ -39,6 +40,7 @@ describe('SectionRepository - Helper Methods', () => {
 
     it('should not add duplicate instructor', async () => {
       const section = await repository.createSection({
+        namespaceId: 'default',
         classId: 'class-1',
         name: 'Section A',
         semester: 'Fall 2025',
@@ -63,6 +65,7 @@ describe('SectionRepository - Helper Methods', () => {
   describe('removeInstructor', () => {
     it('should remove instructor from section', async () => {
       const section = await repository.createSection({
+        namespaceId: 'default',
         classId: 'class-1',
         name: 'Section A',
         semester: 'Fall 2025',
@@ -78,6 +81,7 @@ describe('SectionRepository - Helper Methods', () => {
 
     it('should handle removing non-existent instructor', async () => {
       const section = await repository.createSection({
+        namespaceId: 'default',
         classId: 'class-1',
         name: 'Section A',
         semester: 'Fall 2025',

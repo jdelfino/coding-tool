@@ -24,6 +24,7 @@ describe('ClassRepository', () => {
   describe('createClass', () => {
     it('should create class with valid data', async () => {
       const classData = {
+        namespaceId: 'default',
         name: 'CS 101',
         description: 'Introduction to Computer Science',
         createdBy: 'instructor-1',
@@ -43,6 +44,7 @@ describe('ClassRepository', () => {
 
     it('should create class without description', async () => {
       const classData = {
+        namespaceId: 'default',
         name: 'CS 202',
         createdBy: 'instructor-2',
       };
@@ -56,11 +58,13 @@ describe('ClassRepository', () => {
 
     it('should assign unique IDs to multiple classes', async () => {
       const class1 = await repository.createClass({
+      namespaceId: 'default',
         name: 'CS 101',
         createdBy: 'instructor-1',
       });
 
       const class2 = await repository.createClass({
+      namespaceId: 'default',
         name: 'CS 202',
         createdBy: 'instructor-1',
       });
@@ -70,6 +74,7 @@ describe('ClassRepository', () => {
 
     it('should persist to disk', async () => {
       const classData = {
+        namespaceId: 'default',
         name: 'CS 101',
         createdBy: 'instructor-1',
       };
@@ -86,6 +91,7 @@ describe('ClassRepository', () => {
   describe('getClass', () => {
     it('should retrieve existing class', async () => {
       const created = await repository.createClass({
+      namespaceId: 'default',
         name: 'CS 101',
         createdBy: 'instructor-1',
       });
@@ -104,6 +110,7 @@ describe('ClassRepository', () => {
 
     it('should handle date deserialization correctly', async () => {
       const created = await repository.createClass({
+      namespaceId: 'default',
         name: 'CS 101',
         createdBy: 'instructor-1',
       });
@@ -120,6 +127,7 @@ describe('ClassRepository', () => {
   describe('updateClass', () => {
     it('should update class fields correctly', async () => {
       const created = await repository.createClass({
+      namespaceId: 'default',
         name: 'CS 101',
         description: 'Old description',
         createdBy: 'instructor-1',
@@ -138,6 +146,7 @@ describe('ClassRepository', () => {
 
     it('should update updatedAt timestamp', async () => {
       const created = await repository.createClass({
+      namespaceId: 'default',
         name: 'CS 101',
         createdBy: 'instructor-1',
       });
@@ -153,6 +162,7 @@ describe('ClassRepository', () => {
 
     it('should preserve ID and createdAt', async () => {
       const created = await repository.createClass({
+      namespaceId: 'default',
         name: 'CS 101',
         createdBy: 'instructor-1',
       });
@@ -174,6 +184,7 @@ describe('ClassRepository', () => {
 
     it('should persist updates to disk', async () => {
       const created = await repository.createClass({
+      namespaceId: 'default',
         name: 'CS 101',
         createdBy: 'instructor-1',
       });
@@ -189,6 +200,7 @@ describe('ClassRepository', () => {
   describe('deleteClass', () => {
     it('should remove class', async () => {
       const created = await repository.createClass({
+      namespaceId: 'default',
         name: 'CS 101',
         createdBy: 'instructor-1',
       });
@@ -207,6 +219,7 @@ describe('ClassRepository', () => {
 
     it('should persist deletion to disk', async () => {
       const created = await repository.createClass({
+      namespaceId: 'default',
         name: 'CS 101',
         createdBy: 'instructor-1',
       });
@@ -222,11 +235,13 @@ describe('ClassRepository', () => {
   describe('listClasses', () => {
     it('should return all classes when no filter provided', async () => {
       await repository.createClass({
+      namespaceId: 'default',
         name: 'CS 101',
         createdBy: 'instructor-1',
       });
 
       await repository.createClass({
+      namespaceId: 'default',
         name: 'CS 202',
         createdBy: 'instructor-2',
       });
@@ -237,16 +252,19 @@ describe('ClassRepository', () => {
 
     it('should filter classes by creator', async () => {
       await repository.createClass({
+      namespaceId: 'default',
         name: 'CS 101',
         createdBy: 'instructor-1',
       });
 
       await repository.createClass({
+      namespaceId: 'default',
         name: 'CS 202',
         createdBy: 'instructor-2',
       });
 
       await repository.createClass({
+      namespaceId: 'default',
         name: 'CS 303',
         createdBy: 'instructor-1',
       });
@@ -263,6 +281,7 @@ describe('ClassRepository', () => {
 
     it('should sort classes by creation date (newest first)', async () => {
       const class1 = await repository.createClass({
+      namespaceId: 'default',
         name: 'CS 101',
         createdBy: 'instructor-1',
       });
@@ -270,6 +289,7 @@ describe('ClassRepository', () => {
       await new Promise(resolve => setTimeout(resolve, 10));
 
       const class2 = await repository.createClass({
+      namespaceId: 'default',
         name: 'CS 202',
         createdBy: 'instructor-1',
       });
@@ -283,20 +303,23 @@ describe('ClassRepository', () => {
   describe('getClassSections', () => {
     it('should return sections for a class', async () => {
       const created = await repository.createClass({
+      namespaceId: 'default',
         name: 'CS 101',
         createdBy: 'instructor-1',
       });
 
       // Create sections using the mock repository
       await mockSectionRepository.createSection({
-        classId: created.id,
+        namespaceId: 'default',
+      classId: created.id,
         name: 'Section A',
         instructorIds: ['instructor-1'],
         active: true,
       });
 
       await mockSectionRepository.createSection({
-        classId: created.id,
+        namespaceId: 'default',
+      classId: created.id,
         name: 'Section B',
         instructorIds: ['instructor-1'],
         active: true,
@@ -320,6 +343,7 @@ describe('ClassRepository', () => {
       const repoWithoutSections = new FakeClassRepository();
       
       const created = await repoWithoutSections.createClass({
+      namespaceId: 'default',
         name: 'CS 101',
         createdBy: 'instructor-1',
       });

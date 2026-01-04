@@ -47,6 +47,7 @@ describe('SectionRepository', () => {
   describe('createSection', () => {
     it('should create section with auto-generated join code', async () => {
       const sectionData = {
+        namespaceId: 'default',
         classId: 'class-1',
         name: 'Section A',
         semester: 'Fall 2025',
@@ -70,6 +71,7 @@ describe('SectionRepository', () => {
 
     it('should handle multiple instructors', async () => {
       const sectionData = {
+        namespaceId: 'default',
         classId: 'class-1',
         name: 'Section A',
         instructorIds: ['instructor-1', 'instructor-2', 'instructor-3'],
@@ -86,6 +88,7 @@ describe('SectionRepository', () => {
 
     it('should generate unique join codes', async () => {
       const section1 = await repository.createSection({
+        namespaceId: 'default',
         classId: 'class-1',
         name: 'Section A',
         instructorIds: ['instructor-1'],
@@ -93,6 +96,7 @@ describe('SectionRepository', () => {
       });
 
       const section2 = await repository.createSection({
+        namespaceId: 'default',
         classId: 'class-1',
         name: 'Section B',
         instructorIds: ['instructor-1'],
@@ -107,6 +111,7 @@ describe('SectionRepository', () => {
     it('should handle join code collision and retry', async () => {
       // Create first section with ABC-123-XYZ
       await repository.createSection({
+        namespaceId: 'default',
         classId: 'class-1',
         name: 'Section A',
         instructorIds: ['instructor-1'],
@@ -122,6 +127,7 @@ describe('SectionRepository', () => {
       });
 
       const section2 = await repository.createSection({
+        namespaceId: 'default',
         classId: 'class-1',
         name: 'Section B',
         instructorIds: ['instructor-1'],
@@ -134,6 +140,7 @@ describe('SectionRepository', () => {
 
     it('should persist to disk', async () => {
       const created = await repository.createSection({
+        namespaceId: 'default',
         classId: 'class-1',
         name: 'Section A',
         instructorIds: ['instructor-1'],
@@ -150,6 +157,7 @@ describe('SectionRepository', () => {
   describe('getSection', () => {
     it('should retrieve existing section', async () => {
       const created = await repository.createSection({
+        namespaceId: 'default',
         classId: 'class-1',
         name: 'Section A',
         instructorIds: ['instructor-1'],
@@ -172,6 +180,7 @@ describe('SectionRepository', () => {
   describe('getSectionByJoinCode', () => {
     it('should find section by join code', async () => {
       const created = await repository.createSection({
+        namespaceId: 'default',
         classId: 'class-1',
         name: 'Section A',
         instructorIds: ['instructor-1'],
@@ -192,6 +201,7 @@ describe('SectionRepository', () => {
 
     it('should maintain join code index across multiple operations', async () => {
       const section1 = await repository.createSection({
+        namespaceId: 'default',
         classId: 'class-1',
         name: 'Section A',
         instructorIds: ['instructor-1'],
@@ -199,6 +209,7 @@ describe('SectionRepository', () => {
       });
 
       const section2 = await repository.createSection({
+        namespaceId: 'default',
         classId: 'class-1',
         name: 'Section B',
         instructorIds: ['instructor-1'],
@@ -216,6 +227,7 @@ describe('SectionRepository', () => {
   describe('updateSection', () => {
     it('should update section fields correctly', async () => {
       const created = await repository.createSection({
+        namespaceId: 'default',
         classId: 'class-1',
         name: 'Section A',
         semester: 'Fall 2025',
@@ -236,6 +248,7 @@ describe('SectionRepository', () => {
 
     it('should update instructor list', async () => {
       const created = await repository.createSection({
+        namespaceId: 'default',
         classId: 'class-1',
         name: 'Section A',
         instructorIds: ['instructor-1'],
@@ -253,6 +266,7 @@ describe('SectionRepository', () => {
 
     it('should update active status', async () => {
       const created = await repository.createSection({
+        namespaceId: 'default',
         classId: 'class-1',
         name: 'Section A',
         instructorIds: ['instructor-1'],
@@ -267,6 +281,7 @@ describe('SectionRepository', () => {
 
     it('should update updatedAt timestamp', async () => {
       const created = await repository.createSection({
+        namespaceId: 'default',
         classId: 'class-1',
         name: 'Section A',
         instructorIds: ['instructor-1'],
@@ -289,6 +304,7 @@ describe('SectionRepository', () => {
 
     it('should update join code and maintain index', async () => {
       const created = await repository.createSection({
+        namespaceId: 'default',
         classId: 'class-1',
         name: 'Section A',
         instructorIds: ['instructor-1'],
@@ -312,6 +328,7 @@ describe('SectionRepository', () => {
 
     it('should throw error when updating to duplicate join code', async () => {
       const section1 = await repository.createSection({
+        namespaceId: 'default',
         classId: 'class-1',
         name: 'Section A',
         instructorIds: ['instructor-1'],
@@ -319,6 +336,7 @@ describe('SectionRepository', () => {
       });
 
       const section2 = await repository.createSection({
+        namespaceId: 'default',
         classId: 'class-1',
         name: 'Section B',
         instructorIds: ['instructor-1'],
@@ -334,6 +352,7 @@ describe('SectionRepository', () => {
   describe('deleteSection', () => {
     it('should remove section', async () => {
       const created = await repository.createSection({
+        namespaceId: 'default',
         classId: 'class-1',
         name: 'Section A',
         instructorIds: ['instructor-1'],
@@ -348,6 +367,7 @@ describe('SectionRepository', () => {
 
     it('should remove join code from index', async () => {
       const created = await repository.createSection({
+        namespaceId: 'default',
         classId: 'class-1',
         name: 'Section A',
         instructorIds: ['instructor-1'],
@@ -372,6 +392,7 @@ describe('SectionRepository', () => {
     beforeEach(async () => {
       // Create test sections
       await repository.createSection({
+        namespaceId: 'default',
         classId: 'class-1',
         name: 'Section A',
         instructorIds: ['instructor-1'],
@@ -379,6 +400,7 @@ describe('SectionRepository', () => {
       });
 
       await repository.createSection({
+        namespaceId: 'default',
         classId: 'class-1',
         name: 'Section B',
         instructorIds: ['instructor-2'],
@@ -386,6 +408,7 @@ describe('SectionRepository', () => {
       });
 
       await repository.createSection({
+        namespaceId: 'default',
         classId: 'class-2',
         name: 'Section C',
         instructorIds: ['instructor-1'],
@@ -393,6 +416,7 @@ describe('SectionRepository', () => {
       });
 
       await repository.createSection({
+        namespaceId: 'default',
         classId: 'class-2',
         name: 'Section D',
         instructorIds: ['instructor-3'],
@@ -452,6 +476,7 @@ describe('SectionRepository', () => {
   describe('regenerateJoinCode', () => {
     it('should generate new join code for section', async () => {
       const created = await repository.createSection({
+        namespaceId: 'default',
         classId: 'class-1',
         name: 'Section A',
         instructorIds: ['instructor-1'],

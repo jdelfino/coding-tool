@@ -56,6 +56,9 @@ export interface ProblemSchema {
   /** Author user ID */
   authorId: string;
   
+  /** Namespace ID (required for multi-tenancy) */
+  namespaceId: string;
+  
   /** Optional class ID */
   classId?: string;
   
@@ -177,6 +180,7 @@ export function isValidProblem(problem: Partial<Problem>): boolean {
 export function serializeProblem(problem: Problem): ProblemSchema {
   return {
     id: problem.id,
+    namespaceId: problem.namespaceId,
     title: problem.title,
     description: problem.description,
     starterCode: problem.starterCode,
@@ -201,6 +205,7 @@ export function serializeProblem(problem: Problem): ProblemSchema {
 export function deserializeProblem(schema: ProblemSchema): Problem {
   return {
     id: schema.id,
+    namespaceId: schema.namespaceId,
     title: schema.title,
     description: schema.description,
     starterCode: schema.starterCode,

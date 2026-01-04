@@ -30,6 +30,7 @@ describe('LocalProblemRepository', () => {
   describe('create', () => {
     it('should create a problem with minimal fields', async () => {
       const input: ProblemInput = {
+        namespaceId: 'default',
         title: 'Test Problem',
         description: 'Test description',
         starterCode: 'def solution(): pass',
@@ -68,6 +69,7 @@ describe('LocalProblemRepository', () => {
       };
 
       const input: ProblemInput = {
+        namespaceId: 'default',
         title: 'Test Problem',
         description: '',
         starterCode: '',
@@ -84,6 +86,7 @@ describe('LocalProblemRepository', () => {
 
     it('should reject invalid problem data', async () => {
       const input: any = {
+        namespaceId: 'default',
         title: '', // Empty title
         description: 'Test',
         starterCode: '',
@@ -97,6 +100,7 @@ describe('LocalProblemRepository', () => {
 
     it('should create and persist problem with executionSettings', async () => {
       const input: ProblemInput = {
+        namespaceId: 'default',
         title: 'Test Problem with Exec Settings',
         description: 'Test description',
         starterCode: 'print("hello")',
@@ -134,6 +138,7 @@ describe('LocalProblemRepository', () => {
   describe('getById', () => {
     it('should retrieve a problem by ID', async () => {
       const input: ProblemInput = {
+        namespaceId: 'default',
         title: 'Test Problem',
         description: 'Test description',
         starterCode: '',
@@ -164,6 +169,7 @@ describe('LocalProblemRepository', () => {
 
     it('should return all problems', async () => {
       const input1: ProblemInput = {
+        namespaceId: 'default',
         title: 'Problem 1',
         description: '',
         starterCode: '',
@@ -173,6 +179,7 @@ describe('LocalProblemRepository', () => {
       };
 
       const input2: ProblemInput = {
+        namespaceId: 'default',
         title: 'Problem 2',
         description: '',
         starterCode: '',
@@ -190,6 +197,7 @@ describe('LocalProblemRepository', () => {
 
     it('should filter problems by author', async () => {
       const input1: ProblemInput = {
+        namespaceId: 'default',
         title: 'Problem 1',
         description: '',
         starterCode: '',
@@ -199,6 +207,7 @@ describe('LocalProblemRepository', () => {
       };
 
       const input2: ProblemInput = {
+        namespaceId: 'default',
         title: 'Problem 2',
         description: '',
         starterCode: '',
@@ -217,6 +226,7 @@ describe('LocalProblemRepository', () => {
 
     it('should filter problems by class', async () => {
       const input1: ProblemInput = {
+        namespaceId: 'default',
         title: 'Problem 1',
         description: '',
         starterCode: '',
@@ -226,6 +236,7 @@ describe('LocalProblemRepository', () => {
       };
 
       const input2: ProblemInput = {
+        namespaceId: 'default',
         title: 'Problem 2',
         description: '',
         starterCode: '',
@@ -244,6 +255,7 @@ describe('LocalProblemRepository', () => {
 
     it('should sort problems by title', async () => {
       const input1: ProblemInput = {
+        namespaceId: 'default',
         title: 'Zebra Problem',
         description: '',
         starterCode: '',
@@ -253,6 +265,7 @@ describe('LocalProblemRepository', () => {
       };
 
       const input2: ProblemInput = {
+        namespaceId: 'default',
         title: 'Apple Problem',
         description: '',
         starterCode: '',
@@ -273,6 +286,7 @@ describe('LocalProblemRepository', () => {
   describe('update', () => {
     it('should update a problem', async () => {
       const input: ProblemInput = {
+        namespaceId: 'default',
         title: 'Original Title',
         description: 'Original description',
         starterCode: '',
@@ -303,6 +317,7 @@ describe('LocalProblemRepository', () => {
 
     it('should validate updated data', async () => {
       const input: ProblemInput = {
+        namespaceId: 'default',
         title: 'Original Title',
         description: '',
         starterCode: '',
@@ -322,6 +337,7 @@ describe('LocalProblemRepository', () => {
   describe('delete', () => {
     it('should delete a problem', async () => {
       const input: ProblemInput = {
+        namespaceId: 'default',
         title: 'Test Problem',
         description: '',
         starterCode: '',
@@ -346,6 +362,7 @@ describe('LocalProblemRepository', () => {
 
     it('should remove problem from index', async () => {
       const input: ProblemInput = {
+        namespaceId: 'default',
         title: 'Test Problem',
         description: '',
         starterCode: '',
@@ -366,6 +383,7 @@ describe('LocalProblemRepository', () => {
   describe('search', () => {
     beforeEach(async () => {
       await repository.create({
+        namespaceId: 'default',
         title: 'Two Sum Problem',
         description: 'Find two numbers that add up to target',
         starterCode: '',
@@ -375,6 +393,7 @@ describe('LocalProblemRepository', () => {
       });
 
       await repository.create({
+        namespaceId: 'default',
         title: 'Three Sum Problem',
         description: 'Find three numbers that add up to zero',
         starterCode: '',
@@ -384,6 +403,7 @@ describe('LocalProblemRepository', () => {
       });
 
       await repository.create({
+        namespaceId: 'default',
         title: 'Binary Search',
         description: 'Implement binary search algorithm',
         starterCode: '',
@@ -419,6 +439,7 @@ describe('LocalProblemRepository', () => {
   describe('getByAuthor', () => {
     it('should return problems by specific author', async () => {
       await repository.create({
+        namespaceId: 'default',
         title: 'Problem 1',
         description: '',
         starterCode: '',
@@ -428,6 +449,7 @@ describe('LocalProblemRepository', () => {
       });
 
       await repository.create({
+        namespaceId: 'default',
         title: 'Problem 2',
         description: '',
         starterCode: '',
@@ -445,6 +467,7 @@ describe('LocalProblemRepository', () => {
   describe('getByClass', () => {
     it('should return problems for specific class', async () => {
       await repository.create({
+        namespaceId: 'default',
         title: 'Class Problem',
         description: '',
         starterCode: '',
@@ -454,6 +477,7 @@ describe('LocalProblemRepository', () => {
       });
 
       await repository.create({
+        namespaceId: 'default',
         title: 'Other Problem',
         description: '',
         starterCode: '',
@@ -471,6 +495,7 @@ describe('LocalProblemRepository', () => {
   describe('duplicate', () => {
     it('should create a duplicate with new title', async () => {
       const original = await repository.create({
+        namespaceId: 'default',
         title: 'Original Problem',
         description: 'Original description',
         starterCode: 'original code',

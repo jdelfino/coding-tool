@@ -32,6 +32,7 @@ describe('ClassRepository - Cross-Process Data Reloading', () => {
   it('should see classes created by another repository instance', async () => {
     // Repository 1 creates a class
     const classData = await repository1.createClass({
+      namespaceId: 'default',
       name: 'Test Class',
       description: 'A test class for cross-process testing',
       createdBy: 'instructor-1',
@@ -49,6 +50,7 @@ describe('ClassRepository - Cross-Process Data Reloading', () => {
   it('should see class updates made by another repository instance', async () => {
     // Repository 1 creates a class
     const classData = await repository1.createClass({
+      namespaceId: 'default',
       name: 'Original Name',
       description: 'Original description',
       createdBy: 'instructor-1',
@@ -71,12 +73,14 @@ describe('ClassRepository - Cross-Process Data Reloading', () => {
   it('should see all classes in listClasses across repository instances', async () => {
     // Repository 1 creates multiple classes
     await repository1.createClass({
+      namespaceId: 'default',
       name: 'Class 1',
       description: 'First class',
       createdBy: 'instructor-1',
     });
 
     await repository1.createClass({
+      namespaceId: 'default',
       name: 'Class 2',
       description: 'Second class',
       createdBy: 'instructor-2',
@@ -92,18 +96,21 @@ describe('ClassRepository - Cross-Process Data Reloading', () => {
   it('should filter classes by creator across repository instances', async () => {
     // Repository 1 creates classes with different creators
     await repository1.createClass({
+      namespaceId: 'default',
       name: 'Class A',
       description: 'By instructor 1',
       createdBy: 'instructor-1',
     });
 
     await repository1.createClass({
+      namespaceId: 'default',
       name: 'Class B',
       description: 'By instructor 2',
       createdBy: 'instructor-2',
     });
 
     await repository1.createClass({
+      namespaceId: 'default',
       name: 'Class C',
       description: 'By instructor 1',
       createdBy: 'instructor-1',
@@ -120,6 +127,7 @@ describe('ClassRepository - Cross-Process Data Reloading', () => {
   it('should not see deleted classes across repository instances', async () => {
     // Repository 1 creates a class
     const classData = await repository1.createClass({
+      namespaceId: 'default',
       name: 'To Be Deleted',
       description: 'This class will be deleted',
       createdBy: 'instructor-1',
