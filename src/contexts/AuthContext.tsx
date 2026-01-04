@@ -12,6 +12,7 @@ interface User {
   id: string;
   username: string;
   role: 'system-admin' | 'namespace-admin' | 'instructor' | 'student';
+  namespaceId: string | null;
   displayName?: string;
   createdAt: string;
   lastLoginAt?: string;

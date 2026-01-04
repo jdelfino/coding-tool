@@ -29,11 +29,12 @@ export interface IAuthProvider {
    * Create a new user account.
    *
    * @param username - User's username
-   * @param role - User's role (admin, instructor, or student)
+   * @param role - User's role (system-admin, namespace-admin, instructor, or student)
+   * @param namespaceId - Namespace ID (null for system-admin, required for others)
    * @returns The newly created user
    * @throws {Error} If user already exists or creation fails
    */
-  createUser(username: string, role: UserRole): Promise<User>;
+  createUser(username: string, role: UserRole, namespaceId?: string | null): Promise<User>;
 
   /**
    * Get a user by their ID.
@@ -165,12 +166,21 @@ export interface IUserRepository {
   getUserByEmail(email: string): Promise<User | null>;
 
   /**
-   * List all users, optionally filtered by role.
+   * List all users, optionally filtered by role and/or namespace.
    *
    * @param role - Optional role filter
+   * @param namespaceId - Optional namespace filter (null for system-admin users)
    * @returns Array of users
    */
-  listUsers(role?: UserRole): Promise<User[]>;
+  listUsers(role?: UserRole, namespaceId?: string | null): Promise<User[]>;
+
+  /**
+   * Get all users in a specific namespace.
+   *
+   * @param namespaceId - Namespace ID to filter by
+   * @returns Array of users in the namespace
+   */
+  getUsersByNamespace(namespaceId: string): Promise<User[]>;
 
   /**
    * Update user information.

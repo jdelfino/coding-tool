@@ -108,14 +108,28 @@ export class LocalUserRepository implements IUserRepository {
     return this.users.get(userId) || null;
   }
 
-  async listUsers(role?: UserRole): Promise<User[]> {
+  async listUsers(role?: UserRole, namespaceId?: string | null): Promise<User[]> {
     // Reload from disk to get latest data from other processes
     await this.reloadFromDisk();
-    const allUsers = Array.from(this.users.values());
-    if (role) {
-      return allUsers.filter(user => user.role === role);
+    let allUsers = Array.from(this.users.values());
+    
+    if (role !== undefined) {
+      allUsers = allUsers.filter(user => user.role === role);
     }
+    
+    if (namespaceId !== undefined) {
+      allUsers = allUsers.filter(user => user.namespaceId === namespaceId);
+    }
+    
     return allUsers;
+  }
+
+  async getUsersByNamespace(namespaceId: string): Promise<User[]> {
+    // Reload from disk to get latest data from other processes
+    await this.reloadFromDisk();
+    return Array.from(this.users.values()).filter(
+      user => user.namespaceId === namespaceId
+    );
   }
 
   async updateUser(userId: string, updates: Partial<User>): Promise<void> {

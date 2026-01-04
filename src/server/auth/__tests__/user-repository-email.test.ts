@@ -16,6 +16,7 @@ describe('FakeUserRepository - getUserByEmail', () => {
     const user = await repository.createUser({
       username: 'alice@example.com',
       role: 'instructor',
+      namespaceId: 'default',
     });
 
     // Get by email
@@ -31,6 +32,7 @@ describe('FakeUserRepository - getUserByEmail', () => {
     const user = await repository.createUser({
       username: 'alice@example.com',
       role: 'instructor',
+      namespaceId: 'default',
     });
 
     const found = await repository.getUserByEmail('ALICE@EXAMPLE.COM');
@@ -47,6 +49,7 @@ describe('FakeUserRepository - getUserByEmail', () => {
     const user = await repository.createUser({
       username: 'bob@example.com',
       role: 'student',
+      namespaceId: 'default',
     });
 
     const byEmail = await repository.getUserByEmail('bob@example.com');

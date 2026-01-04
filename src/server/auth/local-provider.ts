@@ -98,29 +98,33 @@ export class LocalAuthProvider implements IAuthProvider {
       const allUsers = await this.userRepository.listUsers();
       const userCount = allUsers.length;
 
-      // Determine role
+      // Determine role and namespace
       let role: UserRole;
+      let namespaceId: string | null;
       const systemAdminEmail = process.env.SYSTEM_ADMIN_EMAIL?.trim();
 
       if (systemAdminEmail && normalizedUsername.toLowerCase() === systemAdminEmail.toLowerCase()) {
         // Bootstrap system admin from SYSTEM_ADMIN_EMAIL
         role = 'system-admin';
+        namespaceId = null; // System admins have no namespace
       } else if (userCount === 0) {
         // First user becomes namespace-admin (if no SYSTEM_ADMIN_EMAIL set)
         role = 'namespace-admin';
+        namespaceId = 'default'; // Assign to default namespace
       } else {
         // Subsequent users are students
         role = 'student';
+        namespaceId = 'default'; // Assign to default namespace
       }
 
-      user = await this.createUser(normalizedUsername, role);
+      user = await this.createUser(normalizedUsername, role, namespaceId);
     } else {
       // Check if existing user should be elevated to system admin
       const systemAdminEmail = process.env.SYSTEM_ADMIN_EMAIL?.trim();
       if (systemAdminEmail &&
           normalizedUsername.toLowerCase() === systemAdminEmail.toLowerCase() &&
           user.role !== 'system-admin') {
-        await this.userRepository.updateUser(user.id, { role: 'system-admin' });
+        await this.userRepository.updateUser(user.id, { role: 'system-admin', namespaceId: null });
         user = await this.userRepository.getUser(user.id) as User;
       }
 
@@ -139,7 +143,7 @@ export class LocalAuthProvider implements IAuthProvider {
   /**
    * Create a new user account.
    */
-  async createUser(username: string, role: UserRole): Promise<User> {
+  async createUser(username: string, role: UserRole, namespaceId: string | null = 'default'): Promise<User> {
     // Check if username already taken
     const existingUser = await this.userRepository.getUserByUsername(username);
     if (existingUser) {
@@ -150,6 +154,7 @@ export class LocalAuthProvider implements IAuthProvider {
       id: randomUUID(),
       username: username.trim(),
       role,
+      namespaceId,
       createdAt: new Date(),
       lastLoginAt: new Date(),
     };

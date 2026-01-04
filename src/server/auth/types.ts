@@ -70,6 +70,8 @@ export interface User {
   username: string;
   /** User's role determining their permissions */
   role: UserRole;
+  /** Namespace this user belongs to (null for system-admin, required for all others) */
+  namespaceId: string | null;
   /** Optional display name for the user */
   displayName?: string;
   /** When the user account was created */

@@ -43,14 +43,29 @@ export class InMemoryUserRepository implements IUserRepository {
   }
 
   /**
-   * List all users, optionally filtered by role.
+   * List all users, optionally filtered by role and/or namespace.
    */
-  async listUsers(role?: UserRole): Promise<User[]> {
-    const allUsers = Array.from(this.users.values());
-    if (role) {
-      return allUsers.filter(user => user.role === role);
+  async listUsers(role?: UserRole, namespaceId?: string): Promise<User[]> {
+    let users = Array.from(this.users.values());
+    
+    if (namespaceId !== undefined) {
+      users = users.filter(user => user.namespaceId === namespaceId);
     }
-    return allUsers;
+    
+    if (role) {
+      users = users.filter(user => user.role === role);
+    }
+    
+    return users;
+  }
+
+  /**
+   * Get all users in a specific namespace.
+   */
+  async getUsersByNamespace(namespaceId: string): Promise<User[]> {
+    return Array.from(this.users.values()).filter(
+      user => user.namespaceId === namespaceId
+    );
   }
 
   /**

@@ -46,6 +46,7 @@ describe('POST /api/sessions/:sessionId/load-problem', () => {
     id: 'instructor-1',
     username: 'teacher',
     role: 'instructor',
+    namespaceId: 'default',
     createdAt: new Date('2025-01-01'),
   };
 
@@ -53,6 +54,7 @@ describe('POST /api/sessions/:sessionId/load-problem', () => {
     id: 'student-1',
     username: 'learner',
     role: 'student',
+    namespaceId: 'default',
     createdAt: new Date('2025-01-01'),
   };
 

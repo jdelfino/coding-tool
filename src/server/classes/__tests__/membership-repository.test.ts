@@ -19,6 +19,7 @@ describe('MembershipRepository', () => {
     id: 'user-1',
     username: 'student1',
     role: 'student',
+    namespaceId: 'default',
     createdAt: new Date(),
   };
 
@@ -26,6 +27,7 @@ describe('MembershipRepository', () => {
     id: 'user-2',
     username: 'student2',
     role: 'student',
+    namespaceId: 'default',
     createdAt: new Date(),
   };
 
@@ -33,6 +35,7 @@ describe('MembershipRepository', () => {
     id: 'instructor-1',
     username: 'instructor',
     role: 'instructor',
+    namespaceId: 'default',
     createdAt: new Date(),
   };
 

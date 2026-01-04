@@ -280,8 +280,24 @@ export class FakeUserRepository implements IUserRepository {
     this.users.delete(userId);
   }
 
-  async listUsers(filters?: any): Promise<User[]> {
-    return Array.from(this.users.values());
+  async listUsers(role?: any, namespaceId?: string): Promise<User[]> {
+    let users = Array.from(this.users.values());
+    
+    if (namespaceId !== undefined) {
+      users = users.filter(user => user.namespaceId === namespaceId);
+    }
+    
+    if (role) {
+      users = users.filter(user => user.role === role);
+    }
+    
+    return users;
+  }
+
+  async getUsersByNamespace(namespaceId: string): Promise<User[]> {
+    return Array.from(this.users.values()).filter(
+      user => user.namespaceId === namespaceId
+    );
   }
 
   clear() {

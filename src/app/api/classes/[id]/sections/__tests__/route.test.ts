@@ -98,6 +98,7 @@ describe('/api/classes/[id]/sections', () => {
         id: 'user-1',
         username: 'instructor',
         role: 'instructor',
+        namespaceId: 'default',
         createdAt: new Date(),
       };
       (requireAuth as jest.Mock).mockResolvedValue(createAuthContext(user));
@@ -121,6 +122,7 @@ describe('/api/classes/[id]/sections', () => {
         id: 'user-1',
         username: 'instructor',
         role: 'instructor',
+        namespaceId: 'default',
         createdAt: new Date(),
       };
       (requireAuth as jest.Mock).mockResolvedValue(createAuthContext(user));
@@ -215,6 +217,7 @@ describe('/api/classes/[id]/sections', () => {
         id: 'user-1',
         username: 'student',
         role: 'student',
+        namespaceId: 'default',
         createdAt: new Date(),
       };
       (requireAuth as jest.Mock).mockResolvedValue(createAuthContext(student));
@@ -258,6 +261,7 @@ describe('/api/classes/[id]/sections', () => {
         id: 'user-1',
         username: 'instructor',
         role: 'instructor',
+        namespaceId: 'default',
         createdAt: new Date(),
       };
       (requirePermission as jest.Mock).mockResolvedValue(createAuthContext(instructor));

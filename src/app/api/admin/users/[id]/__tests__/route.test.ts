@@ -119,6 +119,7 @@ describe('DELETE /api/admin/users/[id]', () => {
         id: 'instructor1',
         username: 'instructor',
         role: 'instructor',
+        namespaceId: 'default',
         createdAt: new Date(),
       };
       mockRequirePermission.mockResolvedValue(createAuthContext(instructor));
@@ -149,6 +150,7 @@ describe('DELETE /api/admin/users/[id]', () => {
         id: 'admin1',
         username: 'admin',
         role: 'namespace-admin',
+        namespaceId: 'default',
         createdAt: new Date(),
       };
       mockRequirePermission.mockResolvedValue(createAuthContext(admin));
@@ -194,6 +196,7 @@ describe('DELETE /api/admin/users/[id]', () => {
         id: 'instructor1',
         username: 'instructor',
         role: 'instructor',
+        namespaceId: 'default',
         createdAt: new Date(),
       };
       mockRequirePermission.mockResolvedValue(createAuthContext(instructor));
@@ -216,6 +219,7 @@ describe('DELETE /api/admin/users/[id]', () => {
         id: 'admin1',
         username: 'admin',
         role: 'namespace-admin',
+        namespaceId: 'default',
         createdAt: new Date(),
       };
       mockRequirePermission.mockResolvedValue(createAuthContext(admin));
@@ -247,6 +251,7 @@ describe('DELETE /api/admin/users/[id]', () => {
         id: 'admin1',
         username: 'admin',
         role: 'namespace-admin',
+        namespaceId: 'default',
         createdAt: new Date(),
       };
       mockRequirePermission.mockResolvedValue(createAuthContext(admin));
@@ -278,6 +283,7 @@ describe('DELETE /api/admin/users/[id]', () => {
         id: 'admin1',
         username: 'admin',
         role: 'namespace-admin',
+        namespaceId: 'default',
         createdAt: new Date(),
       };
       mockRequirePermission.mockResolvedValue(createAuthContext(admin));

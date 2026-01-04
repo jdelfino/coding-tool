@@ -50,6 +50,7 @@ describe('StudentPage - Session Ending', () => {
         id: 'student1', 
         username: 'TestStudent', 
         role: 'student',
+        namespaceId: 'default',
         createdAt: new Date().toISOString() as any,
       },
       sessionId: null,

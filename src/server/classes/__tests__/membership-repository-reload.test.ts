@@ -49,6 +49,7 @@ describe('MembershipRepository - Cross-Process Data Reloading', () => {
       id: 'user-123',
       username: 'testuser',
       role: 'student',
+      namespaceId: 'default',
       createdAt: new Date(),
       lastLoginAt: new Date(),
     });
@@ -151,6 +152,7 @@ describe('MembershipRepository - Cross-Process Data Reloading', () => {
       id: 'user-456',
       username: 'testuser2',
       role: 'student',
+      namespaceId: 'default',
       createdAt: new Date(),
       lastLoginAt: new Date(),
     });

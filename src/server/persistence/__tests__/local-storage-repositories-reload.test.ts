@@ -155,6 +155,7 @@ describe('LocalUserRepository - Cross-Process Data Reloading', () => {
       id: 'user-123',
       username: 'testuser',
       role: 'student',
+      namespaceId: 'default',
       createdAt: new Date(),
       lastLoginAt: new Date(),
     };
@@ -174,6 +175,7 @@ describe('LocalUserRepository - Cross-Process Data Reloading', () => {
       id: 'user-456',
       username: 'anotheruser',
       role: 'instructor',
+      namespaceId: 'default',
       createdAt: new Date(),
       lastLoginAt: new Date(),
     };
@@ -192,6 +194,7 @@ describe('LocalUserRepository - Cross-Process Data Reloading', () => {
       id: 'user-789',
       username: 'updateuser',
       role: 'student',
+      namespaceId: 'default',
       createdAt: new Date(),
       lastLoginAt: new Date(),
     };
@@ -213,6 +216,7 @@ describe('LocalUserRepository - Cross-Process Data Reloading', () => {
       id: 'user-1',
       username: 'student1',
       role: 'student',
+      namespaceId: 'default',
       createdAt: new Date(),
       lastLoginAt: new Date(),
     });
@@ -221,6 +225,7 @@ describe('LocalUserRepository - Cross-Process Data Reloading', () => {
       id: 'user-2',
       username: 'instructor1',
       role: 'instructor',
+      namespaceId: 'default',
       createdAt: new Date(),
       lastLoginAt: new Date(),
     });
@@ -229,6 +234,7 @@ describe('LocalUserRepository - Cross-Process Data Reloading', () => {
       id: 'user-3',
       username: 'student2',
       role: 'student',
+      namespaceId: 'default',
       createdAt: new Date(),
       lastLoginAt: new Date(),
     });
@@ -247,6 +253,7 @@ describe('LocalUserRepository - Cross-Process Data Reloading', () => {
       id: 'user-delete',
       username: 'deleteuser',
       role: 'student',
+      namespaceId: 'default',
       createdAt: new Date(),
       lastLoginAt: new Date(),
     };

@@ -46,6 +46,7 @@ function createUser(role: 'instructor' | 'student', id = 'user-1', username = 't
     id,
     username,
     role,
+    namespaceId: 'default',
     displayName: `Test ${role}`,
     createdAt: new Date('2025-01-01'),
     lastLoginAt: new Date('2025-01-15'),

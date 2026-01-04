@@ -145,6 +145,7 @@ describe('/api/classes', () => {
         id: 'instructor-1',
         username: 'alice@example.com',
         role: 'instructor',
+        namespaceId: 'default',
         createdAt: new Date(),
       };
       (requirePermission as jest.Mock).mockResolvedValue(createAuthContext(user));
@@ -168,6 +169,7 @@ describe('/api/classes', () => {
         id: 'instructor-1',
         username: 'alice@example.com',
         role: 'instructor',
+        namespaceId: 'default',
         createdAt: new Date(),
       };
       (requirePermission as jest.Mock).mockResolvedValue(createAuthContext(user));
@@ -205,6 +207,7 @@ describe('/api/classes', () => {
         id: 'instructor-1',
         username: 'alice@example.com',
         role: 'instructor',
+        namespaceId: 'default',
         createdAt: new Date(),
       };
       (requirePermission as jest.Mock).mockResolvedValue(createAuthContext(user));
