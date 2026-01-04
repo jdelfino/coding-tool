@@ -20,7 +20,10 @@ module.exports = {
       displayName: 'server',
       preset: 'ts-jest',
       testEnvironment: 'node',
-      testMatch: ['<rootDir>/src/server/**/__tests__/**/*.test.ts'],
+      testMatch: [
+        '<rootDir>/src/server/**/__tests__/**/*.test.ts',
+        '<rootDir>/src/app/api/**/__tests__/**/*.test.ts',
+      ],
       roots: ['<rootDir>/src'],
       setupFilesAfterEnv: ['<rootDir>/src/setupTests.ts'],
       moduleNameMapper: {

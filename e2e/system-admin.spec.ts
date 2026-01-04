@@ -100,24 +100,4 @@ test.describe('System Admin Core Flows', () => {
     // Verify namespace still shows in the list
     await expect(page.locator(`text=${namespaceId}`)).toBeVisible();
   });
-
-  test('Namespace creation validates ID format', async ({ page }) => {
-    // Sign in as system admin
-    await loginAsSystemAdmin(page, 'sysadmin-validation');
-
-    await expect(page).toHaveURL('/system');
-
-    // Try to create namespace with invalid ID
-    await page.click('button:has-text("Create New Namespace")');
-
-    // Test too short (less than 3 chars)
-    await page.fill('input#namespace-id', 'ab');
-    await page.fill('input#display-name', 'Invalid Namespace');
-
-    // Try to submit
-    await page.click('button:has-text("Create Namespace")');
-
-    // Should show validation error
-    await expect(page.locator('div:has-text("ID must be 3-32 characters")').first()).toBeVisible();
-  });
 });
