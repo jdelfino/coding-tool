@@ -94,7 +94,7 @@ export async function POST(request: NextRequest) {
     const user = session.user;
 
     // Only instructors and admins can create problems
-    if (user.role !== 'instructor' && user.role !== 'admin') {
+    if (user.role !== 'instructor' && user.role !== 'namespace-admin') {
       return NextResponse.json(
         { error: 'Forbidden: Only instructors can create problems' },
         { status: 403 }

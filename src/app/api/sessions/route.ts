@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
 
     let userSessions;
 
-    if (user.role === 'instructor' || user.role === 'admin') {
+    if (user.role === 'instructor' || user.role === 'namespace-admin') {
       // Instructors see sessions they created
       const queryOptions: any = {
         instructorId: user.id,
@@ -131,8 +131,8 @@ export async function POST(request: NextRequest) {
 
     const user = session.user;
 
-    // Only instructors and admins can create sessions
-    if (user.role !== 'instructor' && user.role !== 'admin') {
+    // Only instructors and namespace admins can create sessions
+    if (user.role !== 'instructor' && user.role !== 'namespace-admin') {
       return NextResponse.json(
         { error: 'Forbidden: Only instructors can create sessions' },
         { status: 403 }

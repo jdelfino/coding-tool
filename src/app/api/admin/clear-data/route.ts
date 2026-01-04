@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Only admins and instructors can clear data
-    if (session.user.role !== 'admin' && session.user.role !== 'instructor') {
+    if (session.user.role !== 'namespace-admin' && session.user.role !== 'instructor') {
       return NextResponse.json(
         { error: 'Forbidden: Only admins and instructors can clear data' },
         { status: 403 }

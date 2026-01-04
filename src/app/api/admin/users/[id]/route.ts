@@ -49,12 +49,12 @@ export async function DELETE(
       );
     }
 
-    // Prevent deletion of the last admin to avoid lockout
-    if (targetUser.role === 'admin') {
-      const admins = await userRepo.listUsers('admin');
+    // Prevent deletion of the last namespace-admin to avoid lockout
+    if (targetUser.role === 'namespace-admin') {
+      const admins = await userRepo.listUsers('namespace-admin');
       if (admins.length <= 1) {
         return NextResponse.json(
-          { error: 'Cannot delete the last admin account' },
+          { error: 'Cannot delete the last namespace admin account' },
           { status: 400 }
         );
       }

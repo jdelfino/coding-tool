@@ -39,29 +39,31 @@ export async function PUT(
     const body = await request.json();
     const newRole = body.role as UserRole;
 
-    if (!newRole || !['admin', 'instructor', 'student'].includes(newRole)) {
+    if (!newRole || !['system-admin', 'namespace-admin', 'instructor', 'student'].includes(newRole)) {
       return NextResponse.json(
-        { error: 'Invalid role. Must be admin, instructor, or student' },
+        { error: 'Invalid role. Must be system-admin, namespace-admin, instructor, or student' },
         { status: 400 }
       );
     }
 
-    // Prevent self-demotion from admin
-    if (actor.id === targetId && actor.role === 'admin' && newRole !== 'admin') {
+    // Prevent self-demotion from namespace-admin or system-admin
+    if (actor.id === targetId && 
+        (actor.role === 'namespace-admin' || actor.role === 'system-admin') && 
+        newRole !== actor.role) {
       return NextResponse.json(
         { error: 'Cannot change your own admin role' },
         { status: 403 }
       );
     }
 
-    // Check if this would leave no admins
-    if (target.role === 'admin' && newRole !== 'admin') {
+    // Check if this would leave no namespace admins
+    if (target.role === 'namespace-admin' && newRole !== 'namespace-admin') {
       const allUsers = await authProvider.getAllUsers();
-      const adminCount = allUsers.filter(u => u.role === 'admin').length;
+      const adminCount = allUsers.filter(u => u.role === 'namespace-admin').length;
       
       if (adminCount <= 1) {
         return NextResponse.json(
-          { error: 'Cannot demote the last admin. System must have at least one admin.' },
+          { error: 'Cannot demote the last namespace admin. System must have at least one namespace admin.' },
           { status: 403 }
         );
       }

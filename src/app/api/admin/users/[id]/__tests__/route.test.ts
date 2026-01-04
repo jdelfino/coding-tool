@@ -148,7 +148,7 @@ describe('DELETE /api/admin/users/[id]', () => {
       const admin: User = {
         id: 'admin1',
         username: 'admin',
-        role: 'admin',
+        role: 'namespace-admin',
         createdAt: new Date(),
       };
       mockRequirePermission.mockResolvedValue(createAuthContext(admin));
@@ -215,7 +215,7 @@ describe('DELETE /api/admin/users/[id]', () => {
       const admin: User = {
         id: 'admin1',
         username: 'admin',
-        role: 'admin',
+        role: 'namespace-admin',
         createdAt: new Date(),
       };
       mockRequirePermission.mockResolvedValue(createAuthContext(admin));
@@ -226,12 +226,12 @@ describe('DELETE /api/admin/users/[id]', () => {
       mockUserRepository.getUser.mockResolvedValue({
         id: 'admin2',
         username: 'admin2',
-        role: 'admin',
+        role: 'namespace-admin',
         createdAt: new Date(),
       });
       // Only one admin in the system
       mockUserRepository.listUsers.mockResolvedValue([
-        { id: 'admin2', role: 'admin', createdAt: new Date() },
+        { id: 'admin2', role: 'namespace-admin', createdAt: new Date() },
       ]);
 
       const response = await DELETE(request, { params });
@@ -246,7 +246,7 @@ describe('DELETE /api/admin/users/[id]', () => {
       const admin: User = {
         id: 'admin1',
         username: 'admin',
-        role: 'admin',
+        role: 'namespace-admin',
         createdAt: new Date(),
       };
       mockRequirePermission.mockResolvedValue(createAuthContext(admin));
@@ -257,13 +257,13 @@ describe('DELETE /api/admin/users/[id]', () => {
       mockUserRepository.getUser.mockResolvedValue({
         id: 'admin2',
         username: 'admin2',
-        role: 'admin',
+        role: 'namespace-admin',
         createdAt: new Date(),
       });
       mockUserRepository.listUsers.mockResolvedValue([
-        { id: 'admin1', role: 'admin', createdAt: new Date() },
-        { id: 'admin2', role: 'admin', createdAt: new Date() },
-        { id: 'admin3', role: 'admin', createdAt: new Date() },
+        { id: 'admin1', role: 'namespace-admin', createdAt: new Date() },
+        { id: 'admin2', role: 'namespace-admin', createdAt: new Date() },
+        { id: 'admin3', role: 'namespace-admin', createdAt: new Date() },
       ]);
       mockAuthProvider.deleteUser.mockResolvedValue(undefined);
 
@@ -277,7 +277,7 @@ describe('DELETE /api/admin/users/[id]', () => {
       const admin: User = {
         id: 'admin1',
         username: 'admin',
-        role: 'admin',
+        role: 'namespace-admin',
         createdAt: new Date(),
       };
       mockRequirePermission.mockResolvedValue(createAuthContext(admin));

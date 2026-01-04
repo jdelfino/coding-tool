@@ -30,7 +30,7 @@ describe('DELETE /api/sessions/:sessionId', () => {
     id: 'admin-1',
     username: 'admin',
     email: 'admin@test.com',
-    role: 'admin' as const,
+    role: 'namespace-admin' as const,
     createdAt: new Date('2024-01-01'),
   };
 

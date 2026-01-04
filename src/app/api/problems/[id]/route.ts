@@ -107,8 +107,8 @@ export async function PATCH(
       );
     }
 
-    // Check permission (author or admin)
-    if (existing.authorId !== user.id && user.role !== 'admin') {
+    // Check permission (author or namespace-admin)
+    if (existing.authorId !== user.id && user.role !== 'namespace-admin') {
       return NextResponse.json(
         { error: 'Forbidden: You can only edit your own problems' },
         { status: 403 }
@@ -185,8 +185,8 @@ export async function DELETE(
       );
     }
 
-    // Check permission (author or admin)
-    if (existing.authorId !== user.id && user.role !== 'admin') {
+    // Check permission (author or namespace-admin)
+    if (existing.authorId !== user.id && user.role !== 'namespace-admin') {
       return NextResponse.json(
         { error: 'Forbidden: You can only delete your own problems' },
         { status: 403 }

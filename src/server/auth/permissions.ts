@@ -7,10 +7,12 @@ import { UserRole, Permission } from './types';
 
 /**
  * Map of roles to their allowed permissions.
- * Admins have full access, instructors have teaching access, students have limited access.
+ * System admins have full access including namespace management.
+ * Namespace admins have full access within their namespace.
+ * Instructors have teaching access, students have limited access.
  */
 export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
-  admin: [
+  'system-admin': [
     // Session permissions
     'session.create',
     'session.join',
@@ -30,7 +32,37 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     'data.viewOwn',
     'data.export',
     
+    // Namespace management permissions
+    'namespace.create',
+    'namespace.manage',
+    'namespace.delete',
+    'namespace.viewAll',
+    
     // System administration
+    'system.admin',
+  ],
+  
+  'namespace-admin': [
+    // Session permissions
+    'session.create',
+    'session.join',
+    'session.viewAll',
+    'session.viewOwn',
+    'session.delete',
+    
+    // User management permissions
+    'user.manage',
+    'user.create',
+    'user.delete',
+    'user.viewAll',
+    'user.changeRole',
+    
+    // Data access permissions
+    'data.viewAll',
+    'data.viewOwn',
+    'data.export',
+    
+    // System administration (within namespace only)
     'system.admin',
   ],
   
@@ -98,6 +130,11 @@ export const PERMISSION_DESCRIPTIONS: Record<Permission, string> = {
   'data.viewAll': 'View all student data and code',
   'data.viewOwn': 'View own data and code',
   'data.export': 'Export data and analytics',
+  
+  'namespace.create': 'Create new namespaces',
+  'namespace.manage': 'Manage namespace settings and users',
+  'namespace.delete': 'Delete namespaces',
+  'namespace.viewAll': 'View data across all namespaces',
   
   'system.admin': 'Full system administration access',
 };

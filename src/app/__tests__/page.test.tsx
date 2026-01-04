@@ -28,7 +28,7 @@ describe('Home Page - Role-based Routing', () => {
   describe('when user is authenticated', () => {
     it('redirects admin users to /admin', async () => {
       (useAuth as jest.Mock).mockReturnValue({
-        user: { id: '1', username: 'adam', role: 'admin' },
+        user: { id: '1', username: 'adam', role: 'namespace-admin' },
         isLoading: false,
       });
 

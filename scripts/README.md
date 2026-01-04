@@ -41,7 +41,7 @@ npm run seed-data
 ```
 
 **What it creates:**
-- 1 admin user named "admin" (with admin role)
+- 1 namespace-admin user named "admin" (with namespace-admin role)
 - 1 teacher user named "teach"
 - 1 class: "Introduction to Programming"
 - 1 section: "Section A" (Fall 2025)

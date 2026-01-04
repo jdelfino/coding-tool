@@ -11,7 +11,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 interface User {
   id: string;
   username: string;
-  role: 'admin' | 'instructor' | 'student';
+  role: 'system-admin' | 'namespace-admin' | 'instructor' | 'student';
   displayName?: string;
   createdAt: string;
   lastLoginAt?: string;

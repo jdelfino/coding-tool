@@ -87,7 +87,7 @@ export function requireAdmin(req: AuthenticatedRequest, res: Response, next: Nex
     return res.status(401).json({ error: 'Not authenticated' });
   }
 
-  if (req.user.role !== 'admin') {
+  if (req.user.role !== 'namespace-admin' && req.user.role !== 'system-admin') {
     return res.status(403).json({ 
       error: 'Access denied. Administrator privileges required.' 
     });

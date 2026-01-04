@@ -3,7 +3,7 @@
  * Seed the application with preset test data via the API
  * 
  * Creates:
- * - 1 admin user named "admin"
+ * - 1 namespace-admin user named "admin"
  * - 1 teacher named "teach"
  * - 1 class with 1 section
  * - 4 students named "stu1" through "stu4"
@@ -65,13 +65,13 @@ async function createAdminUser(): Promise<{ id: string; username: string }> {
     users = {};
   }
   
-  // Create admin user
+  // Create namespace-admin user
   const adminId = randomUUID();
   const now = new Date().toISOString();
   users[adminId] = {
     id: adminId,
     username: 'admin',
-    role: 'admin',
+    role: 'namespace-admin',
     createdAt: now,
     lastLoginAt: now,
   };
@@ -273,13 +273,13 @@ async function main() {
     console.log('🌱 Seeding application with test data...\n');
     console.log('⚠️  Note: This script works best after clearing all data (npm run clear-data)\n');
 
-    // 1. Create admin user directly in the data file
-    console.log('👑 Creating admin user...');
+    // 1. Create namespace-admin user directly in the data file
+    console.log('👑 Creating namespace-admin user...');
     const adminUserData = await createAdminUser();
-    console.log(`✅ Admin user created in data file: ${adminUserData.username} (${adminUserData.id})\n`);
+    console.log(`✅ Namespace-admin user created in data file: ${adminUserData.username} (${adminUserData.id})\n`);
     
-    // Sign in as admin to get a session
-    console.log('🔐 Signing in as admin...');
+    // Sign in as namespace-admin to get a session
+    console.log('🔐 Signing in as namespace-admin...');
     const admin = await signIn('admin');
     console.log(`✅ Admin signed in: ${admin.user.username} (${admin.user.role})\n`);
 

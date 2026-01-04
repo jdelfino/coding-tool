@@ -32,7 +32,7 @@ export async function GET(
     }
 
     // Check permissions: must be session creator or admin
-    if (session.creatorId !== user.id && user.role !== 'admin') {
+    if (session.creatorId !== user.id && user.role !== 'namespace-admin') {
       return NextResponse.json(
         { error: 'Forbidden: You do not have access to this session' },
         { status: 403 }

@@ -5,11 +5,12 @@
 
 /**
  * User roles in the system.
- * - admin: Full system access, can manage users and elevate roles
- * - instructor: Full access to create sessions, view all data, manage classes
- * - student: Limited access to join sessions and view own code only
+ * - system-admin: Full system access across all namespaces, can manage namespaces and all users
+ * - namespace-admin: Full access within namespace, can manage users and elevate roles in namespace
+ * - instructor: Full access to create sessions, view all data, manage classes within namespace
+ * - student: Limited access to join sessions and view own code only within namespace
  */
-export type UserRole = 'admin' | 'instructor' | 'student';
+export type UserRole = 'system-admin' | 'namespace-admin' | 'instructor' | 'student';
 
 /**
  * Granular permissions for fine-grained access control.
@@ -32,6 +33,11 @@ export type Permission =
   | 'data.viewAll'
   | 'data.viewOwn'
   | 'data.export'
+  // Namespace management permissions
+  | 'namespace.create'
+  | 'namespace.manage'
+  | 'namespace.delete'
+  | 'namespace.viewAll'
   // System administration
   | 'system.admin';
 

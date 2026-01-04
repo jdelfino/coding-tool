@@ -48,7 +48,7 @@ export async function DELETE(
     }
 
     // Verify user is the creator or an admin
-    if (codingSession.creatorId !== user.id && user.role !== 'admin') {
+    if (codingSession.creatorId !== user.id && user.role !== 'namespace-admin') {
       return NextResponse.json(
         { error: 'Forbidden: Only the session creator or admin can end this session' },
         { status: 403 }

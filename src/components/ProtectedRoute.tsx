@@ -69,7 +69,7 @@ export function ProtectedRoute({
       }
     } else if (requiredRole) {
       // Check role-based access (legacy support)
-      const hasAccess = user.role === requiredRole || (allowAdmin && user.role === 'admin');
+      const hasAccess = user.role === requiredRole || (allowAdmin && user.role === 'namespace-admin');
       if (!hasAccess) {
         // Wrong role, redirect to appropriate page
         const defaultPath = user.role === 'instructor' ? '/instructor' : '/student';
@@ -107,7 +107,7 @@ export function ProtectedRoute({
       return null;
     }
   } else if (requiredRole) {
-    const hasAccess = user.role === requiredRole || (allowAdmin && user.role === 'admin');
+    const hasAccess = user.role === requiredRole || (allowAdmin && user.role === 'namespace-admin');
     if (!hasAccess) {
       return null;
     }

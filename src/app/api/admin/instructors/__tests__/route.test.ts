@@ -46,8 +46,8 @@ describe('POST /api/admin/instructors', () => {
     } else {
       // Check if user has permission (mock RBAC logic)
       const hasPermission = 
-        (permission === 'user.create' && (user.role === 'instructor' || user.role === 'admin')) ||
-        (user.role === 'admin'); // Admins have all permissions
+        (permission === 'user.create' && (user.role === 'instructor' || user.role === 'namespace-admin')) ||
+        (user.role === 'namespace-admin'); // Namespace admins have all permissions
 
       if (hasPermission) {
         // Auth successful, return auth context
@@ -154,7 +154,7 @@ describe('POST /api/admin/instructors', () => {
     });
 
     it('should allow admins to create instructor accounts', async () => {
-      const admin = { id: 'admin1', username: 'admin', role: 'admin' };
+      const admin = { id: 'admin1', username: 'admin', role: 'namespace-admin' };
       mockRequest = createMockRequest({ username: 'newteacher' }, 'admin-session');
       mockRequirePermissionForUser(admin);
       

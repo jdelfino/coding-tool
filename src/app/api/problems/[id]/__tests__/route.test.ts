@@ -230,8 +230,8 @@ describe('/api/problems/[id]', () => {
       expect(data.problem.title).toBe('Updated Problem');
     });
 
-    it('should allow admin to update any problem', async () => {
-      const adminUser = { ...mockUser, id: 'admin-1', role: 'admin' as const };
+    it('should allow namespace-admin to update any problem', async () => {
+      const adminUser = { ...mockUser, id: 'admin-1', role: 'namespace-admin' as const };
       const updatedProblem = { ...mockProblem, title: 'Updated by Admin' };
 
       mockGetAuthProvider.mockResolvedValue({
@@ -379,8 +379,8 @@ describe('/api/problems/[id]', () => {
       expect(data.success).toBe(true);
     });
 
-    it('should allow admin to delete any problem', async () => {
-      const adminUser = { ...mockUser, id: 'admin-1', role: 'admin' as const };
+    it('should allow namespace-admin to delete any problem', async () => {
+      const adminUser = { ...mockUser, id: 'admin-1', role: 'namespace-admin' as const };
 
       mockGetAuthProvider.mockResolvedValue({
         getSession: jest.fn().mockResolvedValue({ ...mockSession, user: adminUser }),

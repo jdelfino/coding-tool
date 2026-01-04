@@ -79,8 +79,8 @@ export class LocalAuthProvider implements IAuthProvider {
    * Authenticate a user with their username.
    * Auto-creates user if they don't exist.
    * Role assignment:
-   * 1. Users matching ADMIN_EMAIL -> admin
-   * 2. First user (if no ADMIN_EMAIL) -> instructor
+   * 1. Users matching SYSTEM_ADMIN_EMAIL -> system-admin
+   * 2. First user (if no SYSTEM_ADMIN_EMAIL) -> namespace-admin
    * 3. Subsequent users -> student
    */
   async authenticate(username: string): Promise<User | null> {
@@ -100,14 +100,14 @@ export class LocalAuthProvider implements IAuthProvider {
 
       // Determine role
       let role: UserRole;
-      const adminEmail = process.env.ADMIN_EMAIL?.trim();
+      const systemAdminEmail = process.env.SYSTEM_ADMIN_EMAIL?.trim();
 
-      if (adminEmail && normalizedUsername.toLowerCase() === adminEmail.toLowerCase()) {
-        // Bootstrap admin from ADMIN_EMAIL
-        role = 'admin';
+      if (systemAdminEmail && normalizedUsername.toLowerCase() === systemAdminEmail.toLowerCase()) {
+        // Bootstrap system admin from SYSTEM_ADMIN_EMAIL
+        role = 'system-admin';
       } else if (userCount === 0) {
-        // First user becomes instructor (if no ADMIN_EMAIL set)
-        role = 'instructor';
+        // First user becomes namespace-admin (if no SYSTEM_ADMIN_EMAIL set)
+        role = 'namespace-admin';
       } else {
         // Subsequent users are students
         role = 'student';
@@ -115,12 +115,12 @@ export class LocalAuthProvider implements IAuthProvider {
 
       user = await this.createUser(normalizedUsername, role);
     } else {
-      // Check if existing user should be elevated to admin
-      const adminEmail = process.env.ADMIN_EMAIL?.trim();
-      if (adminEmail &&
-          normalizedUsername.toLowerCase() === adminEmail.toLowerCase() &&
-          user.role !== 'admin') {
-        await this.userRepository.updateUser(user.id, { role: 'admin' });
+      // Check if existing user should be elevated to system admin
+      const systemAdminEmail = process.env.SYSTEM_ADMIN_EMAIL?.trim();
+      if (systemAdminEmail &&
+          normalizedUsername.toLowerCase() === systemAdminEmail.toLowerCase() &&
+          user.role !== 'system-admin') {
+        await this.userRepository.updateUser(user.id, { role: 'system-admin' });
         user = await this.userRepository.getUser(user.id) as User;
       }
 

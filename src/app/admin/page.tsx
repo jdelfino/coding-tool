@@ -40,7 +40,7 @@ function AdminPage() {
 
   // Admin page requires authenticated user with role
   if (!user) return null;
-  const isAdmin = user.role === 'admin';
+  const isAdmin = user.role === 'namespace-admin';
 
   const loadStats = async () => {
     if (!isAdmin) return;
@@ -173,7 +173,8 @@ function AdminPage() {
 
   const getRoleBadgeColor = (role: UserRole) => {
     switch (role) {
-      case 'admin': return '#dc3545';
+      case 'namespace-admin': return '#dc3545';
+      case 'system-admin': return '#6610f2';
       case 'instructor': return '#0070f3';
       case 'student': return '#28a745';
     }
@@ -451,7 +452,8 @@ function AdminPage() {
                             >
                               <option value="student">Student</option>
                               <option value="instructor">Instructor</option>
-                              <option value="admin">Admin</option>
+                              <option value="namespace-admin">Namespace Admin</option>
+                              <option value="system-admin">System Admin</option>
                             </select>
                           )}
                           {u.id === user?.id && (
