@@ -114,31 +114,6 @@ npm run test:watch -- src/server/websocket-handler.test.ts
 
 **Don't use optional chaining on required fields.** Trust the type system - if `user.role` is required, use `user.role` not `user?.role`.
 
-## 🚨 CRITICAL: Beads Issue Tracking
-
-This project uses `bd` (beads) for issue tracking. **ALWAYS use beads Skills, NEVER use Bash for bd commands.**
-
-### ❌ WRONG - DO NOT DO THIS:
-```typescript
-Bash("bd list --status=open --json")
-Bash("bd show ct-123 --json")
-Bash("bd close ct-123 --reason 'Done'")
-```
-
-### ✅ CORRECT - USE SKILLS:
-```typescript
-Skill(skill: "beads:list", args: "--status=open")
-Skill(skill: "beads:show", args: "ct-123")
-Skill(skill: "beads:close", args: "ct-123 --reason 'Done'")
-Skill(skill: "beads:sync")
-```
-
-**Available beads skills:** `beads:list`, `beads:show`, `beads:create`, `beads:update`, `beads:close`, `beads:sync`, `beads:search`, `beads:ready`, `beads:dep`, `beads:label`, `beads:epic`, and more. Check skill list before running any `bd` command.
-
-**Always commit `.beads/issues.jsonl` with related code changes.**
-
-See AGENTS.md for complete beads workflow details.
-
 ## Additional Resources
 
 - **README.md** - User guide and full architecture

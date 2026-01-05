@@ -8,11 +8,26 @@
 		"ghcr.io/devcontainers/features/python:1": {
 			"installTools": true,
 			"version": "3.11"
-		}
+		},
+		"ghcr.io/devcontainers/features/docker-in-docker:2": {}
 	},
 
 	// Use 'postCreateCommand' to run commands after the container is created.
-	"postCreateCommand": "curl -fsSL https://raw.githubusercontent.com/steveyegge/beads/main/scripts/install.sh | bash && npm install && npx playwright install-deps chromium",
+	"postCreateCommand": "curl -fsSL https://raw.githubusercontent.com/steveyegge/beads/main/scripts/install.sh | bash && npm install && npx playwright install-deps chromium && npx supabase init",
+
+	// Forward Supabase ports
+	"forwardPorts": [54321, 54322, 54323],
+	"portsAttributes": {
+		"54321": {
+			"label": "Supabase API"
+		},
+		"54322": {
+			"label": "Supabase Database"
+		},
+		"54323": {
+			"label": "Supabase Studio"
+		}
+	},
 	"customizations": {
 		"vscode": {
 			"extensions": [

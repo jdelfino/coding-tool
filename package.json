@@ -20,7 +20,13 @@
     "test:e2e:debug": "playwright test --debug",
     "test:e2e:report": "playwright show-report",
     "clear-data": "tsx scripts/clear-data.ts",
-    "seed-data": "tsx scripts/seed-data.ts"
+    "seed-data": "tsx scripts/seed-data.ts",
+    "supabase:start": "supabase start",
+    "supabase:stop": "supabase stop",
+    "supabase:reset": "supabase db reset",
+    "supabase:studio": "echo 'Supabase Studio available at http://localhost:54323'",
+    "supabase:migrate": "supabase db reset",
+    "db:reset": "supabase db reset"
   },
   "repository": {
     "type": "git",
