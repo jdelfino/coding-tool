@@ -2,5 +2,17 @@
   "enabledPlugins": {
     "beads@beads-marketplace": true
   },
-  "enabledMcpjsonServers": ["beads"]
+  "enabledMcpjsonServers": ["beads"],
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cat AGENTS.md"
+          }
+        ]
+      }
+    ]
+  }
 }
