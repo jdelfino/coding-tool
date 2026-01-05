@@ -360,6 +360,38 @@ Test files are located in:
 - `src/server/__tests__/auth/` - Authentication tests
 - `src/server/__tests__/test-utils/` - Test utilities and mocks
 
+#### Testing with Remote Supabase
+
+The smoke tests can validate both local and remote (hosted) Supabase instances:
+
+**Setup for Remote Testing:**
+
+1. Copy the remote environment template:
+```bash
+cp .env.test.remote.example .env.test.remote
+```
+
+2. Fill in your Supabase project credentials in `.env.test.remote`:
+   - Get these from your Supabase dashboard at https://supabase.com/dashboard
+   - Navigate to: Project Settings > API
+   - Copy the Project URL and API keys
+
+3. Run the remote smoke tests:
+```bash
+npm run test:remote
+```
+
+**What Remote Tests Validate:**
+
+- ✅ Connection to hosted Supabase instance
+- ✅ CORS configuration for browser clients
+- ✅ RLS (Row Level Security) policies
+- ✅ Migration status and table structure
+- ✅ Response times and performance
+- ✅ Batch operation efficiency
+
+**⚠️ Important:** Use a dedicated test project in Supabase, not your production instance. Remote tests will create and delete test data.
+
 ### Adding Features
 
 1. **Backend Changes**

@@ -7,6 +7,7 @@ dist
 .env.development.local
 .env.test.local
 .env.production.local
+.env.test.remote
 .DS_Store
 /data
 coverage
