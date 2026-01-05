@@ -1,6 +1,6 @@
 /**
  * Public API for persistence layer
- * 
+ *
  * This module provides a simple factory function to create storage backends
  * and exposes all necessary types and interfaces.
  */
@@ -44,18 +44,18 @@ export class StorageBackend implements IStorageRepository {
     this.revisions = new LocalRevisionRepository(config);
     this.users = new LocalUserRepository(config);
     this.problems = new LocalProblemRepository(config.baseDir || './data');
-    
+
     // Initialize class/section repositories (multi-tenancy)
     const baseDir = config.baseDir || './data';
     const sectionRepo = new SectionRepository(baseDir);
     const classRepo = new ClassRepository(baseDir);
     const membershipRepo = new MembershipRepository(baseDir);
-    
+
     // Set up dependencies after construction
     membershipRepo.setRepositories(this.users, sectionRepo, classRepo);
     sectionRepo.setMembershipRepository(membershipRepo);
     classRepo.setSectionRepository(sectionRepo);
-    
+
     // Assign to interface properties
     this.sections = sectionRepo;
     this.classes = classRepo;
@@ -69,7 +69,7 @@ export class StorageBackend implements IStorageRepository {
       this.revisions.initialize(),
       this.problems.initialize(),
     ]);
-    
+
     // Initialize repositories with optional lifecycle methods
     const optionalInits: Promise<void>[] = [];
     if (this.users.initialize) {
@@ -84,7 +84,7 @@ export class StorageBackend implements IStorageRepository {
     if (this.memberships?.ensureInitialized) {
       optionalInits.push(this.memberships.ensureInitialized());
     }
-    
+
     await Promise.all(optionalInits);
   }
 
@@ -94,12 +94,12 @@ export class StorageBackend implements IStorageRepository {
       this.revisions.shutdown(),
       this.problems.shutdown(),
     ];
-    
+
     // Add optional shutdown for users repository
     if (this.users.shutdown) {
       shutdowns.push(this.users.shutdown());
     }
-    
+
     await Promise.all(shutdowns);
   }
 
@@ -108,36 +108,47 @@ export class StorageBackend implements IStorageRepository {
       this.sessions.health(),
       this.revisions.health(),
     ];
-    
+
     // Add optional health check for users repository
     if (this.users.health) {
       healthChecks.push(this.users.health());
     } else {
       healthChecks.push(Promise.resolve(true));
     }
-    
+
     const results = await Promise.all(healthChecks);
     // All repositories must be healthy
     return results.every(r => r);
+  }
+
+  async transaction<T>(fn: (tx: import('./interfaces').TransactionContext) => Promise<T>): Promise<T> {
+    // Local storage doesn't support real transactions - execute directly
+    const context: import('./interfaces').TransactionContext = {
+      sessions: this.sessions,
+      revisions: this.revisions,
+      problems: this.problems,
+      users: this.users,
+    };
+    return fn(context);
   }
 }
 
 /**
  * Factory function to create and initialize a storage backend
- * 
+ *
  * @param config - Storage configuration
  * @returns Initialized storage backend
- * 
+ *
  * @example
  * ```typescript
  * const storage = await createStorage({
  *   type: 'local',
  *   baseDir: './data'
  * });
- * 
+ *
  * // Use storage
  * const session = await storage.sessions.getSession('session-123');
- * 
+ *
  * // Clean up when done
  * await storage.shutdown();
  * ```
@@ -150,7 +161,7 @@ export async function createStorage(config: StorageConfig): Promise<IStorageRepo
 
 /**
  * Create storage with default configuration
- * 
+ *
  * Uses local file storage in ./data directory
  */
 export async function createDefaultStorage(): Promise<IStorageRepository> {

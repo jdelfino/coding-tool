@@ -32,6 +32,10 @@ export class FakeRevisionRepository implements IRevisionRepository {
   async shutdown(): Promise<void> {}
   async health(): Promise<boolean> { return true; }
 
+  async transaction<T>(fn: (tx: import('../../persistence/interfaces').TransactionContext) => Promise<T>): Promise<T> {
+    throw new Error('Transaction not supported at repository level. Use FakeStorageBackend.transaction()');
+  }
+
   async saveRevision(revision: Omit<StoredRevision, '_metadata'>): Promise<string> {
     const stored: StoredRevision = {
       ...revision,
@@ -167,6 +171,10 @@ export class FakeSessionRepository implements ISessionRepository {
   async shutdown(): Promise<void> {}
   async health(): Promise<boolean> { return true; }
 
+  async transaction<T>(fn: (tx: import('../../persistence/interfaces').TransactionContext) => Promise<T>): Promise<T> {
+    throw new Error('Transaction not supported at repository level. Use FakeStorageBackend.transaction()');
+  }
+
   async createSession(session: Session): Promise<string> {
     const stored: StoredSession = {
       ...session,
@@ -232,6 +240,10 @@ export class FakeUserRepository implements IUserRepository {
   async initialize(): Promise<void> {}
   async shutdown(): Promise<void> {}
   async health(): Promise<boolean> { return true; }
+
+  async transaction<T>(fn: (tx: import('../../persistence/interfaces').TransactionContext) => Promise<T>): Promise<T> {
+    throw new Error('Transaction not supported at repository level. Use FakeStorageBackend.transaction()');
+  }
 
   async createUser(user: Omit<User, 'id' | 'createdAt'>): Promise<User> {
     const newUser: User = {
@@ -356,6 +368,17 @@ export class FakeStorageBackend implements IStorageBackend {
       this.users.health(),
     ]);
     return results.every(r => r === true);
+  }
+
+  async transaction<T>(fn: (tx: import('../../persistence/interfaces').TransactionContext) => Promise<T>): Promise<T> {
+    // Fake storage doesn't support real transactions - execute directly
+    const context: import('../../persistence/interfaces').TransactionContext = {
+      sessions: this.sessions,
+      revisions: this.revisions,
+      problems: this.problems,
+      users: this.users,
+    };
+    return fn(context);
   }
 }
 

@@ -73,6 +73,12 @@ export class LocalRevisionRepository implements IRevisionRepository {
     }
   }
 
+  async transaction<T>(fn: (tx: import('../interfaces').TransactionContext) => Promise<T>): Promise<T> {
+    // Local storage doesn't support real transactions - execute directly
+    // Transaction context would need to be provided by StorageBackend
+    throw new Error('Transaction not supported at repository level. Use StorageBackend.transaction()');
+  }
+
   private async flush(): Promise<void> {
     const revisions: Record<string, StoredRevision[]> = {};
     for (const [key, revs] of this.cache.entries()) {

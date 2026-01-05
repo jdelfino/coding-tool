@@ -77,6 +77,12 @@ export class LocalProblemRepository implements IProblemRepository {
     }
   }
 
+  async transaction<T>(fn: (tx: import('../interfaces').TransactionContext) => Promise<T>): Promise<T> {
+    // Local storage doesn't support real transactions - execute directly
+    // Transaction context would need to be provided by StorageBackend
+    throw new Error('Transaction not supported at repository level. Use StorageBackend.transaction()');
+  }
+
   async create(problemInput: ProblemInput): Promise<Problem> {
     this.ensureInitialized();
 
