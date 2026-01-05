@@ -12,7 +12,7 @@
 export function createMockSupabaseClient() {
   // Create a shared query builder that can be configured per test
   const mockQueryBuilder: any = {};
-  
+
   // Set up all the chainable methods to return the same builder instance
   mockQueryBuilder.select = jest.fn(() => mockQueryBuilder);
   mockQueryBuilder.insert = jest.fn(() => mockQueryBuilder);

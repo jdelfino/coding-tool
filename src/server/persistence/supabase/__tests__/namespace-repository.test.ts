@@ -64,7 +64,7 @@ describe('SupabaseNamespaceRepository', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    
+
     // Set up default mock chain for common patterns
     mockFrom.mockImplementation((table: string) => {
       return {
@@ -87,7 +87,7 @@ describe('SupabaseNamespaceRepository', () => {
         }),
       };
     });
-    
+
     repository = new SupabaseNamespaceRepository();
   });
 
@@ -275,7 +275,7 @@ describe('SupabaseNamespaceRepository', () => {
   describe('updateNamespace', () => {
     it('updates a namespace successfully', async () => {
       const updates = { displayName: 'Stanford CS' };
-      
+
       mockUpdateEq.mockResolvedValue({ data: null, error: null });
 
       await repository.updateNamespace('stanford', updates);
