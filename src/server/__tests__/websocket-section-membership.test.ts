@@ -4,19 +4,8 @@
 
 import { SessionManager, sessionManagerHolder } from '../session-manager';
 import { FakeStorageBackend } from './test-utils/fake-storage';
-import { FakeClassRepository, FakeSectionRepository, FakeMembershipRepository } from './test-utils/fake-classes';
+import { FakeClassRepository, FakeMembershipRepository } from './test-utils/fake-classes';
 import { Problem } from '../types/problem';
-
-// Mock the classes module
-const classRepo = new FakeClassRepository();
-const sectionRepo = new FakeSectionRepository();
-const membershipRepo = new FakeMembershipRepository();
-
-jest.mock('../classes', () => ({
-  getClassRepository: jest.fn(() => Promise.resolve(classRepo)),
-  getSectionRepository: jest.fn(() => Promise.resolve(sectionRepo)),
-  getMembershipRepository: jest.fn(() => Promise.resolve(membershipRepo)),
-}));
 
 const mockProblem: Problem = {
   id: 'problem-1',
@@ -39,9 +28,26 @@ describe('Section Membership Verification', () => {
   let classId: string;
   let sectionId: string;
 
+  // Use the same repositories that the storage uses
+  let classRepo: FakeClassRepository;
+  let membershipRepo: FakeMembershipRepository;
+
   beforeEach(async () => {
     // Set up storage
     storage = new FakeStorageBackend();
+
+    // Use the storage's section repository
+    const sectionRepo = storage.sections;
+
+    // Create new class and membership repos for this test
+    classRepo = new FakeClassRepository();
+    membershipRepo = new FakeMembershipRepository();
+
+    // Mock the classes module to return these instances
+    jest.spyOn(require('../classes'), 'getClassRepository').mockResolvedValue(classRepo);
+    jest.spyOn(require('../classes'), 'getSectionRepository').mockResolvedValue(sectionRepo);
+    jest.spyOn(require('../classes'), 'getMembershipRepository').mockResolvedValue(membershipRepo);
+
     sessionManager = new SessionManager(storage);
     sessionManagerHolder.instance = sessionManager;
 
@@ -50,7 +56,7 @@ describe('Section Membership Verification', () => {
     studentId = 'student-1';
     unenrolledStudentId = 'student-2';
 
-    // Create class and section
+    // Create class and section using the storage's section repository
     const classData = await classRepo.createClass({
       namespaceId: 'default',
       name: 'Test Class',
@@ -79,8 +85,9 @@ describe('Section Membership Verification', () => {
   afterEach(() => {
     // Clean up
     classRepo.clear();
-    sectionRepo.clear();
+    storage.sections.clear();
     membershipRepo.clear();
+    jest.restoreAllMocks();
   });
 
   test('session created with section has sectionId', async () => {
@@ -102,7 +109,7 @@ describe('Section Membership Verification', () => {
   });
 
   test('instructor is in section instructorIds', async () => {
-    const section = await sectionRepo.getSection(sectionId);
+    const section = await storage.sections.getSection(sectionId);
     expect(section?.instructorIds).toContain(instructorId);
   });
 

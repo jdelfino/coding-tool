@@ -1,6 +1,6 @@
 /**
  * Fake repository implementations for classes/sections testing
- * 
+ *
  * Provides in-memory implementations that don't rely on file I/O
  */
 
@@ -126,7 +126,7 @@ export class FakeSectionRepository implements ISectionRepository {
   async createSection(sectionData: Omit<Section, 'id' | 'joinCode' | 'createdAt' | 'updatedAt'>): Promise<Section> {
     const now = new Date();
     const joinCode = await this.generateUniqueJoinCode();
-    
+
     const newSection: Section = {
       id: `section-${uuidv4()}`,
       ...sectionData,
@@ -140,8 +140,16 @@ export class FakeSectionRepository implements ISectionRepository {
     return newSection;
   }
 
-  async getSection(sectionId: string): Promise<Section | null> {
-    return this.sections.get(sectionId) || null;
+  async getSection(sectionId: string, namespaceId?: string): Promise<Section | null> {
+    const section = this.sections.get(sectionId);
+    if (!section) return null;
+    
+    // If namespaceId is provided, verify it matches
+    if (namespaceId && section.namespaceId !== namespaceId) {
+      return null;
+    }
+    
+    return section;
   }
 
   async getSectionByJoinCode(joinCode: string): Promise<Section | null> {
@@ -310,7 +318,7 @@ export class FakeMembershipRepository implements IMembershipRepository {
     };
 
     this.memberships.set(newMembership.id, newMembership);
-    
+
     if (!this.userSectionIndex.has(newMembership.userId)) {
       this.userSectionIndex.set(newMembership.userId, new Set());
     }
@@ -350,7 +358,7 @@ export class FakeMembershipRepository implements IMembershipRepository {
     }
 
     const sectionsWithClass: SectionWithClass[] = [];
-    
+
     for (const membership of memberships) {
       const section = await this.sectionRepository.getSection(membership.sectionId);
       if (!section) continue;
@@ -392,7 +400,7 @@ export class FakeMembershipRepository implements IMembershipRepository {
     }
 
     const users: User[] = [];
-    
+
     for (const membership of memberships) {
       const user = await this.userRepository.getUserById(membership.userId);
       if (user) {
@@ -411,7 +419,7 @@ export class FakeMembershipRepository implements IMembershipRepository {
 
   async getMembership(userId: string, sectionId: string): Promise<SectionMembership | null> {
     const membershipIds = this.userSectionIndex.get(userId) || new Set();
-    
+
     for (const id of Array.from(membershipIds)) {
       const membership = this.memberships.get(id);
       if (membership && membership.sectionId === sectionId) {
@@ -424,29 +432,29 @@ export class FakeMembershipRepository implements IMembershipRepository {
 
   async validateJoinCode(code: string): Promise<Section | null> {
     const { isValidJoinCodeFormat } = require('../../classes/join-code-service');
-    
+
     if (!isValidJoinCodeFormat(code)) {
       return null;
     }
 
     const normalizedCode = code.trim().toUpperCase();
-    
+
     if (!this.sectionRepository) {
       throw new Error('Section repository not set');
     }
 
     const section = await this.sectionRepository.getSectionByJoinCode(normalizedCode);
-    
+
     if (section && section.active) {
       return section;
     }
-    
+
     return null;
   }
 
   async joinSection(userId: string, joinCode: string): Promise<SectionMembership> {
     const section = await this.validateJoinCode(joinCode);
-    
+
     if (!section) {
       throw new Error('Invalid or inactive join code');
     }

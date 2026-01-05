@@ -31,10 +31,21 @@ function createTestProblem(overrides?: Partial<Problem>): Problem {
 describe('WebSocket Student Settings Messages', () => {
   let sessionManager: SessionManager;
   let storage: FakeStorageBackend;
+  let testSectionId: string;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     storage = new FakeStorageBackend();
     sessionManager = new SessionManager(storage);
+
+    // Create test section
+    const testSection = await storage.sections.createSection({
+      name: 'Test Section',
+      classId: 'test-class-id',
+      namespaceId: 'default',
+      instructorIds: ['instructor-1'],
+      active: true,
+    });
+    testSectionId = testSection.id;
   });
 
   afterEach(() => {
@@ -44,7 +55,7 @@ describe('WebSocket Student Settings Messages', () => {
   describe('Student data retrieval', () => {
     it('should include randomSeed and attachedFiles in getStudentData', async () => {
       // Create session and add student
-      const session = await sessionManager.createSession('instructor-1', 'section-1', 'Test Section');
+      const session = await sessionManager.createSession('instructor-1', testSectionId, 'Test Section');
       await sessionManager.addStudent(session.id, 'student-1', 'Student One');
 
       // Set student's execution settings
@@ -69,7 +80,7 @@ describe('WebSocket Student Settings Messages', () => {
     });
 
     it('should handle student with no execution settings', async () => {
-      const session = await sessionManager.createSession('instructor-1', 'section-1', 'Test Section');
+      const session = await sessionManager.createSession('instructor-1', testSectionId, 'Test Section');
       await sessionManager.addStudent(session.id, 'student-1', 'Student One');
       await sessionManager.updateStudentCode(session.id, 'student-1', 'print("hello")');
 
@@ -82,7 +93,7 @@ describe('WebSocket Student Settings Messages', () => {
     });
 
     it('should return undefined for non-existent student', async () => {
-      const session = await sessionManager.createSession('instructor-1', 'section-1', 'Test Section');
+      const session = await sessionManager.createSession('instructor-1', testSectionId, 'Test Section');
 
       const studentData = await sessionManager.getStudentData(session.id, 'non-existent');
 
@@ -99,7 +110,7 @@ describe('WebSocket Student Settings Messages', () => {
       // Bug: When student joins but doesn't modify execution settings,
       // instructor viewing their code should see session defaults, not undefined
 
-      const session = await sessionManager.createSession('instructor-1', 'section-1', 'Test Section');
+      const session = await sessionManager.createSession('instructor-1', testSectionId, 'Test Section');
       
       // Set session-level execution settings
       const sessionSeed = 999;
@@ -128,7 +139,7 @@ describe('WebSocket Student Settings Messages', () => {
     it('should return student overrides when student has modified execution settings', async () => {
       // Student can override session defaults with their own values
 
-      const session = await sessionManager.createSession('instructor-1', 'section-1', 'Test Section');
+      const session = await sessionManager.createSession('instructor-1', testSectionId, 'Test Section');
       
       // Set session-level defaults
       await sessionManager.updateSessionProblem(
@@ -157,7 +168,7 @@ describe('WebSocket Student Settings Messages', () => {
     it('should handle mix of session defaults and student overrides', async () => {
       // Student can override just seed or just files, not necessarily both
 
-      const session = await sessionManager.createSession('instructor-1', 'section-1', 'Test Section');
+      const session = await sessionManager.createSession('instructor-1', testSectionId, 'Test Section');
       
       // Set session defaults for both seed and files
       await sessionManager.updateSessionProblem(
@@ -185,7 +196,7 @@ describe('WebSocket Student Settings Messages', () => {
 
     it('should treat empty attachedFiles array as explicit override (no files)', async () => {
       // If student sets attachedFiles = [], it should mean "no files" (not fallback)
-      const session = await sessionManager.createSession('instructor-1', 'section-1', 'Test Section');
+      const session = await sessionManager.createSession('instructor-1', testSectionId, 'Test Section');
       // Set session defaults
       const sessionFiles = [{ name: 'session.txt', content: 'session file' }];
       await sessionManager.updateSessionProblem(
@@ -210,7 +221,7 @@ describe('WebSocket Student Settings Messages', () => {
     it('should handle empty session defaults correctly', async () => {
       // When session has no execution settings and student hasn't set any
 
-      const session = await sessionManager.createSession('instructor-1', 'section-1', 'Test Section');
+      const session = await sessionManager.createSession('instructor-1', testSectionId, 'Test Section');
       
       // Don't set session execution settings (undefined/empty)
       
@@ -230,7 +241,7 @@ describe('WebSocket Student Settings Messages', () => {
       // Regression: When instructor clicks "View Code" on a student who hasn't
       // modified their execution settings, the instructor should see session defaults
 
-      const session = await sessionManager.createSession('instructor-1', 'section-1', 'Test Section');
+      const session = await sessionManager.createSession('instructor-1', testSectionId, 'Test Section');
       
       // Instructor sets session defaults
       const sessionSeed = 777;
@@ -259,7 +270,7 @@ describe('WebSocket Student Settings Messages', () => {
 
   describe('Student list with execution settings', () => {
     it('should include randomSeed and attachedFiles for students in list', async () => {
-      const session = await sessionManager.createSession('instructor-1', 'section-1', 'Test Section');
+      const session = await sessionManager.createSession('instructor-1', testSectionId, 'Test Section');
       
       // Add multiple students with different settings
       await sessionManager.addStudent(session.id, 'student-1', 'Alice');
@@ -302,7 +313,7 @@ describe('WebSocket Student Settings Messages', () => {
       // Regression: STUDENT_LIST_UPDATE message should show session defaults
       // for students who haven't modified their execution settings
 
-      const session = await sessionManager.createSession('instructor-1', 'section-1', 'Test Section');
+      const session = await sessionManager.createSession('instructor-1', testSectionId, 'Test Section');
       
       // Set session defaults
       const sessionSeed = 555;
@@ -344,7 +355,7 @@ describe('WebSocket Student Settings Messages', () => {
     });
 
     it('should handle empty student list', async () => {
-      const session = await sessionManager.createSession('instructor-1', 'section-1', 'Test Section');
+      const session = await sessionManager.createSession('instructor-1', testSectionId, 'Test Section');
 
       const students = await sessionManager.getStudents(session.id);
 
@@ -352,7 +363,7 @@ describe('WebSocket Student Settings Messages', () => {
     });
 
     it('should update student settings independently', async () => {
-      const session = await sessionManager.createSession('instructor-1', 'section-1', 'Test Section');
+      const session = await sessionManager.createSession('instructor-1', testSectionId, 'Test Section');
       await sessionManager.addStudent(session.id, 'student-1', 'Student One');
 
       // Set initial settings
@@ -384,7 +395,7 @@ describe('WebSocket Student Settings Messages', () => {
 
   describe('Featured submission with execution settings', () => {
     it('should include randomSeed and attachedFiles in featured submission', async () => {
-      const session = await sessionManager.createSession('instructor-1', 'section-1', 'Test Section');
+      const session = await sessionManager.createSession('instructor-1', testSectionId, 'Test Section');
       await sessionManager.addStudent(session.id, 'student-1', 'Student One');
 
       // Set student's execution settings
@@ -407,7 +418,7 @@ describe('WebSocket Student Settings Messages', () => {
     });
 
     it('should handle featured submission with no execution settings', async () => {
-      const session = await sessionManager.createSession('instructor-1', 'section-1', 'Test Section');
+      const session = await sessionManager.createSession('instructor-1', testSectionId, 'Test Section');
       await sessionManager.addStudent(session.id, 'student-1', 'Student One');
       await sessionManager.updateStudentCode(session.id, 'student-1', 'print("featured")');
       await sessionManager.setFeaturedSubmission(session.id, 'student-1');
@@ -421,7 +432,7 @@ describe('WebSocket Student Settings Messages', () => {
     });
 
     it('should return empty object when no featured submission', async () => {
-      const session = await sessionManager.createSession('instructor-1', 'section-1', 'Test Section');
+      const session = await sessionManager.createSession('instructor-1', testSectionId, 'Test Section');
 
       const featured = await sessionManager.getFeaturedSubmission(session.id);
 
@@ -441,7 +452,7 @@ describe('WebSocket Student Settings Messages', () => {
       // only used getStudentCode (returning just code) instead of getStudentData
       // (returning full student state with execution settings)
 
-      const session = await sessionManager.createSession('instructor-1', 'section-1', 'Test Section');
+      const session = await sessionManager.createSession('instructor-1', testSectionId, 'Test Section');
       await sessionManager.addStudent(session.id, 'student-1', 'Student One');
       
       await sessionManager.updateStudentCode(session.id, 'student-1', 'print("test")');
@@ -465,7 +476,7 @@ describe('WebSocket Student Settings Messages', () => {
       // This test verifies the fix for the bug where broadcastStudentList
       // only included id, name, hasCode but not randomSeed and attachedFiles
 
-      const session = await sessionManager.createSession('instructor-1', 'section-1', 'Test Section');
+      const session = await sessionManager.createSession('instructor-1', testSectionId, 'Test Section');
       await sessionManager.addStudent(session.id, 'student-1', 'Student One');
       await sessionManager.updateStudentSettings(session.id, 'student-1', {
         randomSeed: 456,
@@ -487,7 +498,7 @@ describe('WebSocket Student Settings Messages', () => {
       // This test verifies the fix where getFeaturedSubmission now returns
       // the featured student's randomSeed and attachedFiles
 
-      const session = await sessionManager.createSession('instructor-1', 'section-1', 'Test Section');
+      const session = await sessionManager.createSession('instructor-1', testSectionId, 'Test Section');
       await sessionManager.addStudent(session.id, 'student-1', 'Student One');
       
       const files = [{ name: 'test.txt', content: 'public test' }];
@@ -512,7 +523,7 @@ describe('WebSocket Student Settings Messages', () => {
       // because SESSION_CREATED didn't include problemText, exampleInput, 
       // randomSeed, or attachedFiles
 
-      const session = await sessionManager.createSession('instructor-1', 'section-1', 'Test Section');
+      const session = await sessionManager.createSession('instructor-1', testSectionId, 'Test Section');
       
       // Set problem with execution settings
       const problemText = 'Calculate fibonacci';
@@ -543,7 +554,7 @@ describe('WebSocket Student Settings Messages', () => {
       // Bug scenario: Instructor creates session with problem, disconnects, 
       // and rejoins. Settings should still be there.
 
-      const session = await sessionManager.createSession('instructor-1', 'section-1', 'Test Section');
+      const session = await sessionManager.createSession('instructor-1', testSectionId, 'Test Section');
       
       // Set up problem with all settings
       await sessionManager.updateSessionProblem(
@@ -566,7 +577,7 @@ describe('WebSocket Student Settings Messages', () => {
     it('should handle empty execution settings in SESSION_CREATED', async () => {
       // Session should work even when created without any problem set
 
-      const session = await sessionManager.createSession('instructor-1', 'section-1', 'Test Section');
+      const session = await sessionManager.createSession('instructor-1', testSectionId, 'Test Section');
       
       // Verify session has an empty problem
       expect(session.problem).toBeDefined();
@@ -580,7 +591,7 @@ describe('WebSocket Student Settings Messages', () => {
       // Bug: When instructor rejoins existing session via JOIN_EXISTING_SESSION,
       // the SESSION_JOINED response was missing randomSeed and attachedFiles
 
-      const session = await sessionManager.createSession('instructor-1', 'section-1', 'Test Section');
+      const session = await sessionManager.createSession('instructor-1', testSectionId, 'Test Section');
       
       // Set up complete problem with all execution settings
       const problemText = 'Solve the problem';
@@ -611,7 +622,7 @@ describe('WebSocket Student Settings Messages', () => {
     it('should handle instructor rejoining session with partial settings', async () => {
       // Test rejoin when only some execution settings are set
 
-      const session = await sessionManager.createSession('instructor-1', 'section-1', 'Test Section');
+      const session = await sessionManager.createSession('instructor-1', testSectionId, 'Test Section');
       
       // Only set problem text and random seed, leave others undefined
       await sessionManager.updateSessionProblem(
@@ -631,7 +642,7 @@ describe('WebSocket Student Settings Messages', () => {
     it('should preserve execution settings after multiple instructors join', async () => {
       // Test that settings persist across multiple instructor connections
 
-      const session = await sessionManager.createSession('instructor-1', 'section-1', 'Test Section');
+      const session = await sessionManager.createSession('instructor-1', testSectionId, 'Test Section');
       
       const files = [{ name: 'shared.txt', content: 'shared data' }];
       await sessionManager.updateSessionProblem(
@@ -656,7 +667,7 @@ describe('WebSocket Student Settings Messages', () => {
     it('should handle empty session when instructor rejoins before problem is set', async () => {
       // Instructor creates session but hasn't set problem yet, then reconnects
 
-      const session = await sessionManager.createSession('instructor-1', 'section-1', 'Test Section');
+      const session = await sessionManager.createSession('instructor-1', testSectionId, 'Test Section');
       
       // Don't call updateProblem - simulate instructor disconnecting before setting problem
       

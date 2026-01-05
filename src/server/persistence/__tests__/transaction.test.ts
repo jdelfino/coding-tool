@@ -68,7 +68,7 @@ describe('StorageBackend transaction', () => {
     });
 
     expect(result).toEqual({ sessionId: 'test-session' });
-    
+
     // Verify session was created
     const session = await storage.sessions.getSession('test-session');
     expect(session).toBeDefined();

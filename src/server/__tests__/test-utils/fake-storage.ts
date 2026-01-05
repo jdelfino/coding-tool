@@ -16,6 +16,7 @@ import {
 } from '../../persistence/types';
 import { Session } from '../../types';
 import { User } from '../../auth/types';
+import { FakeSectionRepository } from './fake-classes';
 
 /**
  * Fake revision repository that stores revisions in memory
@@ -327,25 +328,39 @@ export class FakeStorageBackend implements IStorageBackend {
   public readonly revisions: FakeRevisionRepository;
   public readonly users: FakeUserRepository;
   public readonly problems: any; // Fake problem repository for tests
+  public readonly sections: FakeSectionRepository; // Section repository for tests
   public memberships?: any; // Optional membership repository for tests
 
   constructor() {
     this.sessions = new FakeSessionRepository();
     this.revisions = new FakeRevisionRepository();
     this.users = new FakeUserRepository();
+    this.sections = new FakeSectionRepository();
     this.problems = {
       initialize: async () => {},
       shutdown: async () => {},
       health: async () => true,
-      create: async () => ({ id: 'fake-problem-id' }),
-      getById: async () => null,
+      create: async (problem: any) => ({ id: problem.id || 'fake-problem-id', ...problem }),
+      getById: async (id: string) => {
+        // Return a mock problem that matches the requested ID
+        return {
+          id,
+          namespaceId: 'default',
+          title: 'Mock Problem',
+          description: 'A mock problem for testing',
+          starterCode: 'print("test")',
+          authorId: 'test-author',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+      },
       getAll: async () => [],
-      update: async () => ({ id: 'fake-problem-id' }),
+      update: async (id: string, updates: any) => ({ id, ...updates }),
       delete: async () => {},
       search: async () => [],
       getByAuthor: async () => [],
       getByClass: async () => [],
-      duplicate: async () => ({ id: 'fake-duplicate-id' }),
+      duplicate: async (id: string) => ({ id: `${id}-copy` }),
     };
   }
 
