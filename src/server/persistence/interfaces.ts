@@ -30,9 +30,23 @@ import { Problem, ProblemMetadata, ProblemFilter, ProblemInput } from '../types/
 export type { IUserRepository };
 
 /**
+ * Transaction context interface
+ *
+ * Provides access to all repositories within a transaction scope.
+ * All operations within the transaction are atomic.
+ */
+export interface TransactionContext {
+  sessions: ISessionRepository;
+  revisions: IRevisionRepository;
+  problems: IProblemRepository;
+  users: IUserRepository;
+  // Note: Classes, sections, and memberships repositories added when implemented
+}
+
+/**
  * Base interface for all storage backends
  *
- * Provides lifecycle management and health checking for storage systems.
+ * Provides lifecycle management, health checking, and transaction support.
  */
 export interface IStorageBackend {
   /**
@@ -59,6 +73,28 @@ export interface IStorageBackend {
    * @returns true if storage is accessible and operational
    */
   health(): Promise<boolean>;
+
+  /**
+   * Execute operations within a transaction
+   *
+   * All operations within the transaction function are atomic - either all
+   * succeed or all fail. Useful for multi-table operations that must be
+   * consistent (e.g., creating a session and enrolling 30 students).
+   *
+   * @param fn - Function containing transactional operations
+   * @returns Result of the transaction function
+   * @throws {PersistenceError} if transaction fails
+   *
+   * @example
+   * await storage.transaction(async (tx) => {
+   *   const sessionId = await tx.sessions.createSession(session);
+   *   for (const student of students) {
+   *     await tx.sessions.addStudent(sessionId, student);
+   *   }
+   *   return sessionId;
+   * });
+   */
+  transaction<T>(fn: (tx: TransactionContext) => Promise<T>): Promise<T>;
 }
 
 /**
