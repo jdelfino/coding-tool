@@ -4,6 +4,12 @@
 	"name": "Node.js",
 	// Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
 	"image": "mcr.microsoft.com/devcontainers/javascript-node:1-22-bookworm",
+
+	// Persist Claude Code config across container rebuilds (keeps API keys out of git)
+	"mounts": [
+		"source=claude-config,target=/home/node/.claude,type=volume"
+	],
+
 	"features": {
 		"ghcr.io/devcontainers/features/python:1": {
 			"installTools": true,
@@ -13,7 +19,7 @@
 	},
 
 	// Use 'postCreateCommand' to run commands after the container is created.
-	"postCreateCommand": "curl -fsSL https://raw.githubusercontent.com/steveyegge/beads/main/scripts/install.sh | bash && npm install && npx playwright install-deps chromium",
+	"postCreateCommand": "curl -fsSL https://raw.githubusercontent.com/steveyegge/beads/main/scripts/install.sh | bash && npm install && npx playwright install-deps chromium && curl -fsSL https://claude.ai/install.sh | bash",
 
 	// Forward Supabase ports
 	"forwardPorts": [54321, 54322, 54323],
