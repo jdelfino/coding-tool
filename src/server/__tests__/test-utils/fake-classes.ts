@@ -143,12 +143,12 @@ export class FakeSectionRepository implements ISectionRepository {
   async getSection(sectionId: string, namespaceId?: string): Promise<Section | null> {
     const section = this.sections.get(sectionId);
     if (!section) return null;
-    
+
     // If namespaceId is provided, verify it matches
     if (namespaceId && section.namespaceId !== namespaceId) {
       return null;
     }
-    
+
     return section;
   }
 
