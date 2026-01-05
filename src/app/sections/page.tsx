@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSections } from '@/hooks/useSections';
+import NamespaceHeader from '@/components/NamespaceHeader';
 import SectionCard from './components/SectionCard';
 
 export default function SectionsPage() {
@@ -53,7 +54,10 @@ export default function SectionsPage() {
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">My Sections</h1>
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">My Sections</h1>
+            <NamespaceHeader className="mt-2" />
+          </div>
           <button
             onClick={() => router.push('/sections/join')}
             className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"

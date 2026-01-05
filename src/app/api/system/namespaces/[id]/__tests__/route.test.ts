@@ -6,7 +6,7 @@
 import { GET, PUT, DELETE } from '../route';
 import { NextRequest } from 'next/server';
 import * as apiHelpers from '@/server/auth/api-helpers';
-import { getNamespaceRepository } from '@/server/auth';
+import { getNamespaceRepository, getUserRepository } from '@/server/auth';
 
 // Mock dependencies
 jest.mock('@/server/auth/api-helpers');
@@ -15,6 +15,7 @@ jest.mock('@/server/auth');
 const mockRequirePermission = apiHelpers.requirePermission as jest.MockedFunction<typeof apiHelpers.requirePermission>;
 const mockRequireAuth = apiHelpers.requireAuth as jest.MockedFunction<typeof apiHelpers.requireAuth>;
 const mockGetNamespaceRepository = getNamespaceRepository as jest.MockedFunction<typeof getNamespaceRepository>;
+const mockGetUserRepository = getUserRepository as jest.MockedFunction<typeof getUserRepository>;
 
 describe('Individual Namespace API', () => {
   const mockSystemAdmin = {
@@ -57,9 +58,26 @@ describe('Individual Namespace API', () => {
     health: jest.fn(),
   };
 
+  const mockUserRepo = {
+    listUsers: jest.fn().mockResolvedValue([
+      { id: 'user1', namespaceId: 'test-namespace' },
+      { id: 'user2', namespaceId: 'test-namespace' },
+      { id: 'user3', namespaceId: 'other-namespace' },
+    ]),
+    getUserById: jest.fn(),
+    getUserByUsername: jest.fn(),
+    createUser: jest.fn(),
+    updateUser: jest.fn(),
+    deleteUser: jest.fn(),
+    initialize: jest.fn(),
+    shutdown: jest.fn(),
+    health: jest.fn(),
+  };
+
   beforeEach(() => {
     jest.clearAllMocks();
     mockGetNamespaceRepository.mockResolvedValue(mockNamespaceRepo as any);
+    mockGetUserRepository.mockResolvedValue(mockUserRepo as any);
   });
 
   const mockAuthForUser = (user: any | null, permission: string = 'namespace.manage') => {
@@ -165,6 +183,7 @@ describe('Individual Namespace API', () => {
       expect(data.success).toBe(true);
       expect(data.namespace.id).toBe('test-namespace');
       expect(data.namespace.displayName).toBe('Test Namespace');
+      expect(data.namespace.userCount).toBe(2); // Two users in test-namespace
     });
   });
 

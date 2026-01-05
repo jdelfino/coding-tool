@@ -8,6 +8,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
+import NamespaceHeader from '@/components/NamespaceHeader';
 import UserList from './components/UserList';
 import AddInstructorForm from './components/AddInstructorForm';
 import type { User, UserRole } from '@/server/auth/types';
@@ -189,7 +190,10 @@ function AdminPage() {
         alignItems: 'center',
         marginBottom: '2rem'
       }}>
-        <h1 style={{ margin: 0 }}>{isAdmin ? 'System Administration' : 'Admin Panel'}</h1>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+          <h1 style={{ margin: 0 }}>{isAdmin ? 'System Administration' : 'Admin Panel'}</h1>
+          <NamespaceHeader />
+        </div>
         <div style={{
           display: 'flex',
           alignItems: 'center',

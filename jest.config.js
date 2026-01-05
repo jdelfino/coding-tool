@@ -44,7 +44,11 @@ module.exports = {
       displayName: 'client',
       preset: 'ts-jest',
       testEnvironment: 'jsdom',
-      testMatch: ['<rootDir>/src/app/**/__tests__/**/*.test.tsx', '<rootDir>/src/hooks/**/__tests__/**/*.test.ts'],
+      testMatch: [
+        '<rootDir>/src/app/**/__tests__/**/*.test.tsx',
+        '<rootDir>/src/hooks/**/__tests__/**/*.test.ts',
+        '<rootDir>/src/components/**/__tests__/**/*.test.tsx',
+      ],
       roots: ['<rootDir>/src'],
       setupFilesAfterEnv: ['<rootDir>/src/setupTests.ts'],
       moduleNameMapper: {

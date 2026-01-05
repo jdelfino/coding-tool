@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { useAuth } from '@/contexts/AuthContext';
+import NamespaceHeader from '@/components/NamespaceHeader';
 import ClassList from './components/ClassList';
 import SectionView from './components/SectionView';
 import SessionControls from './components/SessionControls';
@@ -723,11 +724,14 @@ function InstructorPage() {
                 <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
                   Instructor Dashboard
                 </h1>
-                {user && (
-                  <p className="text-sm text-gray-600 mt-1">
-                    Signed in as {user.username}
-                  </p>
-                )}
+                <div className="flex items-center gap-3 mt-1">
+                  {user && (
+                    <p className="text-sm text-gray-600">
+                      Signed in as {user.username}
+                    </p>
+                  )}
+                  <NamespaceHeader className="text-sm" />
+                </div>
               </div>
 
               <div className="flex items-center gap-4">

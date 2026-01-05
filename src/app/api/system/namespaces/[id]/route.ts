@@ -7,26 +7,37 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { requirePermission } from '@/server/auth/api-helpers';
-import { getNamespaceRepository } from '@/server/auth';
+import { requireAuth, requirePermission } from '@/server/auth/api-helpers';
+import { getNamespaceRepository, getUserRepository } from '@/server/auth';
 
 /**
  * GET /api/system/namespaces/[id]
  *
- * Get namespace details (system-admin only)
+ * Get namespace details
+ * - system-admin: can view any namespace
+ * - other users: can only view their own namespace
  */
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // Require system-admin permission
-    const permissionCheck = await requirePermission(request, 'namespace.viewAll');
-    if (permissionCheck instanceof NextResponse) {
-      return permissionCheck;
+    const auth = await requireAuth(request);
+    if (auth instanceof NextResponse) {
+      return auth;
     }
 
+    const { user } = auth;
     const { id: namespaceId } = await params;
+
+    // Non-system-admin users can only access their own namespace
+    if (user.role !== 'system-admin' && user.namespaceId !== namespaceId) {
+      return NextResponse.json(
+        { error: 'Forbidden: Cannot access other namespaces' },
+        { status: 403 }
+      );
+    }
+
     const namespaceRepo = await getNamespaceRepository();
     const namespace = await namespaceRepo.getNamespace(namespaceId);
 
@@ -37,9 +48,17 @@ export async function GET(
       );
     }
 
+    // Get user count for this namespace (system-admin only)
+    let userCount: number | undefined;
+    if (user.role === 'system-admin') {
+      const userRepo = await getUserRepository();
+      const allUsers = await userRepo.listUsers();
+      userCount = allUsers.filter(u => u.namespaceId === namespaceId).length;
+    }
+
     return NextResponse.json({
       success: true,
-      namespace,
+      namespace: userCount !== undefined ? { ...namespace, userCount } : namespace,
     });
 
   } catch (error) {

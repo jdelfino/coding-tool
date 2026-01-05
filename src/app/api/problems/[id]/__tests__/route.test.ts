@@ -58,6 +58,7 @@ describe('/api/problems/[id]', () => {
     username: 'instructor1',
     email: 'instructor1@test.com',
     role: 'instructor' as const,
+    namespaceId: 'default',
     createdAt: new Date('2025-01-01'),
   };
 
@@ -243,7 +244,7 @@ describe('/api/problems/[id]', () => {
     });
 
     it('should allow namespace-admin to update any problem', async () => {
-      const adminUser = { ...mockUser, id: 'admin-1', role: 'namespace-admin' as const };
+      const adminUser = { ...mockUser, id: 'admin-1', role: 'namespace-admin' as const, namespaceId: 'default' };
       const updatedProblem = { ...mockProblem, title: 'Updated by Admin' };
 
       mockRequireAuth.mockResolvedValue(createAuthContext(adminUser));
@@ -340,7 +341,7 @@ describe('/api/problems/[id]', () => {
     });
 
     it('should return 403 when user is not author or admin', async () => {
-      const otherUser = { ...mockUser, id: 'user-2' };
+      const otherUser = { ...mockUser, id: 'user-2', namespaceId: 'default' };
       mockRequireAuth.mockResolvedValue(createAuthContext(otherUser));
 
       mockGetStorage.mockResolvedValue({
@@ -386,7 +387,7 @@ describe('/api/problems/[id]', () => {
     });
 
     it('should allow namespace-admin to delete any problem', async () => {
-      const adminUser = { ...mockUser, id: 'admin-1', role: 'namespace-admin' as const };
+      const adminUser = { ...mockUser, id: 'admin-1', role: 'namespace-admin' as const, namespaceId: 'default' };
 
       mockRequireAuth.mockResolvedValue(createAuthContext(adminUser));
 
