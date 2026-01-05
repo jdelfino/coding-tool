@@ -4,12 +4,6 @@
 	"name": "Node.js",
 	// Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
 	"image": "mcr.microsoft.com/devcontainers/javascript-node:1-22-bookworm",
-
-	// Persist Claude Code config across container rebuilds (keeps API keys out of git)
-	"mounts": [
-		"source=claude-config,target=/home/node/.claude,type=volume"
-	],
-
 	"features": {
 		"ghcr.io/devcontainers/features/python:1": {
 			"installTools": true,
