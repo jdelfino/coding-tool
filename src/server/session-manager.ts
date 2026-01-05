@@ -55,6 +55,45 @@ export class SessionManager {
     // Ensure storage is initialized (auto-init for API routes)
     const storage = await this.ensureStorage();
 
+    // Validate section exists and get its namespace
+    // Sections repository is REQUIRED - its absence is a catastrophic failure
+    if (!storage.sections) {
+      throw new Error(
+        'Sections repository not available - this is a critical system error. ' +
+        'Cannot create sessions without section validation.'
+      );
+    }
+
+    const section = await storage.sections.getSection(sectionId, namespaceId);
+    if (!section) {
+      throw new Error(
+        namespaceId
+          ? `Section ${sectionId} not found in namespace ${namespaceId}`
+          : `Section ${sectionId} not found`
+      );
+    }
+
+    // Use section's namespace as the authoritative source
+    const effectiveNamespaceId = section.namespaceId;
+
+    // If namespaceId was provided, verify it matches the section's namespace
+    if (namespaceId && namespaceId !== effectiveNamespaceId) {
+      throw new Error(
+        `Namespace mismatch: Section ${sectionId} belongs to namespace ${effectiveNamespaceId}, not ${namespaceId}`
+      );
+    }
+
+    // If problem is provided, validate it belongs to the same namespace
+    if (problem && problem.id) {
+      const problemFromDb = await storage.problems.getById(problem.id, effectiveNamespaceId);
+      if (!problemFromDb) {
+        throw new Error(
+          `Problem ${problem.id} not found in namespace ${effectiveNamespaceId}. ` +
+          `Cross-namespace problem references are not allowed.`
+        );
+      }
+    }
+
     // Enforce single active session per user
     const existingActiveSessions = await this.getActiveSessionsForUser(creatorId);
     if (existingActiveSessions.length > 0) {
@@ -67,8 +106,8 @@ export class SessionManager {
 
     const session: Session = {
       id: sessionId,
-      namespaceId: namespaceId || 'default',
-      problem: problem ? this.cloneProblem(problem) : this.createEmptyProblem(creatorId),
+      namespaceId: effectiveNamespaceId,
+      problem: problem ? this.cloneProblem(problem) : this.createEmptyProblem(creatorId, effectiveNamespaceId),
       students: new Map(),
       createdAt: new Date(),
       lastActivity: new Date(),
@@ -93,10 +132,10 @@ export class SessionManager {
   /**
    * Create an empty problem for a new session
    */
-  private createEmptyProblem(authorId: string): Problem {
+  private createEmptyProblem(authorId: string, namespaceId: string): Problem {
     return {
       id: uuidv4(),
-      namespaceId: 'default',
+      namespaceId,
       title: 'Untitled Session',
       description: '',
       starterCode: '',

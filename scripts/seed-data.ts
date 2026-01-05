@@ -49,6 +49,42 @@ interface Problem {
 }
 
 /**
+ * Create the default namespace directly in the data file
+ */
+async function createDefaultNamespace(): Promise<void> {
+  const namespacesFile = path.join(DATA_DIR, 'namespaces.json');
+
+  // Read existing namespaces
+  let namespaces: any = {};
+  try {
+    const content = await fs.readFile(namespacesFile, 'utf-8');
+    namespaces = JSON.parse(content);
+  } catch (error) {
+    // File doesn't exist or is empty, start fresh
+    namespaces = {};
+  }
+
+  // Check if default namespace already exists
+  if (namespaces['default']) {
+    return; // Already exists, skip creation
+  }
+
+  // Create default namespace
+  const now = new Date().toISOString();
+  namespaces['default'] = {
+    id: 'default',
+    displayName: 'Default Organization',
+    active: true,
+    createdAt: now,
+    updatedAt: now,
+    createdBy: 'system', // Will be updated later
+  };
+
+  // Write back
+  await fs.writeFile(namespacesFile, JSON.stringify(namespaces, null, 2), 'utf-8');
+}
+
+/**
  * Create an admin user directly in the data file
  * This bypasses the auth provider to ensure we start with a known admin
  */
@@ -72,6 +108,7 @@ async function createAdminUser(): Promise<{ id: string; username: string }> {
     id: adminId,
     username: 'admin',
     role: 'namespace-admin',
+    namespaceId: 'default', // Assign to default namespace
     createdAt: now,
     lastLoginAt: now,
   };
@@ -272,6 +309,11 @@ async function main() {
   try {
     console.log('🌱 Seeding application with test data...\n');
     console.log('⚠️  Note: This script works best after clearing all data (npm run clear-data)\n');
+
+    // 0. Create default namespace
+    console.log('🏢 Creating default namespace...');
+    await createDefaultNamespace();
+    console.log('✅ Default namespace created\n');
 
     // 1. Create namespace-admin user directly in the data file
     console.log('👑 Creating namespace-admin user...');

@@ -4,7 +4,7 @@
  */
 
 import { User, UserRole, AuthenticationError, AuthSession } from './types';
-import { IAuthProvider, IUserRepository } from './interfaces';
+import { IAuthProvider, IUserRepository, INamespaceRepository } from './interfaces';
 import { randomUUID } from 'crypto';
 import fs from 'fs/promises';
 import path from 'path';
@@ -20,11 +20,17 @@ import path from 'path';
  */
 export class LocalAuthProvider implements IAuthProvider {
   public readonly userRepository: IUserRepository;
+  private readonly namespaceRepository: INamespaceRepository;
   private activeSessions: Map<string, AuthSession> = new Map();
   private readonly sessionsFilePath: string;
 
-  constructor(userRepository: IUserRepository, dataDir: string = './data') {
+  constructor(
+    userRepository: IUserRepository,
+    namespaceRepository: INamespaceRepository,
+    dataDir: string = './data'
+  ) {
     this.userRepository = userRepository;
+    this.namespaceRepository = namespaceRepository;
     this.sessionsFilePath = path.join(dataDir, 'auth-sessions.json');
   }
 
@@ -110,11 +116,27 @@ export class LocalAuthProvider implements IAuthProvider {
       } else if (userCount === 0) {
         // First user becomes namespace-admin (if no SYSTEM_ADMIN_EMAIL set)
         role = 'namespace-admin';
-        namespaceId = 'default'; // Assign to default namespace
+        // Check if 'default' namespace exists
+        const defaultNamespaceExists = await this.namespaceRepository.namespaceExists('default');
+        if (!defaultNamespaceExists) {
+          throw new AuthenticationError(
+            'Cannot create user: "default" namespace does not exist. ' +
+            'System administrator must create a namespace first.'
+          );
+        }
+        namespaceId = 'default';
       } else {
         // Subsequent users are students
         role = 'student';
-        namespaceId = 'default'; // Assign to default namespace
+        // Check if 'default' namespace exists
+        const defaultNamespaceExists = await this.namespaceRepository.namespaceExists('default');
+        if (!defaultNamespaceExists) {
+          throw new AuthenticationError(
+            'Cannot create user: "default" namespace does not exist. ' +
+            'System administrator must create a namespace first.'
+          );
+        }
+        namespaceId = 'default';
       }
 
       user = await this.createUser(normalizedUsername, role, namespaceId);

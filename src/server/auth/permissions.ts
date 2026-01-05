@@ -61,9 +61,6 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     'data.viewAll',
     'data.viewOwn',
     'data.export',
-
-    // System administration (within namespace only)
-    'system.admin',
   ],
 
   instructor: [

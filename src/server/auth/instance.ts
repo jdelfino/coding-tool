@@ -17,7 +17,8 @@ export async function getAuthProvider(): Promise<IAuthProvider> {
   if (!authProviderInstance) {
     // Auto-initialize storage if needed (for API routes)
     const storage = await getStorage();
-    authProviderInstance = new LocalAuthProvider(storage.users);
+    const namespaceRepo = await getNamespaceRepository();
+    authProviderInstance = new LocalAuthProvider(storage.users, namespaceRepo);
   }
   return authProviderInstance;
 }
