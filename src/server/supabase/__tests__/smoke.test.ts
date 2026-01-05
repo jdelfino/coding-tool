@@ -26,8 +26,8 @@ const LOCAL_SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
 // Remote Supabase configuration (from .env.test.remote)
 const REMOTE_SUPABASE_URL = process.env.REMOTE_SUPABASE_URL || '';
-const REMOTE_SUPABASE_SERVICE_KEY = process.env.REMOTE_SUPABASE_SERVICE_ROLE_KEY || '';
-const REMOTE_SUPABASE_ANON_KEY = process.env.REMOTE_SUPABASE_ANON_KEY || '';
+const REMOTE_SUPABASE_SERVICE_KEY = process.env.REMOTE_SUPABASE_SECRET_KEY || process.env.REMOTE_SUPABASE_SERVICE_ROLE_KEY || '';
+const REMOTE_SUPABASE_ANON_KEY = process.env.REMOTE_SUPABASE_PUBLISHABLE_KEY || process.env.REMOTE_SUPABASE_ANON_KEY || '';
 
 // Select configuration based on test mode
 const SUPABASE_URL = isRemoteTest ? REMOTE_SUPABASE_URL : LOCAL_SUPABASE_URL;
@@ -38,8 +38,8 @@ const SUPABASE_ANON_KEY = isRemoteTest ? REMOTE_SUPABASE_ANON_KEY : LOCAL_SUPABA
 const canRunIntegrationTests = SUPABASE_SERVICE_KEY.length > 0 && SUPABASE_URL.length > 0;
 
 const testLabel = isRemoteTest ? 'Remote Supabase' : 'Local Supabase';
-const skipMessage = isRemoteTest 
-  ? 'Skipping remote tests: REMOTE_SUPABASE_URL or REMOTE_SUPABASE_SERVICE_ROLE_KEY not set'
+const skipMessage = isRemoteTest
+  ? 'Skipping remote tests: REMOTE_SUPABASE_URL or REMOTE_SUPABASE_SECRET_KEY not set'
   : 'Skipping local tests: SUPABASE_SERVICE_ROLE_KEY not set';
 
 describe(`Supabase Smoke Tests (${testLabel})`, () => {
@@ -168,9 +168,9 @@ describe(`Supabase Smoke Tests (${testLabel})`, () => {
   });
 
   describe('RLS Policy Tests', () => {
-    it('should block anonymous access (anon key) to namespaces', async () => {
+    it('should block anonymous access (publishable key) to namespaces', async () => {
       if (!SUPABASE_ANON_KEY) {
-        console.log(`Skipping: ${isRemoteTest ? 'REMOTE_SUPABASE_ANON_KEY' : 'NEXT_PUBLIC_SUPABASE_ANON_KEY'} not set`);
+        console.log(`Skipping: ${isRemoteTest ? 'REMOTE_SUPABASE_PUBLISHABLE_KEY' : 'NEXT_PUBLIC_SUPABASE_ANON_KEY'} not set`);
         return;
       }
 
@@ -328,10 +328,10 @@ describe(`Supabase Smoke Tests (${testLabel})`, () => {
         // Verify not pointing to localhost
         expect(SUPABASE_URL).not.toContain('localhost');
         expect(SUPABASE_URL).not.toContain('127.0.0.1');
-        
+
         // Verify it's a valid HTTPS URL (not local HTTP)
         expect(SUPABASE_URL).toMatch(/^https:\/\//);
-        
+
         // Verify it contains supabase.co domain
         expect(SUPABASE_URL).toContain('supabase.co');
       });
@@ -343,7 +343,7 @@ describe(`Supabase Smoke Tests (${testLabel})`, () => {
         }
 
         const startTime = Date.now();
-        
+
         const { error } = await serviceClient
           .from('namespaces')
           .select('id')
@@ -358,11 +358,11 @@ describe(`Supabase Smoke Tests (${testLabel})`, () => {
 
       it('should handle CORS correctly for browser clients', async () => {
         if (!SUPABASE_ANON_KEY) {
-          console.log(`Skipping: REMOTE_SUPABASE_ANON_KEY not set`);
+          console.log(`Skipping: REMOTE_SUPABASE_PUBLISHABLE_KEY not set`);
           return;
         }
 
-        // Create a browser-like client (anon key)
+        // Create a browser-like client (publishable key)
         const browserClient = createClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY, {
           auth: {
             autoRefreshToken: false,
@@ -418,9 +418,9 @@ describe(`Supabase Smoke Tests (${testLabel})`, () => {
           return;
         }
 
-        // Test that RLS is enforced by checking with anon key
+        // Test that RLS is enforced by checking with publishable key
         if (!SUPABASE_ANON_KEY) {
-          console.log('Skipping RLS check: REMOTE_SUPABASE_ANON_KEY not set');
+          console.log('Skipping RLS check: REMOTE_SUPABASE_PUBLISHABLE_KEY not set');
           return;
         }
 

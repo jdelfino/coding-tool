@@ -231,7 +231,7 @@ npm start
    - User signs in via `/api/auth/signin`
    - Server creates session, sets HTTP-only cookie
    - Cookie validated on subsequent requests
-   
+
 2. **Session Creation**
    - Instructor creates session via WebSocket
    - Session data persisted to `data/sessions.json`
@@ -309,7 +309,7 @@ Storage automatically handles:
 ### 🔮 Future Enhancements (Phase 3+)
 
 - **Problem Repository**: Pre-defined problem library with tags and difficulty levels
-- **Test Cases**: 
+- **Test Cases**:
   - Instructor-provided test cases
   - Student-created test cases
   - Hidden test cases for assessments
@@ -322,7 +322,7 @@ Storage automatically handles:
   - Competency assessment
 - **Enhanced Security**: Container-based code execution (Docker/gVisor)
 - **Multi-Language Support**: JavaScript, Java, C++, etc.
-- **Assessment Mode**: 
+- **Assessment Mode**:
   - Out-of-class assignments
   - Live coding exams
   - Automated grading with hidden tests
@@ -374,7 +374,7 @@ cp .env.test.remote.example .env.test.remote
 2. Fill in your Supabase project credentials in `.env.test.remote`:
    - Get these from your Supabase dashboard at https://supabase.com/dashboard
    - Navigate to: Project Settings > API
-   - Copy the Project URL and API keys
+   - Copy the Project URL and API keys (publishable and secret keys)
 
 3. Run the remote smoke tests:
 ```bash
