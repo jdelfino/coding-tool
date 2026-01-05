@@ -376,8 +376,14 @@ describe(`Supabase Smoke Tests (${testLabel})`, () => {
           .select('id')
           .limit(1);
 
-        // No CORS error - either success or RLS block (both are OK)
-        expect(error).not.toMatch(/CORS|cross-origin/i);
+        // No CORS error - either success (null error) or RLS block (both are OK)
+        // If there's an error, it should not be a CORS error
+        if (error) {
+          expect(error.message).not.toMatch(/CORS|cross-origin/i);
+        } else {
+          // No error means CORS is working fine
+          expect(error).toBeNull();
+        }
       });
     });
 

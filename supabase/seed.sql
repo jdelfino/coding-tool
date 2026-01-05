@@ -8,6 +8,9 @@
 -- - 1 problem
 -- - 1 active session
 
+-- Enable required extensions for password hashing
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
 -- ============================================================================
 -- NAMESPACES
 -- ============================================================================
@@ -44,7 +47,7 @@ INSERT INTO auth.users (
     '00000000-0000-0000-0000-000000000001',
     '00000000-0000-0000-0000-000000000000',
     'admin@test.local',
-    crypt('password123', gen_salt('bf')),
+    extensions.crypt('password123', extensions.gen_salt('bf')),
     now(),
     now(),
     now(),
@@ -60,7 +63,7 @@ INSERT INTO auth.users (
     '00000000-0000-0000-0000-000000000002',
     '00000000-0000-0000-0000-000000000000',
     'instructor@test.local',
-    crypt('password123', gen_salt('bf')),
+    extensions.crypt('password123', extensions.gen_salt('bf')),
     now(),
     now(),
     now(),
@@ -76,7 +79,7 @@ INSERT INTO auth.users (
     '00000000-0000-0000-0000-000000000003',
     '00000000-0000-0000-0000-000000000000',
     'student1@test.local',
-    crypt('password123', gen_salt('bf')),
+    extensions.crypt('password123', extensions.gen_salt('bf')),
     now(),
     now(),
     now(),
@@ -92,7 +95,7 @@ INSERT INTO auth.users (
     '00000000-0000-0000-0000-000000000004',
     '00000000-0000-0000-0000-000000000000',
     'student2@test.local',
-    crypt('password123', gen_salt('bf')),
+    extensions.crypt('password123', extensions.gen_salt('bf')),
     now(),
     now(),
     now(),

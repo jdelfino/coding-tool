@@ -60,7 +60,7 @@ CREATE INDEX idx_user_profiles_role ON user_profiles(role);
 
 -- 3. classes - Course definitions
 CREATE TABLE classes (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   namespace_id TEXT NOT NULL REFERENCES namespaces(id),
   name TEXT NOT NULL,
   description TEXT,
@@ -76,7 +76,7 @@ CREATE INDEX idx_classes_created_by ON classes(created_by);
 
 -- 4. sections - Class offerings with join codes
 CREATE TABLE sections (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   namespace_id TEXT NOT NULL REFERENCES namespaces(id),
   class_id UUID NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
@@ -98,7 +98,7 @@ CREATE INDEX idx_sections_active ON sections(active) WHERE active = true;
 
 -- 5. section_memberships - Student/instructor enrollments
 CREATE TABLE section_memberships (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   section_id UUID NOT NULL REFERENCES sections(id) ON DELETE CASCADE,
   role TEXT NOT NULL CHECK (role IN ('instructor', 'student')),
@@ -115,7 +115,7 @@ CREATE INDEX idx_memberships_role ON section_memberships(role);
 
 -- 6. problems - Coding exercises
 CREATE TABLE problems (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   namespace_id TEXT NOT NULL REFERENCES namespaces(id),
   title TEXT NOT NULL,
   description TEXT,
@@ -139,7 +139,7 @@ CREATE INDEX idx_problems_title ON problems(title);
 
 -- 7. sessions - Active/historical coding sessions
 CREATE TABLE sessions (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   namespace_id TEXT NOT NULL REFERENCES namespaces(id),
   section_id UUID NOT NULL REFERENCES sections(id),
   section_name TEXT NOT NULL,  -- Denormalized for display
@@ -167,7 +167,7 @@ CREATE INDEX idx_sessions_last_activity ON sessions(last_activity DESC);
 
 -- 8. session_students - Runtime student state within a session
 CREATE TABLE session_students (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   session_id UUID NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
   student_id TEXT NOT NULL,  -- Student identifier within session
   user_id UUID REFERENCES auth.users(id),  -- Link to auth user (if authenticated)
@@ -187,7 +187,7 @@ CREATE INDEX idx_session_students_user ON session_students(user_id);
 
 -- 9. revisions - Code history with diff compression
 CREATE TABLE revisions (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   namespace_id TEXT NOT NULL REFERENCES namespaces(id),
   session_id UUID NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
   student_id TEXT NOT NULL,  -- Student identifier
