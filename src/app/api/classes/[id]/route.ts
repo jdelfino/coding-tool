@@ -35,9 +35,9 @@ export async function GET(
     // Get sections for this class
     const sections = await classRepo.getClassSections(id, namespaceId);
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       class: classData,
-      sections 
+      sections
     });
   } catch (error) {
     console.error('[API] Get class error:', error);

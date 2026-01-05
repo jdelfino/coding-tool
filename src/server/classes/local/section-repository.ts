@@ -152,12 +152,12 @@ export class SectionRepository implements ISectionRepository {
     // Reload from disk to get latest data from other processes (e.g., API routes)
     await this.reloadFromDisk();
     const section = this.sections.get(sectionId);
-    
+
     // If namespaceId is provided, filter by it
     if (section && namespaceId && section.namespaceId !== namespaceId) {
       return null;
     }
-    
+
     return section || null;
   }
 

@@ -33,13 +33,13 @@ export async function POST(request: NextRequest) {
     const authProvider = await getAuthProvider();
     const newUser = await authProvider.createUser(username.trim(), 'instructor', namespaceId);
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       user: newUser,
       message: 'Instructor account created successfully'
     });
   } catch (error: any) {
     console.error('[API] Create instructor error:', error);
-    
+
     // Check for duplicate username error
     if (error.message?.includes('already taken')) {
       return NextResponse.json(

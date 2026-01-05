@@ -222,7 +222,7 @@ export class MembershipRepository implements IMembershipRepository {
     for (const membership of memberships) {
       const section = await this.sectionRepository.getSection(membership.sectionId);
       if (!section) continue;
-      
+
       // Filter by namespace if provided
       if (namespaceId && section.namespaceId !== namespaceId) {
         continue;

@@ -35,9 +35,9 @@ export async function GET(
     const membershipRepo = await getMembershipRepository();
     const members = await membershipRepo.getSectionMembers(id);
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       section,
-      members 
+      members
     });
   } catch (error) {
     console.error('[API] Get section error:', error);

@@ -182,12 +182,12 @@ export function getNamespaceContext(request: NextRequest, user: User): string {
   if (user.role === 'system-admin') {
     const url = new URL(request.url);
     const requestedNamespace = url.searchParams.get('namespace');
-    
+
     if (requestedNamespace) {
       return requestedNamespace;
     }
   }
-  
+
   // All other users, or system-admin without query param, use their own namespace
   // Use default namespace if user.namespaceId is not set (for backwards compatibility)
   return user.namespaceId || 'default';

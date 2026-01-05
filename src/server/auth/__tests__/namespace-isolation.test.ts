@@ -80,7 +80,7 @@ describe('API Namespace Isolation Patterns', () => {
 
       const request = new NextRequest('http://localhost/api/classes');
       const auth = await apiHelpers.requireAuth(request);
-      
+
       if (!(auth instanceof NextResponse)) {
         const namespaceId = apiHelpers.getNamespaceContext(request, auth.user);
         expect(namespaceId).toBe('namespace-1');
@@ -90,7 +90,7 @@ describe('API Namespace Isolation Patterns', () => {
     it('cannot access other namespace data via query param', () => {
       const request = new NextRequest('http://localhost/api/classes?namespace=namespace-2');
       const namespaceId = apiHelpers.getNamespaceContext(request, namespace1User);
-      
+
       // Should still get their own namespace, not the requested one
       expect(namespaceId).toBe('namespace-1');
     });

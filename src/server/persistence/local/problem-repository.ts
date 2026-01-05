@@ -114,12 +114,12 @@ export class LocalProblemRepository implements IProblemRepository {
       const content = await fs.readFile(filePath, 'utf-8');
       const schema = JSON.parse(content);
       const problem = deserializeProblem(schema);
-      
+
       // If namespaceId is provided, filter by it
       if (problem && namespaceId && problem.namespaceId !== namespaceId) {
         return null;
       }
-      
+
       return problem;
     } catch (error: any) {
       if (error.code === 'ENOENT') {

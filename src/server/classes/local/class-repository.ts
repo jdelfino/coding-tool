@@ -119,12 +119,12 @@ export class ClassRepository implements IClassRepository {
     // Reload from disk to get latest data from other processes
     await this.reloadFromDisk();
     const cls = this.classes.get(classId);
-    
+
     // If namespaceId is provided, filter by it
     if (cls && namespaceId && cls.namespaceId !== namespaceId) {
       return null;
     }
-    
+
     return cls || null;
   }
 
@@ -212,7 +212,7 @@ export class ClassRepository implements IClassRepository {
     if (namespaceId) {
       filters.namespaceId = namespaceId;
     }
-    
+
     return await this.sectionRepository.listSections(filters);
   }
 

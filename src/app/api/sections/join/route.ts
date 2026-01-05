@@ -62,8 +62,8 @@ export async function POST(request: NextRequest) {
       role: 'student',
     });
 
-    return NextResponse.json({ 
-      success: true, 
+    return NextResponse.json({
+      success: true,
       section,
       message: 'Successfully joined section'
     }, { status: 201 });
