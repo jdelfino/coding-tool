@@ -14,17 +14,31 @@
  * - Error handling
  */
 
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { GET, PATCH, DELETE } from '../route';
 import { getStorage } from '@/server/persistence';
-import { getAuthProvider } from '@/server/auth';
+import { requireAuth } from '@/server/auth/api-helpers';
+import type { User } from '@/server/auth/types';
+import { RBACService } from '@/server/auth/rbac';
 
 // Mock dependencies
 jest.mock('@/server/persistence');
-jest.mock('@/server/auth');
+jest.mock('@/server/auth/api-helpers', () => ({
+  requireAuth: jest.fn(),
+  getNamespaceContext: jest.fn((req: any, user: any) => user.namespaceId || 'default'),
+}));
 
 const mockGetStorage = getStorage as jest.MockedFunction<typeof getStorage>;
-const mockGetAuthProvider = getAuthProvider as jest.MockedFunction<typeof getAuthProvider>;
+const mockRequireAuth = requireAuth as jest.MockedFunction<typeof requireAuth>;
+
+// Helper to create auth context
+function createAuthContext(user: User) {
+  return {
+    user,
+    sessionId: 'test-session',
+    rbac: new RBACService(user),
+  };
+}
 
 describe('/api/problems/[id]', () => {
   const mockProblem = {
@@ -59,6 +73,10 @@ describe('/api/problems/[id]', () => {
 
   describe('GET /api/problems/[id]', () => {
     it('should return 401 when not authenticated', async () => {
+      mockRequireAuth.mockResolvedValue(
+        NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      );
+
       const request = new NextRequest('http://localhost/api/problems/problem-123');
       const params = { params: Promise.resolve({ id: 'problem-123' }) };
 
@@ -70,9 +88,9 @@ describe('/api/problems/[id]', () => {
     });
 
     it('should return 401 when session is invalid', async () => {
-      mockGetAuthProvider.mockResolvedValue({
-        getSession: jest.fn().mockResolvedValue(null),
-      } as any);
+      mockRequireAuth.mockResolvedValue(
+        NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      );
 
       const request = new NextRequest('http://localhost/api/problems/problem-123', {
         headers: { Cookie: 'sessionId=invalid' },
@@ -87,9 +105,7 @@ describe('/api/problems/[id]', () => {
     });
 
     it('should return 404 when problem not found', async () => {
-      mockGetAuthProvider.mockResolvedValue({
-        getSession: jest.fn().mockResolvedValue(mockSession),
-      } as any);
+      mockRequireAuth.mockResolvedValue(createAuthContext(mockUser));
 
       mockGetStorage.mockResolvedValue({
         problems: {
@@ -110,9 +126,7 @@ describe('/api/problems/[id]', () => {
     });
 
     it('should return problem when found', async () => {
-      mockGetAuthProvider.mockResolvedValue({
-        getSession: jest.fn().mockResolvedValue(mockSession),
-      } as any);
+      mockRequireAuth.mockResolvedValue(createAuthContext(mockUser));
 
       mockGetStorage.mockResolvedValue({
         problems: {
@@ -138,6 +152,10 @@ describe('/api/problems/[id]', () => {
 
   describe('PATCH /api/problems/[id]', () => {
     it('should return 401 when not authenticated', async () => {
+      mockRequireAuth.mockResolvedValue(
+        NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      );
+
       const request = new NextRequest('http://localhost/api/problems/problem-123', {
         method: 'PATCH',
         body: JSON.stringify({ title: 'Updated' }),
@@ -152,9 +170,7 @@ describe('/api/problems/[id]', () => {
     });
 
     it('should return 404 when problem not found', async () => {
-      mockGetAuthProvider.mockResolvedValue({
-        getSession: jest.fn().mockResolvedValue(mockSession),
-      } as any);
+      mockRequireAuth.mockResolvedValue(createAuthContext(mockUser));
 
       mockGetStorage.mockResolvedValue({
         problems: {
@@ -178,9 +194,7 @@ describe('/api/problems/[id]', () => {
 
     it('should return 403 when user is not author or admin', async () => {
       const otherUser = { ...mockUser, id: 'user-2' };
-      mockGetAuthProvider.mockResolvedValue({
-        getSession: jest.fn().mockResolvedValue({ ...mockSession, user: otherUser }),
-      } as any);
+      mockRequireAuth.mockResolvedValue(createAuthContext(otherUser));
 
       mockGetStorage.mockResolvedValue({
         problems: {
@@ -205,9 +219,7 @@ describe('/api/problems/[id]', () => {
     it('should allow author to update their own problem', async () => {
       const updatedProblem = { ...mockProblem, title: 'Updated Problem' };
 
-      mockGetAuthProvider.mockResolvedValue({
-        getSession: jest.fn().mockResolvedValue(mockSession),
-      } as any);
+      mockRequireAuth.mockResolvedValue(createAuthContext(mockUser));
 
       mockGetStorage.mockResolvedValue({
         problems: {
@@ -234,9 +246,7 @@ describe('/api/problems/[id]', () => {
       const adminUser = { ...mockUser, id: 'admin-1', role: 'namespace-admin' as const };
       const updatedProblem = { ...mockProblem, title: 'Updated by Admin' };
 
-      mockGetAuthProvider.mockResolvedValue({
-        getSession: jest.fn().mockResolvedValue({ ...mockSession, user: adminUser }),
-      } as any);
+      mockRequireAuth.mockResolvedValue(createAuthContext(adminUser));
 
       mockGetStorage.mockResolvedValue({
         problems: {
@@ -260,9 +270,7 @@ describe('/api/problems/[id]', () => {
     });
 
     it('should handle validation errors from storage', async () => {
-      mockGetAuthProvider.mockResolvedValue({
-        getSession: jest.fn().mockResolvedValue(mockSession),
-      } as any);
+      mockRequireAuth.mockResolvedValue(createAuthContext(mockUser));
 
       const validationError = new Error('Invalid title');
       (validationError as any).code = 'INVALID_DATA';
@@ -293,6 +301,10 @@ describe('/api/problems/[id]', () => {
 
   describe('DELETE /api/problems/[id]', () => {
     it('should return 401 when not authenticated', async () => {
+      mockRequireAuth.mockResolvedValue(
+        NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      );
+
       const request = new NextRequest('http://localhost/api/problems/problem-123', {
         method: 'DELETE',
       });
@@ -306,9 +318,7 @@ describe('/api/problems/[id]', () => {
     });
 
     it('should return 404 when problem not found', async () => {
-      mockGetAuthProvider.mockResolvedValue({
-        getSession: jest.fn().mockResolvedValue(mockSession),
-      } as any);
+      mockRequireAuth.mockResolvedValue(createAuthContext(mockUser));
 
       mockGetStorage.mockResolvedValue({
         problems: {
@@ -331,9 +341,7 @@ describe('/api/problems/[id]', () => {
 
     it('should return 403 when user is not author or admin', async () => {
       const otherUser = { ...mockUser, id: 'user-2' };
-      mockGetAuthProvider.mockResolvedValue({
-        getSession: jest.fn().mockResolvedValue({ ...mockSession, user: otherUser }),
-      } as any);
+      mockRequireAuth.mockResolvedValue(createAuthContext(otherUser));
 
       mockGetStorage.mockResolvedValue({
         problems: {
@@ -355,9 +363,7 @@ describe('/api/problems/[id]', () => {
     });
 
     it('should allow author to delete their own problem', async () => {
-      mockGetAuthProvider.mockResolvedValue({
-        getSession: jest.fn().mockResolvedValue(mockSession),
-      } as any);
+      mockRequireAuth.mockResolvedValue(createAuthContext(mockUser));
 
       mockGetStorage.mockResolvedValue({
         problems: {
@@ -382,9 +388,7 @@ describe('/api/problems/[id]', () => {
     it('should allow namespace-admin to delete any problem', async () => {
       const adminUser = { ...mockUser, id: 'admin-1', role: 'namespace-admin' as const };
 
-      mockGetAuthProvider.mockResolvedValue({
-        getSession: jest.fn().mockResolvedValue({ ...mockSession, user: adminUser }),
-      } as any);
+      mockRequireAuth.mockResolvedValue(createAuthContext(adminUser));
 
       mockGetStorage.mockResolvedValue({
         problems: {

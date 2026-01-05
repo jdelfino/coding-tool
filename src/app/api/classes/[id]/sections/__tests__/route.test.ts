@@ -14,6 +14,7 @@ jest.mock('@/server/classes');
 jest.mock('@/server/auth/api-helpers', () => ({
   requireAuth: jest.fn(),
   requirePermission: jest.fn(),
+  getNamespaceContext: jest.fn((req: any, user: any) => user.namespaceId || 'default'),
 }));
 
 import { requireAuth, requirePermission } from '@/server/auth/api-helpers';

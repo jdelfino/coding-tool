@@ -3,12 +3,14 @@
  * Tests student joining sections via join code
  */
 
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { POST } from '../route';
+import type { User } from '@/server/auth/types';
+import { RBACService } from '@/server/auth/rbac';
 
 // Mock dependencies
-jest.mock('@/server/auth', () => ({
-  getAuthProvider: jest.fn(),
+jest.mock('@/server/auth/api-helpers', () => ({
+  requireAuth: jest.fn(),
 }));
 
 jest.mock('@/server/classes', () => ({
@@ -16,14 +18,19 @@ jest.mock('@/server/classes', () => ({
   getMembershipRepository: jest.fn(),
 }));
 
-import { getAuthProvider } from '@/server/auth';
+import { requireAuth } from '@/server/auth/api-helpers';
 import { getSectionRepository, getMembershipRepository } from '@/server/classes';
 
-describe('POST /api/sections/join', () => {
-  const mockAuthProvider = {
-    getSession: jest.fn(),
+// Test helper to create mock auth context
+function createAuthContext(user: User) {
+  return {
+    user,
+    sessionId: 'test-session',
+    rbac: new RBACService(user),
   };
+}
 
+describe('POST /api/sections/join', () => {
   const mockSectionRepo = {
     getSectionByJoinCode: jest.fn(),
   };
@@ -35,12 +42,15 @@ describe('POST /api/sections/join', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    (getAuthProvider as jest.Mock).mockResolvedValue(mockAuthProvider);
     (getSectionRepository as jest.Mock).mockReturnValue(mockSectionRepo);
     (getMembershipRepository as jest.Mock).mockReturnValue(mockMembershipRepo);
   });
 
   it('should return 401 if not authenticated', async () => {
+    (requireAuth as jest.Mock).mockResolvedValue(
+      NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+    );
+
     const request = new NextRequest('http://localhost/api/sections/join', {
       method: 'POST',
       body: JSON.stringify({ joinCode: 'TEST123' }),
@@ -54,11 +64,14 @@ describe('POST /api/sections/join', () => {
   });
 
   it('should return 400 if join code is missing', async () => {
-    const mockSession = {
-      user: { id: 'student-1', username: 'bob@example.com', role: 'student' },
-      sessionId: 'test-session',
+    const user: User = {
+      id: 'student-1',
+      username: 'bob@example.com',
+      role: 'student',
+      namespaceId: 'default',
+      createdAt: new Date(),
     };
-    mockAuthProvider.getSession.mockResolvedValue(mockSession);
+    (requireAuth as jest.Mock).mockResolvedValue(createAuthContext(user));
 
     const request = new NextRequest('http://localhost/api/sections/join', {
       method: 'POST',
@@ -74,11 +87,14 @@ describe('POST /api/sections/join', () => {
   });
 
   it('should return 404 if join code is invalid', async () => {
-    const mockSession = {
-      user: { id: 'student-1', username: 'bob@example.com', role: 'student' },
-      sessionId: 'test-session',
+    const user: User = {
+      id: 'student-1',
+      username: 'bob@example.com',
+      role: 'student',
+      namespaceId: 'default',
+      createdAt: new Date(),
     };
-    mockAuthProvider.getSession.mockResolvedValue(mockSession);
+    (requireAuth as jest.Mock).mockResolvedValue(createAuthContext(user));
     mockSectionRepo.getSectionByJoinCode.mockResolvedValue(null);
 
     const request = new NextRequest('http://localhost/api/sections/join', {
@@ -95,17 +111,21 @@ describe('POST /api/sections/join', () => {
   });
 
   it('should return 400 if already enrolled', async () => {
-    const mockSession = {
-      user: { id: 'student-1', username: 'bob@example.com', role: 'student' },
-      sessionId: 'test-session',
+    const user: User = {
+      id: 'student-1',
+      username: 'bob@example.com',
+      role: 'student',
+      namespaceId: 'default',
+      createdAt: new Date(),
     };
-    mockAuthProvider.getSession.mockResolvedValue(mockSession);
+    (requireAuth as jest.Mock).mockResolvedValue(createAuthContext(user));
 
     const mockSection = {
       id: 'section-1',
       classId: 'class-1',
       name: 'Section A',
       joinCode: 'TEST123',
+      namespaceId: 'default',
       instructorIds: ['instructor-1'],
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -134,23 +154,27 @@ describe('POST /api/sections/join', () => {
   });
 
   it('should successfully join section with valid code', async () => {
-    const mockSession = {
-      user: { id: 'student-1', username: 'bob@example.com', role: 'student' },
-      sessionId: 'test-session',
+    const user: User = {
+      id: 'student-1',
+      username: 'bob@example.com',
+      role: 'student',
+      namespaceId: 'default',
+      createdAt: new Date(),
     };
-    mockAuthProvider.getSession.mockResolvedValue(mockSession);
+    (requireAuth as jest.Mock).mockResolvedValue(createAuthContext(user));
 
     const mockSection = {
       id: 'section-1',
       classId: 'class-1',
       name: 'Section A',
       joinCode: 'TEST123',
+      namespaceId: 'default',
       instructorIds: ['instructor-1'],
       createdAt: new Date(),
       updatedAt: new Date(),
     };
     mockSectionRepo.getSectionByJoinCode.mockResolvedValue(mockSection);
-      mockMembershipRepo.getMembership.mockResolvedValue(null);
+    mockMembershipRepo.getMembership.mockResolvedValue(null);
     const newMembership = {
       id: 'membership-1',
       sectionId: 'section-1',
@@ -178,17 +202,21 @@ describe('POST /api/sections/join', () => {
   });
 
   it('should normalize join code (uppercase and trim)', async () => {
-    const mockSession = {
-      user: { id: 'student-1', username: 'bob@example.com', role: 'student' },
-      sessionId: 'test-session',
+    const user: User = {
+      id: 'student-1',
+      username: 'bob@example.com',
+      role: 'student',
+      namespaceId: 'default',
+      createdAt: new Date(),
     };
-    mockAuthProvider.getSession.mockResolvedValue(mockSession);
+    (requireAuth as jest.Mock).mockResolvedValue(createAuthContext(user));
 
     mockSectionRepo.getSectionByJoinCode.mockResolvedValue({
       id: 'section-1',
       classId: 'class-1',
       name: 'Section A',
       joinCode: 'TEST123',
+      namespaceId: 'default',
       instructorIds: ['instructor-1'],
       createdAt: new Date(),
       updatedAt: new Date(),

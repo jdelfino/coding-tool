@@ -1,10 +1,10 @@
 /**
  * Tests for /api/problems endpoints
- * 
+ *
  * Tests:
  * - GET /api/problems - List problems with filters
  * - POST /api/problems - Create new problem
- * 
+ *
  * Coverage:
  * - Authentication checks
  * - Authorization (instructors/admins only for POST)

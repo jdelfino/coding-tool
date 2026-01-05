@@ -18,6 +18,7 @@ jest.mock('@/server/classes', () => ({
 jest.mock('@/server/auth/api-helpers', () => ({
   requireAuth: jest.fn(),
   requirePermission: jest.fn(),
+  getNamespaceContext: jest.fn((req: any, user: any) => user.namespaceId || 'default'),
 }));
 
 import { getAuthProvider } from '@/server/auth';
@@ -53,6 +54,10 @@ describe('/api/classes', () => {
 
   describe('GET /api/classes', () => {
     it('should return 401 if not authenticated', async () => {
+      (requireAuth as jest.Mock).mockResolvedValue(
+        NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+      );
+
       const request = new NextRequest('http://localhost/api/classes');
 
       const response = await GET(request);
@@ -63,7 +68,9 @@ describe('/api/classes', () => {
     });
 
     it('should return 401 if session expired', async () => {
-      mockAuthProvider.getSession.mockResolvedValue(null);
+      (requireAuth as jest.Mock).mockResolvedValue(
+        NextResponse.json({ error: 'Session expired' }, { status: 401 })
+      );
 
       const request = new NextRequest('http://localhost/api/classes', {
         headers: { Cookie: 'sessionId=test-session' },
@@ -77,11 +84,14 @@ describe('/api/classes', () => {
     });
 
     it('should return classes for authenticated instructor', async () => {
-      const mockSession = {
-        user: { id: 'instructor-1', username: 'alice@example.com', role: 'instructor' },
-        sessionId: 'test-session',
+      const user: User = {
+        id: 'instructor-1',
+        username: 'alice@example.com',
+        role: 'instructor',
+        namespaceId: 'default',
+        createdAt: new Date(),
       };
-      mockAuthProvider.getSession.mockResolvedValue(mockSession);
+      (requireAuth as jest.Mock).mockResolvedValue(createAuthContext(user));
 
       const mockClasses = [
         { id: 'class-1', name: 'CS 101', description: 'Intro', createdBy: 'instructor-1', createdAt: new Date(), updatedAt: new Date() },
@@ -99,7 +109,7 @@ describe('/api/classes', () => {
       expect(response.status).toBe(200);
       expect(data.classes).toHaveLength(2);
       expect(data.classes[0]).toMatchObject({ id: 'class-1', name: 'CS 101', description: 'Intro' });
-      expect(mockClassRepo.listClasses).toHaveBeenCalledWith('instructor-1');
+      expect(mockClassRepo.listClasses).toHaveBeenCalledWith('instructor-1', 'default');
     });
   });
 
@@ -179,6 +189,7 @@ describe('/api/classes', () => {
         name: 'CS 101',
         description: 'Introduction to Programming',
         createdBy: 'instructor-1',
+        namespaceId: 'default',
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -199,6 +210,7 @@ describe('/api/classes', () => {
         name: 'CS 101',
         description: 'Introduction to Programming',
         createdBy: 'instructor-1',
+        namespaceId: 'default',
       });
     });
 
@@ -217,6 +229,7 @@ describe('/api/classes', () => {
         name: 'CS 101',
         description: 'Test',
         createdBy: 'instructor-1',
+        namespaceId: 'default',
         createdAt: new Date(),
         updatedAt: new Date(),
       });
@@ -233,6 +246,7 @@ describe('/api/classes', () => {
         name: 'CS 101',
         description: 'Test',
         createdBy: 'instructor-1',
+        namespaceId: 'default',
       });
     });
   });

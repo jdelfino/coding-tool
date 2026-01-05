@@ -10,7 +10,10 @@ import * as apiHelpers from '@/server/auth/api-helpers';
 
 // Mock dependencies
 jest.mock('@/server/auth');
-jest.mock('@/server/auth/api-helpers');
+jest.mock('@/server/auth/api-helpers', () => ({
+  requirePermission: jest.fn(),
+  getNamespaceContext: jest.fn((req: any, user: any) => user.namespaceId || 'default'),
+}));
 
 const mockGetAuthProvider = getAuthProvider as jest.MockedFunction<typeof getAuthProvider>;
 const mockRequirePermission = apiHelpers.requirePermission as jest.MockedFunction<typeof apiHelpers.requirePermission>;
@@ -150,7 +153,7 @@ describe('POST /api/admin/instructors', () => {
       expect(response.status).toBe(200);
       expect(data.user.username).toBe('newteacher');
       expect(data.user.role).toBe('instructor');
-      expect(mockAuthProvider.createUser).toHaveBeenCalledWith('newteacher', 'instructor');
+      expect(mockAuthProvider.createUser).toHaveBeenCalledWith('newteacher', 'instructor', 'default');
     });
 
     it('should allow admins to create instructor accounts', async () => {
@@ -227,7 +230,7 @@ describe('POST /api/admin/instructors', () => {
 
       await POST(mockRequest);
 
-      expect(mockAuthProvider.createUser).toHaveBeenCalledWith('teacher', 'instructor');
+      expect(mockAuthProvider.createUser).toHaveBeenCalledWith('teacher', 'instructor', 'default');
     });
   });
 

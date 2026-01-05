@@ -13,6 +13,7 @@ import { RBACService } from '@/server/auth/rbac';
 jest.mock('@/server/auth');
 jest.mock('@/server/auth/api-helpers', () => ({
   requirePermission: jest.fn(),
+  getNamespaceContext: jest.fn((req: any, user: any) => user.namespaceId || 'default'),
 }));
 
 import { requirePermission } from '@/server/auth/api-helpers';
