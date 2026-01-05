@@ -77,13 +77,21 @@ export class RBACService implements IRBACService {
     }
 
     // Namespace admins can manage instructors and students (but not system admins or other namespace admins)
+    // CRITICAL: Must check namespace boundary
     if (actor.role === 'namespace-admin') {
-      return target.role === 'instructor' || target.role === 'student';
+      if (target.role !== 'instructor' && target.role !== 'student') {
+        return false;
+      }
+      return actor.namespaceId === target.namespaceId;
     }
 
-    // Instructors can only manage students
+    // Instructors can only manage students within their namespace
+    // CRITICAL: Must check namespace boundary
     if (actor.role === 'instructor') {
-      return target.role === 'student';
+      if (target.role !== 'student') {
+        return false;
+      }
+      return actor.namespaceId === target.namespaceId;
     }
 
     // Students cannot manage anyone

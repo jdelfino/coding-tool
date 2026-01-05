@@ -522,6 +522,47 @@ describe('LocalProblemRepository', () => {
   });
 
   describe('namespace filtering', () => {
+    it('should include namespaceId in metadata', async () => {
+      // Create problems in different namespaces
+      const input1: ProblemInput = {
+        namespaceId: 'namespace-a',
+        title: 'Problem in Namespace A',
+        description: 'Test',
+        starterCode: '',
+        testCases: [],
+        authorId: 'user-123',
+        classId: undefined,
+      };
+
+      const input2: ProblemInput = {
+        namespaceId: 'namespace-b',
+        title: 'Problem in Namespace B',
+        description: 'Test',
+        starterCode: '',
+        testCases: [],
+        authorId: 'user-123',
+        classId: undefined,
+      };
+
+      await repository.create(input1);
+      await repository.create(input2);
+
+      // Get all problems and verify namespaceId is present in metadata
+      const allProblems = await repository.getAll();
+      expect(allProblems).toHaveLength(2);
+
+      // CRITICAL: Verify namespaceId is in metadata (fixes ct-5h2)
+      expect(allProblems[0]).toHaveProperty('namespaceId');
+      expect(allProblems[1]).toHaveProperty('namespaceId');
+
+      // Verify namespace IDs are correct
+      const problemA = allProblems.find(p => p.title === 'Problem in Namespace A');
+      const problemB = allProblems.find(p => p.title === 'Problem in Namespace B');
+
+      expect(problemA?.namespaceId).toBe('namespace-a');
+      expect(problemB?.namespaceId).toBe('namespace-b');
+    });
+
     it('should filter problems by namespace in getAll()', async () => {
       // Create problems in different namespaces
       const input1: ProblemInput = {
@@ -565,12 +606,13 @@ describe('LocalProblemRepository', () => {
       // Filter by namespace-a - should return 2
       const namespaceAProblems = await repository.getAll(undefined, 'namespace-a');
       expect(namespaceAProblems).toHaveLength(2);
-      expect(namespaceAProblems.every(p => p.title.includes('Namespace A'))).toBe(true);
+      expect(namespaceAProblems.every(p => p.namespaceId === 'namespace-a')).toBe(true);
 
       // Filter by namespace-b - should return 1
       const namespaceBProblems = await repository.getAll(undefined, 'namespace-b');
       expect(namespaceBProblems).toHaveLength(1);
       expect(namespaceBProblems[0].title).toBe('Problem in Namespace B');
+      expect(namespaceBProblems[0].namespaceId).toBe('namespace-b');
 
       // Filter by non-existent namespace - should return 0
       const emptyProblems = await repository.getAll(undefined, 'non-existent');
@@ -733,6 +775,77 @@ describe('LocalProblemRepository', () => {
 
       const classBResults = await repository.getByClass('class-1', undefined, 'namespace-b');
       expect(classBResults).toHaveLength(1);
+    });
+
+    it('should enforce strict namespace isolation - CRITICAL SECURITY TEST', async () => {
+      // Create problems in multiple namespaces
+      const namespaces = ['tenant-a', 'tenant-b', 'tenant-c'];
+      const problemsPerNamespace = 3;
+
+      for (const ns of namespaces) {
+        for (let i = 0; i < problemsPerNamespace; i++) {
+          await repository.create({
+            namespaceId: ns,
+            title: `${ns}-problem-${i}`,
+            description: `Problem in ${ns}`,
+            starterCode: '',
+            testCases: [],
+            authorId: 'user-123',
+            classId: undefined,
+          });
+        }
+      }
+
+      // Verify total count
+      const allProblems = await repository.getAll();
+      expect(allProblems).toHaveLength(namespaces.length * problemsPerNamespace);
+
+      // CRITICAL: Verify each namespace only sees its own problems
+      for (const ns of namespaces) {
+        const nsProblems = await repository.getAll(undefined, ns);
+        expect(nsProblems).toHaveLength(problemsPerNamespace);
+
+        // Verify ALL returned problems belong to the requested namespace
+        for (const problem of nsProblems) {
+          expect(problem.namespaceId).toBe(ns);
+          expect(problem.title).toContain(ns);
+        }
+
+        // Verify NO problems from other namespaces are returned
+        const otherNamespaces = namespaces.filter(n => n !== ns);
+        for (const otherNs of otherNamespaces) {
+          const hasProblemFromOtherNs = nsProblems.some(p => p.namespaceId === otherNs);
+          expect(hasProblemFromOtherNs).toBe(false);
+        }
+      }
+    });
+
+    it('should filter by namespace without loading full problems - PERFORMANCE TEST', async () => {
+      // Create many problems across namespaces
+      for (let i = 0; i < 100; i++) {
+        await repository.create({
+          namespaceId: i % 2 === 0 ? 'namespace-even' : 'namespace-odd',
+          title: `Problem ${i}`,
+          description: 'Test',
+          starterCode: '',
+          testCases: [],
+          authorId: 'user-123',
+          classId: undefined,
+        });
+      }
+
+      // CRITICAL: This should use metadata filtering (efficient)
+      // not load all 100 problems to check namespace (inefficient)
+      const startTime = Date.now();
+      const evenProblems = await repository.getAll(undefined, 'namespace-even');
+      const duration = Date.now() - startTime;
+
+      expect(evenProblems).toHaveLength(50);
+      expect(evenProblems.every(p => p.namespaceId === 'namespace-even')).toBe(true);
+
+      // Should be fast (< 100ms) since it uses metadata, not loading all problems
+      // Note: This is a rough check; exact timing depends on system load
+      expect(duration).toBeLessThan(1000);
     });
   });
 

@@ -69,6 +69,9 @@ export interface ProblemMetadata {
   /** Problem ID */
   id: string;
 
+  /** Namespace ID for multi-tenancy */
+  namespaceId: string;
+
   /** Problem title */
   title: string;
 

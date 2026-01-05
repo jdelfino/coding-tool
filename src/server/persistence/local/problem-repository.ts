@@ -139,18 +139,14 @@ export class LocalProblemRepository implements IProblemRepository {
     const index = await this.loadIndex();
     let problems = index.problems;
 
-    // Apply namespace filter first
+    // Apply namespace filter first using metadata
     if (namespaceId) {
-      problems = problems.filter(p => {
-        // Note: We need to load the full problem to check namespaceId
-        // For now, we'll filter after loading. TODO: Add namespaceId to metadata
-        return true; // Will be filtered in applyFilters
-      });
+      problems = problems.filter(p => p.namespaceId === namespaceId);
     }
 
-    // Apply filters
-    if (filter || namespaceId) {
-      problems = await this.applyFilters(problems, filter, namespaceId);
+    // Apply other filters (no longer need to pass namespaceId since already filtered)
+    if (filter) {
+      problems = this.applyMetadataFilters(problems, filter);
     }
 
     // Apply sorting
@@ -349,6 +345,7 @@ export class LocalProblemRepository implements IProblemRepository {
 
     const metadata: ProblemMetadata = {
       id: problem.id,
+      namespaceId: problem.namespaceId,
       title: problem.title,
       testCaseCount: problem.testCases?.length || 0,
       createdAt: problem.createdAt,
@@ -373,24 +370,10 @@ export class LocalProblemRepository implements IProblemRepository {
     await this.saveIndex(index);
   }
 
-  private async applyFilters(problems: ProblemMetadata[], filter?: ProblemFilter, namespaceId?: string): Promise<ProblemMetadata[]> {
+  private applyMetadataFilters(problems: ProblemMetadata[], filter: ProblemFilter): ProblemMetadata[] {
     let filtered = problems;
 
-    // Apply namespace filter by loading full problems
-    if (namespaceId) {
-      const namespacedProblems: ProblemMetadata[] = [];
-      for (const metadata of filtered) {
-        const problem = await this.getById(metadata.id);
-        if (problem && problem.namespaceId === namespaceId) {
-          namespacedProblems.push(metadata);
-        }
-      }
-      filtered = namespacedProblems;
-    }
-
-    if (!filter) {
-      return filtered;
-    }
+    // Note: namespace filtering is now done in getAll() using metadata
 
     if (filter.authorId) {
       filtered = filtered.filter(p => p.authorName === filter.authorId);

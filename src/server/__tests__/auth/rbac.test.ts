@@ -41,12 +41,17 @@ class MockSessionRepository {
 }
 
 // Helper to create test users
-function createUser(role: 'instructor' | 'student', id = 'user-1', username = 'testuser'): User {
+function createUser(
+  role: 'system-admin' | 'namespace-admin' | 'instructor' | 'student',
+  id = 'user-1',
+  username = 'testuser',
+  namespaceId = 'default'
+): User {
   return {
     id,
     username,
     role,
-    namespaceId: 'default',
+    namespaceId,
     displayName: `Test ${role}`,
     createdAt: new Date('2025-01-01'),
     lastLoginAt: new Date('2025-01-15'),
@@ -394,12 +399,172 @@ describe('RBACService', () => {
     });
 
     describe('Edge Cases', () => {
-      it('should handle user with missing properties gracefully', () => {
-        const instructor = createUser('instructor', 'instructor-1');
-        const incompleteUser = { id: 'user-1', username: 'user', role: 'student' } as User;
+      it('should handle user with minimal properties', () => {
+        const instructor = createUser('instructor', 'instructor-1', 'instructor', 'default');
+        const minimalUser = {
+          id: 'user-1',
+          username: 'user',
+          role: 'student',
+          namespaceId: 'default', // Must match instructor's namespace
+        } as User;
 
-        // Should still work with minimal user object
-        expect(rbacService.canManageUser(instructor, incompleteUser)).toBe(true);
+        // Should work with minimal user object if namespace matches
+        expect(rbacService.canManageUser(instructor, minimalUser)).toBe(true);
+      });
+
+      it('should deny management if namespace is missing or different', () => {
+        const instructor = createUser('instructor', 'instructor-1', 'instructor', 'default');
+        const userWithoutNamespace = {
+          id: 'user-1',
+          username: 'user',
+          role: 'student',
+        } as User;
+
+        // Should fail if namespaceId is missing (undefined !== 'default')
+        expect(rbacService.canManageUser(instructor, userWithoutNamespace)).toBe(false);
+      });
+    });
+
+    describe('Namespace Isolation - Critical Security Tests', () => {
+      describe('System Admin - No Namespace Restrictions', () => {
+        it('should allow system-admin to manage users in any namespace', () => {
+          const sysAdmin = createUser('system-admin', 'admin-1', 'sysadmin', 'system');
+          const namespaceAdmin = createUser('namespace-admin', 'ns-admin-1', 'nsadmin', 'tenant-a');
+          const instructor = createUser('instructor', 'instr-1', 'instructor', 'tenant-b');
+          const student = createUser('student', 'student-1', 'student', 'tenant-c');
+
+          expect(rbacService.canManageUser(sysAdmin, namespaceAdmin)).toBe(true);
+          expect(rbacService.canManageUser(sysAdmin, instructor)).toBe(true);
+          expect(rbacService.canManageUser(sysAdmin, student)).toBe(true);
+        });
+
+        it('should allow system-admin to manage other system-admins', () => {
+          const sysAdmin1 = createUser('system-admin', 'admin-1', 'sysadmin1', 'system');
+          const sysAdmin2 = createUser('system-admin', 'admin-2', 'sysadmin2', 'system');
+
+          expect(rbacService.canManageUser(sysAdmin1, sysAdmin2)).toBe(true);
+        });
+      });
+
+      describe('Namespace Admin - Namespace Boundary Checks', () => {
+        it('should allow namespace-admin to manage instructor in SAME namespace', () => {
+          const namespaceAdmin = createUser('namespace-admin', 'ns-admin-1', 'nsadmin', 'tenant-a');
+          const instructor = createUser('instructor', 'instr-1', 'instructor', 'tenant-a');
+
+          expect(rbacService.canManageUser(namespaceAdmin, instructor)).toBe(true);
+        });
+
+        it('should allow namespace-admin to manage student in SAME namespace', () => {
+          const namespaceAdmin = createUser('namespace-admin', 'ns-admin-1', 'nsadmin', 'tenant-a');
+          const student = createUser('student', 'student-1', 'student', 'tenant-a');
+
+          expect(rbacService.canManageUser(namespaceAdmin, student)).toBe(true);
+        });
+
+        it('should DENY namespace-admin from managing instructor in DIFFERENT namespace', () => {
+          const namespaceAdmin = createUser('namespace-admin', 'ns-admin-1', 'nsadmin', 'tenant-a');
+          const instructor = createUser('instructor', 'instr-1', 'instructor', 'tenant-b');
+
+          expect(rbacService.canManageUser(namespaceAdmin, instructor)).toBe(false);
+        });
+
+        it('should DENY namespace-admin from managing student in DIFFERENT namespace', () => {
+          const namespaceAdmin = createUser('namespace-admin', 'ns-admin-1', 'nsadmin', 'tenant-a');
+          const student = createUser('student', 'student-1', 'student', 'tenant-b');
+
+          expect(rbacService.canManageUser(namespaceAdmin, student)).toBe(false);
+        });
+
+        it('should DENY namespace-admin from managing another namespace-admin', () => {
+          const namespaceAdmin1 = createUser('namespace-admin', 'ns-admin-1', 'nsadmin1', 'tenant-a');
+          const namespaceAdmin2 = createUser('namespace-admin', 'ns-admin-2', 'nsadmin2', 'tenant-a');
+
+          expect(rbacService.canManageUser(namespaceAdmin1, namespaceAdmin2)).toBe(false);
+        });
+
+        it('should DENY namespace-admin from managing system-admin', () => {
+          const namespaceAdmin = createUser('namespace-admin', 'ns-admin-1', 'nsadmin', 'tenant-a');
+          const sysAdmin = createUser('system-admin', 'admin-1', 'sysadmin', 'system');
+
+          expect(rbacService.canManageUser(namespaceAdmin, sysAdmin)).toBe(false);
+        });
+      });
+
+      describe('Instructor - Namespace Boundary Checks', () => {
+        it('should allow instructor to manage student in SAME namespace', () => {
+          const instructor = createUser('instructor', 'instr-1', 'instructor', 'tenant-a');
+          const student = createUser('student', 'student-1', 'student', 'tenant-a');
+
+          expect(rbacService.canManageUser(instructor, student)).toBe(true);
+        });
+
+        it('should DENY instructor from managing student in DIFFERENT namespace', () => {
+          const instructor = createUser('instructor', 'instr-1', 'instructor', 'tenant-a');
+          const student = createUser('student', 'student-1', 'student', 'tenant-b');
+
+          expect(rbacService.canManageUser(instructor, student)).toBe(false);
+        });
+
+        it('should DENY instructor from managing another instructor (same namespace)', () => {
+          const instructor1 = createUser('instructor', 'instr-1', 'instructor1', 'tenant-a');
+          const instructor2 = createUser('instructor', 'instr-2', 'instructor2', 'tenant-a');
+
+          expect(rbacService.canManageUser(instructor1, instructor2)).toBe(false);
+        });
+
+        it('should DENY instructor from managing another instructor (different namespace)', () => {
+          const instructor1 = createUser('instructor', 'instr-1', 'instructor1', 'tenant-a');
+          const instructor2 = createUser('instructor', 'instr-2', 'instructor2', 'tenant-b');
+
+          expect(rbacService.canManageUser(instructor1, instructor2)).toBe(false);
+        });
+
+        it('should DENY instructor from managing namespace-admin', () => {
+          const instructor = createUser('instructor', 'instr-1', 'instructor', 'tenant-a');
+          const namespaceAdmin = createUser('namespace-admin', 'ns-admin-1', 'nsadmin', 'tenant-a');
+
+          expect(rbacService.canManageUser(instructor, namespaceAdmin)).toBe(false);
+        });
+      });
+
+      describe('Multi-Tenant Scenarios', () => {
+        it('should isolate user management between multiple tenants', () => {
+          // Tenant A
+          const nsAdminA = createUser('namespace-admin', 'ns-admin-a', 'adminA', 'tenant-a');
+          const instructorA = createUser('instructor', 'instr-a', 'instructorA', 'tenant-a');
+          const studentA = createUser('student', 'student-a', 'studentA', 'tenant-a');
+
+          // Tenant B
+          const nsAdminB = createUser('namespace-admin', 'ns-admin-b', 'adminB', 'tenant-b');
+          const instructorB = createUser('instructor', 'instr-b', 'instructorB', 'tenant-b');
+          const studentB = createUser('student', 'student-b', 'studentB', 'tenant-b');
+
+          // Tenant A admin can manage Tenant A users
+          expect(rbacService.canManageUser(nsAdminA, instructorA)).toBe(true);
+          expect(rbacService.canManageUser(nsAdminA, studentA)).toBe(true);
+
+          // Tenant A admin CANNOT manage Tenant B users
+          expect(rbacService.canManageUser(nsAdminA, nsAdminB)).toBe(false);
+          expect(rbacService.canManageUser(nsAdminA, instructorB)).toBe(false);
+          expect(rbacService.canManageUser(nsAdminA, studentB)).toBe(false);
+
+          // Tenant B instructor can manage Tenant B students only
+          expect(rbacService.canManageUser(instructorB, studentB)).toBe(true);
+          expect(rbacService.canManageUser(instructorB, studentA)).toBe(false);
+        });
+
+        it('should prevent cross-namespace privilege escalation', () => {
+          const instructorA = createUser('instructor', 'instr-a', 'instructorA', 'tenant-a');
+          const instructorB = createUser('instructor', 'instr-b', 'instructorB', 'tenant-b');
+          const studentC = createUser('student', 'student-c', 'studentC', 'tenant-c');
+
+          // Instructors cannot manage students in other namespaces
+          expect(rbacService.canManageUser(instructorA, studentC)).toBe(false);
+          expect(rbacService.canManageUser(instructorB, studentC)).toBe(false);
+
+          // Instructors cannot manage each other across namespaces
+          expect(rbacService.canManageUser(instructorA, instructorB)).toBe(false);
+        });
       });
     });
   });
