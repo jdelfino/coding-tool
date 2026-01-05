@@ -13,7 +13,7 @@
 	},
 
 	// Use 'postCreateCommand' to run commands after the container is created.
-	"postCreateCommand": "curl -fsSL https://raw.githubusercontent.com/steveyegge/beads/main/scripts/install.sh | bash && npm install && npx playwright install-deps chromium && npx supabase init",
+	"postCreateCommand": "curl -fsSL https://raw.githubusercontent.com/steveyegge/beads/main/scripts/install.sh | bash && npm install && npx playwright install-deps chromium",
 
 	// Forward Supabase ports
 	"forwardPorts": [54321, 54322, 54323],
