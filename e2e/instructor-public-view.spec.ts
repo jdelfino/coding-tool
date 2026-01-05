@@ -11,7 +11,13 @@
 
 import { test, expect } from './helpers/setup';
 import { Page, Browser, BrowserContext } from '@playwright/test';
-import { loginAsInstructor, loginAsStudent } from './fixtures/auth-helpers';
+import { 
+  loginAsInstructor, 
+  loginAsStudent,
+  generateTestNamespaceId,
+  createTestNamespace,
+  cleanupNamespace 
+} from './fixtures/auth-helpers';
 import {
   createTestProblem,
   createTestClassViaAPI,
@@ -80,12 +86,13 @@ async function studentJoinAndSubmit(
   joinCode: string,
   studentName: string,
   code: string,
-  problemTitle: string
+  problemTitle: string,
+  namespaceId: string
 ): Promise<{ page: Page; context: BrowserContext }> {
   // Create a new isolated context for the student to avoid cookie sharing
   const studentContext = await browser.newContext();
   const studentPage = await studentContext.newPage();
-  await loginAsStudent(studentPage, studentName);
+  await loginAsStudent(studentPage, studentName, namespaceId);
 
   // Wait for auth to fully settle after login
   await studentPage.waitForTimeout(1000);
@@ -180,10 +187,15 @@ test.describe('Instructor Public View', () => {
   let testClass: any;
   let testSection: any;
   let testProblem: any;
+  let namespaceId: string;
 
   test.beforeEach(async ({ page }) => {
+    // Create unique namespace for this test
+    namespaceId = generateTestNamespaceId();
+    await createTestNamespace(namespaceId);
+
     // Setup instructor and create test data
-    instructorUser = await loginAsInstructor(page, 'test-public-view-instructor');
+    instructorUser = await loginAsInstructor(page, `instructor-${namespaceId}`, namespaceId);
 
     // Create class and section via API
     testClass = await createTestClassViaAPI(page, 'CS 101', 'Test Class for Public View');
@@ -197,6 +209,11 @@ test.describe('Instructor Public View', () => {
       'Calculate the sum of all elements in an array',
       'def array_sum(arr):\n    # TODO: implement\n    pass'
     );
+  });
+
+  test.afterEach(async () => {
+    // Clean up namespace after each test
+    await cleanupNamespace(namespaceId);
   });
 
   test('should display public view with no featured submission (empty state)', async ({ page }) => {
@@ -229,9 +246,10 @@ test.describe('Instructor Public View', () => {
     const { page: studentPage, context: studentContext } = await studentJoinAndSubmit(
       browser,
       joinCode,
-      'alice-public-test',
+      `alice-public-test-${namespaceId}`,
       studentCode,
-      testProblem.title
+      testProblem.title,
+      namespaceId
     );
 
     // Open public view in a separate context (can use instructor's context)
@@ -293,7 +311,7 @@ test.describe('Instructor Public View', () => {
     // Have a student join - create new context for isolated authentication
     const studentContext = await browser.newContext();
     const studentPage = await studentContext.newPage();
-    await loginAsStudent(studentPage, 'bob-multiple-submissions');
+    await loginAsStudent(studentPage, `bob-multiple-submissions-${namespaceId}`, namespaceId);
 
     // Navigate to sections and join
     await studentPage.goto('/sections');
@@ -331,7 +349,7 @@ test.describe('Instructor Public View', () => {
     await page.click('button:has-text("Student Code")');
     await page.waitForTimeout(500);
 
-    await expect(page.locator('text=bob-multiple-submissions')).toBeVisible({ timeout: 5000 });
+    await expect(page.locator(`text=bob-multiple-submissions-${namespaceId}`)).toBeVisible({ timeout: 5000 });
 
     // Open public view BEFORE clicking button so it receives WebSocket update
     const publicPage = await page.context().newPage();
@@ -371,17 +389,19 @@ test.describe('Instructor Public View', () => {
     const { page: student1Page, context: student1Context } = await studentJoinAndSubmit(
       browser,
       joinCode,
-      'charlie-multi',
+      `charlie-multi-${namespaceId}`,
       'def array_sum(arr):\n    result = 0\n    for x in arr:\n        result += x\n    return result',
-      testProblem.title
+      testProblem.title,
+      namespaceId
     );
 
     const { page: student2Page, context: student2Context } = await studentJoinAndSubmit(
       browser,
       joinCode,
-      'diana-multi',
+      `diana-multi-${namespaceId}`,
       'def array_sum(arr):\n    return sum(arr)',
-      testProblem.title
+      testProblem.title,
+      namespaceId
     );
 
     // Switch to instructor and verify both students appear

@@ -9,12 +9,20 @@
  */
 
 import { test, expect } from './helpers/setup';
-import { loginAsSystemAdmin } from './fixtures/auth-helpers';
+import { 
+  loginAsSystemAdmin,
+  generateTestNamespaceId,
+  cleanupNamespace 
+} from './fixtures/auth-helpers';
 
 test.describe('System Admin Core Flows', () => {
   test('System admin can create namespace and manage users', async ({ page }) => {
-    // Sign in as system admin
-    await loginAsSystemAdmin(page, 'sysadmin-test');
+    // Generate unique namespace ID for this test
+    const namespaceId = generateTestNamespaceId();
+
+    try {
+      // Sign in as system admin
+      await loginAsSystemAdmin(page, `sysadmin-${namespaceId}`);
 
     // Should redirect to system admin dashboard
     await expect(page).toHaveURL('/system');
@@ -23,11 +31,7 @@ test.describe('System Admin Core Flows', () => {
     // Verify we can see the namespace management UI
     await expect(page.locator('h2:has-text("Namespaces")')).toBeVisible();
 
-    // Create a new namespace
-    const namespaceId = `test-ns-${Date.now()}`;
-    await page.click('button:has-text("Create New Namespace")');
-
-    // Fill out the namespace form
+      // Create a new namespace using the pre-generated ID
     await page.fill('input#namespace-id', namespaceId);
     await page.fill('input#display-name', 'Test Organization');
 
@@ -99,5 +103,9 @@ test.describe('System Admin Core Flows', () => {
 
     // Verify namespace still shows in the list
     await expect(page.locator(`text=${namespaceId}`)).toBeVisible();
+    } finally {
+      // Clean up the namespace after test
+      await cleanupNamespace(namespaceId);
+    }
   });
 });

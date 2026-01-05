@@ -9,7 +9,13 @@
  */
 
 import { test, expect } from './helpers/setup';
-import { loginAsStudent, loginAsInstructor } from './fixtures/auth-helpers';
+import { 
+  loginAsStudent, 
+  loginAsInstructor,
+  generateTestNamespaceId,
+  createTestNamespace,
+  cleanupNamespace 
+} from './fixtures/auth-helpers';
 import {
   createTestProblem,
   createTestClassViaAPI,
@@ -23,10 +29,15 @@ test.describe('Student Session Participation', () => {
   let testSection: any;
   let testProblem: any;
   let joinCode: string;
+  let namespaceId: string;
 
   test.beforeEach(async ({ page }) => {
+    // Create unique namespace for this test
+    namespaceId = generateTestNamespaceId();
+    await createTestNamespace(namespaceId);
+
     // Setup instructor and create test data
-    instructorUser = await loginAsInstructor(page, 'test-session-instructor');
+    instructorUser = await loginAsInstructor(page, `instructor-${namespaceId}`, namespaceId);
 
     // Create class and section via API
     testClass = await createTestClassViaAPI(page, 'CS 101', 'Test Class for Sessions');
@@ -75,9 +86,14 @@ test.describe('Student Session Participation', () => {
     console.log('Created session with join code:', joinCode);
   });
 
+  test.afterEach(async () => {
+    // Clean up namespace after each test
+    await cleanupNamespace(namespaceId);
+  });
+
   test('Student edits previous submission', async ({ page }) => {
     // Login as student and join session
-    studentUser = await loginAsStudent(page, 'test-student-4');
+    studentUser = await loginAsStudent(page, `student-4-${namespaceId}`, namespaceId);
 
     // Navigate to sections page and join section
     await page.goto('/sections');
@@ -142,8 +158,8 @@ test.describe('Student Session Participation', () => {
     const page2 = await context2.newPage();
 
     // Login both students
-    await loginAsStudent(page1, 'test-student-multi-1');
-    await loginAsStudent(page2, 'test-student-multi-2');
+    await loginAsStudent(page1, `student-multi-1-${namespaceId}`, namespaceId);
+    await loginAsStudent(page2, `student-multi-2-${namespaceId}`, namespaceId);
 
     // Student 1 joins section and session
     await page1.goto('/sections');
@@ -206,7 +222,7 @@ test.describe('Student Session Participation', () => {
 
   test('Student code persistence', async ({ page }) => {
     // Login as student and join session
-    studentUser = await loginAsStudent(page, 'test-student-persist');
+    studentUser = await loginAsStudent(page, `student-persist-${namespaceId}`, namespaceId);
 
     // Navigate to sections page and join section
     await page.goto('/sections');

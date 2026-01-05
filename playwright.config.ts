@@ -7,11 +7,11 @@ import { defineConfig, devices } from '@playwright/test';
 export default defineConfig({
   testDir: './e2e',
 
-  /* Run tests in files in parallel */
-  fullyParallel: false,  // Disabled due to shared data directory causing race conditions
+  /* Run tests in files in parallel - NOW SAFE with namespace isolation */
+  fullyParallel: true,
 
-  /* Run tests serially with single worker to avoid data conflicts */
-  workers: 1,
+  /* Use multiple workers for parallel execution */
+  workers: process.env.CI ? 2 : 4,
 
   /* Fail the build on CI if you accidentally left test.only in the source code */
   forbidOnly: !!process.env.CI,

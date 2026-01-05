@@ -1,5 +1,11 @@
 import { test, expect } from './helpers/setup';
-import { loginAsInstructor, loginAsStudent } from './fixtures/auth-helpers';
+import { 
+  loginAsInstructor, 
+  loginAsStudent, 
+  generateTestNamespaceId, 
+  createTestNamespace, 
+  cleanupNamespace 
+} from './fixtures/auth-helpers';
 
 /**
  * Critical Path E2E Tests
@@ -16,89 +22,98 @@ import { loginAsInstructor, loginAsStudent } from './fixtures/auth-helpers';
 
 test.describe('Critical User Paths', () => {
   test('Complete workflow: Instructor setup and student participation', async ({ page, browser }) => {
-    // First, instructor creates a session
-    const instructorContext = await browser.newContext();
-    const instructorPage = await instructorContext.newPage();
-    await loginAsInstructor(instructorPage, 'instructor-for-student');
-    await instructorPage.goto('/instructor');
+    // Create unique namespace for this test
+    const namespaceId = generateTestNamespaceId();
+    await createTestNamespace(namespaceId);
 
-    // Create class
-    const createButton = instructorPage.locator('button:has-text("New Class"), button:has-text("Create Your First Class")').first();
-    await createButton.click();
-    await instructorPage.fill('input#class-name', 'Student Test Class');
-    await instructorPage.click('button:has-text("Create Class")');
-    await expect(instructorPage.locator('text=Student Test Class')).toBeVisible();
+    try {
+      // First, instructor creates a session
+      const instructorContext = await browser.newContext();
+      const instructorPage = await instructorContext.newPage();
+      await loginAsInstructor(instructorPage, `instructor-${namespaceId}`, namespaceId);
+      await instructorPage.goto('/instructor');
 
-    // Create section and capture join code
-    await instructorPage.click('button:has-text("Student Test Class")');
-    await instructorPage.click('button:has-text("Create Section"), button:has-text("Create Your First Section")');
-    await instructorPage.fill('input#section-name', 'Student Test Section');
-    await instructorPage.locator('form button:has-text("Create Section")').click();
-    await expect(instructorPage.locator('text=Student Test Section')).toBeVisible();
+      // Create class
+      const createButton = instructorPage.locator('button:has-text("New Class"), button:has-text("Create Your First Class")').first();
+      await createButton.click();
+      await instructorPage.fill('input#class-name', 'Student Test Class');
+      await instructorPage.click('button:has-text("Create Class")');
+      await expect(instructorPage.locator('text=Student Test Class')).toBeVisible();
 
-    // Get join code from section card (6-character alphanumeric code)
-    const joinCodeElement = instructorPage.locator('text=/[A-Z0-9]{6}/').first();
-    await expect(joinCodeElement).toBeVisible({ timeout: 5000 });
-    const joinCode = (await joinCodeElement.textContent()) || '';
-    console.log('Section join code:', joinCode);
+      // Create section and capture join code
+      await instructorPage.click('button:has-text("Student Test Class")');
+      await instructorPage.click('button:has-text("Create Section"), button:has-text("Create Your First Section")');
+      await instructorPage.fill('input#section-name', 'Student Test Section');
+      await instructorPage.locator('form button:has-text("Create Section")').click();
+      await expect(instructorPage.locator('text=Student Test Section')).toBeVisible();
 
-    // Create problem
-    await instructorPage.click('button:has-text("Problems")');
-    await expect(instructorPage.locator('h2:has-text("Problem Library")')).toBeVisible({ timeout: 5000 });
-    await instructorPage.click('button:has-text("Create New Problem")');
-    await instructorPage.fill('input#problem-title', 'Hello World');
-    await instructorPage.fill('textarea#problem-description', 'Print Hello World');
-    await instructorPage.locator('button:has-text("Create Problem")').first().click();
-    await expect(instructorPage.locator('text=Hello World')).toBeVisible();
+      // Get join code from section card (6-character alphanumeric code)
+      const joinCodeElement = instructorPage.locator('text=/[A-Z0-9]{6}/').first();
+      await expect(joinCodeElement).toBeVisible({ timeout: 5000 });
+      const joinCode = (await joinCodeElement.textContent()) || '';
+      console.log('Section join code:', joinCode);
 
-    // Create session
-    const problemCard = instructorPage.locator('div:has-text("Hello World")').first();
-    await problemCard.locator('button:has-text("Create Session")').click();
-    await instructorPage.selectOption('select#class', { label: 'Student Test Class' });
-    await instructorPage.waitForTimeout(500);
-    await instructorPage.selectOption('select#section', { label: 'Student Test Section' });
-    await instructorPage.locator('button:has-text("Create Session")').last().click();
+      // Create problem
+      await instructorPage.click('button:has-text("Problems")');
+      await expect(instructorPage.locator('h2:has-text("Problem Library")')).toBeVisible({ timeout: 5000 });
+      await instructorPage.click('button:has-text("Create New Problem")');
+      await instructorPage.fill('input#problem-title', 'Hello World');
+      await instructorPage.fill('textarea#problem-description', 'Print Hello World');
+      await instructorPage.locator('button:has-text("Create Problem")').first().click();
+      await expect(instructorPage.locator('text=Hello World')).toBeVisible();
 
-    // Wait for session view to load
-    await expect(instructorPage.locator('h2:has-text("Active Session")')).toBeVisible({ timeout: 5000 });
+      // Create session
+      const problemCard = instructorPage.locator('div:has-text("Hello World")').first();
+      await problemCard.locator('button:has-text("Create Session")').click();
+      await instructorPage.selectOption('select#class', { label: 'Student Test Class' });
+      await instructorPage.waitForTimeout(500);
+      await instructorPage.selectOption('select#section', { label: 'Student Test Section' });
+      await instructorPage.locator('button:has-text("Create Session")').last().click();
 
-    // Now student joins the section using the join code
-    await loginAsStudent(page, 'test-student-critical');
-    await page.goto('/sections');
-    await expect(page.locator('h1:has-text("My Sections")')).toBeVisible({ timeout: 5000 });
+      // Wait for session view to load
+      await expect(instructorPage.locator('h2:has-text("Active Session")')).toBeVisible({ timeout: 5000 });
 
-    // Join section with join code
-    await page.click('button:has-text("Join Section"), button:has-text("Join Your First Section")');
-    await expect(page.locator('h2:has-text("Join a Section")')).toBeVisible({ timeout: 5000 });
-    await page.fill('input#joinCode', joinCode);
-    await page.click('button:has-text("Join Section")');
+      // Now student joins the section using the join code
+      await loginAsStudent(page, `student-${namespaceId}`, namespaceId);
+      await page.goto('/sections');
+      await expect(page.locator('h1:has-text("My Sections")')).toBeVisible({ timeout: 5000 });
 
-    // Wait for redirect back to sections page after successful join
-    await expect(page.locator('h1:has-text("My Sections")')).toBeVisible({ timeout: 5000 });
+      // Join section with join code
+      await page.click('button:has-text("Join Section"), button:has-text("Join Your First Section")');
+      await expect(page.locator('h2:has-text("Join a Section")')).toBeVisible({ timeout: 5000 });
+      await page.fill('input#joinCode', joinCode);
+      await page.click('button:has-text("Join Section")');
 
-    // The active session should be visible in the section - look for the "Join Now" button
-    await expect(page.locator('button:has-text("Join Now")')).toBeVisible({ timeout: 5000 });
+      // Wait for redirect back to sections page after successful join
+      await expect(page.locator('h1:has-text("My Sections")')).toBeVisible({ timeout: 5000 });
 
-    // Click "Join Now" to join the active session
-    await page.click('button:has-text("Join Now")');
+      // The active session should be visible in the section - look for the "Join Now" button
+      await expect(page.locator('button:has-text("Join Now")')).toBeVisible({ timeout: 5000 });
 
-    // Verify student entered session
-    await expect(page.locator('h1:has-text("Live Coding Session")')).toBeVisible({ timeout: 5000 });
-    await expect(page.locator('h2:has-text("Hello World")')).toBeVisible({ timeout: 5000 });
+      // Click "Join Now" to join the active session
+      await page.click('button:has-text("Join Now")');
 
-    // Write and submit code
-    const monacoEditor = page.locator('.monaco-editor').first();
-    await expect(monacoEditor).toBeVisible({ timeout: 5000 });
-    await page.evaluate(() => {
-      const model = (window as any).monaco.editor.getModels()[0];
-      model.setValue('print("Hello World")');
-    });
-    await page.click('button:has-text("Run")');
+      // Verify student entered session
+      await expect(page.locator('h1:has-text("Live Coding Session")')).toBeVisible({ timeout: 5000 });
+      await expect(page.locator('h2:has-text("Hello World")')).toBeVisible({ timeout: 5000 });
 
-    // Verify execution output
-    await expect(page.locator('pre:has-text("Hello World")')).toBeVisible({ timeout: 5000 });
+      // Write and submit code
+      const monacoEditor = page.locator('.monaco-editor').first();
+      await expect(monacoEditor).toBeVisible({ timeout: 5000 });
+      await page.evaluate(() => {
+        const model = (window as any).monaco.editor.getModels()[0];
+        model.setValue('print("Hello World")');
+      });
+      await page.click('button:has-text("Run")');
 
-    // Cleanup
-    await instructorContext.close();
+      // Verify execution output
+      await expect(page.locator('pre:has-text("Hello World")')).toBeVisible({ timeout: 5000 });
+
+      // Cleanup
+      await instructorContext.close();
+    } finally {
+      // Clean up namespace after test
+      await cleanupNamespace(namespaceId);
+    }
   });
 });
