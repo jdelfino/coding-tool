@@ -26,6 +26,15 @@ Before you begin, ensure you have the following installed:
    - Download from https://git-scm.com/
    - Verify installation: `git --version`
 
+### Optional Configuration
+
+**System Administrator**: To designate a system administrator (who can manage namespaces and users across all namespaces), create a `.env` file with:
+```
+SYSTEM_ADMIN_EMAIL=your-email@example.com
+```
+
+The first time a user signs in with this email, they'll be elevated to system-admin role.
+
 ### Recommended Software
 
 - **VS Code** - Recommended IDE with TypeScript support

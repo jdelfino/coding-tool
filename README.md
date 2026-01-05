@@ -13,10 +13,11 @@ A real-time web-based coding tool designed for classroom instruction. Instructor
 - **No Installation Required**: Students only need a web browser
 
 ### Authentication & Authorization
-- **Role-Based Access Control (RBAC)**: Separate instructor and student roles with fine-grained permissions
-- **User Management**: Admin interface for managing instructors and students
+- **Multi-Tenancy**: Namespace-based organization isolation with system administrator role
+- **Role-Based Access Control (RBAC)**: System admin, namespace admin, instructor, and student roles
+- **User Management**: Admin interfaces for managing users within namespaces
 - **Secure Sessions**: Cookie-based authentication with session management
-- **Auto-Account Creation**: First user becomes instructor, subsequent users are students (local mode)
+- **Data Isolation**: Complete data separation between namespaces
 
 ### Persistence & History
 - **File-Based Storage**: Sessions, problems, revisions, and users persisted to JSON files
@@ -29,6 +30,17 @@ A real-time web-based coding tool designed for classroom instruction. Instructor
 - **Revision Snapshots**: Periodic full snapshots mixed with diffs for reliability
 - **Admin Panel**: User management interface for instructors
 - **Multiple Sessions**: Support for concurrent coding sessions
+
+## Multi-Tenancy
+
+The application supports multi-tenant deployment with namespace isolation:
+- Each namespace represents an organization (e.g., university, department)
+- Users belong to exactly one namespace
+- Data is completely isolated between namespaces
+- **System administrators** manage namespaces and users across the system (set via `SYSTEM_ADMIN_EMAIL` env var)
+- **Namespace administrators** manage users within their namespace only
+- **Instructors** create classes and sessions within their namespace
+- **Students** participate in sessions within their namespace
 
 ## Requirements
 
