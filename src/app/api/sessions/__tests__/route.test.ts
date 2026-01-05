@@ -1,20 +1,38 @@
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { GET, POST } from '../route';
 import { getAuthProvider } from '@/server/auth';
 import { getSessionManager } from '@/server/session-manager';
 import { getStorage } from '@/server/persistence';
+import type { User } from '@/server/auth/types';
+import { RBACService } from '@/server/auth/rbac';
 
 // Mock dependencies
 jest.mock('@/server/auth');
 jest.mock('@/server/session-manager');
 jest.mock('@/server/persistence');
 
+jest.mock('@/server/auth/api-helpers', () => ({
+  requireAuth: jest.fn(),
+  getNamespaceContext: jest.fn((req: any, user: any) => user.namespaceId || 'default'),
+}));
+
+import { requireAuth } from '@/server/auth/api-helpers';
+
+// Test helper to create mock auth context
+function createAuthContext(user: User) {
+  return {
+    user,
+    sessionId: 'test-session',
+    rbac: new RBACService(user),
+  };
+}
+
 describe('POST /api/sessions', () => {
-  const mockUser = {
+  const mockUser: User = {
     id: 'user-1',
     username: 'instructor',
-    email: 'instructor@test.com',
     role: 'instructor' as const,
+    namespaceId: 'default',
     createdAt: new Date('2024-01-01'),
   };
 
@@ -93,7 +111,7 @@ describe('POST /api/sessions', () => {
   });
 
   it('creates a session without a problem', async () => {
-    mockAuthProvider.getSession.mockResolvedValue({ user: mockUser });
+    (requireAuth as jest.Mock).mockResolvedValue(createAuthContext(mockUser));
     mockStorage.sections.getSection.mockResolvedValue(mockSection);
     mockStorage.memberships.getMembership.mockResolvedValue(mockMembership);
     mockSessionManager.createSession.mockResolvedValue(mockSession);
@@ -113,7 +131,7 @@ describe('POST /api/sessions', () => {
     expect(response.status).toBe(201);
     expect(data.success).toBe(true);
     expect(data.session.id).toBe('session-1');
-    expect(data.session.joinCode).toBe('XYZ789');
+    expect(data.session.joinCode).toBe('ABC123'); // Section's join code
     expect(mockSessionManager.createSession).toHaveBeenCalledWith(
       'user-1',
       'section-1',
@@ -123,7 +141,7 @@ describe('POST /api/sessions', () => {
   });
 
   it('creates a session with a problem', async () => {
-    mockAuthProvider.getSession.mockResolvedValue({ user: mockUser });
+    (requireAuth as jest.Mock).mockResolvedValue(createAuthContext(mockUser));
     mockStorage.sections.getSection.mockResolvedValue(mockSection);
     mockStorage.memberships.getMembership.mockResolvedValue(mockMembership);
     mockStorage.problems.getById.mockResolvedValue(mockProblem);
@@ -161,6 +179,10 @@ describe('POST /api/sessions', () => {
   });
 
   it('returns 401 when not authenticated', async () => {
+    (requireAuth as jest.Mock).mockResolvedValue(
+      NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+    );
+
     const request = new NextRequest('http://localhost/api/sessions', {
       method: 'POST',
       headers: {
@@ -173,13 +195,12 @@ describe('POST /api/sessions', () => {
     const data = await response.json();
 
     expect(response.status).toBe(401);
-    expect(data.error).toBe('Unauthorized');
+    expect(data.error).toBe('Not authenticated');
   });
 
   it('returns 403 when user is not an instructor', async () => {
-    mockAuthProvider.getSession.mockResolvedValue({
-      user: { ...mockUser, role: 'student' },
-    });
+    const studentUser: User = { ...mockUser, role: 'student' };
+    (requireAuth as jest.Mock).mockResolvedValue(createAuthContext(studentUser));
 
     const request = new NextRequest('http://localhost/api/sessions', {
       method: 'POST',
@@ -198,7 +219,7 @@ describe('POST /api/sessions', () => {
   });
 
   it('returns 400 when sectionId is missing', async () => {
-    mockAuthProvider.getSession.mockResolvedValue({ user: mockUser });
+    (requireAuth as jest.Mock).mockResolvedValue(createAuthContext(mockUser));
 
     const request = new NextRequest('http://localhost/api/sessions', {
       method: 'POST',
@@ -217,7 +238,7 @@ describe('POST /api/sessions', () => {
   });
 
   it('returns 404 when section does not exist', async () => {
-    mockAuthProvider.getSession.mockResolvedValue({ user: mockUser });
+    (requireAuth as jest.Mock).mockResolvedValue(createAuthContext(mockUser));
     mockStorage.sections.getSection.mockResolvedValue(null);
 
     const request = new NextRequest('http://localhost/api/sessions', {
@@ -241,8 +262,8 @@ describe('POST /api/sessions', () => {
       ...mockSection,
       instructorIds: ['other-instructor'], // User not in instructorIds
     };
-    
-    mockAuthProvider.getSession.mockResolvedValue({ user: mockUser });
+
+    (requireAuth as jest.Mock).mockResolvedValue(createAuthContext(mockUser));
     mockStorage.sections.getSection.mockResolvedValue(sectionWithDifferentInstructor);
     mockStorage.memberships.getMembership.mockResolvedValue({
       ...mockMembership,
@@ -266,7 +287,7 @@ describe('POST /api/sessions', () => {
   });
 
   it('returns 404 when problem does not exist', async () => {
-    mockAuthProvider.getSession.mockResolvedValue({ user: mockUser });
+    (requireAuth as jest.Mock).mockResolvedValue(createAuthContext(mockUser));
     mockStorage.sections.getSection.mockResolvedValue(mockSection);
     mockStorage.memberships.getMembership.mockResolvedValue(mockMembership);
     mockStorage.problems.getById.mockResolvedValue(null);
@@ -293,7 +314,7 @@ describe('POST /api/sessions', () => {
   it('creates a session when user is in instructorIds but has no membership', async () => {
     // This tests the scenario where the instructor created the section
     // and is in instructorIds array but has no membership record
-    mockAuthProvider.getSession.mockResolvedValue({ user: mockUser });
+    (requireAuth as jest.Mock).mockResolvedValue(createAuthContext(mockUser));
     mockStorage.sections.getSection.mockResolvedValue(mockSection);
     mockStorage.memberships.getMembership.mockResolvedValue(null); // No membership
     mockSessionManager.createSession.mockResolvedValue(mockSession);
@@ -321,8 +342,8 @@ describe('POST /api/sessions', () => {
       ...mockSection,
       instructorIds: ['other-instructor'],
     };
-    
-    mockAuthProvider.getSession.mockResolvedValue({ user: mockUser });
+
+    (requireAuth as jest.Mock).mockResolvedValue(createAuthContext(mockUser));
     mockStorage.sections.getSection.mockResolvedValue(sectionWithoutUser);
     mockStorage.memberships.getMembership.mockResolvedValue(mockMembership);
     mockSessionManager.createSession.mockResolvedValue(mockSession);
@@ -348,8 +369,8 @@ describe('POST /api/sessions', () => {
       ...mockSection,
       instructorIds: ['other-instructor'],
     };
-    
-    mockAuthProvider.getSession.mockResolvedValue({ user: mockUser });
+
+    (requireAuth as jest.Mock).mockResolvedValue(createAuthContext(mockUser));
     mockStorage.sections.getSection.mockResolvedValue(sectionWithoutUser);
     mockStorage.memberships.getMembership.mockResolvedValue(null); // No membership
 
@@ -370,19 +391,19 @@ describe('POST /api/sessions', () => {
   });
 });
 describe('GET /api/sessions', () => {
-  const mockInstructor = {
+  const mockInstructor: User = {
     id: 'instructor-1',
     username: 'instructor',
-    email: 'instructor@test.com',
     role: 'instructor' as const,
+    namespaceId: 'default',
     createdAt: new Date('2024-01-01'),
   };
 
-  const mockStudent = {
+  const mockStudent: User = {
     id: 'student-1',
     username: 'student',
-    email: 'student@test.com',
     role: 'student' as const,
+    namespaceId: 'default',
     createdAt: new Date('2024-01-01'),
   };
 
@@ -459,7 +480,7 @@ describe('GET /api/sessions', () => {
   });
 
   it('returns sessions created by instructor', async () => {
-    mockAuthProvider.getSession.mockResolvedValue({ user: mockInstructor });
+    (requireAuth as jest.Mock).mockResolvedValue(createAuthContext(mockInstructor));
     mockStorage.sessions.listAllSessions.mockResolvedValue([mockSessions[0], mockSessions[1]]);
 
     const request = new NextRequest('http://localhost/api/sessions', {
@@ -480,11 +501,12 @@ describe('GET /api/sessions', () => {
     expect(data.sessions[1].id).toBe('session-2');
     expect(mockStorage.sessions.listAllSessions).toHaveBeenCalledWith({
       instructorId: 'instructor-1',
+      namespaceId: 'default',
     });
   });
 
   it('returns sessions joined by student', async () => {
-    mockAuthProvider.getSession.mockResolvedValue({ user: mockStudent });
+    (requireAuth as jest.Mock).mockResolvedValue(createAuthContext(mockStudent));
     mockStorage.sessions.listAllSessions.mockResolvedValue(mockSessions);
 
     const request = new NextRequest('http://localhost/api/sessions', {
@@ -505,7 +527,7 @@ describe('GET /api/sessions', () => {
   });
 
   it('filters by active status', async () => {
-    mockAuthProvider.getSession.mockResolvedValue({ user: mockInstructor });
+    (requireAuth as jest.Mock).mockResolvedValue(createAuthContext(mockInstructor));
     mockStorage.sessions.listAllSessions.mockResolvedValue([mockSessions[0]]);
 
     const request = new NextRequest('http://localhost/api/sessions?status=active', {
@@ -524,12 +546,13 @@ describe('GET /api/sessions', () => {
     expect(data.sessions[0].status).toBe('active');
     expect(mockStorage.sessions.listAllSessions).toHaveBeenCalledWith({
       instructorId: 'instructor-1',
+      namespaceId: 'default',
       active: true,
     });
   });
 
   it('filters by completed status', async () => {
-    mockAuthProvider.getSession.mockResolvedValue({ user: mockInstructor });
+    (requireAuth as jest.Mock).mockResolvedValue(createAuthContext(mockInstructor));
     mockStorage.sessions.listAllSessions.mockResolvedValue([mockSessions[1]]);
 
     const request = new NextRequest('http://localhost/api/sessions?status=completed', {
@@ -547,11 +570,16 @@ describe('GET /api/sessions', () => {
     expect(data.sessions[0].status).toBe('completed');
     expect(mockStorage.sessions.listAllSessions).toHaveBeenCalledWith({
       instructorId: 'instructor-1',
+      namespaceId: 'default',
       active: false,
     });
   });
 
   it('returns 401 when not authenticated', async () => {
+    (requireAuth as jest.Mock).mockResolvedValue(
+      NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+    );
+
     const request = new NextRequest('http://localhost/api/sessions', {
       method: 'GET',
     });
@@ -560,11 +588,11 @@ describe('GET /api/sessions', () => {
     const data = await response.json();
 
     expect(response.status).toBe(401);
-    expect(data.error).toBe('Unauthorized');
+    expect(data.error).toBe('Not authenticated');
   });
 
   it('returns empty array when instructor has no sessions', async () => {
-    mockAuthProvider.getSession.mockResolvedValue({ user: mockInstructor });
+    (requireAuth as jest.Mock).mockResolvedValue(createAuthContext(mockInstructor));
     mockStorage.sessions.listAllSessions.mockResolvedValue([]);
 
     const request = new NextRequest('http://localhost/api/sessions', {

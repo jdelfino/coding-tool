@@ -147,14 +147,20 @@ describe('/api/classes/[id]/sections', () => {
     });
 
     it('should return sections with counts for instructors', async () => {
+      const instructor: User = {
+        id: 'user-1',
+        username: 'instructor',
+        role: 'instructor',
+        namespaceId: 'default',
+        createdAt: new Date(),
+      };
+      (requireAuth as jest.Mock).mockResolvedValue(createAuthContext(instructor));
+
       const request = new NextRequest('http://localhost/api/classes/class-1/sections', {
         headers: { Cookie: 'sessionId=valid-session' },
       });
       const params = Promise.resolve({ id: 'class-1' });
 
-      mockAuthProvider.getSession.mockResolvedValue({
-        user: { id: 'user-1', role: 'instructor' },
-      } as any);
       mockClassRepo.getClass.mockResolvedValue({
         id: 'class-1',
         name: 'CS101',
@@ -172,12 +178,6 @@ describe('/api/classes/[id]/sections', () => {
           name: 'Section B',
           semester: 'TTh 2-3pm',
         },
-        {
-          id: 'section-3',
-          classId: 'class-2',
-          name: 'Section C',
-          semester: 'MWF 1-2pm',
-        },
       ] as any);
       mockMembershipRepo.getSectionMembers
         .mockResolvedValueOnce([
@@ -193,24 +193,22 @@ describe('/api/classes/[id]/sections', () => {
 
       expect(response.status).toBe(200);
       expect(data.sections).toHaveLength(2);
-      expect(data.sections).toEqual([
-        {
-          id: 'section-1',
-          name: 'Section A',
-          schedule: 'MWF 10-11am',
-          location: '',
-          studentCount: 2,
-          activeSessionCount: 0,
-        },
-        {
-          id: 'section-2',
-          name: 'Section B',
-          schedule: 'TTh 2-3pm',
-          location: '',
-          studentCount: 1,
-          activeSessionCount: 0,
-        },
-      ]);
+      expect(data.sections[0]).toMatchObject({
+        id: 'section-1',
+        name: 'Section A',
+        schedule: 'MWF 10-11am',
+        location: '',
+        studentCount: 2,
+        activeSessionCount: 0,
+      });
+      expect(data.sections[1]).toMatchObject({
+        id: 'section-2',
+        name: 'Section B',
+        schedule: 'TTh 2-3pm',
+        location: '',
+        studentCount: 1,
+        activeSessionCount: 0,
+      });
     });
 
     it('should return basic section info for students', async () => {

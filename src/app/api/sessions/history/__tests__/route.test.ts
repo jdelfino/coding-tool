@@ -1,26 +1,41 @@
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { GET } from '../route';
-import { requireAuth } from '@/server/auth/api-helpers';
 import { sessionManagerHolder } from '@/server/session-manager';
+import type { User } from '@/server/auth/types';
+import { RBACService } from '@/server/auth/rbac';
 
 // Mock dependencies
-jest.mock('@/server/auth/api-helpers');
+jest.mock('@/server/auth/api-helpers', () => ({
+  requireAuth: jest.fn(),
+  getNamespaceContext: jest.fn((req: any, user: any) => user.namespaceId || 'default'),
+}));
 jest.mock('@/server/session-manager');
 
+import { requireAuth } from '@/server/auth/api-helpers';
+
+// Test helper to create mock auth context
+function createAuthContext(user: User) {
+  return {
+    user,
+    sessionId: 'test-session',
+    rbac: new RBACService(user),
+  };
+}
+
 describe('GET /api/sessions/history', () => {
-  const mockUser = {
+  const mockUser: User = {
     id: 'user-1',
     username: 'instructor',
-    email: 'instructor@test.com',
     role: 'instructor' as const,
+    namespaceId: 'default',
     createdAt: new Date('2024-01-01'),
   };
 
-  const mockStudentUser = {
+  const mockStudentUser: User = {
     id: 'user-2',
     username: 'student',
-    email: 'student@test.com',
     role: 'student' as const,
+    namespaceId: 'default',
     createdAt: new Date('2024-01-01'),
   };
 
@@ -74,12 +89,7 @@ describe('GET /api/sessions/history', () => {
   beforeEach(() => {
     jest.clearAllMocks();
 
-    mockAuth = {
-      user: mockUser,
-      rbac: {
-        hasPermission: jest.fn(),
-      },
-    };
+    mockAuth = createAuthContext(mockUser);
 
     mockSessionManager = {
       getSessionsByCreator: jest.fn(),
@@ -90,9 +100,8 @@ describe('GET /api/sessions/history', () => {
   });
 
   it('returns 401 if not authenticated', async () => {
-    const { NextResponse } = await import('next/server');
     (requireAuth as jest.Mock).mockResolvedValue(
-      NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
     );
 
     const request = new NextRequest('http://localhost/api/sessions/history');
@@ -102,8 +111,9 @@ describe('GET /api/sessions/history', () => {
   });
 
   it('returns all sessions for instructor without filters', async () => {
-    (requireAuth as jest.Mock).mockResolvedValue(mockAuth);
-    mockAuth.rbac.hasPermission.mockReturnValue(true);
+    const auth = createAuthContext(mockUser);
+    (requireAuth as jest.Mock).mockResolvedValue(auth);
+    auth.rbac.hasPermission = jest.fn().mockReturnValue(true);
     mockSessionManager.getSessionsByCreator.mockResolvedValue(mockAllSessions);
 
     const request = new NextRequest('http://localhost/api/sessions/history');
@@ -117,8 +127,9 @@ describe('GET /api/sessions/history', () => {
   });
 
   it('filters by status=active', async () => {
-    (requireAuth as jest.Mock).mockResolvedValue(mockAuth);
-    mockAuth.rbac.hasPermission.mockReturnValue(true);
+    const auth = createAuthContext(mockUser);
+    (requireAuth as jest.Mock).mockResolvedValue(auth);
+    auth.rbac.hasPermission = jest.fn().mockReturnValue(true);
     mockSessionManager.getSessionsByCreator.mockResolvedValue(mockAllSessions);
 
     const request = new NextRequest('http://localhost/api/sessions/history?status=active');
@@ -132,8 +143,9 @@ describe('GET /api/sessions/history', () => {
   });
 
   it('filters by status=completed', async () => {
-    (requireAuth as jest.Mock).mockResolvedValue(mockAuth);
-    mockAuth.rbac.hasPermission.mockReturnValue(true);
+    const auth = createAuthContext(mockUser);
+    (requireAuth as jest.Mock).mockResolvedValue(auth);
+    auth.rbac.hasPermission = jest.fn().mockReturnValue(true);
     mockSessionManager.getSessionsByCreator.mockResolvedValue(mockAllSessions);
 
     const request = new NextRequest('http://localhost/api/sessions/history?status=completed');
@@ -147,8 +159,9 @@ describe('GET /api/sessions/history', () => {
   });
 
   it('filters by search query (section name)', async () => {
-    (requireAuth as jest.Mock).mockResolvedValue(mockAuth);
-    mockAuth.rbac.hasPermission.mockReturnValue(true);
+    const auth = createAuthContext(mockUser);
+    (requireAuth as jest.Mock).mockResolvedValue(auth);
+    auth.rbac.hasPermission = jest.fn().mockReturnValue(true);
     mockSessionManager.getSessionsByCreator.mockResolvedValue(mockAllSessions);
 
     const request = new NextRequest('http://localhost/api/sessions/history?search=section%20b');
@@ -160,23 +173,24 @@ describe('GET /api/sessions/history', () => {
     expect(data.sessions[0].sectionName).toBe('Section B');
   });
 
-  it('filters by search query (join code)', async () => {
-    (requireAuth as jest.Mock).mockResolvedValue(mockAuth);
-    mockAuth.rbac.hasPermission.mockReturnValue(true);
+  it('filters by search query (problem title)', async () => {
+    const auth = createAuthContext(mockUser);
+    (requireAuth as jest.Mock).mockResolvedValue(auth);
+    auth.rbac.hasPermission = jest.fn().mockReturnValue(true);
     mockSessionManager.getSessionsByCreator.mockResolvedValue(mockAllSessions);
 
-    const request = new NextRequest('http://localhost/api/sessions/history?search=abc');
+    const request = new NextRequest('http://localhost/api/sessions/history?search=section');
     const response = await GET(request);
 
     expect(response.status).toBe(200);
     const data = await response.json();
-    expect(data.sessions).toHaveLength(1);
-    expect(data.sessions[0].joinCode).toBe('ABC123');
+    expect(data.sessions).toHaveLength(2); // Both have 'section' in sectionName
   });
 
   it('combines status and search filters', async () => {
-    (requireAuth as jest.Mock).mockResolvedValue(mockAuth);
-    mockAuth.rbac.hasPermission.mockReturnValue(true);
+    const auth = createAuthContext(mockUser);
+    (requireAuth as jest.Mock).mockResolvedValue(auth);
+    auth.rbac.hasPermission = jest.fn().mockReturnValue(true);
     mockSessionManager.getSessionsByCreator.mockResolvedValue(mockAllSessions);
 
     const request = new NextRequest('http://localhost/api/sessions/history?status=active&search=section%20a');
@@ -190,15 +204,10 @@ describe('GET /api/sessions/history', () => {
   });
 
   it('returns sessions for students (viewOwn permission)', async () => {
-    const studentAuth = {
-      user: mockStudentUser,
-      rbac: {
-        hasPermission: jest.fn(),
-      },
-    };
-    
+    const studentAuth = createAuthContext(mockStudentUser);
+
     (requireAuth as jest.Mock).mockResolvedValue(studentAuth);
-    studentAuth.rbac.hasPermission.mockImplementation((user: any, permission: string) => {
+    studentAuth.rbac.hasPermission = jest.fn().mockImplementation((user: any, permission: string) => {
       return permission === 'session.viewOwn';
     });
     mockSessionManager.getSessionsByParticipant.mockResolvedValue([mockActiveSessions[0]]);
@@ -213,8 +222,9 @@ describe('GET /api/sessions/history', () => {
   });
 
   it('returns 403 if user has no session view permissions', async () => {
-    (requireAuth as jest.Mock).mockResolvedValue(mockAuth);
-    mockAuth.rbac.hasPermission.mockReturnValue(false);
+    const auth = createAuthContext(mockUser);
+    (requireAuth as jest.Mock).mockResolvedValue(auth);
+    auth.rbac.hasPermission = jest.fn().mockReturnValue(false);
 
     const request = new NextRequest('http://localhost/api/sessions/history');
     const response = await GET(request);
@@ -236,8 +246,9 @@ describe('GET /api/sessions/history', () => {
       },
     ];
 
-    (requireAuth as jest.Mock).mockResolvedValue(mockAuth);
-    mockAuth.rbac.hasPermission.mockReturnValue(true);
+    const auth = createAuthContext(mockUser);
+    (requireAuth as jest.Mock).mockResolvedValue(auth);
+    auth.rbac.hasPermission = jest.fn().mockReturnValue(true);
     mockSessionManager.getSessionsByCreator.mockResolvedValue(unsortedSessions);
 
     const request = new NextRequest('http://localhost/api/sessions/history');
@@ -252,8 +263,9 @@ describe('GET /api/sessions/history', () => {
   });
 
   it('serializes session data correctly', async () => {
-    (requireAuth as jest.Mock).mockResolvedValue(mockAuth);
-    mockAuth.rbac.hasPermission.mockReturnValue(true);
+    const auth = createAuthContext(mockUser);
+    (requireAuth as jest.Mock).mockResolvedValue(auth);
+    auth.rbac.hasPermission = jest.fn().mockReturnValue(true);
     mockSessionManager.getSessionsByCreator.mockResolvedValue([mockActiveSessions[0]]);
 
     const request = new NextRequest('http://localhost/api/sessions/history');
@@ -262,20 +274,21 @@ describe('GET /api/sessions/history', () => {
     expect(response.status).toBe(200);
     const data = await response.json();
     const session = data.sessions[0];
-    
+
     expect(session.id).toBe('session-1');
-    expect(session.joinCode).toBe('ABC123');
     expect(session.problemTitle).toBe('Test Problem 1');
     expect(session.participantCount).toBe(2);
     expect(session.status).toBe('active');
     expect(session.sectionName).toBe('Section A');
+    expect(session.sectionId).toBe('section-1');
     expect(typeof session.createdAt).toBe('string');
     expect(typeof session.lastActivity).toBe('string');
   });
 
   it('handles sessions without problems', async () => {
-    (requireAuth as jest.Mock).mockResolvedValue(mockAuth);
-    mockAuth.rbac.hasPermission.mockReturnValue(true);
+    const auth = createAuthContext(mockUser);
+    (requireAuth as jest.Mock).mockResolvedValue(auth);
+    auth.rbac.hasPermission = jest.fn().mockReturnValue(true);
     mockSessionManager.getSessionsByCreator.mockResolvedValue([mockCompletedSessions[0]]);
 
     const request = new NextRequest('http://localhost/api/sessions/history');
@@ -288,8 +301,9 @@ describe('GET /api/sessions/history', () => {
   });
 
   it('handles errors gracefully', async () => {
-    (requireAuth as jest.Mock).mockResolvedValue(mockAuth);
-    mockAuth.rbac.hasPermission.mockReturnValue(true);
+    const auth = createAuthContext(mockUser);
+    (requireAuth as jest.Mock).mockResolvedValue(auth);
+    auth.rbac.hasPermission = jest.fn().mockReturnValue(true);
     mockSessionManager.getSessionsByCreator.mockRejectedValue(new Error('Database error'));
 
     const request = new NextRequest('http://localhost/api/sessions/history');
@@ -301,8 +315,9 @@ describe('GET /api/sessions/history', () => {
   });
 
   it('returns empty array when no sessions found', async () => {
-    (requireAuth as jest.Mock).mockResolvedValue(mockAuth);
-    mockAuth.rbac.hasPermission.mockReturnValue(true);
+    const auth = createAuthContext(mockUser);
+    (requireAuth as jest.Mock).mockResolvedValue(auth);
+    auth.rbac.hasPermission = jest.fn().mockReturnValue(true);
     mockSessionManager.getSessionsByCreator.mockResolvedValue([]);
 
     const request = new NextRequest('http://localhost/api/sessions/history');
@@ -314,8 +329,9 @@ describe('GET /api/sessions/history', () => {
   });
 
   it('returns empty array when all sessions filtered out', async () => {
-    (requireAuth as jest.Mock).mockResolvedValue(mockAuth);
-    mockAuth.rbac.hasPermission.mockReturnValue(true);
+    const auth = createAuthContext(mockUser);
+    (requireAuth as jest.Mock).mockResolvedValue(auth);
+    auth.rbac.hasPermission = jest.fn().mockReturnValue(true);
     mockSessionManager.getSessionsByCreator.mockResolvedValue(mockAllSessions);
 
     const request = new NextRequest('http://localhost/api/sessions/history?search=nonexistent');

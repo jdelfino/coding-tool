@@ -13,17 +13,33 @@
  * - Edge cases (empty lists, invalid inputs)
  */
 
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { GET, POST } from '../route';
 import { getStorage } from '@/server/persistence';
-import { getAuthProvider } from '@/server/auth';
 
 // Mock dependencies
 jest.mock('@/server/persistence');
-jest.mock('@/server/auth');
+
+jest.mock('@/server/auth/api-helpers', () => ({
+  requireAuth: jest.fn(),
+  requirePermission: jest.fn(),
+  getNamespaceContext: jest.fn((req: any, user: any) => user.namespaceId || 'default'),
+}));
+
+import { requireAuth, getNamespaceContext } from '@/server/auth/api-helpers';
+import type { User } from '@/server/auth/types';
+import { RBACService } from '@/server/auth/rbac';
 
 const mockGetStorage = getStorage as jest.MockedFunction<typeof getStorage>;
-const mockGetAuthProvider = getAuthProvider as jest.MockedFunction<typeof getAuthProvider>;
+
+// Test helper to create mock auth context
+function createAuthContext(user: User) {
+  return {
+    user,
+    sessionId: 'test-session',
+    rbac: new RBACService(user),
+  };
+}
 
 describe('/api/problems', () => {
   const mockProblems = [
@@ -51,32 +67,20 @@ describe('/api/problems', () => {
     },
   ];
 
-  const mockInstructorUser = {
+  const mockInstructorUser: User = {
     id: 'user-1',
     username: 'instructor1',
-    email: 'instructor1@test.com',
     role: 'instructor' as const,
+    namespaceId: 'default',
     createdAt: new Date('2025-01-01'),
   };
 
-  const mockStudentUser = {
+  const mockStudentUser: User = {
     id: 'user-3',
     username: 'student1',
-    email: 'student1@test.com',
     role: 'student' as const,
+    namespaceId: 'default',
     createdAt: new Date('2025-01-01'),
-  };
-
-  const mockInstructorSession = {
-    id: 'session-123',
-    user: mockInstructorUser,
-    expiresAt: new Date('2025-12-31'),
-  };
-
-  const mockStudentSession = {
-    id: 'session-456',
-    user: mockStudentUser,
-    expiresAt: new Date('2025-12-31'),
   };
 
   beforeEach(() => {
@@ -85,19 +89,23 @@ describe('/api/problems', () => {
 
   describe('GET /api/problems', () => {
     it('should return 401 when not authenticated', async () => {
+      (requireAuth as jest.Mock).mockResolvedValue(
+        NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+      );
+
       const request = new NextRequest('http://localhost/api/problems');
 
       const response = await GET(request);
       const data = await response.json();
 
       expect(response.status).toBe(401);
-      expect(data.error).toBe('Unauthorized');
+      expect(data.error).toBe('Not authenticated');
     });
 
     it('should return 401 when session is invalid', async () => {
-      mockGetAuthProvider.mockResolvedValue({
-        getSession: jest.fn().mockResolvedValue(null),
-      } as any);
+      (requireAuth as jest.Mock).mockResolvedValue(
+        NextResponse.json({ error: 'Session expired' }, { status: 401 })
+      );
 
       const request = new NextRequest('http://localhost/api/problems', {
         headers: { Cookie: 'sessionId=invalid' },
@@ -107,17 +115,16 @@ describe('/api/problems', () => {
       const data = await response.json();
 
       expect(response.status).toBe(401);
-      expect(data.error).toBe('Unauthorized');
+      expect(data.error).toBe('Session expired');
     });
 
     it('should return all problems when authenticated', async () => {
-      mockGetAuthProvider.mockResolvedValue({
-        getSession: jest.fn().mockResolvedValue(mockInstructorSession),
-      } as any);
+      (requireAuth as jest.Mock).mockResolvedValue(createAuthContext(mockInstructorUser));
 
+      const getAllMock = jest.fn().mockResolvedValue(mockProblems);
       mockGetStorage.mockResolvedValue({
         problems: {
-          getAll: jest.fn().mockResolvedValue(mockProblems),
+          getAll: getAllMock,
         },
       } as any);
 
@@ -131,17 +138,19 @@ describe('/api/problems', () => {
       expect(response.status).toBe(200);
       expect(data.problems).toHaveLength(2);
       expect(data.problems[0].title).toBe('Problem 1');
+      expect(getAllMock).toHaveBeenCalledWith(expect.objectContaining({
+        namespaceId: 'default',
+      }));
     });
 
     it('should filter by authorId', async () => {
-      mockGetAuthProvider.mockResolvedValue({
-        getSession: jest.fn().mockResolvedValue(mockInstructorSession),
-      } as any);
+      (requireAuth as jest.Mock).mockResolvedValue(createAuthContext(mockInstructorUser));
 
       const filteredProblems = mockProblems.filter(p => p.authorId === 'user-1');
+      const getAllMock = jest.fn().mockResolvedValue(filteredProblems);
       mockGetStorage.mockResolvedValue({
         problems: {
-          getAll: jest.fn().mockResolvedValue(filteredProblems),
+          getAll: getAllMock,
         },
       } as any);
 
@@ -155,17 +164,20 @@ describe('/api/problems', () => {
       expect(response.status).toBe(200);
       expect(data.problems).toHaveLength(1);
       expect(data.problems[0].authorId).toBe('user-1');
+      expect(getAllMock).toHaveBeenCalledWith(expect.objectContaining({
+        authorId: 'user-1',
+        namespaceId: 'default',
+      }));
     });
 
     it('should filter by classId', async () => {
-      mockGetAuthProvider.mockResolvedValue({
-        getSession: jest.fn().mockResolvedValue(mockInstructorSession),
-      } as any);
+      (requireAuth as jest.Mock).mockResolvedValue(createAuthContext(mockInstructorUser));
 
       const filteredProblems = mockProblems.filter(p => p.classId === 'class-1');
+      const getAllMock = jest.fn().mockResolvedValue(filteredProblems);
       mockGetStorage.mockResolvedValue({
         problems: {
-          getAll: jest.fn().mockResolvedValue(filteredProblems),
+          getAll: getAllMock,
         },
       } as any);
 
@@ -179,16 +191,19 @@ describe('/api/problems', () => {
       expect(response.status).toBe(200);
       expect(data.problems).toHaveLength(1);
       expect(data.problems[0].classId).toBe('class-1');
+      expect(getAllMock).toHaveBeenCalledWith(expect.objectContaining({
+        classId: 'class-1',
+        namespaceId: 'default',
+      }));
     });
 
     it('should handle includePublic parameter', async () => {
-      mockGetAuthProvider.mockResolvedValue({
-        getSession: jest.fn().mockResolvedValue(mockInstructorSession),
-      } as any);
+      (requireAuth as jest.Mock).mockResolvedValue(createAuthContext(mockInstructorUser));
 
+      const getAllMock = jest.fn().mockResolvedValue(mockProblems);
       mockGetStorage.mockResolvedValue({
         problems: {
-          getAll: jest.fn().mockResolvedValue(mockProblems),
+          getAll: getAllMock,
         },
       } as any);
 
@@ -200,21 +215,18 @@ describe('/api/problems', () => {
       const data = await response.json();
 
       expect(response.status).toBe(200);
-      // Verify the mock was called with includePublic: false
-      const storage = await mockGetStorage();
-      expect(storage.problems.getAll).toHaveBeenCalledWith(
-        expect.objectContaining({ includePublic: false })
+      expect(getAllMock).toHaveBeenCalledWith(
+        expect.objectContaining({ includePublic: false, namespaceId: 'default' })
       );
     });
 
     it('should handle sortBy and sortOrder parameters', async () => {
-      mockGetAuthProvider.mockResolvedValue({
-        getSession: jest.fn().mockResolvedValue(mockInstructorSession),
-      } as any);
+      (requireAuth as jest.Mock).mockResolvedValue(createAuthContext(mockInstructorUser));
 
+      const getAllMock = jest.fn().mockResolvedValue(mockProblems);
       mockGetStorage.mockResolvedValue({
         problems: {
-          getAll: jest.fn().mockResolvedValue(mockProblems),
+          getAll: getAllMock,
         },
       } as any);
 
@@ -226,17 +238,13 @@ describe('/api/problems', () => {
       const data = await response.json();
 
       expect(response.status).toBe(200);
-      // Verify the mock was called with correct sort parameters
-      const storage = await mockGetStorage();
-      expect(storage.problems.getAll).toHaveBeenCalledWith(
-        expect.objectContaining({ sortBy: 'title', sortOrder: 'asc' })
+      expect(getAllMock).toHaveBeenCalledWith(
+        expect.objectContaining({ sortBy: 'title', sortOrder: 'asc', namespaceId: 'default' })
       );
     });
 
     it('should return empty array when no problems exist', async () => {
-      mockGetAuthProvider.mockResolvedValue({
-        getSession: jest.fn().mockResolvedValue(mockInstructorSession),
-      } as any);
+      (requireAuth as jest.Mock).mockResolvedValue(createAuthContext(mockInstructorUser));
 
       mockGetStorage.mockResolvedValue({
         problems: {
@@ -256,9 +264,7 @@ describe('/api/problems', () => {
     });
 
     it('should handle server errors gracefully', async () => {
-      mockGetAuthProvider.mockResolvedValue({
-        getSession: jest.fn().mockResolvedValue(mockInstructorSession),
-      } as any);
+      (requireAuth as jest.Mock).mockResolvedValue(createAuthContext(mockInstructorUser));
 
       mockGetStorage.mockResolvedValue({
         problems: {
@@ -288,6 +294,10 @@ describe('/api/problems', () => {
     };
 
     it('should return 401 when not authenticated', async () => {
+      (requireAuth as jest.Mock).mockResolvedValue(
+        NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+      );
+
       const request = new NextRequest('http://localhost/api/problems', {
         method: 'POST',
         body: JSON.stringify(validProblemInput),
@@ -297,13 +307,13 @@ describe('/api/problems', () => {
       const data = await response.json();
 
       expect(response.status).toBe(401);
-      expect(data.error).toBe('Unauthorized');
+      expect(data.error).toBe('Not authenticated');
     });
 
     it('should return 401 when session is invalid', async () => {
-      mockGetAuthProvider.mockResolvedValue({
-        getSession: jest.fn().mockResolvedValue(null),
-      } as any);
+      (requireAuth as jest.Mock).mockResolvedValue(
+        NextResponse.json({ error: 'Session expired' }, { status: 401 })
+      );
 
       const request = new NextRequest('http://localhost/api/problems', {
         method: 'POST',
@@ -315,13 +325,11 @@ describe('/api/problems', () => {
       const data = await response.json();
 
       expect(response.status).toBe(401);
-      expect(data.error).toBe('Unauthorized');
+      expect(data.error).toBe('Session expired');
     });
 
     it('should return 403 when user is not an instructor', async () => {
-      mockGetAuthProvider.mockResolvedValue({
-        getSession: jest.fn().mockResolvedValue(mockStudentSession),
-      } as any);
+      (requireAuth as jest.Mock).mockResolvedValue(createAuthContext(mockStudentUser));
 
       const request = new NextRequest('http://localhost/api/problems', {
         method: 'POST',
@@ -337,21 +345,21 @@ describe('/api/problems', () => {
     });
 
     it('should create problem successfully for instructor', async () => {
-      mockGetAuthProvider.mockResolvedValue({
-        getSession: jest.fn().mockResolvedValue(mockInstructorSession),
-      } as any);
+      (requireAuth as jest.Mock).mockResolvedValue(createAuthContext(mockInstructorUser));
 
       const createdProblem = {
         ...validProblemInput,
         id: 'problem-new',
         authorId: 'user-1',
+        namespaceId: 'default',
         createdAt: new Date(),
         updatedAt: new Date(),
       };
 
+      const createMock = jest.fn().mockResolvedValue(createdProblem);
       mockGetStorage.mockResolvedValue({
         problems: {
-          create: jest.fn().mockResolvedValue(createdProblem),
+          create: createMock,
         },
       } as any);
 
@@ -369,12 +377,14 @@ describe('/api/problems', () => {
         title: 'New Problem',
         authorId: 'user-1',
       });
+      expect(createMock).toHaveBeenCalledWith(expect.objectContaining({
+        namespaceId: 'default',
+        authorId: 'user-1',
+      }));
     });
 
     it('should create problem with minimal fields', async () => {
-      mockGetAuthProvider.mockResolvedValue({
-        getSession: jest.fn().mockResolvedValue(mockInstructorSession),
-      } as any);
+      (requireAuth as jest.Mock).mockResolvedValue(createAuthContext(mockInstructorUser));
 
       const minimalInput = {
         title: 'Minimal Problem',
@@ -387,6 +397,7 @@ describe('/api/problems', () => {
         starterCode: '',
         testCases: [],
         authorId: 'user-1',
+        namespaceId: 'default',
         classId: null,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -413,9 +424,7 @@ describe('/api/problems', () => {
     });
 
     it('should handle validation errors', async () => {
-      mockGetAuthProvider.mockResolvedValue({
-        getSession: jest.fn().mockResolvedValue(mockInstructorSession),
-      } as any);
+      (requireAuth as jest.Mock).mockResolvedValue(createAuthContext(mockInstructorUser));
 
       const validationError = {
         code: 'INVALID_DATA',
@@ -444,9 +453,7 @@ describe('/api/problems', () => {
     });
 
     it('should handle server errors', async () => {
-      mockGetAuthProvider.mockResolvedValue({
-        getSession: jest.fn().mockResolvedValue(mockInstructorSession),
-      } as any);
+      (requireAuth as jest.Mock).mockResolvedValue(createAuthContext(mockInstructorUser));
 
       mockGetStorage.mockResolvedValue({
         problems: {
@@ -468,9 +475,7 @@ describe('/api/problems', () => {
     });
 
     it('should handle malformed JSON', async () => {
-      mockGetAuthProvider.mockResolvedValue({
-        getSession: jest.fn().mockResolvedValue(mockInstructorSession),
-      } as any);
+      (requireAuth as jest.Mock).mockResolvedValue(createAuthContext(mockInstructorUser));
 
       const request = new NextRequest('http://localhost/api/problems', {
         method: 'POST',
@@ -486,9 +491,7 @@ describe('/api/problems', () => {
     });
 
     it('should set authorId to current user', async () => {
-      mockGetAuthProvider.mockResolvedValue({
-        getSession: jest.fn().mockResolvedValue(mockInstructorSession),
-      } as any);
+      (requireAuth as jest.Mock).mockResolvedValue(createAuthContext(mockInstructorUser));
 
       let capturedInput: any;
       mockGetStorage.mockResolvedValue({
@@ -509,12 +512,11 @@ describe('/api/problems', () => {
       await POST(request);
 
       expect(capturedInput.authorId).toBe('user-1');
+      expect(capturedInput.namespaceId).toBe('default');
     });
 
     it('should handle problems with test cases', async () => {
-      mockGetAuthProvider.mockResolvedValue({
-        getSession: jest.fn().mockResolvedValue(mockInstructorSession),
-      } as any);
+      (requireAuth as jest.Mock).mockResolvedValue(createAuthContext(mockInstructorUser));
 
       const inputWithTests = {
         ...validProblemInput,
@@ -532,6 +534,7 @@ describe('/api/problems', () => {
         ...inputWithTests,
         id: 'problem-with-tests',
         authorId: 'user-1',
+        namespaceId: 'default',
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -557,9 +560,7 @@ describe('/api/problems', () => {
     });
 
     it('should include executionSettings when provided', async () => {
-      mockGetAuthProvider.mockResolvedValue({
-        getSession: jest.fn().mockResolvedValue(mockInstructorSession),
-      } as any);
+      (requireAuth as jest.Mock).mockResolvedValue(createAuthContext(mockInstructorUser));
 
       const inputWithExecSettings = {
         ...validProblemInput,

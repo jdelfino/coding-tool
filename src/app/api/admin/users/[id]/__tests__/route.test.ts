@@ -132,11 +132,12 @@ describe('DELETE /api/admin/users/[id]', () => {
         id: 'user123',
         username: 'student',
         role: 'student',
+        namespaceId: 'default',
         createdAt: new Date(),
       });
       mockUserRepository.listUsers.mockResolvedValue([
-        { id: 'instructor1', role: 'instructor' },
-        { id: 'instructor2', role: 'instructor' },
+        { id: 'instructor1', username: 'instructor1', role: 'instructor', namespaceId: 'default', createdAt: new Date() },
+        { id: 'instructor2', username: 'instructor2', role: 'instructor', namespaceId: 'default', createdAt: new Date() },
       ]);
       mockAuthProvider.deleteUser.mockResolvedValue(undefined);
 
@@ -163,9 +164,11 @@ describe('DELETE /api/admin/users/[id]', () => {
         id: 'user123',
         username: 'student',
         role: 'student',
+        namespaceId: 'default',
+        createdAt: new Date(),
       });
       mockUserRepository.listUsers.mockResolvedValue([
-        { id: 'instructor1', role: 'instructor' },
+        { id: 'instructor1', username: 'instructor1', role: 'instructor', namespaceId: 'default', createdAt: new Date() },
       ]);
       mockAuthProvider.deleteUser.mockResolvedValue(undefined);
 
@@ -219,7 +222,7 @@ describe('DELETE /api/admin/users/[id]', () => {
       const admin: User = {
         id: 'admin1',
         username: 'admin',
-        role: 'namespace-admin',
+        role: 'system-admin',
         namespaceId: 'default',
         createdAt: new Date(),
       };
@@ -232,18 +235,19 @@ describe('DELETE /api/admin/users/[id]', () => {
         id: 'admin2',
         username: 'admin2',
         role: 'namespace-admin',
+        namespaceId: 'default',
         createdAt: new Date(),
       });
       // Only one admin in the system
       mockUserRepository.listUsers.mockResolvedValue([
-        { id: 'admin2', role: 'namespace-admin', createdAt: new Date() },
+        { id: 'admin2', username: 'admin2', role: 'namespace-admin', namespaceId: 'default', createdAt: new Date() },
       ]);
 
       const response = await DELETE(request, { params });
       const data = await response.json();
 
       expect(response.status).toBe(400);
-      expect(data.error).toContain('Cannot delete the last admin');
+      expect(data.error).toContain('Cannot delete the last namespace admin');
       expect(mockAuthProvider.deleteUser).not.toHaveBeenCalled();
     });
 
@@ -251,7 +255,7 @@ describe('DELETE /api/admin/users/[id]', () => {
       const admin: User = {
         id: 'admin1',
         username: 'admin',
-        role: 'namespace-admin',
+        role: 'system-admin',
         namespaceId: 'default',
         createdAt: new Date(),
       };
@@ -264,12 +268,13 @@ describe('DELETE /api/admin/users/[id]', () => {
         id: 'admin2',
         username: 'admin2',
         role: 'namespace-admin',
+        namespaceId: 'default',
         createdAt: new Date(),
       });
       mockUserRepository.listUsers.mockResolvedValue([
-        { id: 'admin1', role: 'namespace-admin', createdAt: new Date() },
-        { id: 'admin2', role: 'namespace-admin', createdAt: new Date() },
-        { id: 'admin3', role: 'namespace-admin', createdAt: new Date() },
+        { id: 'admin1', username: 'admin1', role: 'namespace-admin', namespaceId: 'default', createdAt: new Date() },
+        { id: 'admin2', username: 'admin2', role: 'namespace-admin', namespaceId: 'default', createdAt: new Date() },
+        { id: 'admin3', username: 'admin3', role: 'namespace-admin', namespaceId: 'default', createdAt: new Date() },
       ]);
       mockAuthProvider.deleteUser.mockResolvedValue(undefined);
 
@@ -296,6 +301,7 @@ describe('DELETE /api/admin/users/[id]', () => {
         id: 'instructor1',
         username: 'instructor1',
         role: 'instructor',
+        namespaceId: 'default',
         createdAt: new Date(),
       });
       mockAuthProvider.deleteUser.mockResolvedValue(undefined);
@@ -311,9 +317,14 @@ describe('DELETE /api/admin/users/[id]', () => {
 
   describe('Error Handling', () => {
     beforeEach(() => {
-      mockAuthProvider.getSession.mockResolvedValue({
-        user: { id: 'instructor1', username: 'instructor', role: 'instructor' },
-      });
+      const instructor: User = {
+        id: 'instructor1',
+        username: 'instructor',
+        role: 'instructor',
+        namespaceId: 'default',
+        createdAt: new Date(),
+      };
+      mockRequirePermission.mockResolvedValue(createAuthContext(instructor));
     });
 
     it('should return 404 when user does not exist', async () => {
