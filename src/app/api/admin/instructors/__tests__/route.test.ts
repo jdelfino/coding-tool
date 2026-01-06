@@ -29,7 +29,7 @@ describe('POST /api/admin/instructors', () => {
     // Setup mock auth provider
     mockAuthProvider = {
       getSession: jest.fn(),
-      createUser: jest.fn(),
+      signUp: jest.fn(),
     };
     mockGetAuthProvider.mockResolvedValue(mockAuthProvider);
   });
@@ -137,14 +137,16 @@ describe('POST /api/admin/instructors', () => {
   describe('Authorization', () => {
     it('should allow instructors to create instructor accounts', async () => {
       const instructor = { id: 'instructor1', username: 'instructor', role: 'instructor' };
-      mockRequest = createMockRequest({ username: 'newteacher' }, 'instructor-session');
+      mockRequest = createMockRequest({ email: 'newteacher@example.com', username: 'newteacher', password: 'password123' }, 'instructor-session');
       mockRequirePermissionForUser(instructor);
 
-      mockAuthProvider.createUser.mockResolvedValue({
+      mockAuthProvider.signUp.mockResolvedValue({
         id: 'new-id',
+        email: 'newteacher@example.com',
         username: 'newteacher',
         role: 'instructor',
-        createdAt: new Date().toISOString(),
+        namespaceId: 'default',
+        createdAt: new Date(),
       });
 
       const response = await POST(mockRequest);
@@ -153,19 +155,21 @@ describe('POST /api/admin/instructors', () => {
       expect(response.status).toBe(200);
       expect(data.user.username).toBe('newteacher');
       expect(data.user.role).toBe('instructor');
-      expect(mockAuthProvider.createUser).toHaveBeenCalledWith('newteacher', 'instructor', 'default');
+      expect(mockAuthProvider.signUp).toHaveBeenCalledWith('newteacher@example.com', 'password123', 'newteacher', 'instructor', 'default');
     });
 
     it('should allow admins to create instructor accounts', async () => {
       const admin = { id: 'admin1', username: 'admin', role: 'namespace-admin' };
-      mockRequest = createMockRequest({ username: 'newteacher' }, 'admin-session');
+      mockRequest = createMockRequest({ email: 'newteacher@example.com', username: 'newteacher', password: 'password123' }, 'admin-session');
       mockRequirePermissionForUser(admin);
 
-      mockAuthProvider.createUser.mockResolvedValue({
+      mockAuthProvider.signUp.mockResolvedValue({
         id: 'new-id',
+        email: 'newteacher@example.com',
         username: 'newteacher',
         role: 'instructor',
-        createdAt: new Date().toISOString(),
+        namespaceId: 'default',
+        createdAt: new Date(),
       });
 
       const response = await POST(mockRequest);
@@ -178,7 +182,7 @@ describe('POST /api/admin/instructors', () => {
 
     it('should deny students from creating instructor accounts', async () => {
       const student = { id: 'student1', username: 'student', role: 'student' };
-      mockRequest = createMockRequest({ username: 'newteacher' }, 'student-session');
+      mockRequest = createMockRequest({ email: 'newteacher@example.com', password: 'password123', username: 'newteacher' }, 'student-session');
       mockRequirePermissionForUser(student);
 
       const response = await POST(mockRequest);
@@ -186,7 +190,7 @@ describe('POST /api/admin/instructors', () => {
 
       expect(response.status).toBe(403);
       expect(data.error).toContain('Forbidden');
-      expect(mockAuthProvider.createUser).not.toHaveBeenCalled();
+      expect(mockAuthProvider.signUp).not.toHaveBeenCalled();
     });
   });
 
@@ -198,39 +202,40 @@ describe('POST /api/admin/instructors', () => {
     });
 
     it('should return 400 when username is missing', async () => {
-      mockRequest = createMockRequest({}, 'instructor-session');
+      mockRequest = createMockRequest({ email: 'test@example.com', password: 'password123' }, 'instructor-session');
 
       const response = await POST(mockRequest);
       const data = await response.json();
 
       expect(response.status).toBe(400);
       expect(data.error).toBe('Username is required');
-      expect(mockAuthProvider.createUser).not.toHaveBeenCalled();
+      expect(mockAuthProvider.signUp).not.toHaveBeenCalled();
     });
 
     it('should return 400 when username is not a string', async () => {
-      mockRequest = createMockRequest({ username: 123 }, 'instructor-session');
+      mockRequest = createMockRequest({ email: 'test@example.com', password: 'password123', username: 123 }, 'instructor-session');
 
       const response = await POST(mockRequest);
       const data = await response.json();
 
       expect(response.status).toBe(400);
       expect(data.error).toBe('Username is required');
-      expect(mockAuthProvider.createUser).not.toHaveBeenCalled();
+      expect(mockAuthProvider.signUp).not.toHaveBeenCalled();
     });
 
     it('should trim whitespace from username', async () => {
-      mockRequest = createMockRequest({ username: '  teacher  ' }, 'instructor-session');
-      mockAuthProvider.createUser.mockResolvedValue({
+      mockRequest = createMockRequest({ email: 'teacher@example.com', password: 'password123', username: '  teacher  ' }, 'instructor-session');
+      mockAuthProvider.signUp.mockResolvedValue({
         id: 'new-id',
         username: 'teacher',
+        email: 'teacher@example.com',
         role: 'instructor',
         createdAt: new Date().toISOString(),
       });
 
       await POST(mockRequest);
 
-      expect(mockAuthProvider.createUser).toHaveBeenCalledWith('teacher', 'instructor', 'default');
+      expect(mockAuthProvider.signUp).toHaveBeenCalledWith('teacher@example.com', 'password123', 'teacher', 'instructor', 'default');
     });
   });
 
@@ -242,8 +247,8 @@ describe('POST /api/admin/instructors', () => {
     });
 
     it('should return 409 when username is already taken', async () => {
-      mockRequest = createMockRequest({ username: 'existinguser' }, 'instructor-session');
-      mockAuthProvider.createUser.mockRejectedValue(
+      mockRequest = createMockRequest({ email: 'existing@example.com', password: 'password123', username: 'existinguser' }, 'instructor-session');
+      mockAuthProvider.signUp.mockRejectedValue(
         new Error('Username already taken')
       );
 
@@ -255,8 +260,8 @@ describe('POST /api/admin/instructors', () => {
     });
 
     it('should return 500 for other errors', async () => {
-      mockRequest = createMockRequest({ username: 'newteacher' }, 'instructor-session');
-      mockAuthProvider.createUser.mockRejectedValue(new Error('Database error'));
+      mockRequest = createMockRequest({ email: 'newteacher@example.com', password: 'password123', username: 'newteacher' }, 'instructor-session');
+      mockAuthProvider.signUp.mockRejectedValue(new Error('Database error'));
 
       const response = await POST(mockRequest);
       const data = await response.json();

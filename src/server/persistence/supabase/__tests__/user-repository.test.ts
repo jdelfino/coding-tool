@@ -33,6 +33,7 @@ describe('SupabaseUserRepository', () => {
     id: 'user-123',
     username: 'jdoe',
       email: "test@example.com",
+    emailConfirmed: false,
     role: 'instructor' as UserRole,
     namespaceId: 'stanford',
     displayName: 'John Doe',
@@ -43,6 +44,8 @@ describe('SupabaseUserRepository', () => {
   const mockUserRow = {
     id: mockUser.id,
     username: mockUser.username,
+    email: mockUser.email,
+    email_confirmed: false,
     role: mockUser.role,
     namespace_id: mockUser.namespaceId,
     display_name: mockUser.displayName,
@@ -134,12 +137,14 @@ describe('SupabaseUserRepository', () => {
       expect(mockUpsert).toHaveBeenCalledWith(
         {
           id: mockUser.id,
+          email: mockUser.email,
           username: mockUser.username,
           role: mockUser.role,
           namespace_id: mockUser.namespaceId,
           display_name: mockUser.displayName,
           created_at: mockUser.createdAt.toISOString(),
           last_login_at: mockUser.lastLoginAt?.toISOString(),
+          email_confirmed: mockUser.emailConfirmed,
         },
         { onConflict: 'id' }
       );
@@ -255,6 +260,7 @@ describe('SupabaseUserRepository', () => {
       {
         id: 'user-456',
         email: 'jsmith@example.com',
+        emailConfirmed: false,
         username: 'jsmith',
         role: 'student',
         namespaceId: 'stanford',
@@ -265,6 +271,8 @@ describe('SupabaseUserRepository', () => {
     const mockUserRows = mockUsers.map((u) => ({
       id: u.id,
       username: u.username,
+      email: u.email,
+      email_confirmed: u.emailConfirmed || false,
       role: u.role,
       namespace_id: u.namespaceId,
       display_name: u.displayName || null,

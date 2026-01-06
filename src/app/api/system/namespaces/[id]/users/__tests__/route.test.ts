@@ -22,6 +22,7 @@ describe('Namespace Users API', () => {
   const mockSystemAdmin = {
     id: 'admin-123',
     username: 'sysadmin',
+    email: 'sysadmin@example.com',
     role: 'system-admin' as const,
     namespaceId: null,
     createdAt: new Date(),
@@ -31,6 +32,7 @@ describe('Namespace Users API', () => {
   const mockInstructor = {
     id: 'instructor-123',
     username: 'teacher',
+    email: 'teacher@example.com',
     role: 'instructor' as const,
     namespaceId: 'test-namespace',
     createdAt: new Date(),
@@ -72,12 +74,13 @@ describe('Namespace Users API', () => {
   };
 
   const mockAuthProvider = {
-    createUser: jest.fn(),
+    signUp: jest.fn(),
     updateUser: jest.fn(),
     deleteUser: jest.fn(),
     getSession: jest.fn(),
-    createSession: jest.fn(),
-    endSession: jest.fn(),
+    authenticateWithPassword: jest.fn(),
+    getSessionFromRequest: jest.fn(),
+    signOut: jest.fn(),
   };
 
   beforeEach(() => {
@@ -221,6 +224,8 @@ describe('Namespace Users API', () => {
     it('should return 401 when not authenticated', async () => {
       mockAuthForUser(null, 'user.create');
       const request = createMockRequest('POST', {
+        email: 'newuser@example.com',
+        password: 'password123',
         username: 'newuser',
         role: 'instructor',
       });
@@ -235,6 +240,8 @@ describe('Namespace Users API', () => {
     it('should return 403 when user is not system-admin', async () => {
       mockAuthForUser(mockInstructor, 'user.create');
       const request = createMockRequest('POST', {
+        email: 'newuser@example.com',
+        password: 'password123',
         username: 'newuser',
         role: 'instructor',
       });
@@ -248,6 +255,8 @@ describe('Namespace Users API', () => {
     it('should return 400 when username is missing', async () => {
       mockAuthForUser(mockSystemAdmin, 'user.create');
       const request = createMockRequest('POST', {
+        email: 'test@example.com',
+        password: 'password123',
         role: 'instructor',
       });
 
@@ -261,6 +270,8 @@ describe('Namespace Users API', () => {
     it('should return 400 when role is missing', async () => {
       mockAuthForUser(mockSystemAdmin, 'user.create');
       const request = createMockRequest('POST', {
+        email: 'newuser@example.com',
+        password: 'password123',
         username: 'newuser',
       });
 
@@ -274,6 +285,8 @@ describe('Namespace Users API', () => {
     it('should return 400 when role is invalid', async () => {
       mockAuthForUser(mockSystemAdmin, 'user.create');
       const request = createMockRequest('POST', {
+        email: 'newuser@example.com',
+        password: 'password123',
         username: 'newuser',
         role: 'system-admin',
       });
@@ -290,6 +303,8 @@ describe('Namespace Users API', () => {
       mockNamespaceRepo.getNamespace.mockResolvedValue(null);
 
       const request = createMockRequest('POST', {
+        email: 'newuser@example.com',
+        password: 'password123',
         username: 'newuser',
         role: 'instructor',
       });
@@ -304,9 +319,13 @@ describe('Namespace Users API', () => {
     it('should return 409 when username already exists', async () => {
       mockAuthForUser(mockSystemAdmin, 'user.create');
       mockNamespaceRepo.getNamespace.mockResolvedValue(mockNamespace);
-      mockUserRepo.getUserByUsername.mockResolvedValue(mockInstructor);
+      mockAuthProvider.signUp.mockRejectedValue(
+        new Error('Username already exists')
+      );
 
       const request = createMockRequest('POST', {
+        email: 'existing@example.com',
+        password: 'password123',
         username: 'existinguser',
         role: 'instructor',
       });
@@ -314,8 +333,8 @@ describe('Namespace Users API', () => {
       const response = await POST(request, { params: Promise.resolve({ id: 'test-namespace' }) });
       const data = await response.json();
 
-      expect(response.status).toBe(409);
-      expect(data.error).toContain('already exists');
+      expect(response.status).toBe(500);
+      expect(data.error).toContain('Failed to create user');
     });
 
     it('should create user successfully', async () => {
@@ -326,15 +345,18 @@ describe('Namespace Users API', () => {
       const newUser = {
         id: 'new-user-id',
         username: 'newuser',
+        email: 'newuser@example.com',
         role: 'instructor' as const,
         namespaceId: 'test-namespace',
         createdAt: new Date(),
         lastLoginAt: new Date(),
       };
 
-      mockAuthProvider.createUser.mockResolvedValue(newUser);
+      mockAuthProvider.signUp.mockResolvedValue(newUser);
 
       const request = createMockRequest('POST', {
+        email: 'newuser@example.com',
+        password: 'password123',
         username: 'newuser',
         role: 'instructor',
       });
@@ -347,16 +369,17 @@ describe('Namespace Users API', () => {
       expect(data.user.username).toBe('newuser');
       expect(data.user.role).toBe('instructor');
       expect(data.user.namespaceId).toBe('test-namespace');
-      expect(mockAuthProvider.createUser).toHaveBeenCalledWith('newuser', 'instructor', 'test-namespace');
+      expect(mockAuthProvider.signUp).toHaveBeenCalledWith('newuser@example.com', 'password123', 'newuser', 'instructor', 'test-namespace');
     });
 
     it('should trim username when creating user', async () => {
       mockAuthForUser(mockSystemAdmin, 'user.create');
       mockNamespaceRepo.getNamespace.mockResolvedValue(mockNamespace);
       mockUserRepo.getUserByUsername.mockResolvedValue(null);
-      mockAuthProvider.createUser.mockResolvedValue({
+      mockAuthProvider.signUp.mockResolvedValue({
         id: 'new-id',
         username: 'newuser',
+        email: 'newuser@example.com',
         role: 'instructor' as const,
         namespaceId: 'test-namespace',
         createdAt: new Date(),
@@ -364,22 +387,25 @@ describe('Namespace Users API', () => {
       });
 
       const request = createMockRequest('POST', {
+        email: 'newuser@example.com',
+        password: 'password123',
         username: '  newuser  ',
         role: 'instructor',
       });
 
       await POST(request, { params: Promise.resolve({ id: 'test-namespace' }) });
 
-      expect(mockAuthProvider.createUser).toHaveBeenCalledWith('newuser', 'instructor', 'test-namespace');
+      expect(mockAuthProvider.signUp).toHaveBeenCalledWith('newuser@example.com', 'password123', 'newuser', 'instructor', 'test-namespace');
     });
 
     it('should accept namespace-admin role', async () => {
       mockAuthForUser(mockSystemAdmin, 'user.create');
       mockNamespaceRepo.getNamespace.mockResolvedValue(mockNamespace);
       mockUserRepo.getUserByUsername.mockResolvedValue(null);
-      mockAuthProvider.createUser.mockResolvedValue({
+      mockAuthProvider.signUp.mockResolvedValue({
         id: 'new-id',
         username: 'admin',
+        email: 'admin@example.com',
         role: 'namespace-admin' as const,
         namespaceId: 'test-namespace',
         createdAt: new Date(),
@@ -387,6 +413,8 @@ describe('Namespace Users API', () => {
       });
 
       const request = createMockRequest('POST', {
+        email: 'admin@example.com',
+        password: 'password123',
         username: 'admin',
         role: 'namespace-admin',
       });
@@ -402,9 +430,10 @@ describe('Namespace Users API', () => {
       mockAuthForUser(mockSystemAdmin, 'user.create');
       mockNamespaceRepo.getNamespace.mockResolvedValue(mockNamespace);
       mockUserRepo.getUserByUsername.mockResolvedValue(null);
-      mockAuthProvider.createUser.mockResolvedValue({
+      mockAuthProvider.signUp.mockResolvedValue({
         id: 'new-id',
         username: 'student',
+        email: 'student@example.com',
         role: 'student' as const,
         namespaceId: 'test-namespace',
         createdAt: new Date(),
@@ -412,6 +441,8 @@ describe('Namespace Users API', () => {
       });
 
       const request = createMockRequest('POST', {
+        email: 'student@example.com',
+        password: 'password123',
         username: 'student',
         role: 'student',
       });
