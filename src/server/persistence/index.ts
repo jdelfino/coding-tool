@@ -63,15 +63,17 @@ export class StorageBackend implements IStorageRepository {
   }
 
   async initialize(): Promise<void> {
-    // Initialize repositories that have standard initialize() method
-    await Promise.all([
-      this.sessions.initialize(),
-      this.revisions.initialize(),
-      this.problems.initialize(),
-    ]);
-
-    // Initialize repositories with optional lifecycle methods
+    // Initialize all repositories with optional lifecycle methods
     const optionalInits: Promise<void>[] = [];
+    if (this.sessions.initialize) {
+      optionalInits.push(this.sessions.initialize());
+    }
+    if (this.revisions.initialize) {
+      optionalInits.push(this.revisions.initialize());
+    }
+    if (this.problems.initialize) {
+      optionalInits.push(this.problems.initialize());
+    }
     if (this.users.initialize) {
       optionalInits.push(this.users.initialize());
     }
@@ -89,13 +91,18 @@ export class StorageBackend implements IStorageRepository {
   }
 
   async shutdown(): Promise<void> {
-    const shutdowns: Promise<void>[] = [
-      this.sessions.shutdown(),
-      this.revisions.shutdown(),
-      this.problems.shutdown(),
-    ];
+    const shutdowns: Promise<void>[] = [];
 
-    // Add optional shutdown for users repository
+    // All lifecycle methods are optional
+    if (this.sessions.shutdown) {
+      shutdowns.push(this.sessions.shutdown());
+    }
+    if (this.revisions.shutdown) {
+      shutdowns.push(this.revisions.shutdown());
+    }
+    if (this.problems.shutdown) {
+      shutdowns.push(this.problems.shutdown());
+    }
     if (this.users.shutdown) {
       shutdowns.push(this.users.shutdown());
     }
@@ -104,16 +111,25 @@ export class StorageBackend implements IStorageRepository {
   }
 
   async health(): Promise<boolean> {
-    const healthChecks: Promise<boolean>[] = [
-      this.sessions.health(),
-      this.revisions.health(),
-    ];
+    const healthChecks: Promise<boolean>[] = [];
 
-    // Add optional health check for users repository
+    // All lifecycle methods are optional - if not implemented, assume healthy
+    if (this.sessions.health) {
+      healthChecks.push(this.sessions.health());
+    }
+    if (this.revisions.health) {
+      healthChecks.push(this.revisions.health());
+    }
+    if (this.problems.health) {
+      healthChecks.push(this.problems.health());
+    }
     if (this.users.health) {
       healthChecks.push(this.users.health());
-    } else {
-      healthChecks.push(Promise.resolve(true));
+    }
+
+    // If no health checks are implemented, assume healthy
+    if (healthChecks.length === 0) {
+      return true;
     }
 
     const results = await Promise.all(healthChecks);

@@ -103,7 +103,25 @@ export interface IStorageBackend {
  * Manages CRUD operations for coding sessions, including active and
  * historical sessions.
  */
-export interface ISessionRepository extends IStorageBackend {
+export interface ISessionRepository {
+  /**
+   * Initialize the repository.
+   * Can be no-op for implementations that don't need setup.
+   */
+  initialize?(): Promise<void>;
+
+  /**
+   * Shutdown the repository gracefully.
+   * Can be no-op for implementations that don't need cleanup.
+   */
+  shutdown?(): Promise<void>;
+
+  /**
+   * Check if repository is healthy.
+   * Can return true for implementations without health checks.
+   */
+  health?(): Promise<boolean>;
+
   /**
    * Create a new session
    *
@@ -173,8 +191,27 @@ export interface ISessionRepository extends IStorageBackend {
  *
  * Manages problem definitions, templates, and metadata.
  */
-export interface IProblemRepository extends IStorageBackend {
-  /**Create a new problem
+export interface IProblemRepository {
+  /**
+   * Initialize the repository.
+   * Can be no-op for implementations that don't need setup.
+   */
+  initialize?(): Promise<void>;
+
+  /**
+   * Shutdown the repository gracefully.
+   * Can be no-op for implementations that don't need cleanup.
+   */
+  shutdown?(): Promise<void>;
+
+  /**
+   * Check if repository is healthy.
+   * Can return true for implementations without health checks.
+   */
+  health?(): Promise<boolean>;
+
+  /**
+   * Create a new problem
    *
    * Generates ID and timestamps automatically.
    *
@@ -275,7 +312,25 @@ export interface IProblemRepository extends IStorageBackend {
  *
  * Manages student code snapshots and revision tracking.
  */
-export interface IRevisionRepository extends IStorageBackend {
+export interface IRevisionRepository {
+  /**
+   * Initialize the repository.
+   * Can be no-op for implementations that don't need setup.
+   */
+  initialize?(): Promise<void>;
+
+  /**
+   * Shutdown the repository gracefully.
+   * Can be no-op for implementations that don't need cleanup.
+   */
+  shutdown?(): Promise<void>;
+
+  /**
+   * Check if repository is healthy.
+   * Can return true for implementations without health checks.
+   */
+  health?(): Promise<boolean>;
+
   /**
    * Save a code revision
    *
