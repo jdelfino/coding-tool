@@ -70,6 +70,7 @@ describe('/api/problems', () => {
   const mockInstructorUser: User = {
     id: 'user-1',
     username: 'instructor1',
+        email: "test@example.com",
     role: 'instructor' as const,
     namespaceId: 'default',
     createdAt: new Date('2025-01-01'),
@@ -78,6 +79,7 @@ describe('/api/problems', () => {
   const mockStudentUser: User = {
     id: 'user-3',
     username: 'student1',
+        email: "test@example.com",
     role: 'student' as const,
     namespaceId: 'default',
     createdAt: new Date('2025-01-01'),

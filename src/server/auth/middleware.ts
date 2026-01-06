@@ -28,28 +28,28 @@ export interface AuthenticatedWebSocket extends WebSocket {
 
 /**
  * Create authentication middleware for Express routes.
- * Validates session and attaches user to request.
+ * Validates JWT session and attaches user to request.
  */
 export function createAuthMiddleware(authProvider: IAuthProvider) {
   return async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      // Get session ID from cookie or header
-      const sessionId = req.cookies?.sessionId || req.headers['x-session-id'];
+      // Get JWT access token from cookie or header
+      const accessToken = req.cookies?.['sb-access-token'] || req.headers['authorization']?.replace('Bearer ', '');
 
-      if (!sessionId) {
+      if (!accessToken) {
         return res.status(401).json({ error: 'Not authenticated' });
       }
 
-      // Get user from session
-      const user = await authProvider.getUserFromSession(sessionId);
+      // Validate JWT and get session
+      const session = await authProvider.getSession(accessToken);
 
-      if (!user) {
+      if (!session || !session.user) {
         return res.status(401).json({ error: 'Invalid session' });
       }
 
-      // Attach user and sessionId to request
-      req.user = user;
-      req.sessionId = sessionId;
+      // Attach user and sessionId (JWT token) to request
+      req.user = session.user;
+      req.sessionId = session.sessionId;
 
       next();
     } catch (error) {
@@ -116,8 +116,8 @@ export function createPermissionMiddleware(rbacService: RBACService, permission:
 }
 
 /**
- * Authenticate a WebSocket connection.
- * Extracts session from URL query params or initial message.
+ * Authenticate a WebSocket connection using JWT from cookies.
+ * JWT tokens (sb-access-token) are automatically sent by browser in WebSocket handshake.
  */
 export async function authenticateWebSocket(
   ws: AuthenticatedWebSocket,
@@ -125,24 +125,34 @@ export async function authenticateWebSocket(
   authProvider: IAuthProvider
 ): Promise<User | null> {
   try {
-    // Try to get session ID from URL query params
-    const url = new URL(request.url || '', `http://${request.headers.host}`);
-    const sessionId = url.searchParams.get('sessionId');
+    // Parse cookies from WebSocket handshake request
+    const cookieHeader = request.headers.cookie || '';
+    const cookies: Record<string, string> = {};
+    cookieHeader.split(';').forEach(cookie => {
+      const [name, value] = cookie.trim().split('=');
+      if (name && value) {
+        cookies[name] = decodeURIComponent(value);
+      }
+    });
 
-    if (!sessionId) {
-      console.warn('[WebSocket Auth] No session ID provided');
+    // Get JWT access token from cookies
+    const accessToken = cookies['sb-access-token'];
+
+    if (!accessToken) {
+      console.warn('[WebSocket Auth] No JWT access token in cookies');
       return null;
     }
 
-    // Get user from session
-    const user = await authProvider.getUserFromSession(sessionId);
+    // Validate JWT and get session
+    const session = await authProvider.getSession(accessToken);
 
-    if (user) {
-      ws.user = user;
-      ws.sessionId = sessionId;
+    if (session && session.user) {
+      ws.user = session.user;
+      ws.sessionId = session.sessionId;
+      return session.user;
     }
 
-    return user;
+    return null;
   } catch (error) {
     console.error('[WebSocket Auth] Error:', error);
     return null;

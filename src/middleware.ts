@@ -1,11 +1,11 @@
 /**
  * Next.js Middleware for Supabase Session Refresh
- * 
+ *
  * Runs on every request (except static assets) to:
  * 1. Refresh expired Supabase auth sessions automatically
  * 2. Update JWT cookies (sb-access-token, sb-refresh-token)
  * 3. Ensure session continuity across page loads
- * 
+ *
  * This is required for Supabase SSR to work correctly with Next.js.
  */
 
@@ -80,11 +80,11 @@ export async function middleware(request: NextRequest) {
 
 /**
  * Configure which routes the middleware runs on.
- * 
+ *
  * Runs on all routes EXCEPT:
  * - Static files (_next/static, images, favicon)
  * - Next.js internals
- * 
+ *
  * INCLUDES:
  * - All API routes (for server-side session validation)
  * - All page routes (for client-side navigation)

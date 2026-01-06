@@ -98,6 +98,8 @@ describe('/api/classes/[id]/sections', () => {
       const user: User = {
         id: 'user-1',
         username: 'instructor',
+        email: "test@example.com",
+        email: "test@example.com",
         role: 'instructor',
         namespaceId: 'default',
         createdAt: new Date(),
@@ -122,6 +124,8 @@ describe('/api/classes/[id]/sections', () => {
       const user: User = {
         id: 'user-1',
         username: 'instructor',
+        email: "test@example.com",
+        email: "test@example.com",
         role: 'instructor',
         namespaceId: 'default',
         createdAt: new Date(),
@@ -150,6 +154,7 @@ describe('/api/classes/[id]/sections', () => {
       const instructor: User = {
         id: 'user-1',
         username: 'instructor',
+        email: "test@example.com",
         role: 'instructor',
         namespaceId: 'default',
         createdAt: new Date(),
@@ -215,6 +220,7 @@ describe('/api/classes/[id]/sections', () => {
       const student: User = {
         id: 'user-1',
         username: 'student',
+        email: "test@example.com",
         role: 'student',
         namespaceId: 'default',
         createdAt: new Date(),
@@ -259,6 +265,7 @@ describe('/api/classes/[id]/sections', () => {
       const instructor: User = {
         id: 'user-1',
         username: 'instructor',
+        email: "test@example.com",
         role: 'instructor',
         namespaceId: 'default',
         createdAt: new Date(),

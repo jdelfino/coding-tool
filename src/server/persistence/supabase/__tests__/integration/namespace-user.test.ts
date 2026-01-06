@@ -51,6 +51,7 @@ describe('Wave 1 Integration: Namespace ↔ User', () => {
   const systemAdmin: User = {
     id: 'admin-1',
     username: 'sysadmin',
+      email: "test@example.com",
     role: 'system-admin',
     namespaceId: null,
     displayName: 'System Administrator',
@@ -60,6 +61,7 @@ describe('Wave 1 Integration: Namespace ↔ User', () => {
   const stanfordInstructor: User = {
     id: 'user-123',
     username: 'stanford-prof',
+      email: "test@example.com",
     role: 'instructor',
     namespaceId: 'stanford',
     displayName: 'Stanford Professor',
@@ -69,6 +71,7 @@ describe('Wave 1 Integration: Namespace ↔ User', () => {
   const mitInstructor: User = {
     id: 'user-456',
     username: 'mit-prof',
+      email: "test@example.com",
     role: 'instructor',
     namespaceId: 'mit',
     displayName: 'MIT Professor',
@@ -78,6 +81,7 @@ describe('Wave 1 Integration: Namespace ↔ User', () => {
   const stanfordStudent: User = {
     id: 'user-789',
     username: 'stanford-student',
+      email: "test@example.com",
     role: 'student',
     namespaceId: 'stanford',
     createdAt: new Date('2025-01-03T00:00:00Z'),
@@ -335,6 +339,7 @@ describe('Wave 1 Integration: Namespace ↔ User', () => {
       const newUser: User = {
         id: 'new-user',
         username: 'newuser',
+      email: "test@example.com",
         role: 'student',
         namespaceId: 'stanford',
         createdAt: new Date(),
@@ -351,6 +356,7 @@ describe('Wave 1 Integration: Namespace ↔ User', () => {
       const invalidAdmin: User = {
         id: 'bad-admin',
         username: 'badadmin',
+      email: "test@example.com",
         role: 'system-admin',
         namespaceId: 'stanford', // INVALID!
         createdAt: new Date(),
@@ -376,6 +382,7 @@ describe('Wave 1 Integration: Namespace ↔ User', () => {
       const invalidInstructor: User = {
         id: 'bad-instructor',
         username: 'badinstructor',
+      email: "test@example.com",
         role: 'instructor',
         namespaceId: null, // INVALID!
         createdAt: new Date(),

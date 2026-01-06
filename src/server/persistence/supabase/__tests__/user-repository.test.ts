@@ -32,6 +32,7 @@ describe('SupabaseUserRepository', () => {
   const mockUser: User = {
     id: 'user-123',
     username: 'jdoe',
+      email: "test@example.com",
     role: 'instructor' as UserRole,
     namespaceId: 'stanford',
     displayName: 'John Doe',
@@ -148,6 +149,7 @@ describe('SupabaseUserRepository', () => {
       const minimalUser: User = {
         id: 'user-456',
         username: 'minimal',
+      email: "test@example.com",
         role: 'student',
         namespaceId: 'stanford',
         createdAt: new Date('2025-01-01T00:00:00Z'),

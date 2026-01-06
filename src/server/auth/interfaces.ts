@@ -105,9 +105,11 @@ export interface IAuthProvider {
    * Get configured Supabase client for specific context.
    *
    * @param context - 'server' for user-context (with RLS), 'admin' for service role
-   * @returns Configured Supabase client
+   * @returns Configured Supabase client (may be async for 'server' context)
    */
-  getSupabaseClient(context: 'server' | 'admin'): SupabaseClient;
+  getSupabaseClient(context: 'server'): Promise<SupabaseClient>;
+  getSupabaseClient(context: 'admin'): SupabaseClient;
+  getSupabaseClient(context: 'server' | 'admin'): SupabaseClient | Promise<SupabaseClient>;
 
   /**
    * Get all users in the system.

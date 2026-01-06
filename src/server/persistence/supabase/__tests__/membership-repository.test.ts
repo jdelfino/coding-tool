@@ -324,6 +324,7 @@ describe('SupabaseMembershipRepository', () => {
     const mockUser: User = {
       id: 'user-456',
       username: 'alice',
+      email: "test@example.com",
       namespaceId: 'stanford',
       role: 'student',
       createdAt: new Date('2025-01-01T00:00:00Z'),

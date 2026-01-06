@@ -87,6 +87,8 @@ describe('/api/classes', () => {
       const user: User = {
         id: 'instructor-1',
         username: 'alice@example.com',
+        email: "test@example.com",
+        email: "test@example.com",
         role: 'instructor',
         namespaceId: 'default',
         createdAt: new Date(),
@@ -154,6 +156,8 @@ describe('/api/classes', () => {
       const user: User = {
         id: 'instructor-1',
         username: 'alice@example.com',
+        email: "test@example.com",
+        email: "test@example.com",
         role: 'instructor',
         namespaceId: 'default',
         createdAt: new Date(),
@@ -178,6 +182,8 @@ describe('/api/classes', () => {
       const user: User = {
         id: 'instructor-1',
         username: 'alice@example.com',
+        email: "test@example.com",
+        email: "test@example.com",
         role: 'instructor',
         namespaceId: 'default',
         createdAt: new Date(),
@@ -218,6 +224,8 @@ describe('/api/classes', () => {
       const user: User = {
         id: 'instructor-1',
         username: 'alice@example.com',
+        email: "test@example.com",
+        email: "test@example.com",
         role: 'instructor',
         namespaceId: 'default',
         createdAt: new Date(),

@@ -65,7 +65,9 @@ export async function GET(
  * Create a new user in a namespace (system-admin only)
  *
  * Body:
+ * - email: string
  * - username: string
+ * - password: string
  * - role: 'namespace-admin' | 'instructor' | 'student'
  */
 export async function POST(
@@ -81,12 +83,26 @@ export async function POST(
 
     const { id: namespaceId } = await params;
     const body = await request.json();
-    const { username, role } = body;
+    const { email, username, password, role } = body;
 
     // Validate inputs
+    if (!email || typeof email !== 'string') {
+      return NextResponse.json(
+        { error: 'Email is required' },
+        { status: 400 }
+      );
+    }
+
     if (!username || typeof username !== 'string') {
       return NextResponse.json(
         { error: 'Username is required' },
+        { status: 400 }
+      );
+    }
+
+    if (!password || typeof password !== 'string') {
+      return NextResponse.json(
+        { error: 'Password is required' },
         { status: 400 }
       );
     }
@@ -108,19 +124,15 @@ export async function POST(
       );
     }
 
-    // Check if username already exists
-    const userRepo = await getUserRepository();
-    const existingUser = await userRepo.getUserByUsername(username.trim());
-    if (existingUser) {
-      return NextResponse.json(
-        { error: 'Username already exists' },
-        { status: 409 }
-      );
-    }
-
-    // Create user
+    // Create user via Supabase Auth
     const authProvider = await getAuthProvider();
-    const user = await authProvider.createUser(username.trim(), role, namespaceId);
+    const user = await authProvider.signUp(
+      email.trim(),
+      password,
+      username.trim(),
+      role,
+      namespaceId
+    );
 
     return NextResponse.json({
       success: true,

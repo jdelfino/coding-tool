@@ -119,6 +119,7 @@ describe('DELETE /api/admin/users/[id]', () => {
       const instructor: User = {
         id: 'instructor1',
         username: 'instructor',
+        email: "test@example.com",
         role: 'instructor',
         namespaceId: 'default',
         createdAt: new Date(),
@@ -151,6 +152,7 @@ describe('DELETE /api/admin/users/[id]', () => {
       const admin: User = {
         id: 'admin1',
         username: 'admin',
+        email: "test@example.com",
         role: 'namespace-admin',
         namespaceId: 'default',
         createdAt: new Date(),
@@ -199,6 +201,7 @@ describe('DELETE /api/admin/users/[id]', () => {
       const instructor: User = {
         id: 'instructor1',
         username: 'instructor',
+        email: "test@example.com",
         role: 'instructor',
         namespaceId: 'default',
         createdAt: new Date(),
@@ -222,6 +225,7 @@ describe('DELETE /api/admin/users/[id]', () => {
       const admin: User = {
         id: 'admin1',
         username: 'admin',
+        email: "test@example.com",
         role: 'system-admin',
         namespaceId: 'default',
         createdAt: new Date(),
@@ -255,6 +259,7 @@ describe('DELETE /api/admin/users/[id]', () => {
       const admin: User = {
         id: 'admin1',
         username: 'admin',
+        email: "test@example.com",
         role: 'system-admin',
         namespaceId: 'default',
         createdAt: new Date(),
@@ -288,6 +293,7 @@ describe('DELETE /api/admin/users/[id]', () => {
       const admin: User = {
         id: 'admin1',
         username: 'admin',
+        email: "test@example.com",
         role: 'namespace-admin',
         namespaceId: 'default',
         createdAt: new Date(),
@@ -320,6 +326,7 @@ describe('DELETE /api/admin/users/[id]', () => {
       const instructor: User = {
         id: 'instructor1',
         username: 'instructor',
+        email: "test@example.com",
         role: 'instructor',
         namespaceId: 'default',
         createdAt: new Date(),

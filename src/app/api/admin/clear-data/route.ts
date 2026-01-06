@@ -106,16 +106,12 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 7. Clear auth sessions and users
+    // 7. Clear auth users
     const users = await authProvider.getAllUsers();
 
-    // Clear all auth sessions first
-    const allAuthSessions = (authProvider as any).getActiveSessions?.() || [];
-    for (const authSession of allAuthSessions) {
-      await authProvider.destroySession(authSession.sessionId);
-    }
-
     // Delete all users except the current admin/instructor (to prevent lockout)
+    // Note: Supabase JWT sessions are stateless and expire automatically.
+    // Deleting the auth.users record invalidates all their JWTs.
     let deletedCount = 0;
     for (const user of users) {
       if (user.id !== session.user.id) {

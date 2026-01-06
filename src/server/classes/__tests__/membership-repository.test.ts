@@ -18,6 +18,7 @@ describe('MembershipRepository', () => {
   const mockUser1: User = {
     id: 'user-1',
     username: 'student1',
+      email: "test@example.com",
     role: 'student',
     namespaceId: 'default',
     createdAt: new Date(),
@@ -26,6 +27,7 @@ describe('MembershipRepository', () => {
   const mockUser2: User = {
     id: 'user-2',
     username: 'student2',
+      email: "test@example.com",
     role: 'student',
     namespaceId: 'default',
     createdAt: new Date(),
@@ -34,6 +36,7 @@ describe('MembershipRepository', () => {
   const mockInstructor: User = {
     id: 'instructor-1',
     username: 'instructor',
+      email: "test@example.com",
     role: 'instructor',
     namespaceId: 'default',
     createdAt: new Date(),

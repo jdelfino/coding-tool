@@ -7,7 +7,7 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
-import { createServerClient } from '@supabase/ssr';
+import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import type { NextRequest } from 'next/server';
 import type { SupabaseClient } from '@supabase/supabase-js';
@@ -51,9 +51,15 @@ export class SupabaseAuthProvider implements IAuthProvider {
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       {
         cookies: {
-          get: (name: string) => cookieStore.get(name)?.value,
-          set: (name: string, value: string, options: any) => cookieStore.set(name, value, options),
-          remove: (name: string, options: any) => cookieStore.set(name, '', options),
+          get(name: string) {
+            return cookieStore.get(name)?.value;
+          },
+          set(name: string, value: string, options: CookieOptions) {
+            cookieStore.set(name, value, options);
+          },
+          remove(name: string, options: CookieOptions) {
+            cookieStore.set(name, '', options);
+          },
         },
       }
     );
@@ -62,7 +68,9 @@ export class SupabaseAuthProvider implements IAuthProvider {
   /**
    * Get Supabase client by context type
    */
-  getSupabaseClient(context: 'server' | 'admin'): SupabaseClient {
+  getSupabaseClient(context: 'server'): Promise<SupabaseClient>;
+  getSupabaseClient(context: 'admin'): SupabaseClient;
+  getSupabaseClient(context: 'server' | 'admin'): SupabaseClient | Promise<SupabaseClient> {
     return context === 'admin' ? this.serviceRoleClient : this.getServerClient();
   }
 

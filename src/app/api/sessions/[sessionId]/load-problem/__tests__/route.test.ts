@@ -45,6 +45,7 @@ describe('POST /api/sessions/:sessionId/load-problem', () => {
   const mockInstructor: User = {
     id: 'instructor-1',
     username: 'teacher',
+        email: "test@example.com",
     role: 'instructor',
     namespaceId: 'default',
     createdAt: new Date('2025-01-01'),
@@ -53,6 +54,7 @@ describe('POST /api/sessions/:sessionId/load-problem', () => {
   const mockStudent: User = {
     id: 'student-1',
     username: 'learner',
+        email: "test@example.com",
     role: 'student',
     namespaceId: 'default',
     createdAt: new Date('2025-01-01'),

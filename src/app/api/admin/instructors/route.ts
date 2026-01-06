@@ -20,7 +20,14 @@ export async function POST(request: NextRequest) {
     const namespaceId = getNamespaceContext(request, user);
 
     const body = await request.json();
-    const { username } = body;
+    const { email, username, password } = body;
+
+    if (!email || typeof email !== 'string') {
+      return NextResponse.json(
+        { error: 'Email is required' },
+        { status: 400 }
+      );
+    }
 
     if (!username || typeof username !== 'string') {
       return NextResponse.json(
@@ -29,9 +36,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (!password || typeof password !== 'string') {
+      return NextResponse.json(
+        { error: 'Password is required' },
+        { status: 400 }
+      );
+    }
+
     // Create the instructor account in the user's namespace
     const authProvider = await getAuthProvider();
-    const newUser = await authProvider.createUser(username.trim(), 'instructor', namespaceId);
+    const newUser = await authProvider.signUp(
+      email.trim(),
+      password,
+      username.trim(),
+      'instructor',
+      namespaceId
+    );
 
     return NextResponse.json({
       user: newUser,

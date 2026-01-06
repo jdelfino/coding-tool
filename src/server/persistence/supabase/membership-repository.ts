@@ -52,6 +52,7 @@ function mapRowToSectionWithClass(row: any): SectionWithClass {
 function mapRowToUser(row: any): User {
   return {
     id: row.id,
+    email: row.email,
     username: row.username,
     namespaceId: row.namespace_id,
     role: row.role,
