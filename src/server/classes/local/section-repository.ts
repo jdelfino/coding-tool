@@ -38,7 +38,7 @@ export class SectionRepository implements ISectionRepository {
   /**
    * Initialize the repository by loading data from disk
    */
-  async ensureInitialized(): Promise<void> {
+  async initialize(): Promise<void> {
     if (this.initialized) {
       return;
     }
@@ -124,7 +124,7 @@ export class SectionRepository implements ISectionRepository {
    * Create a new section with auto-generated join code
    */
   async createSection(sectionData: Omit<Section, 'id' | 'joinCode' | 'createdAt' | 'updatedAt'>): Promise<Section> {
-    await this.ensureInitialized();
+    await this.initialize();
 
     const now = new Date();
     const joinCode = await this.generateUniqueJoinCode();
@@ -148,7 +148,7 @@ export class SectionRepository implements ISectionRepository {
    * Get a section by ID
    */
   async getSection(sectionId: string, namespaceId?: string): Promise<Section | null> {
-    await this.ensureInitialized();
+    await this.initialize();
     // Reload from disk to get latest data from other processes (e.g., API routes)
     await this.reloadFromDisk();
     const section = this.sections.get(sectionId);
@@ -165,7 +165,7 @@ export class SectionRepository implements ISectionRepository {
    * Get a section by join code
    */
   async getSectionByJoinCode(joinCode: string): Promise<Section | null> {
-    await this.ensureInitialized();
+    await this.initialize();
     // Reload from disk to get latest data from other processes
     await this.reloadFromDisk();
 
@@ -181,7 +181,7 @@ export class SectionRepository implements ISectionRepository {
    * Update a section
    */
   async updateSection(sectionId: string, updates: Partial<Omit<Section, 'id' | 'createdAt'>>): Promise<void> {
-    await this.ensureInitialized();
+    await this.initialize();
 
     const existingSection = this.sections.get(sectionId);
     if (!existingSection) {
@@ -217,7 +217,7 @@ export class SectionRepository implements ISectionRepository {
    * Delete a section
    */
   async deleteSection(sectionId: string): Promise<void> {
-    await this.ensureInitialized();
+    await this.initialize();
 
     const section = this.sections.get(sectionId);
     if (!section) {
@@ -236,7 +236,7 @@ export class SectionRepository implements ISectionRepository {
    * List sections with optional filtering
    */
   async listSections(filters?: SectionFilters, namespaceId?: string): Promise<Section[]> {
-    await this.ensureInitialized();
+    await this.initialize();
     // Reload from disk to get latest data from other processes
     await this.reloadFromDisk();
 
@@ -273,7 +273,7 @@ export class SectionRepository implements ISectionRepository {
    * Regenerate the join code for a section
    */
   async regenerateJoinCode(sectionId: string): Promise<string> {
-    await this.ensureInitialized();
+    await this.initialize();
 
     const section = this.sections.get(sectionId);
     if (!section) {
@@ -302,7 +302,7 @@ export class SectionRepository implements ISectionRepository {
    * Get statistics for a section
    */
   async getSectionStats(sectionId: string): Promise<SectionStats> {
-    await this.ensureInitialized();
+    await this.initialize();
 
     const section = this.sections.get(sectionId);
     if (!section) {
@@ -329,7 +329,7 @@ export class SectionRepository implements ISectionRepository {
    * Helper: Add an instructor to a section
    */
   async addInstructor(sectionId: string, userId: string): Promise<void> {
-    await this.ensureInitialized();
+    await this.initialize();
 
     const section = this.sections.get(sectionId);
     if (!section) {
@@ -347,7 +347,7 @@ export class SectionRepository implements ISectionRepository {
    * Helper: Remove an instructor from a section
    */
   async removeInstructor(sectionId: string, userId: string): Promise<void> {
-    await this.ensureInitialized();
+    await this.initialize();
 
     const section = this.sections.get(sectionId);
     if (!section) {
@@ -366,7 +366,7 @@ export class SectionRepository implements ISectionRepository {
    * Clear all sections (for testing/admin purposes)
    */
   async clear(): Promise<void> {
-    await this.ensureInitialized();
+    await this.initialize();
     this.sections.clear();
     this.joinCodeIndex.clear();
     await this.save();

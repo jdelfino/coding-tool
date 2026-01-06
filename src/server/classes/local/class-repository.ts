@@ -35,7 +35,7 @@ export class ClassRepository implements IClassRepository {
   /**
    * Initialize the repository by loading data from disk
    */
-  async ensureInitialized(): Promise<void> {
+  async initialize(): Promise<void> {
     if (this.initialized) {
       return;
     }
@@ -95,7 +95,7 @@ export class ClassRepository implements IClassRepository {
    * Create a new class
    */
   async createClass(classData: Omit<Class, 'id' | 'createdAt' | 'updatedAt'>): Promise<Class> {
-    await this.ensureInitialized();
+    await this.initialize();
 
     const now = new Date();
     const newClass: Class = {
@@ -115,7 +115,7 @@ export class ClassRepository implements IClassRepository {
    * Get a class by ID
    */
   async getClass(classId: string, namespaceId?: string): Promise<Class | null> {
-    await this.ensureInitialized();
+    await this.initialize();
     // Reload from disk to get latest data from other processes
     await this.reloadFromDisk();
     const cls = this.classes.get(classId);
@@ -132,7 +132,7 @@ export class ClassRepository implements IClassRepository {
    * Update a class
    */
   async updateClass(classId: string, updates: Partial<Omit<Class, 'id' | 'createdAt'>>): Promise<void> {
-    await this.ensureInitialized();
+    await this.initialize();
 
     const existingClass = this.classes.get(classId);
     if (!existingClass) {
@@ -157,7 +157,7 @@ export class ClassRepository implements IClassRepository {
    * Note: Callers should check for existing sections before deleting
    */
   async deleteClass(classId: string): Promise<void> {
-    await this.ensureInitialized();
+    await this.initialize();
 
     if (!this.classes.has(classId)) {
       throw new Error(`Class not found: ${classId}`);
@@ -171,7 +171,7 @@ export class ClassRepository implements IClassRepository {
    * List classes, optionally filtered by creator
    */
   async listClasses(createdBy?: string, namespaceId?: string): Promise<Class[]> {
-    await this.ensureInitialized();
+    await this.initialize();
     // Reload from disk to get latest data from other processes
     await this.reloadFromDisk();
 
@@ -196,7 +196,7 @@ export class ClassRepository implements IClassRepository {
    * Get all sections for a class
    */
   async getClassSections(classId: string, namespaceId?: string): Promise<Section[]> {
-    await this.ensureInitialized();
+    await this.initialize();
 
     // Verify class exists
     if (!this.classes.has(classId)) {
@@ -220,7 +220,7 @@ export class ClassRepository implements IClassRepository {
    * Clear all classes (for testing/admin purposes)
    */
   async clear(): Promise<void> {
-    await this.ensureInitialized();
+    await this.initialize();
     this.classes.clear();
     await this.save();
   }

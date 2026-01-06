@@ -77,14 +77,14 @@ export class StorageBackend implements IStorageRepository {
     if (this.users.initialize) {
       optionalInits.push(this.users.initialize());
     }
-    if (this.classes?.ensureInitialized) {
-      optionalInits.push(this.classes.ensureInitialized());
+    if (this.classes?.initialize) {
+      optionalInits.push(this.classes.initialize());
     }
-    if (this.sections?.ensureInitialized) {
-      optionalInits.push(this.sections.ensureInitialized());
+    if (this.sections?.initialize) {
+      optionalInits.push(this.sections.initialize());
     }
-    if (this.memberships?.ensureInitialized) {
-      optionalInits.push(this.memberships.ensureInitialized());
+    if (this.memberships?.initialize) {
+      optionalInits.push(this.memberships.initialize());
     }
 
     await Promise.all(optionalInits);

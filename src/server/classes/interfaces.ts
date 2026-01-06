@@ -27,7 +27,19 @@ export interface IClassRepository {
    * Initialize the repository.
    * Can be no-op for implementations that don't need setup.
    */
-  ensureInitialized?(): Promise<void>;
+  initialize?(): Promise<void>;
+
+  /**
+   * Shutdown the repository gracefully.
+   * Can be no-op for implementations that don't need cleanup.
+   */
+  shutdown?(): Promise<void>;
+
+  /**
+   * Check if repository is healthy.
+   * Can return true for implementations without health checks.
+   */
+  health?(): Promise<boolean>;
 
   /**
    * Create a new class
@@ -95,7 +107,19 @@ export interface ISectionRepository {
    * Initialize the repository.
    * Can be no-op for implementations that don't need setup.
    */
-  ensureInitialized?(): Promise<void>;
+  initialize?(): Promise<void>;
+
+  /**
+   * Shutdown the repository gracefully.
+   * Can be no-op for implementations that don't need cleanup.
+   */
+  shutdown?(): Promise<void>;
+
+  /**
+   * Check if repository is healthy.
+   * Can return true for implementations without health checks.
+   */
+  health?(): Promise<boolean>;
 
   /**
    * Create a new section
@@ -207,7 +231,19 @@ export interface IMembershipRepository {
    * Initialize the repository.
    * Can be no-op for implementations that don't need setup.
    */
-  ensureInitialized?(): Promise<void>;
+  initialize?(): Promise<void>;
+
+  /**
+   * Shutdown the repository gracefully.
+   * Can be no-op for implementations that don't need cleanup.
+   */
+  shutdown?(): Promise<void>;
+
+  /**
+   * Check if repository is healthy.
+   * Can return true for implementations without health checks.
+   */
+  health?(): Promise<boolean>;
 
   /**
    * Add a membership (enroll a user in a section)

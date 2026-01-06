@@ -44,7 +44,7 @@ export class MembershipRepository implements IMembershipRepository {
   /**
    * Initialize the repository by loading data from disk
    */
-  async ensureInitialized(): Promise<void> {
+  async initialize(): Promise<void> {
     if (this.initialized) {
       return;
     }
@@ -138,7 +138,7 @@ export class MembershipRepository implements IMembershipRepository {
    * Add a membership (enroll a user in a section)
    */
   async addMembership(membershipData: Omit<SectionMembership, 'id' | 'joinedAt'>): Promise<SectionMembership> {
-    await this.ensureInitialized();
+    await this.initialize();
 
     // Check for duplicate membership
     const existing = await this.getMembership(membershipData.userId, membershipData.sectionId);
@@ -175,7 +175,7 @@ export class MembershipRepository implements IMembershipRepository {
    * Remove a membership (unenroll a user from a section)
    */
   async removeMembership(userId: string, sectionId: string): Promise<void> {
-    await this.ensureInitialized();
+    await this.initialize();
 
     const membership = await this.getMembership(userId, sectionId);
     if (!membership) {
@@ -196,7 +196,7 @@ export class MembershipRepository implements IMembershipRepository {
    * Get all sections for a user, optionally filtered by role and namespace
    */
   async getUserSections(userId: string, namespaceId?: string, role?: 'instructor' | 'student'): Promise<SectionWithClass[]> {
-    await this.ensureInitialized();
+    await this.initialize();
     // Reload from disk to get latest data from other processes
     await this.reloadFromDisk();
 
@@ -255,7 +255,7 @@ export class MembershipRepository implements IMembershipRepository {
    * Get all members (users) in a section, optionally filtered by role
    */
   async getSectionMembers(sectionId: string, role?: 'instructor' | 'student'): Promise<User[]> {
-    await this.ensureInitialized();
+    await this.initialize();
     // Reload from disk to get latest data from other processes
     await this.reloadFromDisk();
 
@@ -295,7 +295,7 @@ export class MembershipRepository implements IMembershipRepository {
    * Check if a user is a member of a section
    */
   async isMember(userId: string, sectionId: string): Promise<boolean> {
-    await this.ensureInitialized();
+    await this.initialize();
 
     const membership = await this.getMembership(userId, sectionId);
     return membership !== null;
@@ -305,7 +305,7 @@ export class MembershipRepository implements IMembershipRepository {
    * Get a specific membership
    */
   async getMembership(userId: string, sectionId: string): Promise<SectionMembership | null> {
-    await this.ensureInitialized();
+    await this.initialize();
     // Reload from disk to get latest data from other processes
     await this.reloadFromDisk();
 
@@ -327,7 +327,7 @@ export class MembershipRepository implements IMembershipRepository {
    * Clear all memberships (for testing/admin purposes)
    */
   async clear(): Promise<void> {
-    await this.ensureInitialized();
+    await this.initialize();
     this.memberships.clear();
     this.userSectionIndex.clear();
     this.sectionUserIndex.clear();
