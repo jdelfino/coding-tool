@@ -64,9 +64,11 @@ export interface Namespace {
  * Represents a user account in the system.
  */
 export interface User {
-  /** Unique identifier for the user */
+  /** Unique identifier for the user (UUID from auth.users) */
   id: string;
-  /** Username for authentication */
+  /** Email address for authentication */
+  email: string;
+  /** Username for display purposes */
   username: string;
   /** User's role determining their permissions */
   role: UserRole;
@@ -78,6 +80,8 @@ export interface User {
   createdAt: Date;
   /** Last time the user logged in */
   lastLoginAt?: Date;
+  /** Whether the user's email has been confirmed */
+  emailConfirmed?: boolean;
 }
 
 /**
@@ -96,8 +100,10 @@ export interface AuthSession {
  * Request payload for user login.
  */
 export interface LoginRequest {
-  /** Username for authentication */
-  username: string;
+  /** Email address for authentication */
+  email: string;
+  /** Password for authentication */
+  password: string;
 }
 
 /**

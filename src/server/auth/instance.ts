@@ -4,6 +4,7 @@
  */
 
 import { IAuthProvider, IUserRepository, INamespaceRepository } from './interfaces';
+import { SupabaseAuthProvider } from './supabase-provider';
 import { getStorage } from '../persistence';
 import { SupabaseNamespaceRepository } from '../persistence/supabase/namespace-repository';
 
@@ -13,9 +14,8 @@ let namespaceRepositoryInstance: INamespaceRepository | null = null;
 
 export async function getAuthProvider(): Promise<IAuthProvider> {
   if (!authProviderInstance) {
-    // TODO: Implement Supabase auth provider as part of coding-tool-aw4 epic
-    // For now, return a placeholder that throws errors
-    throw new Error('Auth provider not yet migrated to Supabase - see coding-tool-aw4');
+    authProviderInstance = new SupabaseAuthProvider();
+    await authProviderInstance.userRepository.initialize?.();
   }
   return authProviderInstance;
 }

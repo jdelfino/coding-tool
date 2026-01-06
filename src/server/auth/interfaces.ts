@@ -5,6 +5,8 @@
  */
 
 import { User, UserRole, AuthSession, Namespace } from './types';
+import type { NextRequest } from 'next/server';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 /**
  * Authentication provider interface.
@@ -18,23 +20,32 @@ export interface IAuthProvider {
   readonly userRepository: IUserRepository;
 
   /**
-   * Authenticate a user with their username.
+   * Authenticate a user with email and password.
    *
-   * @param username - User's username
+   * @param email - User's email address
+   * @param password - User's password
    * @returns User if authentication successful, null otherwise
    */
-  authenticate(username: string): Promise<User | null>;
+  authenticateWithPassword(email: string, password: string): Promise<User | null>;
 
   /**
-   * Create a new user account.
+   * Register a new user account.
    *
-   * @param username - User's username
+   * @param email - User's email address
+   * @param password - User's password
+   * @param username - User's username (for display)
    * @param role - User's role (system-admin, namespace-admin, instructor, or student)
    * @param namespaceId - Namespace ID (null for system-admin, required for others)
    * @returns The newly created user
    * @throws {Error} If user already exists or creation fails
    */
-  createUser(username: string, role: UserRole, namespaceId?: string | null): Promise<User>;
+  signUp(
+    email: string,
+    password: string,
+    username: string,
+    role: UserRole,
+    namespaceId?: string | null
+  ): Promise<User>;
 
   /**
    * Get a user by their ID.
@@ -70,35 +81,33 @@ export interface IAuthProvider {
   deleteUser(userId: string): Promise<void>;
 
   /**
-   * Create an auth session for a user.
+   * Get session from a Next.js request (reads JWT from cookies).
    *
-   * @param user - User to create session for
-   * @returns New auth session
+   * @param request - Next.js request object
+   * @returns Session if valid JWT found, null otherwise
    */
-  createSession(user: User): Promise<AuthSession>;
+  getSessionFromRequest(request: NextRequest): Promise<AuthSession | null>;
 
   /**
-   * Get an active session by ID.
+   * Get an active session by JWT token.
    *
-   * @param sessionId - Session identifier
-   * @returns Session if found, null otherwise
+   * @param accessToken - JWT access token
+   * @returns Session if token is valid, null otherwise
    */
-  getSession(sessionId: string): Promise<AuthSession | null>;
+  getSession(accessToken: string): Promise<AuthSession | null>;
 
   /**
-   * Get user from a session ID.
-   *
-   * @param sessionId - Session identifier
-   * @returns User if session is valid, null otherwise
+   * Sign out (destroy session).
    */
-  getUserFromSession(sessionId: string): Promise<User | null>;
+  signOut(): Promise<void>;
 
   /**
-   * Destroy a session (logout).
+   * Get configured Supabase client for specific context.
    *
-   * @param sessionId - Session identifier to destroy
+   * @param context - 'server' for user-context (with RLS), 'admin' for service role
+   * @returns Configured Supabase client
    */
-  destroySession(sessionId: string): Promise<void>;
+  getSupabaseClient(context: 'server' | 'admin'): SupabaseClient;
 
   /**
    * Get all users in the system.
