@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, Suspense } from 'react';
+import React, { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { MessageType } from '@/server/types';
 import { ExecutionSettings, Problem } from '@/server/types/problem';
@@ -69,6 +69,8 @@ function PublicViewContent() {
           }
           if (message.payload.code !== undefined) {
             setCode(message.payload.code);
+            // Clear execution output when new code is loaded
+            setExecutionResult(null);
           }
           if (message.payload.hasFeaturedSubmission !== undefined) {
             setHasFeaturedSubmission(message.payload.hasFeaturedSubmission);
