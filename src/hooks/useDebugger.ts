@@ -79,6 +79,14 @@ export function useDebugger(sendMessage: (type: string, payload: any) => void) {
     });
   }, []);
 
+  const setError = useCallback((error: string) => {
+    setState(prev => ({
+      ...prev,
+      isLoading: false,
+      error
+    }));
+  }, []);
+
   const getCurrentStep = useCallback((): TraceStep | null => {
     if (!state.trace || state.trace.steps.length === 0) {
       return null;
@@ -162,6 +170,7 @@ export function useDebugger(sendMessage: (type: string, payload: any) => void) {
     ...state,
     requestTrace,
     setTrace,
+    setError,
     stepForward,
     stepBackward,
     jumpToStep,

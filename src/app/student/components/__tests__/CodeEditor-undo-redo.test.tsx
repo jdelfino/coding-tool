@@ -156,6 +156,7 @@ describe('CodeEditor Undo/Redo Functionality', () => {
       error: null,
       requestTrace: jest.fn(),
       setTrace: jest.fn(),
+      setError: jest.fn(),
       stepForward: jest.fn(),
       stepBackward: jest.fn(),
       jumpToStep: jest.fn(),

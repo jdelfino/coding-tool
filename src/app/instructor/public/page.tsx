@@ -6,7 +6,6 @@ import { MessageType } from '@/server/types';
 import { ExecutionSettings, Problem } from '@/server/types/problem';
 import CodeEditor from '@/app/student/components/CodeEditor';
 import { useDebugger } from '@/hooks/useDebugger';
-import { useWebSocket } from '@/hooks/useWebSocket';
 
 interface ExecutionResult {
   success: boolean;
@@ -31,16 +30,12 @@ function PublicViewContent() {
   const [randomSeed, setRandomSeed] = useState<number | undefined>(undefined);
   const [attachedFiles, setAttachedFiles] = useState<Array<{ name: string; content: string }>>([]);
 
-  // Setup debugger
-  const [wsUrl, setWsUrl] = useState('');
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const host = window.location.host;
-      setWsUrl(`${protocol}//${host}/ws`);
+  // Setup debugger with manual sendMessage function
+  const sendMessage = (type: string, payload: any) => {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type, payload }));
     }
-  }, []);
-  const { sendMessage } = useWebSocket(wsUrl);
+  };
   const debuggerHook = useDebugger(sendMessage);
 
   useEffect(() => {
@@ -92,6 +87,10 @@ function PublicViewContent() {
           setExecutionResult(message.payload);
           break;
 
+        case MessageType.TRACE_RESPONSE:
+          debuggerHook.setTrace(message.payload.trace);
+          break;
+
           case MessageType.PROBLEM_UPDATE:
           setProblemText(message.payload.problemText);
           setExampleInput(message.payload.exampleInput || '');
@@ -101,6 +100,10 @@ function PublicViewContent() {
 
         case MessageType.ERROR:
           console.error('Error:', message.payload.error);
+          // Reset debugger loading state if trace request failed
+          if (debuggerHook.isLoading) {
+            debuggerHook.setError(message.payload.error || 'An error occurred');
+          }
           break;
       }
     };

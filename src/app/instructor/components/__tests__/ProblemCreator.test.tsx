@@ -32,6 +32,7 @@ jest.mock('@/hooks/useDebugger', () => ({
     canStepBackward: false,
     requestTrace: jest.fn(),
     setTrace: jest.fn(),
+    setError: jest.fn(),
     stepForward: jest.fn(),
     stepBackward: jest.fn(),
     jumpToStep: jest.fn(),

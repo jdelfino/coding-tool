@@ -168,6 +168,10 @@ function StudentPage() {
         setError(errorMsg);
         setIsRunning(false);
         setIsJoining(false);
+        // Reset debugger loading state if trace request failed
+        if (debuggerHook.isLoading) {
+          debuggerHook.setError(errorMsg);
+        }
         break;
     }
   }, [lastMessage]);

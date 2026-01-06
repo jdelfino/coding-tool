@@ -60,6 +60,7 @@ describe('CodeEditor - Debug Line Highlighting', () => {
       reset: jest.fn(),
       requestTrace: jest.fn(),
       setTrace: jest.fn(),
+      setError: jest.fn(),
       jumpToStep: jest.fn(),
       error: null,
     };
@@ -114,6 +115,7 @@ describe('CodeEditor - Debug Line Highlighting', () => {
       reset: jest.fn(),
       requestTrace: jest.fn(),
       setTrace: jest.fn(),
+      setError: jest.fn(),
       jumpToStep: jest.fn(),
       error: null,
     };
@@ -156,6 +158,7 @@ describe('CodeEditor - Debug Line Highlighting', () => {
       reset: jest.fn(),
       requestTrace: jest.fn(),
       setTrace: jest.fn(),
+      setError: jest.fn(),
       jumpToStep: jest.fn(),
       error: null,
     };
@@ -213,6 +216,7 @@ describe('CodeEditor - Debug Line Highlighting', () => {
       reset: jest.fn(),
       requestTrace: jest.fn(),
       setTrace: jest.fn(),
+      setError: jest.fn(),
       jumpToStep: jest.fn(),
       error: null,
     };
@@ -253,6 +257,7 @@ describe('CodeEditor - Debug Line Highlighting', () => {
       reset: jest.fn(),
       requestTrace: jest.fn(),
       setTrace: jest.fn(),
+      setError: jest.fn(),
       jumpToStep: jest.fn(),
       error: null,
     };
@@ -292,6 +297,7 @@ describe('CodeEditor - Debug Line Highlighting', () => {
       reset: jest.fn(),
       requestTrace: jest.fn(),
       setTrace: jest.fn(),
+      setError: jest.fn(),
       jumpToStep: jest.fn(),
       error: null,
     };
@@ -330,6 +336,7 @@ describe('CodeEditor - Debug Line Highlighting', () => {
       reset: jest.fn(),
       requestTrace: jest.fn(),
       setTrace: jest.fn(),
+      setError: jest.fn(),
       jumpToStep: jest.fn(),
       error: null,
     };
