@@ -1,0 +1,114 @@
+/**
+ * API endpoint for updating a session's problem inline
+ * POST /api/sessions/:sessionId/update-problem
+ */
+
+import { NextRequest, NextResponse } from 'next/server';
+import { getAuthProvider } from '@/server/auth';
+import { getSessionManager } from '@/server/session-manager';
+import { Problem, ExecutionSettings } from '@/server/types/problem';
+
+type Params = {
+  params: Promise<{
+    sessionId: string;
+  }>;
+};
+
+/**
+ * POST /api/sessions/:sessionId/update-problem
+ *
+ * Update the problem in an active session directly (inline editing)
+ *
+ * Request body:
+ * {
+ *   problem: { title, description, starterCode },
+ *   executionSettings?: ExecutionSettings
+ * }
+ *
+ * Response:
+ * {
+ *   success: boolean,
+ *   message?: string
+ * }
+ */
+export async function POST(
+  request: NextRequest,
+  { params }: Params
+) {
+  try {
+    const { sessionId } = await params;
+
+    // Verify authentication
+    const cookieSessionId = request.cookies.get('sessionId')?.value;
+    if (!cookieSessionId) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    const authProvider = await getAuthProvider();
+    const authSession = await authProvider.getSession(cookieSessionId);
+    if (!authSession || !authSession.user) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    // Verify user is an instructor
+    if (authSession.user.role !== 'instructor' && authSession.user.role !== 'namespace-admin') {
+      return NextResponse.json(
+        { error: 'Only instructors can update session problems' },
+        { status: 403 }
+      );
+    }
+
+    // Parse request body
+    const body = await request.json();
+    const { problem, executionSettings } = body;
+
+    if (!problem || typeof problem !== 'object') {
+      return NextResponse.json(
+        { error: 'Invalid problem object' },
+        { status: 400 }
+      );
+    }
+
+    // Verify session exists
+    const sessionManager = await getSessionManager();
+    const session = await sessionManager.getSession(sessionId);
+    if (!session) {
+      return NextResponse.json(
+        { error: 'Session not found' },
+        { status: 404 }
+      );
+    }
+
+    // Update the session's problem
+    const success = await sessionManager.updateSessionProblem(
+      sessionId,
+      problem as Problem,
+      executionSettings
+    );
+
+    if (!success) {
+      return NextResponse.json(
+        { error: 'Failed to update problem in session' },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: `Problem "${problem.title || 'Untitled'}" updated successfully`,
+    });
+
+  } catch (error) {
+    console.error('Error updating session problem:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}

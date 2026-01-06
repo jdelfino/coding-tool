@@ -26,22 +26,61 @@ export function useRevisionHistory({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Load revisions when sessionId or studentId changes
+  // Load revisions via API when WebSocket is not available
   useEffect(() => {
-    if (sessionId && studentId && sendMessage) {
+    if (!sessionId || !studentId) return;
+
+    // Use WebSocket if available, otherwise use API
+    if (sendMessage) {
       setLoading(true);
       setError(null);
       sendMessage('GET_REVISIONS', { studentId });
+    } else {
+      // Use API
+      const loadRevisions = async () => {
+        setLoading(true);
+        setError(null);
+
+        try {
+          const response = await fetch(
+            `/api/sessions/${sessionId}/revisions?studentId=${studentId}`
+          );
+
+          if (!response.ok) {
+            const errorData = await response
+              .json()
+              .catch(() => ({ error: 'Failed to fetch revisions' }));
+            throw new Error(errorData.error || 'Failed to fetch revisions');
+          }
+
+          const data = await response.json();
+
+          // Convert timestamp strings to Date objects
+          const processedRevisions = data.revisions.map((rev: any) => ({
+            ...rev,
+            timestamp: new Date(rev.timestamp),
+          }));
+
+          setRevisions(processedRevisions);
+          setCurrentIndex(processedRevisions.length > 0 ? processedRevisions.length - 1 : 0);
+        } catch (err: any) {
+          setError(err.message || 'Failed to fetch revisions');
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      loadRevisions();
     }
   }, [sessionId, studentId, sendMessage]);
 
-  // Handle incoming revision data
+  // Handle incoming revision data from WebSocket
   useEffect(() => {
     if (!lastMessage) return;
 
     if (lastMessage.type === 'REVISIONS_DATA') {
       const { sessionId: msgSessionId, studentId: msgStudentId, revisions: rawRevisions } = lastMessage.payload;
-      
+
       // Only process if it's for the current session/student
       if (msgSessionId === sessionId && msgStudentId === studentId) {
         // Convert timestamp strings to Date objects
@@ -49,7 +88,7 @@ export function useRevisionHistory({
           ...rev,
           timestamp: new Date(rev.timestamp),
         }));
-        
+
         setRevisions(processedRevisions);
         setCurrentIndex(processedRevisions.length > 0 ? processedRevisions.length - 1 : 0);
         setLoading(false);
