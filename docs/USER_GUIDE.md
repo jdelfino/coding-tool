@@ -1,5 +1,41 @@
 # User Guide: Live Coding Classroom
 
+## Authentication
+
+### Signing In
+
+1. Navigate to http://localhost:3000/auth/signin
+2. Enter your email address and password
+3. Click "Sign in"
+4. You'll be redirected based on your role:
+   - System admins → /system
+   - Instructors → /instructor
+   - Students → /student
+
+### Registration
+
+1. Navigate to http://localhost:3000/auth/register
+2. Fill in:
+   - Email address
+   - Username
+   - Password (minimum 8 characters)
+   - Organization ID (provided by your institution)
+3. Click "Register"
+4. You'll be automatically signed in and redirected
+
+**Note:** If your email matches SYSTEM_ADMIN_EMAIL in the server configuration, you'll be promoted to system admin automatically.
+
+### Password Requirements
+
+- Minimum 8 characters
+- No special requirements (for simplicity in educational settings)
+
+### Session Management
+
+- Sessions last for 7 days
+- Auto-refresh keeps you logged in while active
+- Sign out from any page via the user menu
+
 ## Instructor Workflow
 
 ### Starting a Session

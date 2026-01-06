@@ -33,7 +33,23 @@ Before you begin, ensure you have the following installed:
 SYSTEM_ADMIN_EMAIL=your-email@example.com
 ```
 
-The first time a user signs in with this email, they'll be elevated to system-admin role.
+The first user who registers with this email will be elevated to system-admin role.
+
+**Supabase Authentication**: The application uses Supabase Auth for user authentication. For local development:
+1. Start Supabase: `npx supabase start`
+2. Copy the API URL, anon key (publishable), and service role key (secret) from the output
+3. Add to `.env.local`:
+```
+NEXT_PUBLIC_SUPABASE_URL=http://localhost:54321
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<publishable-key>
+SUPABASE_SERVICE_ROLE_KEY=<secret-key>
+```
+4. Reset database: `npx supabase db reset`
+
+**Default Test Users** (after seed):
+- admin@test.local / password123 (system-admin)
+- instructor@test.local / password123 (instructor)
+- student1@test.local / password123 (student)
 
 ### Recommended Software
 

@@ -48,28 +48,51 @@ The application supports multi-tenant deployment with namespace isolation:
 - **Python**: v3.8 or higher
 - **npm**: v9 or higher
 
-## Installation
+## Quick Start
 
-1. Clone the repository:
+1. **Clone and install:**
 ```bash
 git clone https://github.com/jdelfino/coding-tool.git
 cd coding-tool
-```
-
-2. Install dependencies:
-```bash
 npm install
 ```
 
-3. Verify Python is installed:
+2. **Start Supabase (local Docker instance):**
 ```bash
-python3 --version  # Should be 3.8 or higher
+npx supabase start
+```
+Copy the API URL, anon key, and service role key from the output.
+
+3. **Configure environment:**
+```bash
+cp .env.example .env.local
+# Edit .env.local with your Supabase keys
 ```
 
-4. Initialize data directory (automatic on first run):
-   - The `data/` directory is created automatically
-   - Contains JSON files for persistent storage
-   - Includes: `users.json`, `sessions.json`, `revisions.json`, `problems.json`, `auth-sessions.json`
+4. **Reset database (migrations + seed data):**
+```bash
+npx supabase db reset
+```
+
+5. **Start development server:**
+```bash
+npm run dev
+```
+
+6. **Access the application:**
+   - App: http://localhost:3000
+   - Supabase Studio: http://localhost:54323
+   - Sign in with: admin@test.local / password123
+
+## Environment Variables
+
+**Required:**
+- `NEXT_PUBLIC_SUPABASE_URL` - Supabase API URL (from `npx supabase start`)
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY` - Supabase anonymous/publishable key
+- `SUPABASE_SERVICE_ROLE_KEY` - Supabase service role/secret key (admin operations)
+- `SYSTEM_ADMIN_EMAIL` - Email to auto-promote to system-admin role
+
+See [.env.example](.env.example) for the full list.
 
 ## Running Locally
 
