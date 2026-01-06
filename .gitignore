@@ -9,7 +9,6 @@ dist
 .env.production.local
 .env.test.remote
 .DS_Store
-/data
 coverage
 tsconfig.tsbuildinfo
 

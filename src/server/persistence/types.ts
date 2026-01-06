@@ -12,29 +12,7 @@ import { Session, Student } from '../types';
  */
 export interface StorageConfig {
   /** Type of storage backend to use */
-  type: 'local' | 'remote' | 'memory' | 'supabase';
-
-  /** Base directory for local file storage */
-  baseDir?: string;
-
-  /** Remote API endpoint (for remote storage) */
-  apiEndpoint?: string;
-
-  /** Authentication credentials for remote storage */
-  credentials?: {
-    apiKey?: string;
-    username?: string;
-    password?: string;
-  };
-
-  /** Enable caching layer */
-  enableCache?: boolean;
-
-  /** Cache TTL in milliseconds */
-  cacheTtl?: number;
-
-  /** Maximum number of items to keep in cache */
-  cacheMaxSize?: number;
+  type: 'supabase';
 }
 
 /**

@@ -11,7 +11,6 @@ export * from './interfaces';
 
 // Implementations
 export { InMemoryUserRepository } from './local';
-export { LocalAuthProvider } from './local-provider';
 export { RBACService } from './rbac';
 
 // Permissions

@@ -1116,8 +1116,10 @@ describe('SessionManager', () => {
           await storage.sessions.updateSession(session.id, stored);
         }
 
-        // No membership repository configured
-        storage.memberships = undefined;
+        // No membership repository configured (mock a failing one)
+        storage.memberships = {
+          getMembership: jest.fn().mockRejectedValue(new Error('Repository not configured'))
+        } as any;
 
         const isMember = await sessionManager.isSectionMember(session.id, 'user-1');
         expect(isMember).toBe(false);

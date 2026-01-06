@@ -3,11 +3,9 @@
  * Used by API routes and server-side code.
  */
 
-import { LocalAuthProvider } from './local-provider';
 import { IAuthProvider, IUserRepository, INamespaceRepository } from './interfaces';
 import { getStorage } from '../persistence';
-import { InMemoryUserRepository } from './local';
-import { LocalNamespaceRepository } from '../persistence/local/namespace-repository';
+import { SupabaseNamespaceRepository } from '../persistence/supabase/namespace-repository';
 
 let authProviderInstance: IAuthProvider | null = null;
 let userRepositoryInstance: IUserRepository | null = null;
@@ -15,17 +13,16 @@ let namespaceRepositoryInstance: INamespaceRepository | null = null;
 
 export async function getAuthProvider(): Promise<IAuthProvider> {
   if (!authProviderInstance) {
-    // Auto-initialize storage if needed (for API routes)
-    const storage = await getStorage();
-    const namespaceRepo = await getNamespaceRepository();
-    authProviderInstance = new LocalAuthProvider(storage.users, namespaceRepo);
+    // TODO: Implement Supabase auth provider as part of coding-tool-aw4 epic
+    // For now, return a placeholder that throws errors
+    throw new Error('Auth provider not yet migrated to Supabase - see coding-tool-aw4');
   }
   return authProviderInstance;
 }
 
 export async function getUserRepository(): Promise<IUserRepository> {
   if (!userRepositoryInstance) {
-    // Use the same repository as the auth provider for consistency
+    // Use the same repository as the storage backend
     const storage = await getStorage();
     userRepositoryInstance = storage.users;
   }
@@ -34,9 +31,8 @@ export async function getUserRepository(): Promise<IUserRepository> {
 
 export async function getNamespaceRepository(): Promise<INamespaceRepository> {
   if (!namespaceRepositoryInstance) {
-    const config = { type: 'local' as const, baseDir: process.env.DATA_DIR || './data' };
-    namespaceRepositoryInstance = new LocalNamespaceRepository(config);
-    await namespaceRepositoryInstance.initialize();
+    namespaceRepositoryInstance = new SupabaseNamespaceRepository();
+    await namespaceRepositoryInstance.initialize?.();
   }
   return namespaceRepositoryInstance;
 }

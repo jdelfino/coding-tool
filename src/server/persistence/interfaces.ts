@@ -425,11 +425,11 @@ export interface IStorageRepository extends IStorageBackend {
   problems: IProblemRepository;
 
   /** Class data operations (multi-tenancy) */
-  classes?: import('../classes/interfaces').IClassRepository;
+  classes: import('../classes/interfaces').IClassRepository;
 
   /** Section data operations (multi-tenancy) */
-  sections?: import('../classes/interfaces').ISectionRepository;
+  sections: import('../classes/interfaces').ISectionRepository;
 
   /** Section membership operations (multi-tenancy) */
-  memberships?: import('../classes/interfaces').IMembershipRepository;
+  memberships: import('../classes/interfaces').IMembershipRepository;
 }

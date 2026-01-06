@@ -330,7 +330,7 @@ export class FakeStorageBackend implements IStorageBackend {
   public readonly problems: any; // Fake problem repository for tests
   public readonly sections: FakeSectionRepository;
   public readonly classes: FakeClassRepository;
-  public memberships?: FakeMembershipRepository; // Optional to allow test overrides
+  public memberships: FakeMembershipRepository; // Not readonly to allow test overrides
 
   constructor() {
     this.sessions = new FakeSessionRepository();
