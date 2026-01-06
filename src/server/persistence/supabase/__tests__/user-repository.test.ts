@@ -254,6 +254,7 @@ describe('SupabaseUserRepository', () => {
       mockUser,
       {
         id: 'user-456',
+        email: 'jsmith@example.com',
         username: 'jsmith',
         role: 'student',
         namespaceId: 'stanford',

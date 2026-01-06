@@ -12,7 +12,7 @@ import { User } from '@/server/auth/types';
 const namespace1User: User = {
   id: 'user-1',
   username: 'alice',
-      email: "test@example.com",
+  email: "test@example.com",
   role: 'instructor',
   namespaceId: 'namespace-1',
   createdAt: new Date(),
@@ -21,7 +21,7 @@ const namespace1User: User = {
 const namespace2User: User = {
   id: 'user-2',
   username: 'bob',
-      email: "test@example.com",
+  email: "test@example.com",
   role: 'instructor',
   namespaceId: 'namespace-2',
   createdAt: new Date(),
@@ -30,7 +30,7 @@ const namespace2User: User = {
 const systemAdminUser: User = {
   id: 'sys-admin',
   username: 'sysadmin',
-      email: "test@example.com",
+  email: "test@example.com",
   role: 'system-admin',
   namespaceId: 'default',
   createdAt: new Date(),

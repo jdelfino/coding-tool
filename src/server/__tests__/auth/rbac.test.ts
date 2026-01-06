@@ -49,6 +49,7 @@ function createUser(
 ): User {
   return {
     id,
+    email: `${username}@example.com`,
     username,
     role,
     namespaceId,

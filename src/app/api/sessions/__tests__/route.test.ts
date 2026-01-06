@@ -31,8 +31,7 @@ describe('POST /api/sessions', () => {
   const mockUser: User = {
     id: 'user-1',
     username: 'instructor',
-        email: "test@example.com",
-      email: "test@example.com",
+    email: "test@example.com",
     role: 'instructor' as const,
     namespaceId: 'default',
     createdAt: new Date('2024-01-01'),
@@ -158,9 +157,9 @@ describe('POST /api/sessions', () => {
         'Content-Type': 'application/json',
         Cookie: 'sessionId=test-session-id',
       },
-      body: JSON.stringify({ 
+      body: JSON.stringify({
         sectionId: 'section-1',
-        problemId: 'problem-1' 
+        problemId: 'problem-1'
       }),
     });
 
@@ -300,9 +299,9 @@ describe('POST /api/sessions', () => {
         'Content-Type': 'application/json',
         Cookie: 'sessionId=test-session-id',
       },
-      body: JSON.stringify({ 
+      body: JSON.stringify({
         sectionId: 'section-1',
-        problemId: 'nonexistent' 
+        problemId: 'nonexistent'
       }),
     });
 

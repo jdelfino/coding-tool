@@ -68,7 +68,6 @@ describe('POST /api/sections/join', () => {
       id: 'student-1',
       username: 'bob@example.com',
         email: "test@example.com",
-        email: "test@example.com",
       role: 'student',
       namespaceId: 'default',
       createdAt: new Date(),
@@ -92,8 +91,7 @@ describe('POST /api/sections/join', () => {
     const user: User = {
       id: 'student-1',
       username: 'bob@example.com',
-        email: "test@example.com",
-        email: "test@example.com",
+      email: 'test@example.com',
       role: 'student',
       namespaceId: 'default',
       createdAt: new Date(),
@@ -118,8 +116,7 @@ describe('POST /api/sections/join', () => {
     const user: User = {
       id: 'student-1',
       username: 'bob@example.com',
-        email: "test@example.com",
-        email: "test@example.com",
+      email: 'test@example.com',
       role: 'student',
       namespaceId: 'default',
       createdAt: new Date(),
@@ -163,8 +160,7 @@ describe('POST /api/sections/join', () => {
     const user: User = {
       id: 'student-1',
       username: 'bob@example.com',
-        email: "test@example.com",
-        email: "test@example.com",
+      email: 'test@example.com',
       role: 'student',
       namespaceId: 'default',
       createdAt: new Date(),
@@ -213,8 +209,7 @@ describe('POST /api/sections/join', () => {
     const user: User = {
       id: 'student-1',
       username: 'bob@example.com',
-        email: "test@example.com",
-        email: "test@example.com",
+      email: 'test@example.com',
       role: 'student',
       namespaceId: 'default',
       createdAt: new Date(),

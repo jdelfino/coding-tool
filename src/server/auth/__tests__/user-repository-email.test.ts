@@ -15,6 +15,7 @@ describe('FakeUserRepository - getUserByEmail', () => {
     // Create a user
     const user = await repository.createUser({
       username: 'alice@example.com',
+        email: "test@example.com",
       role: 'instructor',
       namespaceId: 'default',
     });
@@ -31,6 +32,7 @@ describe('FakeUserRepository - getUserByEmail', () => {
   it('should be case-insensitive', async () => {
     const user = await repository.createUser({
       username: 'alice@example.com',
+        email: "test@example.com",
       role: 'instructor',
       namespaceId: 'default',
     });
@@ -48,6 +50,7 @@ describe('FakeUserRepository - getUserByEmail', () => {
   it('should work same as getUserByUsername', async () => {
     const user = await repository.createUser({
       username: 'bob@example.com',
+        email: "test@example.com",
       role: 'student',
       namespaceId: 'default',
     });
