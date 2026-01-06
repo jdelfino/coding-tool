@@ -16,7 +16,7 @@ import {
 } from '../../persistence/types';
 import { Session } from '../../types';
 import { User } from '../../auth/types';
-import { FakeSectionRepository } from './fake-classes';
+import { FakeSectionRepository, FakeClassRepository, FakeMembershipRepository } from './fake-classes';
 
 /**
  * Fake revision repository that stores revisions in memory
@@ -328,14 +328,17 @@ export class FakeStorageBackend implements IStorageBackend {
   public readonly revisions: FakeRevisionRepository;
   public readonly users: FakeUserRepository;
   public readonly problems: any; // Fake problem repository for tests
-  public readonly sections: FakeSectionRepository; // Section repository for tests
-  public memberships?: any; // Optional membership repository for tests
+  public readonly sections: FakeSectionRepository;
+  public readonly classes: FakeClassRepository;
+  public memberships?: FakeMembershipRepository; // Optional to allow test overrides
 
   constructor() {
     this.sessions = new FakeSessionRepository();
     this.revisions = new FakeRevisionRepository();
     this.users = new FakeUserRepository();
     this.sections = new FakeSectionRepository();
+    this.classes = new FakeClassRepository();
+    this.memberships = new FakeMembershipRepository();
     this.problems = {
       initialize: async () => {},
       shutdown: async () => {},
@@ -392,6 +395,9 @@ export class FakeStorageBackend implements IStorageBackend {
       revisions: this.revisions,
       problems: this.problems,
       users: this.users,
+      classes: this.classes,
+      sections: this.sections,
+      memberships: this.memberships!, // Non-null assertion since it's set in constructor
     };
     return fn(context);
   }

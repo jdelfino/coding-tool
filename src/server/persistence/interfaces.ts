@@ -15,6 +15,7 @@
 
 import { Session, Student } from '../types';
 import { IUserRepository } from '../auth/interfaces';
+import { IClassRepository, ISectionRepository, IMembershipRepository } from '../classes/interfaces';
 import {
   ProblemSpec,
   CodeRevision,
@@ -40,7 +41,10 @@ export interface TransactionContext {
   revisions: IRevisionRepository;
   problems: IProblemRepository;
   users: IUserRepository;
-  // Note: Classes, sections, and memberships repositories added when implemented
+  // Classroom repositories (added in kb3.7)
+  classes: IClassRepository;
+  sections: ISectionRepository;
+  memberships: IMembershipRepository;
 }
 
 /**

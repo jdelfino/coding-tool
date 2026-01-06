@@ -144,6 +144,9 @@ export class StorageBackend implements IStorageRepository {
       revisions: this.revisions,
       problems: this.problems,
       users: this.users,
+      classes: this.classes!,
+      sections: this.sections!,
+      memberships: this.memberships!,
     };
     return fn(context);
   }
