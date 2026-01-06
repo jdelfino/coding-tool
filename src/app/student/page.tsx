@@ -2,10 +2,10 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { useWebSocket } from '@/hooks/useWebSocket';
+import { useRealtimeSession } from '@/hooks/useRealtimeSession';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { useAuth } from '@/contexts/AuthContext';
-import { useSessionHistory, SessionHistory } from '@/hooks/useSessionHistory';
+import { useSessionHistory } from '@/hooks/useSessionHistory';
 import { Problem, ExecutionSettings } from '@/server/types/problem';
 import { useDebugger } from '@/hooks/useDebugger';
 import CodeEditor from './components/CodeEditor';
@@ -16,10 +16,10 @@ function StudentPage() {
   const { user, signOut } = useAuth();
   const searchParams = useSearchParams();
   const sessionIdFromUrl = searchParams.get('sessionId');
-  const { sessions, isLoading: isLoadingSessions, refetch: refetchSessions } = useSessionHistory();
+  const { refetch: refetchSessions } = useSessionHistory();
+
   const [joined, setJoined] = useState(false);
   const [studentId, setStudentId] = useState<string | null>(null);
-  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [problem, setProblem] = useState<Problem | null>(null);
   const [sessionExecutionSettings, setSessionExecutionSettings] = useState<{
     stdin?: string;
@@ -38,67 +38,43 @@ function StudentPage() {
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [sessionEnded, setSessionEnded] = useState(false);
 
-  // Construct WebSocket URL - only initialize on client side
-  const [wsUrl, setWsUrl] = useState('');
+  // Use Realtime session hook
+  const {
+    session,
+    loading,
+    error: realtimeError,
+    isConnected,
+    connectionStatus,
+    connectionError,
+    updateCode: realtimeUpdateCode,
+    executeCode: realtimeExecuteCode,
+    joinSession,
+  } = useRealtimeSession({
+    sessionId: sessionIdFromUrl || '',
+    userId: user?.id,
+    userName: user?.username,
+  });
 
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const host = window.location.host;
-      const url = `${protocol}//${host}/ws`;
-      setWsUrl(url);
-    }
+  // Create a no-op sendMessage for debugger (TODO: Add trace API endpoint)
+  const sendMessage = useCallback((type: string, payload: any) => {
+    console.warn('Debugger sendMessage called but WebSocket not available:', type, payload);
+    // TODO: Implement trace API endpoint
   }, []);
-
-  const { isConnected, connectionStatus, connectionError, lastMessage, sendMessage } = useWebSocket(wsUrl);
 
   // Debugger state
   const debuggerHook = useDebugger(sendMessage);
 
-  // Define handlers with useCallback to avoid dependency issues
-  const handleJoin = useCallback((sessionId: string) => {
-    // Validate session ID
-    if (!sessionId) {
-      setError('Invalid session ID');
-      return;
-    }
-
-    // Use username from auth context
-    const studentName = user?.username || 'Student';
-
-    setError(null);
-    setIsJoining(true);
-    sendMessage('JOIN_SESSION', { sessionId, studentName });
-
-    // Set timeout for join operation
-    setTimeout(() => {
-      setIsJoining(prev => {
-        if (prev) {
-          setError('Join request timed out. Please try again.');
-        }
-        return false;
-      });
-    }, 10000);
-  }, [user?.username, sendMessage]);
-
-  const handleRejoinSession = useCallback((sessionId: string) => {
-    setCurrentSessionId(sessionId);
-    handleJoin(sessionId);
-  }, [handleJoin]);
-
   // Track if we've already initiated a join for this sessionId to prevent loops
   const joinAttemptedRef = useRef<string | null>(null);
 
-  // Simple logic: If there's a sessionId in URL, join it
-  // No smart redirects, no auto-rejoin complexity
+  // Handle joining the session
   useEffect(() => {
-    if (!sessionIdFromUrl) {
-      // No sessionId in URL - nothing to do
+    if (!sessionIdFromUrl || !user?.id) {
       return;
     }
 
     // If we're already joined to this session, clear the attempt flag
-    if (joined && currentSessionId === sessionIdFromUrl) {
+    if (joined) {
       joinAttemptedRef.current = null;
       return;
     }
@@ -114,97 +90,51 @@ function StudentPage() {
     }
 
     // Join the session from the URL
-    if (isConnected) {
+    if (isConnected && session) {
       joinAttemptedRef.current = sessionIdFromUrl;
-      handleRejoinSession(sessionIdFromUrl);
+      setIsJoining(true);
+
+      joinSession(user.id, user.username || 'Student')
+        .then(() => {
+          setJoined(true);
+          setStudentId(user.id);
+          setIsJoining(false);
+          setError(null);
+        })
+        .catch((err) => {
+          setError(err.message || 'Failed to join session');
+          setIsJoining(false);
+        });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sessionIdFromUrl, joined, currentSessionId, isJoining, isConnected]);
-  // Intentionally exclude handleRejoinSession to avoid re-runs
+  }, [sessionIdFromUrl, user?.id, user?.username, joined, isJoining, isConnected, session, joinSession]);
 
-  // Handle incoming WebSocket messages
+  // Update problem when session loads
   useEffect(() => {
-    if (!lastMessage) return;
-
-    switch (lastMessage.type) {
-      case 'SESSION_JOINED':
-        setJoined(true);
-        setStudentId(lastMessage.payload.studentId);
-        setCurrentSessionId(lastMessage.payload.sessionId);
-        setProblem(lastMessage.payload.problem || null);
-        setSessionExecutionSettings(lastMessage.payload.sessionExecutionSettings || {});
-        // Restore student-specific values if rejoining
-        setStudentExecutionSettings(lastMessage.payload.studentExecutionSettings || null);
-        // Restore existing code if rejoining (always set, even if empty string)
-        setCode(lastMessage.payload.code || '');
-        setIsJoining(false);
-        setError(null);
-        break;
-
-      case 'PROBLEM_UPDATE':
-        setProblem(lastMessage.payload.problem || null);
-        setSessionExecutionSettings(lastMessage.payload.executionSettings || {});
-        break;
-
-      case 'EXECUTION_RESULT':
-        setExecutionResult(lastMessage.payload);
-        setIsRunning(false);
-        break;
-
-      case 'TRACE_RESPONSE':
-        debuggerHook.setTrace(lastMessage.payload.trace);
-        break;
-
-      case 'SESSION_ENDED':
-        // Session ended by instructor - show notification but keep student in session
-        if (lastMessage.payload.sessionId === currentSessionId) {
-          setSessionEnded(true);
-          // Don't automatically kick them out - let them see their work
-        }
-        break;
-
-      case 'ERROR':
-        const errorMsg = lastMessage.payload.error || 'An error occurred';
-        setError(errorMsg);
-        setIsRunning(false);
-        setIsJoining(false);
-        // Reset debugger loading state if trace request failed
-        if (debuggerHook.isLoading) {
-          debuggerHook.setError(errorMsg);
-        }
-        break;
+    if (session?.problem) {
+      setProblem(session.problem as Problem);
+      setSessionExecutionSettings({
+        stdin: session.problem.executionSettings?.stdin,
+        randomSeed: session.problem.executionSettings?.randomSeed,
+        attachedFiles: session.problem.executionSettings?.attachedFiles,
+      });
     }
-  }, [lastMessage]);
+  }, [session]);
 
-  // Debounced code update
+  // Debounced code update (keeping 500ms to match original behavior)
   useEffect(() => {
-    if (!joined || !studentId) return;
+    if (!joined || !studentId || !sessionIdFromUrl) return;
 
     const timeout = setTimeout(() => {
-      sendMessage('CODE_UPDATE', { code });
+      realtimeUpdateCode(studentId, code, studentExecutionSettings || undefined);
     }, 500);
 
     return () => clearTimeout(timeout);
-  }, [code, joined, studentId, sendMessage]);
-
-  // Send student settings updates (randomSeed and attachedFiles)
-  useEffect(() => {
-    if (!joined || !studentId || !studentExecutionSettings) return;
-
-    // Only send if student has explicitly set values (not null = never set)
-    sendMessage('UPDATE_STUDENT_SETTINGS', {
-      executionSettings: {
-        randomSeed: studentExecutionSettings.randomSeed,
-        attachedFiles: studentExecutionSettings.attachedFiles !== undefined ? studentExecutionSettings.attachedFiles : undefined
-      }
-    });
-  }, [studentExecutionSettings, joined, studentId, sendMessage]);
+  }, [code, joined, studentId, sessionIdFromUrl, studentExecutionSettings, realtimeUpdateCode]);
 
   const handleLeaveSession = () => {
     // Reset session state
     setJoined(false);
     setStudentId(null);
-    setCurrentSessionId(null);
     setProblem(null);
     setSessionExecutionSettings({});
     setStudentExecutionSettings(null);
@@ -255,7 +185,7 @@ function StudentPage() {
     }
   }, [code]);
 
-  const handleRunCode = (executionSettings: ExecutionSettings) => {
+  const handleRunCode = async (executionSettings: ExecutionSettings) => {
     if (!isConnected) {
       setError('Not connected to server. Cannot run code.');
       return;
@@ -264,30 +194,36 @@ function StudentPage() {
       setError('Please write some code before running');
       return;
     }
+    if (!studentId) {
+      setError('Student ID not available');
+      return;
+    }
 
     setError(null);
     setIsRunning(true);
     setExecutionResult(null);
-    sendMessage('EXECUTE_CODE', {
-      code,
-      executionSettings
-    });
 
-    // Set timeout for execution
-    setTimeout(() => {
-      if (isRunning) {
-        setError('Code execution timed out');
-        setIsRunning(false);
-      }
-    }, 15000);
+    try {
+      const result = await realtimeExecuteCode(studentId, code, executionSettings);
+      setExecutionResult(result);
+      setIsRunning(false);
+    } catch (err: any) {
+      setError(err.message || 'Code execution failed');
+      setIsRunning(false);
+    }
   };
 
-  // Show loading state while WebSocket connects
-  if (!isConnected) {
+  // Show loading state while connecting
+  if (!isConnected || loading) {
     return (
       <main style={{ padding: '2rem', textAlign: 'center' }}>
         <h1>Live Coding Classroom</h1>
-        <p>Connecting...</p>
+        <p>{loading ? 'Loading session...' : 'Connecting...'}</p>
+        {(realtimeError || error) && (
+          <div style={{ marginTop: '1rem', color: '#e00', padding: '1rem', background: '#fee', borderRadius: '4px' }}>
+            <strong>Error:</strong> {realtimeError || error}
+          </div>
+        )}
       </main>
     );
   }
