@@ -12,7 +12,7 @@ import { Session, Student } from '../types';
  */
 export interface StorageConfig {
   /** Type of storage backend to use */
-  type: 'local' | 'remote' | 'memory';
+  type: 'local' | 'remote' | 'memory' | 'supabase';
 
   /** Base directory for local file storage */
   baseDir?: string;

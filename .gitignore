@@ -22,3 +22,4 @@ tsconfig.tsbuildinfo
 all_solutions_combined.txt
 test_data/
 history/
+test-data/

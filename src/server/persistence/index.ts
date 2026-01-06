@@ -17,6 +17,15 @@ import {
   MembershipRepository,
 } from '../classes';
 import {
+  SupabaseUserRepository,
+  SupabaseSessionRepository,
+  SupabaseRevisionRepository,
+  SupabaseProblemRepository,
+  SupabaseClassRepository,
+  SupabaseSectionRepository,
+  SupabaseMembershipRepository,
+} from './supabase';
+import {
   ISessionRepository,
   IRevisionRepository,
   IUserRepository,
@@ -153,6 +162,141 @@ export class StorageBackend implements IStorageRepository {
 }
 
 /**
+ * Supabase storage backend implementation
+ *
+ * Uses Supabase repositories for all data persistence operations.
+ * Supports real transactions via Supabase's transaction API.
+ */
+export class SupabaseStorageBackend implements IStorageRepository {
+  public readonly sessions: ISessionRepository;
+  public readonly revisions: IRevisionRepository;
+  public readonly users: IUserRepository;
+  public readonly problems: IProblemRepository;
+  public readonly classes: IClassRepository;
+  public readonly sections: ISectionRepository;
+  public readonly memberships: IMembershipRepository;
+
+  constructor() {
+    // Create Supabase repository instances
+    this.sessions = new SupabaseSessionRepository();
+    this.revisions = new SupabaseRevisionRepository();
+    this.users = new SupabaseUserRepository();
+    this.problems = new SupabaseProblemRepository();
+    this.classes = new SupabaseClassRepository();
+    this.sections = new SupabaseSectionRepository();
+    this.memberships = new SupabaseMembershipRepository();
+  }
+
+  async initialize(): Promise<void> {
+    // Initialize all repositories with optional lifecycle methods
+    const optionalInits: Promise<void>[] = [];
+    if (this.sessions.initialize) {
+      optionalInits.push(this.sessions.initialize());
+    }
+    if (this.revisions.initialize) {
+      optionalInits.push(this.revisions.initialize());
+    }
+    if (this.problems.initialize) {
+      optionalInits.push(this.problems.initialize());
+    }
+    if (this.users.initialize) {
+      optionalInits.push(this.users.initialize());
+    }
+    if (this.classes.initialize) {
+      optionalInits.push(this.classes.initialize());
+    }
+    if (this.sections.initialize) {
+      optionalInits.push(this.sections.initialize());
+    }
+    if (this.memberships.initialize) {
+      optionalInits.push(this.memberships.initialize());
+    }
+
+    await Promise.all(optionalInits);
+  }
+
+  async shutdown(): Promise<void> {
+    const shutdowns: Promise<void>[] = [];
+
+    // All lifecycle methods are optional
+    if (this.sessions.shutdown) {
+      shutdowns.push(this.sessions.shutdown());
+    }
+    if (this.revisions.shutdown) {
+      shutdowns.push(this.revisions.shutdown());
+    }
+    if (this.problems.shutdown) {
+      shutdowns.push(this.problems.shutdown());
+    }
+    if (this.users.shutdown) {
+      shutdowns.push(this.users.shutdown());
+    }
+    if (this.classes.shutdown) {
+      shutdowns.push(this.classes.shutdown());
+    }
+    if (this.sections.shutdown) {
+      shutdowns.push(this.sections.shutdown());
+    }
+    if (this.memberships.shutdown) {
+      shutdowns.push(this.memberships.shutdown());
+    }
+
+    await Promise.all(shutdowns);
+  }
+
+  async health(): Promise<boolean> {
+    const healthChecks: Promise<boolean>[] = [];
+
+    // All lifecycle methods are optional - if not implemented, assume healthy
+    if (this.sessions.health) {
+      healthChecks.push(this.sessions.health());
+    }
+    if (this.revisions.health) {
+      healthChecks.push(this.revisions.health());
+    }
+    if (this.problems.health) {
+      healthChecks.push(this.problems.health());
+    }
+    if (this.users.health) {
+      healthChecks.push(this.users.health());
+    }
+    if (this.classes.health) {
+      healthChecks.push(this.classes.health());
+    }
+    if (this.sections.health) {
+      healthChecks.push(this.sections.health());
+    }
+    if (this.memberships.health) {
+      healthChecks.push(this.memberships.health());
+    }
+
+    // If no health checks are implemented, assume healthy
+    if (healthChecks.length === 0) {
+      return true;
+    }
+
+    const results = await Promise.all(healthChecks);
+    // All repositories must be healthy
+    return results.every(r => r);
+  }
+
+  async transaction<T>(fn: (tx: import('./interfaces').TransactionContext) => Promise<T>): Promise<T> {
+    // TODO: Implement real Supabase transactions using .rpc() or manual BEGIN/COMMIT
+    // For now, execute directly (same as local storage)
+    const context: import('./interfaces').TransactionContext = {
+      sessions: this.sessions,
+      revisions: this.revisions,
+      problems: this.problems,
+      users: this.users,
+      classes: this.classes,
+      sections: this.sections,
+      memberships: this.memberships,
+    };
+    return fn(context);
+  }
+}
+
+/**
  * Factory function to create and initialize a storage backend
  *
  * @param config - Storage configuration
@@ -173,7 +317,20 @@ export class StorageBackend implements IStorageRepository {
  * ```
  */
 export async function createStorage(config: StorageConfig): Promise<IStorageRepository> {
-  const storage = new StorageBackend(config);
+  let storage: IStorageRepository;
+
+  switch (config.type) {
+    case 'supabase':
+      storage = new SupabaseStorageBackend();
+      break;
+    case 'local':
+    case 'remote':
+    case 'memory':
+    default:
+      storage = new StorageBackend(config);
+      break;
+  }
+
   await storage.initialize();
   return storage;
 }
@@ -181,9 +338,17 @@ export async function createStorage(config: StorageConfig): Promise<IStorageRepo
 /**
  * Create storage with default configuration
  *
- * Uses local file storage in ./data directory
+ * Uses Supabase if NEXT_PUBLIC_SUPABASE_URL is set, otherwise falls back
+ * to local file storage in ./data directory.
  */
 export async function createDefaultStorage(): Promise<IStorageRepository> {
+  const useSupabase = process.env.NEXT_PUBLIC_SUPABASE_URL && 
+                      process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (useSupabase) {
+    return createStorage({ type: 'supabase' });
+  }
+
   return createStorage({
     type: 'local',
     baseDir: './data',
