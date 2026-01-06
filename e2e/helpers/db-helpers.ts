@@ -1,5 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import { createClient } from '@supabase/supabase-js';
 
 /**
  * Path to the data directory
@@ -10,6 +11,25 @@ const DATA_DIR = path.join(process.cwd(), 'data');
  * Base URL for API calls
  */
 const API_BASE_URL = process.env.PLAYWRIGHT_TEST_BASE_URL || 'http://localhost:3000';
+
+/**
+ * Supabase client for E2E tests (uses service role key for admin operations)
+ */
+function getSupabaseClient() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'http://127.0.0.1:54321';
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseServiceKey) {
+    throw new Error('SUPABASE_SERVICE_ROLE_KEY environment variable is required for E2E tests');
+  }
+
+  return createClient(supabaseUrl, supabaseServiceKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    }
+  });
+}
 
 /**
  * Clears all test data by resetting data directory to empty state
@@ -62,14 +82,13 @@ export async function resetTestData(): Promise<void> {
 }
 
 /**
- * Creates a test user via the authentication API
- * This ensures the user is properly loaded into the in-memory repository
+ * Creates a test user via the Supabase Admin API
+ * This creates both auth.users and user_profiles rows
  *
- * For system-admin users, this directly creates them in the users.json file
- * since they can't be created through the normal signin flow without env var.
- * 
- * For other users with a specific namespace, uses the system admin API to create them.
- * For other users without namespace specified, uses the signin endpoint which auto-creates users in 'default' namespace.
+ * @param userId - Unique identifier for the user
+ * @param username - Username for the user
+ * @param role - User role (system-admin, namespace-admin, instructor, student)
+ * @param namespaceId - Optional namespace ID (required for non-system-admin users)
  */
 export async function createTestUser(
   userId: string,
@@ -77,87 +96,42 @@ export async function createTestUser(
   role: 'system-admin' | 'namespace-admin' | 'instructor' | 'student',
   namespaceId?: string
 ): Promise<void> {
+  const supabase = getSupabaseClient();
+  const email = getTestUserEmail(username);
+  const password = getTestUserPassword();
+
   try {
-    // For system-admin, we need to create them directly in the database
-    // since the signin flow requires SYSTEM_ADMIN_EMAIL env var
-    if (role === 'system-admin') {
-      const usersFile = path.join(DATA_DIR, 'users.json');
-      const users = await readDataFile('users.json');
-
-      users[userId] = {
-        id: userId,
-        username,
-        role: 'system-admin',
-        namespaceId: null,
-        createdAt: new Date().toISOString(),
-        lastLoginAt: new Date().toISOString(),
-      };
-
-      await writeDataFile('users.json', users);
-      return;
-    }
-
-    // If namespace is specified, create user via system admin API
-    if (namespaceId) {
-      // First, create a temporary system admin to make the API call
-      const adminUsername = `temp-admin-${Date.now()}`;
-      const adminUserId = `admin-${Date.now()}`;
-      
-      const usersFile = path.join(DATA_DIR, 'users.json');
-      const users = await readDataFile('users.json');
-
-      users[adminUserId] = {
-        id: adminUserId,
-        username: adminUsername,
-        role: 'system-admin',
-        namespaceId: null,
-        createdAt: new Date().toISOString(),
-        lastLoginAt: new Date().toISOString(),
-      };
-
-      await writeDataFile('users.json', users);
-
-      // Create auth session for the admin
-      const sessionId = `session-${Date.now()}`;
-      const sessions = await readDataFile('auth-sessions.json');
-
-      sessions[sessionId] = {
-        id: sessionId,
-        userId: adminUserId,
-        createdAt: new Date().toISOString(),
-        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-      };
-
-      await writeDataFile('auth-sessions.json', sessions);
-
-      // Create user in namespace via system admin API
-      const response = await fetch(`${API_BASE_URL}/api/system/namespaces/${namespaceId}/users`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Cookie': `sessionId=${sessionId}`
-        },
-        body: JSON.stringify({ username, role }),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Failed to create test user in namespace: ${response.status} ${errorText}`);
-      }
-      return;
-    }
-
-    // For other roles without namespace, use the signin endpoint which auto-creates users
-    const response = await fetch(`${API_BASE_URL}/api/auth/signin`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username }),
+    // 1. Create auth.users via Supabase Admin API
+    const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
+      id: userId,
+      email,
+      password,
+      email_confirm: true,  // Auto-confirm for tests
+      user_metadata: { username }
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Failed to create test user: ${response.status} ${errorText}`);
+    if (authError) {
+      throw new Error(`Failed to create auth user: ${authError.message}`);
     }
+
+    // 2. Create user_profiles row
+    const { error: profileError } = await supabase
+      .from('user_profiles')
+      .insert({
+        id: userId,
+        username,
+        role,
+        namespace_id: namespaceId || (role === 'system-admin' ? null : 'default'),
+        display_name: username
+      });
+
+    if (profileError) {
+      // Rollback: delete auth user
+      await supabase.auth.admin.deleteUser(userId);
+      throw new Error(`Failed to create user profile: ${profileError.message}`);
+    }
+
+    console.log(`Created test user: ${username} (${email}) with role ${role}`);
   } catch (error) {
     console.error(`Error creating test user ${username}:`, error);
     throw error;
@@ -165,18 +139,22 @@ export async function createTestUser(
 }
 
 /**
- * Creates a test auth session for a user
- * This is done automatically by the signin endpoint, so this function
- * just calls signin to create both user and session
+ * Get test user email from username
  */
-export async function createTestAuthSession(sessionId: string, userId: string): Promise<void> {
-  // Auth sessions are created automatically via signin
-  // This is a no-op for backward compatibility
-  console.log(`Note: Auth sessions are now created automatically via signin. SessionId param ignored.`);
+export function getTestUserEmail(username: string): string {
+  return `${username}@test.local`;
+}
+
+/**
+ * Get standard test password for all test users
+ */
+export function getTestUserPassword(): string {
+  return 'testpassword123';
 }
 
 /**
  * Read a JSON data file from the data directory
+ * @deprecated Use Supabase client directly instead
  */
 export async function readDataFile(filename: string): Promise<any> {
   const filePath = path.join(DATA_DIR, filename);
@@ -208,7 +186,8 @@ export async function writeDataFile(filename: string, data: any): Promise<void> 
 
 /**
  * Creates a test namespace via system admin API
- * 
+ * Uses Supabase Auth to create a temporary admin user
+ *
  * @param namespaceId - Unique identifier for the namespace (e.g., 'test-123')
  * @param displayName - Optional display name (defaults to namespaceId)
  * @returns Promise that resolves when namespace is created
@@ -217,46 +196,56 @@ export async function createTestNamespace(
   namespaceId: string,
   displayName?: string
 ): Promise<void> {
-  // First, create a system admin user to make the API call
-  const adminUsername = `system-admin-${Date.now()}`;
-  const adminUserId = `admin-${Date.now()}`;
-  
-  // Create system admin directly in database
-  const usersFile = path.join(DATA_DIR, 'users.json');
-  const users = await readDataFile('users.json');
+  const supabase = getSupabaseClient();
 
-  users[adminUserId] = {
-    id: adminUserId,
-    username: adminUsername,
-    role: 'system-admin',
-    namespaceId: null,
-    createdAt: new Date().toISOString(),
-    lastLoginAt: new Date().toISOString(),
-  };
-
-  await writeDataFile('users.json', users);
-
-  // Create auth session for the admin
-  const sessionId = `session-${Date.now()}`;
-  const sessionsFile = path.join(DATA_DIR, 'auth-sessions.json');
-  const sessions = await readDataFile('auth-sessions.json');
-
-  sessions[sessionId] = {
-    id: sessionId,
-    userId: adminUserId,
-    createdAt: new Date().toISOString(),
-    expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours
-  };
-
-  await writeDataFile('auth-sessions.json', sessions);
-
-  // Now create the namespace via API
   try {
+    // Create a temporary system admin user
+    const adminEmail = `temp-admin-${Date.now()}@test.local`;
+    const adminPassword = 'temp-password-123';
+    const adminId = `admin-${Date.now()}`;
+
+    // 1. Create auth.users
+    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+      id: adminId,
+      email: adminEmail,
+      password: adminPassword,
+      email_confirm: true
+    });
+
+    if (authError) {
+      throw new Error(`Failed to create admin auth user: ${authError.message}`);
+    }
+
+    // 2. Create user_profiles
+    const { error: profileError } = await supabase.from('user_profiles').insert({
+      id: adminId,
+      username: `admin-${Date.now()}`,
+      role: 'system-admin',
+      namespace_id: null
+    });
+
+    if (profileError) {
+      await supabase.auth.admin.deleteUser(adminId);
+      throw new Error(`Failed to create admin profile: ${profileError.message}`);
+    }
+
+    // 3. Sign in to get session token
+    const { data: sessionData, error: signInError } = await supabase.auth.signInWithPassword({
+      email: adminEmail,
+      password: adminPassword
+    });
+
+    if (signInError || !sessionData?.session) {
+      await supabase.auth.admin.deleteUser(adminId);
+      throw new Error(`Failed to sign in as admin: ${signInError?.message}`);
+    }
+
+    // 4. Create namespace via API
     const response = await fetch(`${API_BASE_URL}/api/system/namespaces`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Cookie': `sessionId=${sessionId}`
+        'Cookie': `sb-access-token=${sessionData.session.access_token}`
       },
       body: JSON.stringify({
         id: namespaceId,
@@ -270,6 +259,9 @@ export async function createTestNamespace(
     }
 
     console.log(`Created test namespace: ${namespaceId}`);
+
+    // Clean up temporary admin user
+    await supabase.auth.admin.deleteUser(adminId);
   } catch (error) {
     console.error(`Error creating namespace ${namespaceId}:`, error);
     throw error;
@@ -277,60 +269,85 @@ export async function createTestNamespace(
 }
 
 /**
- * Cleans up a test namespace by deleting it via system admin API
- * This also deletes all associated data (users, classes, sections, sessions, etc.)
- * 
- * @param namespaceId - The namespace ID to delete
+ * Cleans up a test namespace by deleting all users and associated data
+ * Uses Supabase Admin API to delete auth.users (which cascades to user_profiles)
+ *
+ * @param namespaceId - The namespace ID to clean up
  */
 export async function cleanupNamespace(namespaceId: string): Promise<void> {
   try {
-    // Create a temporary system admin session for cleanup
-    const adminUsername = `cleanup-admin-${Date.now()}`;
-    const adminUserId = `admin-${Date.now()}`;
-    
-    // Create system admin directly in database
-    const usersFile = path.join(DATA_DIR, 'users.json');
-    const users = await readDataFile('users.json');
+    const supabase = getSupabaseClient();
 
-    users[adminUserId] = {
-      id: adminUserId,
-      username: adminUsername,
-      role: 'system-admin',
-      namespaceId: null,
-      createdAt: new Date().toISOString(),
-      lastLoginAt: new Date().toISOString(),
-    };
+    // 1. Get all user_profiles in this namespace
+    const { data: profiles, error: profileError } = await supabase
+      .from('user_profiles')
+      .select('id')
+      .eq('namespace_id', namespaceId);
 
-    await writeDataFile('users.json', users);
+    if (profileError) {
+      console.warn(`Warning: Failed to query user_profiles for namespace ${namespaceId}:`, profileError);
+      return;
+    }
 
-    // Create auth session for the admin
-    const sessionId = `session-${Date.now()}`;
-    const sessionsFile = path.join(DATA_DIR, 'auth-sessions.json');
-    const sessions = await readDataFile('auth-sessions.json');
+    // 2. Delete auth.users (CASCADE will delete user_profiles)
+    if (profiles && profiles.length > 0) {
+      for (const profile of profiles) {
+        const { error: deleteError } = await supabase.auth.admin.deleteUser(profile.id);
+        if (deleteError) {
+          console.warn(`Warning: Failed to delete user ${profile.id}:`, deleteError);
+        }
+      }
+      console.log(`Cleaned up ${profiles.length} users from namespace ${namespaceId}`);
+    }
 
-    sessions[sessionId] = {
-      id: sessionId,
-      userId: adminUserId,
-      createdAt: new Date().toISOString(),
-      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-    };
+    // 3. Delete the namespace via API
+    // First, create a temporary system admin session
+    const adminEmail = 'cleanup-admin@test.local';
+    const adminPassword = 'cleanup-password-123';
+    const adminId = `cleanup-${Date.now()}`;
 
-    await writeDataFile('auth-sessions.json', sessions);
-
-    // Delete the namespace via API
-    const response = await fetch(`${API_BASE_URL}/api/system/namespaces/${namespaceId}`, {
-      method: 'DELETE',
-      headers: {
-        'Cookie': `sessionId=${sessionId}`
-      },
+    // Create temporary admin user
+    const { error: adminCreateError } = await supabase.auth.admin.createUser({
+      id: adminId,
+      email: adminEmail,
+      password: adminPassword,
+      email_confirm: true
     });
 
-    if (!response.ok && response.status !== 404) {
-      const errorText = await response.text();
-      console.warn(`Warning: Failed to delete namespace ${namespaceId}: ${response.status} ${errorText}`);
-    } else {
-      console.log(`Cleaned up test namespace: ${namespaceId}`);
+    if (!adminCreateError) {
+      // Create admin profile
+      await supabase.from('user_profiles').insert({
+        id: adminId,
+        username: 'cleanup-admin',
+        role: 'system-admin',
+        namespace_id: null
+      });
+
+      // Sign in as admin
+      const { data: authData } = await supabase.auth.signInWithPassword({
+        email: adminEmail,
+        password: adminPassword
+      });
+
+      if (authData?.session) {
+        // Delete namespace via API
+        const response = await fetch(`${API_BASE_URL}/api/system/namespaces/${namespaceId}`, {
+          method: 'DELETE',
+          headers: {
+            'Cookie': `sb-access-token=${authData.session.access_token}`
+          }
+        });
+
+        if (!response.ok && response.status !== 404) {
+          console.warn(`Warning: Failed to delete namespace ${namespaceId}: ${response.status}`);
+        }
+      }
+
+      // Clean up admin user
+      await supabase.auth.admin.deleteUser(adminId);
     }
+
+    console.log(`Cleaned up test namespace: ${namespaceId}`);
   } catch (error) {
     console.warn(`Warning: Error cleaning up namespace ${namespaceId}:`, error);
     // Don't throw - cleanup failures shouldn't fail tests

@@ -1,6 +1,13 @@
 import { Page } from '@playwright/test';
 import { v4 as uuidv4 } from 'uuid';
-import { createTestUser, createTestAuthSession, generateTestNamespaceId, createTestNamespace, cleanupNamespace } from '../helpers/db-helpers';
+import {
+  createTestUser,
+  generateTestNamespaceId,
+  createTestNamespace,
+  cleanupNamespace,
+  getTestUserEmail,
+  getTestUserPassword
+} from '../helpers/db-helpers';
 
 // Re-export namespace helpers for convenience
 export { generateTestNamespaceId, createTestNamespace, cleanupNamespace };
@@ -11,13 +18,14 @@ export { generateTestNamespaceId, createTestNamespace, cleanupNamespace };
 export interface TestUser {
   id: string;
   username: string;
+  email: string;  // NEW: Email field for Supabase Auth
   role: 'system-admin' | 'namespace-admin' | 'instructor' | 'student';
   sessionId?: string;
   namespaceId?: string | null;
 }
 
 /**
- * Creates a test user and auth session, then signs in via the UI
+ * Creates a test user via Supabase, then signs in via the UI using email/password
  * @param namespaceId - Optional namespace ID. If not provided, users are created in 'default' namespace
  */
 export async function signInAs(
@@ -26,15 +34,19 @@ export async function signInAs(
   role: 'system-admin' | 'namespace-admin' | 'instructor' | 'student',
   namespaceId?: string
 ): Promise<TestUser> {
-  // Create user and session in database
+  // Create user in Supabase (auth.users + user_profiles)
   const userId = uuidv4();
+  const email = getTestUserEmail(username);
+  const password = getTestUserPassword();
+
   await createTestUser(userId, username, role, namespaceId);
 
   // Navigate to sign-in page
   await page.goto('/auth/signin');
 
-  // Fill in username
-  await page.fill('input[name="username"]', username);
+  // Fill in email and password (not username)
+  await page.fill('input[name="email"]', email);
+  await page.fill('input[name="password"]', password);
 
   // Submit form
   await page.click('button[type="submit"]');
@@ -45,8 +57,9 @@ export async function signInAs(
   return {
     id: userId,
     username,
+    email,
     role,
-    namespaceId: role === 'system-admin' ? null : namespaceId
+    namespaceId: role === 'system-admin' ? null : namespaceId || 'default'
   };
 }
 
@@ -85,8 +98,8 @@ export async function loginAsSystemAdmin(
 }
 
 /**
- * Creates a test user with direct session (for API testing)
- * This bypasses the UI and directly creates user + session
+ * Creates a test user with Supabase auth (for API testing)
+ * This creates the user but does NOT create a session - tests should call /api/auth/signin
  * @param namespaceId - Optional namespace ID. If not provided, user is created in 'default' namespace
  */
 export async function createTestUserWithSession(
@@ -95,17 +108,16 @@ export async function createTestUserWithSession(
   namespaceId?: string
 ): Promise<TestUser> {
   const userId = uuidv4();
-  const sessionId = uuidv4();
+  const email = getTestUserEmail(username);
 
   await createTestUser(userId, username, role, namespaceId);
-  await createTestAuthSession(sessionId, userId);
 
   return {
     id: userId,
     username,
+    email,
     role,
-    sessionId,
-    namespaceId: role === 'system-admin' ? null : namespaceId
+    namespaceId: role === 'system-admin' ? null : namespaceId || 'default'
   };
 }
 
