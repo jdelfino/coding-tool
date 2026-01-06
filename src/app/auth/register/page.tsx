@@ -1,8 +1,8 @@
 'use client';
 
 /**
- * Sign-in page.
- * Email/password authentication with Supabase.
+ * Registration page.
+ * Email/password user registration with Supabase.
  */
 
 import React from 'react';
@@ -11,9 +11,12 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 
-export default function SignInPage() {
+export default function RegisterPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [username, setUsername] = useState('');
+  const [namespaceId, setNamespaceId] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
@@ -35,25 +38,66 @@ export default function SignInPage() {
     }
 
     if (!password) {
-      setError('Please enter your password');
+      setError('Please enter a password');
+      return;
+    }
+
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters');
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setError('Passwords do not match');
+      return;
+    }
+
+    if (!username.trim()) {
+      setError('Please enter a username');
+      return;
+    }
+
+    if (!/^[a-zA-Z0-9_-]+$/.test(username)) {
+      setError('Username can only contain letters, numbers, hyphens, and underscores');
       return;
     }
 
     setIsLoading(true);
 
     try {
+      // Register user
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: email.trim(),
+          password,
+          username: username.trim(),
+          namespaceId: namespaceId.trim() || undefined,
+        }),
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Registration failed');
+      }
+
+      // Auto-login after successful registration
       await signIn(email.trim(), password);
 
       // Redirect based on role will be handled by the protected routes
       router.push('/');
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Sign in failed';
+      const errorMessage = err instanceof Error ? err.message : 'Registration failed';
 
       // Map common error messages to user-friendly versions
-      if (errorMessage.includes('Invalid') || errorMessage.includes('credentials')) {
-        setError('Invalid email or password');
-      } else if (errorMessage.includes('not found')) {
-        setError('No account found with this email');
+      if (errorMessage.includes('already exists') || errorMessage.includes('duplicate')) {
+        setError('An account with this email already exists');
+      } else if (errorMessage.includes('Invalid') || errorMessage.includes('invalid')) {
+        setError('Invalid registration information provided');
       } else {
         setError(errorMessage);
       }
@@ -63,7 +107,7 @@ export default function SignInPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8 p-10 bg-white rounded-2xl shadow-2xl border border-gray-100 transform hover:scale-[1.01] transition-transform duration-200">
         <div>
           <div className="flex justify-center mb-4">
@@ -74,10 +118,10 @@ export default function SignInPage() {
             </div>
           </div>
           <h2 className="text-center text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-            Coding Tool
+            Create Account
           </h2>
           <p className="mt-3 text-center text-sm text-gray-600">
-            Sign in to your account
+            Join Coding Tool to get started
           </p>
         </div>
 
@@ -101,6 +145,24 @@ export default function SignInPage() {
             </div>
 
             <div>
+              <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-2">
+                Username
+              </label>
+              <input
+                id="username"
+                name="username"
+                type="text"
+                autoComplete="username"
+                className="appearance-none rounded-lg relative block w-full px-4 py-3 border border-gray-300 placeholder-gray-400 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 sm:text-sm disabled:bg-gray-50 disabled:text-gray-500"
+                placeholder="Choose a username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                disabled={isLoading}
+              />
+              <p className="mt-1 text-xs text-gray-500">Letters, numbers, hyphens, and underscores only</p>
+            </div>
+
+            <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
                 Password
               </label>
@@ -108,13 +170,47 @@ export default function SignInPage() {
                 id="password"
                 name="password"
                 type="password"
-                autoComplete="current-password"
+                autoComplete="new-password"
                 className="appearance-none rounded-lg relative block w-full px-4 py-3 border border-gray-300 placeholder-gray-400 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 sm:text-sm disabled:bg-gray-50 disabled:text-gray-500"
-                placeholder="Enter your password"
+                placeholder="At least 8 characters"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 disabled={isLoading}
               />
+            </div>
+
+            <div>
+              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
+                Confirm password
+              </label>
+              <input
+                id="confirmPassword"
+                name="confirmPassword"
+                type="password"
+                autoComplete="new-password"
+                className="appearance-none rounded-lg relative block w-full px-4 py-3 border border-gray-300 placeholder-gray-400 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 sm:text-sm disabled:bg-gray-50 disabled:text-gray-500"
+                placeholder="Re-enter your password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                disabled={isLoading}
+              />
+            </div>
+
+            <div>
+              <label htmlFor="namespaceId" className="block text-sm font-medium text-gray-700 mb-2">
+                Organization ID <span className="text-gray-400 font-normal">(optional)</span>
+              </label>
+              <input
+                id="namespaceId"
+                name="namespaceId"
+                type="text"
+                className="appearance-none rounded-lg relative block w-full px-4 py-3 border border-gray-300 placeholder-gray-400 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 sm:text-sm disabled:bg-gray-50 disabled:text-gray-500"
+                placeholder="Leave empty for default"
+                value={namespaceId}
+                onChange={(e) => setNamespaceId(e.target.value)}
+                disabled={isLoading}
+              />
+              <p className="mt-1 text-xs text-gray-500">Only needed if joining a specific organization</p>
             </div>
           </div>
 
@@ -141,7 +237,7 @@ export default function SignInPage() {
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
               )}
-              {isLoading ? 'Signing in...' : 'Sign in'}
+              {isLoading ? 'Creating account...' : 'Create account'}
             </button>
           </div>
         </form>
@@ -149,12 +245,12 @@ export default function SignInPage() {
         <div className="mt-6 pt-6 border-t border-gray-200">
           <div className="text-center">
             <p className="text-sm text-gray-600">
-              Don't have an account?{' '}
+              Already have an account?{' '}
               <Link
-                href="/auth/register"
+                href="/auth/signin"
                 className="font-medium text-indigo-600 hover:text-indigo-500 transition-colors"
               >
-                Create one here
+                Sign in here
               </Link>
             </p>
           </div>

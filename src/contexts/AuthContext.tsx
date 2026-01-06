@@ -23,7 +23,7 @@ interface AuthContextType {
   sessionId: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  signIn: (username: string) => Promise<void>;
+  signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   refreshUser: () => Promise<void>;
 }
@@ -73,14 +73,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
     loadSession();
   }, []);
 
-  const signIn = async (username: string) => {
+  const signIn = async (email: string, password: string) => {
     try {
       const response = await fetch('/api/auth/signin', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ username }),
+        body: JSON.stringify({ email, password }),
         credentials: 'include',
       });
 

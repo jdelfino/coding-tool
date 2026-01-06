@@ -174,18 +174,18 @@ describe('Middleware', () => {
     it('should document matcher pattern for API and page routes', () => {
       // The matcher pattern is: '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)'
       // This matches everything EXCEPT static assets
-      
+
       // Document expected matches:
       // - /api/* routes
       // - /instructor, /student, /system pages
       // - /auth/* pages
-      
+
       // Document expected exclusions:
       // - /_next/static/*
       // - /_next/image/*
       // - /favicon.ico
       // - /*.{svg,png,jpg,jpeg,gif,webp}
-      
+
       const pattern = config.matcher[0]
       expect(typeof pattern).toBe('string')
       expect(pattern).toContain('_next/static')
