@@ -1,0 +1,88 @@
+/**
+ * GET /api/sessions/[id]/state
+ * Load initial session state for client
+ */
+
+import { NextRequest, NextResponse } from 'next/server';
+import { getAuthenticatedUser } from '@/server/auth/api-auth';
+import { getSessionManager } from '@/server/session-manager';
+
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    // Authenticate user
+    const user = await getAuthenticatedUser(request);
+
+    // Get session ID from params
+    const { id: sessionId } = await params;
+
+    // Get session
+    const sessionManager = getSessionManager();
+    const session = await sessionManager.getSession(sessionId);
+
+    if (!session) {
+      return NextResponse.json(
+        { error: 'Session not found' },
+        { status: 404 }
+      );
+    }
+
+    // Get students in the session
+    const students = await sessionManager.getStudents(sessionId);
+
+    // Format students for response (remove WebSocket references)
+    const formattedStudents = students.map(student => ({
+      id: student.id,
+      name: student.name,
+      code: student.code,
+      lastUpdate: student.lastUpdate,
+      executionSettings: student.executionSettings,
+    }));
+
+    // Get featured student data
+    const featuredStudent = {
+      studentId: session.featuredStudentId,
+      code: session.featuredCode,
+    };
+
+    // Format session for response (remove Map and WebSocket references)
+    const formattedSession = {
+      id: session.id,
+      namespaceId: session.namespaceId,
+      problem: session.problem,
+      createdAt: session.createdAt,
+      lastActivity: session.lastActivity,
+      creatorId: session.creatorId,
+      participants: session.participants,
+      status: session.status,
+      endedAt: session.endedAt,
+      sectionId: session.sectionId,
+      sectionName: session.sectionName,
+      featuredStudentId: session.featuredStudentId,
+      featuredCode: session.featuredCode,
+    };
+
+    return NextResponse.json({
+      session: formattedSession,
+      students: formattedStudents,
+      featuredStudent,
+    });
+  } catch (error: any) {
+    // Handle authentication errors
+    if (error.message === 'Not authenticated') {
+      return NextResponse.json(
+        { error: 'Not authenticated' },
+        { status: 401 }
+      );
+    }
+
+    // Handle other errors
+    console.error('[API] Get session state error:', error);
+    return NextResponse.json(
+      { error: 'Failed to load session state' },
+      { status: 500 }
+    );
+  }
+}
