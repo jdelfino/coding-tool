@@ -1,85 +1,115 @@
 /**
  * System Admin API - Individual User Management
  *
- * PUT /api/system/users/[id] - Update user (change role)
+ * PUT /api/system/users/[id] - Update user (change role, email, etc.)
  * DELETE /api/system/users/[id] - Delete user
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { requirePermission } from '@/server/auth/api-helpers';
-import { getUserRepository, getAuthProvider } from '@/server/auth';
+import { requireSystemAdmin } from '@/server/auth/api-helpers';
+import { getAuthProvider } from '@/server/auth';
 
 /**
  * PUT /api/system/users/[id]
  *
  * Update a user (system-admin only)
- * Currently supports changing role only
- *
+ * 
  * Body:
- * - role?: 'namespace-admin' | 'instructor' | 'student'
+ * - email?: string
+ * - username?: string
+ * - role?: 'system-admin' | 'namespace-admin' | 'instructor' | 'student'
+ * - namespaceId?: string | null
+ * - displayName?: string
  */
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // Require system-admin permission
-    const permissionCheck = await requirePermission(request, 'user.changeRole');
-    if (permissionCheck instanceof NextResponse) {
-      return permissionCheck;
+    const authContext = await requireSystemAdmin(request);
+    if (authContext instanceof NextResponse) {
+      return authContext;
     }
 
     const { id: userId } = await params;
     const body = await request.json();
-    const { role } = body;
+    const { email, username, role, namespaceId, displayName } = body;
 
-    // Validate inputs
-    if (!role) {
-      return NextResponse.json(
-        { error: 'Role is required' },
-        { status: 400 }
-      );
-    }
-
-    if (!['namespace-admin', 'instructor', 'student'].includes(role)) {
-      return NextResponse.json(
-        { error: 'Role must be namespace-admin, instructor, or student' },
-        { status: 400 }
-      );
-    }
-
-    // Check if user exists
-    const userRepo = await getUserRepository();
-    const user = await userRepo.getUser(userId);
-    if (!user) {
-      return NextResponse.json(
-        { error: 'User not found' },
-        { status: 404 }
-      );
-    }
-
-    // Prevent changing system-admin role via this endpoint
-    if (user.role === 'system-admin') {
-      return NextResponse.json(
-        { error: 'Cannot modify system administrator role' },
-        { status: 403 }
-      );
-    }
-
-    // Update user role
     const authProvider = await getAuthProvider();
-    await authProvider.updateUser(userId, { role });
+    const supabase = authProvider.getSupabaseClient('admin');
+
+    // Update auth.users if email changed
+    if (email) {
+      const { error: authError } = await supabase.auth.admin.updateUserById(userId, {
+        email
+      });
+      if (authError) {
+        console.error('[Admin] Update auth.users error:', authError);
+        return NextResponse.json(
+          { error: `Failed to update email: ${authError.message}` },
+          { status: 500 }
+        );
+      }
+    }
+
+    // Update user_profiles
+    const profileUpdates: any = {};
+    if (username !== undefined) profileUpdates.username = username;
+    if (role !== undefined) profileUpdates.role = role;
+    if (namespaceId !== undefined) profileUpdates.namespace_id = namespaceId;
+    if (displayName !== undefined) profileUpdates.display_name = displayName;
+
+    if (Object.keys(profileUpdates).length > 0) {
+      const { error: profileError } = await supabase
+        .from('user_profiles')
+        .update(profileUpdates)
+        .eq('id', userId);
+
+      if (profileError) {
+        console.error('[Admin] Update user_profiles error:', profileError);
+        return NextResponse.json(
+          { error: `Failed to update profile: ${profileError.message}` },
+          { status: 500 }
+        );
+      }
+    }
 
     // Fetch updated user
-    const updatedUser = await userRepo.getUser(userId);
+    const { data: profile, error: fetchError } = await supabase
+      .from('user_profiles')
+      .select(`
+        *
+      `)
+      .eq('id', userId)
+      .single();
 
-    return NextResponse.json({
-      success: true,
-      user: updatedUser,
-    });
+    if (fetchError) {
+      console.error('[Admin] Fetch updated user error:', fetchError);
+      return NextResponse.json(
+        { error: 'User updated but failed to fetch updated data' },
+        { status: 500 }
+      );
+    }
+
+    // Fetch auth user separately
+    const { data: authUser } = await supabase.auth.admin.getUserById(userId);
+
+    const user = {
+      id: profile.id,
+      username: profile.username,
+      email: authUser.user?.email || '',
+      role: profile.role,
+      namespaceId: profile.namespace_id,
+      displayName: profile.display_name,
+      createdAt: profile.created_at,
+      lastLoginAt: profile.last_login_at,
+      emailConfirmed: authUser.user?.email_confirmed_at != null
+    };
+
+    return NextResponse.json({ user });
 
   } catch (error) {
-    console.error('Error updating user:', error);
+    console.error('[Admin] Update user error:', error);
     return NextResponse.json(
       {
         error: 'Failed to update user',
@@ -100,35 +130,34 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // Require system-admin permission
-    const permissionCheck = await requirePermission(request, 'user.delete');
-    if (permissionCheck instanceof NextResponse) {
-      return permissionCheck;
+    const authContext = await requireSystemAdmin(request);
+    if (authContext instanceof NextResponse) {
+      return authContext;
     }
 
     const { id: userId } = await params;
 
-    // Check if user exists
-    const userRepo = await getUserRepository();
-    const user = await userRepo.getUser(userId);
-    if (!user) {
+    // Prevent self-deletion
+    if (authContext.user.id === userId) {
       return NextResponse.json(
-        { error: 'User not found' },
-        { status: 404 }
+        { error: 'Cannot delete your own account' },
+        { status: 400 }
       );
     }
 
-    // Prevent deleting system-admin via this endpoint
-    if (user.role === 'system-admin') {
-      return NextResponse.json(
-        { error: 'Cannot delete system administrator' },
-        { status: 403 }
-      );
-    }
-
-    // Delete user
     const authProvider = await getAuthProvider();
-    await authProvider.deleteUser(userId);
+    const supabase = authProvider.getSupabaseClient('admin');
+
+    // Delete auth.users (CASCADE deletes user_profiles)
+    const { error } = await supabase.auth.admin.deleteUser(userId);
+
+    if (error) {
+      console.error('[Admin] Delete user error:', error);
+      return NextResponse.json(
+        { error: `Failed to delete user: ${error.message}` },
+        { status: 500 }
+      );
+    }
 
     return NextResponse.json({
       success: true,
@@ -136,7 +165,7 @@ export async function DELETE(
     });
 
   } catch (error) {
-    console.error('Error deleting user:', error);
+    console.error('[Admin] Delete user error:', error);
     return NextResponse.json(
       {
         error: 'Failed to delete user',

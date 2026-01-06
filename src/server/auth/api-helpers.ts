@@ -169,6 +169,31 @@ export async function requireAnyPermission(
 }
 
 /**
+ * Require system-admin role. Returns 403 if user is not system-admin.
+ * 
+ * @param request - Next.js request object
+ * @returns Auth context or error response
+ */
+export async function requireSystemAdmin(
+  request: NextRequest
+): Promise<{ user: User; rbac: RBACService } | NextResponse> {
+  const auth = await requireAuth(request);
+  
+  if (auth instanceof NextResponse) {
+    return auth;  // Already an error response
+  }
+  
+  if (auth.user.role !== 'system-admin') {
+    return NextResponse.json(
+      { error: 'System admin access required' },
+      { status: 403 }
+    );
+  }
+  
+  return auth;
+}
+
+/**
  * Get the namespace ID to use for a request.
  * - For system-admin: Uses ?namespace=xxx query param if provided, otherwise defaults to 'default'
  * - For all other users: Always uses user's namespaceId (required, never null)
