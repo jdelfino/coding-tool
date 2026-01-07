@@ -24,7 +24,8 @@ global.fetch = mockFetch;
 describe('useRealtimeSession', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    jest.useFakeTimers();
+    // Don't use fake timers globally - only enable for tests that need them (debounce tests)
+    // jest.useFakeTimers() interferes with async Promise resolution in waitFor()
 
     // Reset mock useRealtime
     Object.assign(mockUseRealtime, {
@@ -34,10 +35,6 @@ describe('useRealtimeSession', () => {
       lastMessage: null,
       onlineUsers: {},
     });
-  });
-
-  afterEach(() => {
-    jest.useRealTimers();
   });
 
   describe('Initial state loading', () => {
@@ -86,8 +83,10 @@ describe('useRealtimeSession', () => {
     });
 
     it('should handle loading errors', async () => {
+      // Include status code so fetchWithRetry doesn't retry
       mockFetch.mockResolvedValueOnce({
         ok: false,
+        status: 404,
         json: async () => ({ error: 'Session not found' }),
       });
 
@@ -149,7 +148,7 @@ describe('useRealtimeSession', () => {
     });
 
     it('should handle session_students INSERT messages', async () => {
-      const { result } = renderHook(() =>
+      const { result, rerender } = renderHook(() =>
         useRealtimeSession({
           sessionId: 'session-1',
         })
@@ -159,30 +158,27 @@ describe('useRealtimeSession', () => {
         expect(result.current.loading).toBe(false);
       });
 
-      // Simulate Realtime message
-      await act(async () => {
-        mockUseRealtime.lastMessage = {
-          type: 'INSERT' as const,
-          table: 'session_students',
-          payload: {
-            student_id: 'student-1',
-            student_name: 'Alice',
-            code: 'print("hello")',
-            last_update: new Date().toISOString(),
-          },
-        };
-      });
+      // Simulate Realtime message and rerender to trigger effect
+      mockUseRealtime.lastMessage = {
+        type: 'INSERT' as const,
+        table: 'session_students',
+        payload: {
+          student_id: 'student-1',
+          student_name: 'Alice',
+          code: 'print("hello")',
+          last_update: new Date().toISOString(),
+        },
+      };
+      rerender();
 
-      await waitFor(() => {
-        expect(result.current.students).toHaveLength(1);
-        expect(result.current.students[0].id).toBe('student-1');
-        expect(result.current.students[0].name).toBe('Alice');
-        expect(result.current.students[0].code).toBe('print("hello")');
-      });
+      expect(result.current.students).toHaveLength(1);
+      expect(result.current.students[0].id).toBe('student-1');
+      expect(result.current.students[0].name).toBe('Alice');
+      expect(result.current.students[0].code).toBe('print("hello")');
     });
 
     it('should handle session_students UPDATE messages', async () => {
-      const { result } = renderHook(() =>
+      const { result, rerender } = renderHook(() =>
         useRealtimeSession({
           sessionId: 'session-1',
         })
@@ -193,40 +189,38 @@ describe('useRealtimeSession', () => {
       });
 
       // Insert student first
-      await act(async () => {
-        mockUseRealtime.lastMessage = {
-          type: 'INSERT' as const,
-          table: 'session_students',
-          payload: {
-            student_id: 'student-1',
-            student_name: 'Alice',
-            code: '',
-            last_update: new Date().toISOString(),
-          },
-        };
-      });
+      mockUseRealtime.lastMessage = {
+        type: 'INSERT' as const,
+        table: 'session_students',
+        payload: {
+          student_id: 'student-1',
+          student_name: 'Alice',
+          code: '',
+          last_update: new Date().toISOString(),
+        },
+      };
+      rerender();
+
+      expect(result.current.students).toHaveLength(1);
 
       // Update student code
-      await act(async () => {
-        mockUseRealtime.lastMessage = {
-          type: 'UPDATE' as const,
-          table: 'session_students',
-          payload: {
-            student_id: 'student-1',
-            student_name: 'Alice',
-            code: 'print("updated")',
-            last_update: new Date().toISOString(),
-          },
-        };
-      });
+      mockUseRealtime.lastMessage = {
+        type: 'UPDATE' as const,
+        table: 'session_students',
+        payload: {
+          student_id: 'student-1',
+          student_name: 'Alice',
+          code: 'print("updated")',
+          last_update: new Date().toISOString(),
+        },
+      };
+      rerender();
 
-      await waitFor(() => {
-        expect(result.current.students[0].code).toBe('print("updated")');
-      });
+      expect(result.current.students[0].code).toBe('print("updated")');
     });
 
     it('should handle session_students DELETE messages', async () => {
-      const { result } = renderHook(() =>
+      const { result, rerender } = renderHook(() =>
         useRealtimeSession({
           sessionId: 'session-1',
         })
@@ -237,39 +231,35 @@ describe('useRealtimeSession', () => {
       });
 
       // Insert student
-      await act(async () => {
-        mockUseRealtime.lastMessage = {
-          type: 'INSERT' as const,
-          table: 'session_students',
-          payload: {
-            student_id: 'student-1',
-            student_name: 'Alice',
-            code: '',
-            last_update: new Date().toISOString(),
-          },
-        };
-      });
+      mockUseRealtime.lastMessage = {
+        type: 'INSERT' as const,
+        table: 'session_students',
+        payload: {
+          student_id: 'student-1',
+          student_name: 'Alice',
+          code: '',
+          last_update: new Date().toISOString(),
+        },
+      };
+      rerender();
 
       expect(result.current.students).toHaveLength(1);
 
       // Delete student
-      await act(async () => {
-        mockUseRealtime.lastMessage = {
-          type: 'DELETE' as const,
-          table: 'session_students',
-          payload: {
-            student_id: 'student-1',
-          },
-        };
-      });
+      mockUseRealtime.lastMessage = {
+        type: 'DELETE' as const,
+        table: 'session_students',
+        payload: {
+          student_id: 'student-1',
+        },
+      };
+      rerender();
 
-      await waitFor(() => {
-        expect(result.current.students).toHaveLength(0);
-      });
+      expect(result.current.students).toHaveLength(0);
     });
 
     it('should handle sessions UPDATE messages (featured student)', async () => {
-      const { result } = renderHook(() =>
+      const { result, rerender } = renderHook(() =>
         useRealtimeSession({
           sessionId: 'session-1',
         })
@@ -279,72 +269,91 @@ describe('useRealtimeSession', () => {
         expect(result.current.loading).toBe(false);
       });
 
-      await act(async () => {
-        mockUseRealtime.lastMessage = {
-          type: 'UPDATE' as const,
-          table: 'sessions',
-          payload: {
-            featured_student_id: 'student-1',
-            featured_code: 'print("featured")',
-          },
-        };
-      });
+      mockUseRealtime.lastMessage = {
+        type: 'UPDATE' as const,
+        table: 'sessions',
+        payload: {
+          featured_student_id: 'student-1',
+          featured_code: 'print("featured")',
+        },
+      };
+      rerender();
 
-      await waitFor(() => {
-        expect(result.current.featuredStudent.studentId).toBe('student-1');
-        expect(result.current.featuredStudent.code).toBe('print("featured")');
-      });
+      expect(result.current.featuredStudent.studentId).toBe('student-1');
+      expect(result.current.featuredStudent.code).toBe('print("featured")');
     });
   });
 
   describe('updateCode action', () => {
-    beforeEach(async () => {
+    // These tests need fake timers for debounce testing
+    beforeEach(() => {
+      jest.useFakeTimers();
       mockFetch.mockResolvedValue({
         ok: true,
         json: async () => ({}),
       });
     });
 
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
     it('should debounce code updates', async () => {
+      // First setup initial state fetch
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          session: { id: 'session-1' },
+          students: [],
+          featuredStudent: {},
+        }),
+      });
+
       const { result } = renderHook(() =>
         useRealtimeSession({
           sessionId: 'session-1',
         })
       );
 
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false);
+      // Flush the initial state load
+      await act(async () => {
+        await jest.runAllTimersAsync();
       });
+
+      expect(result.current.loading).toBe(false);
 
       // Reset fetch mock call count
       mockFetch.mockClear();
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: async () => ({}),
+      });
 
       // Call updateCode multiple times rapidly
-      await act(async () => {
+      act(() => {
         result.current.updateCode('student-1', 'a');
         result.current.updateCode('student-1', 'ab');
         result.current.updateCode('student-1', 'abc');
       });
 
-      // Advance timers to trigger debounce
+      // Advance timers to trigger debounce and flush promises
       await act(async () => {
         jest.advanceTimersByTime(300);
+        await jest.runAllTimersAsync();
       });
 
-      await waitFor(() => {
-        // Should only make one API call due to debouncing
-        expect(mockFetch).toHaveBeenCalledTimes(1);
-        expect(mockFetch).toHaveBeenCalledWith(
-          '/api/sessions/session-1/code',
-          expect.objectContaining({
-            method: 'POST',
-            body: JSON.stringify({
-              studentId: 'student-1',
-              code: 'abc',
-            }),
-          })
-        );
-      });
+      // Should only make one API call due to debouncing
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+      expect(mockFetch).toHaveBeenCalledWith(
+        '/api/sessions/session-1/code',
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify({
+            studentId: 'student-1',
+            code: 'abc',
+          }),
+        })
+      );
     });
 
     it('should update local state optimistically', async () => {
@@ -371,20 +380,31 @@ describe('useRealtimeSession', () => {
         })
       );
 
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false);
-      });
-
-      // Update code
+      // Flush the initial state load
       await act(async () => {
-        result.current.updateCode('student-1', 'print("new code")');
-        jest.advanceTimersByTime(300);
+        await jest.runAllTimersAsync();
       });
 
-      await waitFor(() => {
-        const student = result.current.students.find(s => s.id === 'student-1');
-        expect(student?.code).toBe('print("new code")');
+      expect(result.current.loading).toBe(false);
+
+      // Setup response for code update
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({}),
       });
+
+      // Update code and advance timers
+      act(() => {
+        result.current.updateCode('student-1', 'print("new code")');
+      });
+
+      await act(async () => {
+        jest.advanceTimersByTime(300);
+        await jest.runAllTimersAsync();
+      });
+
+      const student = result.current.students.find(s => s.id === 'student-1');
+      expect(student?.code).toBe('print("new code")');
     });
   });
 
@@ -459,8 +479,10 @@ describe('useRealtimeSession', () => {
         expect(result.current.loading).toBe(false);
       });
 
+      // Include status code so fetchWithRetry doesn't retry
       mockFetch.mockResolvedValueOnce({
         ok: false,
+        status: 400,
         json: async () => ({ error: 'Execution failed' }),
       });
 
@@ -571,8 +593,17 @@ describe('useRealtimeSession', () => {
   });
 
   describe('Error handling with retry', () => {
+    // This test needs fake timers for retry backoff delays
+    beforeEach(() => {
+      jest.useFakeTimers();
+    });
+
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
     it('should retry failed requests', async () => {
-      // First call: network error
+      // First call: network error, then success
       mockFetch
         .mockRejectedValueOnce(new Error('Network error'))
         .mockRejectedValueOnce(new Error('Network error'))
@@ -591,15 +622,21 @@ describe('useRealtimeSession', () => {
         })
       );
 
-      // Should retry and eventually succeed
-      await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledTimes(3);
-      }, { timeout: 5000 });
+      // Advance timers to allow retries (1000ms + 2000ms backoff delays)
+      await act(async () => {
+        await jest.advanceTimersByTimeAsync(1000); // First retry delay
+      });
+      await act(async () => {
+        await jest.advanceTimersByTimeAsync(2000); // Second retry delay
+      });
+
+      // Should have retried and eventually succeeded
+      expect(mockFetch).toHaveBeenCalledTimes(3);
     });
   });
 
   describe('Connection status', () => {
-    it('should expose connection status from useRealtime', () => {
+    it('should expose connection status from useRealtime', async () => {
       mockFetch.mockResolvedValue({
         ok: true,
         json: async () => ({
@@ -616,9 +653,15 @@ describe('useRealtimeSession', () => {
         })
       );
 
+      // Connection status comes from useRealtime mock, available immediately
       expect(result.current.isConnected).toBe(true);
       expect(result.current.connectionStatus).toBe('connected');
       expect(result.current.connectionError).toBe(null);
+
+      // Wait for initial load to complete
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
     });
 
     it('should expose online users from presence', async () => {
