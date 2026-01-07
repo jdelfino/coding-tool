@@ -1,11 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 
 /**
- * Base URL for API calls
- */
-const API_BASE_URL = process.env.PLAYWRIGHT_TEST_BASE_URL || 'http://localhost:3000';
-
-/**
  * Check if Supabase credentials are available
  */
 export function hasSupabaseCredentials(): boolean {
@@ -158,8 +153,8 @@ export function getTestUserPassword(): string {
 }
 
 /**
- * Creates a test namespace via system admin API
- * Uses Supabase Auth to create a temporary admin user
+ * Creates a test namespace directly via Supabase
+ * Uses service role key to bypass RLS and create directly
  *
  * @param namespaceId - Unique identifier for the namespace (e.g., 'test-123')
  * @param displayName - Optional display name (defaults to namespaceId)
@@ -172,69 +167,20 @@ export async function createTestNamespace(
   const supabase = getSupabaseClient();
 
   try {
-    // Create a temporary system admin user
-    const adminEmail = `temp-admin-${Date.now()}@test.local`;
-    const adminPassword = 'temp-password-123';
-    const adminId = `admin-${Date.now()}`;
-
-    // 1. Create auth.users
-    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-      id: adminId,
-      email: adminEmail,
-      password: adminPassword,
-      email_confirm: true
+    // Create namespace directly via Supabase (service role bypasses RLS)
+    const { error } = await supabase.from('namespaces').insert({
+      id: namespaceId,
+      display_name: displayName || namespaceId,
+      active: true,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
     });
 
-    if (authError) {
-      throw new Error(`Failed to create admin auth user: ${authError.message}`);
-    }
-
-    // 2. Create user_profiles
-    const { error: profileError } = await supabase.from('user_profiles').insert({
-      id: adminId,
-      username: `admin-${Date.now()}`,
-      role: 'system-admin',
-      namespace_id: null
-    });
-
-    if (profileError) {
-      await supabase.auth.admin.deleteUser(adminId);
-      throw new Error(`Failed to create admin profile: ${profileError.message}`);
-    }
-
-    // 3. Sign in to get session token
-    const { data: sessionData, error: signInError } = await supabase.auth.signInWithPassword({
-      email: adminEmail,
-      password: adminPassword
-    });
-
-    if (signInError || !sessionData?.session) {
-      await supabase.auth.admin.deleteUser(adminId);
-      throw new Error(`Failed to sign in as admin: ${signInError?.message}`);
-    }
-
-    // 4. Create namespace via API
-    const response = await fetch(`${API_BASE_URL}/api/system/namespaces`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Cookie': `sb-access-token=${sessionData.session.access_token}`
-      },
-      body: JSON.stringify({
-        id: namespaceId,
-        displayName: displayName || namespaceId
-      }),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Failed to create namespace: ${response.status} ${errorText}`);
+    if (error) {
+      throw new Error(`Failed to create namespace: ${error.message}`);
     }
 
     console.log(`Created test namespace: ${namespaceId}`);
-
-    // Clean up temporary admin user
-    await supabase.auth.admin.deleteUser(adminId);
   } catch (error) {
     console.error(`Error creating namespace ${namespaceId}:`, error);
     throw error;
@@ -243,7 +189,7 @@ export async function createTestNamespace(
 
 /**
  * Cleans up a test namespace by deleting all users and associated data
- * Uses Supabase Admin API to delete auth.users (which cascades to user_profiles)
+ * Uses Supabase service role to delete directly (bypasses RLS)
  *
  * @param namespaceId - The namespace ID to clean up
  */
@@ -259,7 +205,6 @@ export async function cleanupNamespace(namespaceId: string): Promise<void> {
 
     if (profileError) {
       console.warn(`Warning: Failed to query user_profiles for namespace ${namespaceId}:`, profileError);
-      return;
     }
 
     // 2. Delete auth.users (CASCADE will delete user_profiles)
@@ -273,51 +218,14 @@ export async function cleanupNamespace(namespaceId: string): Promise<void> {
       console.log(`Cleaned up ${profiles.length} users from namespace ${namespaceId}`);
     }
 
-    // 3. Delete the namespace via API
-    // First, create a temporary system admin session
-    const adminEmail = 'cleanup-admin@test.local';
-    const adminPassword = 'cleanup-password-123';
-    const adminId = `cleanup-${Date.now()}`;
+    // 3. Delete the namespace directly via Supabase (service role bypasses RLS)
+    const { error: deleteError } = await supabase
+      .from('namespaces')
+      .delete()
+      .eq('id', namespaceId);
 
-    // Create temporary admin user
-    const { error: adminCreateError } = await supabase.auth.admin.createUser({
-      id: adminId,
-      email: adminEmail,
-      password: adminPassword,
-      email_confirm: true
-    });
-
-    if (!adminCreateError) {
-      // Create admin profile
-      await supabase.from('user_profiles').insert({
-        id: adminId,
-        username: 'cleanup-admin',
-        role: 'system-admin',
-        namespace_id: null
-      });
-
-      // Sign in as admin
-      const { data: authData } = await supabase.auth.signInWithPassword({
-        email: adminEmail,
-        password: adminPassword
-      });
-
-      if (authData?.session) {
-        // Delete namespace via API
-        const response = await fetch(`${API_BASE_URL}/api/system/namespaces/${namespaceId}`, {
-          method: 'DELETE',
-          headers: {
-            'Cookie': `sb-access-token=${authData.session.access_token}`
-          }
-        });
-
-        if (!response.ok && response.status !== 404) {
-          console.warn(`Warning: Failed to delete namespace ${namespaceId}: ${response.status}`);
-        }
-      }
-
-      // Clean up admin user
-      await supabase.auth.admin.deleteUser(adminId);
+    if (deleteError) {
+      console.warn(`Warning: Failed to delete namespace ${namespaceId}:`, deleteError);
     }
 
     console.log(`Cleaned up test namespace: ${namespaceId}`);

@@ -38,7 +38,11 @@ describeE2E('System Admin Core Flows', () => {
     // Verify we can see the namespace management UI
     await expect(page.locator('h2:has-text("Namespaces")')).toBeVisible();
 
-      // Create a new namespace using the pre-generated ID
+    // Click to open create namespace form
+    await page.click('button:has-text("Create New Namespace")');
+
+    // Wait for form to appear and fill it
+    await expect(page.locator('input#namespace-id')).toBeVisible({ timeout: 5000 });
     await page.fill('input#namespace-id', namespaceId);
     await page.fill('input#display-name', 'Test Organization');
 
@@ -49,9 +53,10 @@ describeE2E('System Admin Core Flows', () => {
     await expect(page.locator(`text=${namespaceId}`)).toBeVisible({ timeout: 5000 });
     await expect(page.locator('h3:has-text("Test Organization")').first()).toBeVisible();
 
-    // Click "Manage Users" for the new namespace
-    // Note: Using .first() since we're testing with a clean database
-    await page.getByRole('button', { name: 'Manage Users' }).first().click();
+    // Click "Manage Users" for the new namespace specifically
+    // The namespace card shows "Test Organization" as h3, find its sibling Manage Users button
+    const newNamespaceCard = page.locator('h3:has-text("Test Organization")').locator('..').locator('..');
+    await newNamespaceCard.getByRole('button', { name: 'Manage Users' }).click();
 
     // Should navigate to user management page
     await expect(page).toHaveURL(`/system/namespaces/${namespaceId}`);

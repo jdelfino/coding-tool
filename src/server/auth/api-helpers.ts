@@ -10,6 +10,7 @@ import { User } from './types';
 
 /**
  * Get the authenticated user and RBAC service from a request.
+ * Uses Supabase session from request cookies.
  * Returns null if authentication fails.
  */
 export async function getAuthContext(request: NextRequest): Promise<{
@@ -17,15 +18,10 @@ export async function getAuthContext(request: NextRequest): Promise<{
   rbac: RBACService;
 } | null> {
   try {
-    const sessionId = request.cookies.get('sessionId')?.value;
-    if (!sessionId) {
-      return null;
-    }
-
     const authProvider = await getAuthProvider();
-    const session = await authProvider.getSession(sessionId);
+    const session = await authProvider.getSessionFromRequest(request);
 
-    if (!session) {
+    if (!session || !session.user) {
       return null;
     }
 

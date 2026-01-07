@@ -66,14 +66,14 @@ export default function JoinSectionForm({ onSubmit }: JoinSectionFormProps) {
             type="text"
             value={joinCode}
             onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
-            placeholder="e.g., ABC123"
+            placeholder="e.g., ABC-123-XYZ"
             className="w-full px-4 py-3 text-lg font-mono border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-center tracking-wider"
             disabled={submitting || success}
             required
-            maxLength={6}
+            maxLength={15}
           />
           <p className="mt-2 text-sm text-gray-500">
-            Enter the 6-character code from your instructor
+            Enter the join code from your instructor
           </p>
         </div>
 

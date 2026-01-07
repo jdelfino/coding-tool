@@ -69,10 +69,16 @@ describeE2E('Critical User Paths', () => {
       // Wait for section to appear
       await expect(instructorPage.locator('h3:has-text("Test Section")')).toBeVisible({ timeout: 5000 });
 
-      // Get join code from section card (6-character alphanumeric code)
-      const joinCodeElement = instructorPage.locator('text=/[A-Z0-9]{6}/').first();
-      await expect(joinCodeElement).toBeVisible({ timeout: 5000 });
-      const joinCode = (await joinCodeElement.textContent()) || '';
+      // Get join code from section card - it appears after the key icon
+      // The join code could be 6 chars (ABC123) or formatted with dashes (XXX-XXX-XXX)
+      const sectionCard = instructorPage.locator('button:has-text("Test Section")').first();
+      const cardText = await sectionCard.textContent() || '';
+      // Extract what looks like a join code: either XXX-XXX-XXX or XXXXXX format
+      const joinCodeMatch = cardText.match(/[A-Z0-9]{3}-[A-Z0-9]{3}-[A-Z0-9]{3}|[A-Z0-9]{6}/);
+      if (!joinCodeMatch) {
+        throw new Error(`Could not find join code in section card: "${cardText}"`);
+      }
+      const joinCode = joinCodeMatch[0];
       console.log('Section join code:', joinCode);
 
       // Click on section to view it
@@ -96,6 +102,7 @@ describeE2E('Critical User Paths', () => {
       const joinSectionButton = page.locator('button:has-text("Join Section"), button:has-text("Join Your First Section")').first();
       await joinSectionButton.click();
       await expect(page.locator('h2:has-text("Join a Section")')).toBeVisible({ timeout: 5000 });
+      console.log('Entering join code:', joinCode);
       await page.fill('input#joinCode', joinCode);
       await page.click('button[type="submit"]:has-text("Join Section")');
 

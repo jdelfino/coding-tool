@@ -37,7 +37,7 @@ export function generateJoinCode(): string {
  * Validate join code format
  *
  * @param code - The join code to validate
- * @returns true if format is valid (6 characters)
+ * @returns true if format is valid (6 chars ABC123 or 11 chars ABC-123-XYZ)
  */
 export function isValidJoinCodeFormat(code: string): boolean {
   if (!code || typeof code !== 'string') {
@@ -45,5 +45,6 @@ export function isValidJoinCodeFormat(code: string): boolean {
   }
 
   const normalizedCode = code.trim().toUpperCase();
-  return /^[A-Z2-9]{6}$/.test(normalizedCode);
+  // Accept both old format (6 chars) and new format (ABC-123-XYZ)
+  return /^[A-Z2-9]{6}$/.test(normalizedCode) || /^[A-Z]{3}-[0-9]{3}-[A-Z]{3}$/.test(normalizedCode);
 }

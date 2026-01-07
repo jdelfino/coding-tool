@@ -33,12 +33,39 @@ npm test -- path/to/test.test.ts
 # Run tests matching pattern
 npm test -- -t "test name pattern"
 
-# E2E tests (Playwright)
+# E2E tests (Playwright) - require Supabase
 npm run test:e2e           # Run all e2e tests
 npm run test:e2e:headed    # Run with browser visible
 npm run test:e2e:ui        # Interactive UI mode
 npm run test:e2e:debug     # Debug mode
 ```
+
+### Running E2E Tests Locally
+
+E2E tests require a running Supabase instance. To run them:
+
+1. **Start local Supabase:**
+   ```bash
+   npx supabase start
+   ```
+
+2. **Load environment variables:**
+   The `.env.local` file contains the local Supabase credentials. Before running E2E tests, source them:
+   ```bash
+   source .env.local
+   ```
+
+3. **Install Playwright browsers (first time only):**
+   ```bash
+   npx playwright install chromium
+   ```
+
+4. **Run the tests:**
+   ```bash
+   npm run test:e2e
+   ```
+
+**Note:** E2E tests will be skipped automatically if `SUPABASE_SERVICE_ROLE_KEY` is not set. This allows CI to skip E2E tests when Supabase isn't available.
 
 ### Linting
 ```bash
