@@ -5,7 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUser } from '@/server/auth/api-auth';
-import { getSessionManager } from '@/server/session-manager';
+import { getStorage } from '@/server/persistence';
 
 export async function GET(
   request: NextRequest,
@@ -13,14 +13,14 @@ export async function GET(
 ) {
   try {
     // Authenticate user
-    const user = await getAuthenticatedUser(request);
+    await getAuthenticatedUser(request);
 
     // Get session ID from params
     const { id: sessionId } = await params;
 
-    // Get session
-    const sessionManager = getSessionManager();
-    const session = await sessionManager.getSession(sessionId);
+    // Get session from storage
+    const storage = await getStorage();
+    const session = await storage.sessions.getSession(sessionId);
 
     if (!session) {
       return NextResponse.json(
@@ -29,11 +29,8 @@ export async function GET(
       );
     }
 
-    // Get students in the session
-    const students = await sessionManager.getStudents(sessionId);
-
-    // Format students for response (remove WebSocket references)
-    const formattedStudents = students.map(student => ({
+    // Get students from session (convert Map to array)
+    const formattedStudents = Array.from(session.students.values()).map(student => ({
       id: student.id,
       name: student.name,
       code: student.code,
@@ -47,7 +44,7 @@ export async function GET(
       code: session.featuredCode,
     };
 
-    // Format session for response (remove Map and WebSocket references)
+    // Format session for response (remove Map)
     const formattedSession = {
       id: session.id,
       namespaceId: session.namespaceId,
@@ -69,9 +66,9 @@ export async function GET(
       students: formattedStudents,
       featuredStudent,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     // Handle authentication errors
-    if (error.message === 'Not authenticated') {
+    if (error instanceof Error && error.message === 'Not authenticated') {
       return NextResponse.json(
         { error: 'Not authenticated' },
         { status: 401 }
