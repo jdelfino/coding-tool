@@ -283,3 +283,17 @@ export class RevisionBuffer {
 export const revisionBufferHolder: { instance: RevisionBuffer | null } = {
   instance: null,
 };
+
+/**
+ * Get or create the RevisionBuffer singleton
+ * Lazily initializes if not already set
+ */
+export async function getRevisionBuffer(): Promise<RevisionBuffer> {
+  if (!revisionBufferHolder.instance) {
+    const { getStorage } = await import('./persistence');
+    const storage = await getStorage();
+    revisionBufferHolder.instance = new RevisionBuffer(storage);
+    revisionBufferHolder.instance.startAutoFlush();
+  }
+  return revisionBufferHolder.instance;
+}

@@ -6,7 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUser } from '@/server/auth/api-auth';
 import { getStorage } from '@/server/persistence';
-import { revisionBufferHolder } from '@/server/revision-buffer';
+import { getRevisionBuffer } from '@/server/revision-buffer';
 import * as SessionService from '@/server/services/session-service';
 import { ExecutionSettings } from '@/server/types/problem';
 
@@ -75,14 +75,13 @@ export async function POST(
     );
 
     // Track revision using revision buffer (for batched persistence)
-    if (revisionBufferHolder.instance) {
-      await revisionBufferHolder.instance.addRevision(
-        sessionId,
-        studentId,
-        code,
-        session.namespaceId
-      );
-    }
+    const revisionBuffer = await getRevisionBuffer();
+    await revisionBuffer.addRevision(
+      sessionId,
+      studentId,
+      code,
+      session.namespaceId
+    );
 
     return NextResponse.json({
       success: true,

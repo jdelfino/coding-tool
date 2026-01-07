@@ -8,12 +8,11 @@
  * database persistence. Uses Monaco editor and supports execution settings.
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import CodeEditor from '@/app/student/components/CodeEditor';
 import { EditorContainer } from '@/app/student/components/EditorContainer';
 import { Problem } from '@/server/types/problem';
 import { useDebugger } from '@/hooks/useDebugger';
-import { useWebSocket } from '@/hooks/useWebSocket';
 
 interface SessionProblemEditorProps {
   onUpdateProblem: (
@@ -84,17 +83,9 @@ export default function SessionProblemEditor({
     onUpdateProblem(problem, Object.keys(executionSettings).length > 0 ? executionSettings : undefined);
   };
 
-  // Setup debugger
-  const [wsUrl, setWsUrl] = useState('');
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const host = window.location.host;
-      setWsUrl(`${protocol}//${host}/ws`);
-    }
-  }, []);
-  const { sendMessage } = useWebSocket(wsUrl);
-  const debuggerHook = useDebugger(sendMessage);
+  // Setup debugger (trace feature not yet available via API)
+  const noopSendMessage = useCallback(() => {}, []);
+  const debuggerHook = useDebugger(noopSendMessage);
 
   return (
     <div style={{ height: '600px', display: 'flex', flexDirection: 'column' }}>

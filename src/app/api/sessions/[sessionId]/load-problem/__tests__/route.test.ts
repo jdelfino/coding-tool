@@ -15,18 +15,13 @@ jest.mock('@/server/persistence', () => ({
   getStorage: jest.fn(),
 }));
 
-jest.mock('@/server/session-manager', () => ({
-  sessionManagerHolder: {
-    instance: {
-      getSession: jest.fn(),
-      updateSessionProblem: jest.fn(),
-    },
-  },
+jest.mock('@/server/services/session-service', () => ({
+  updateSessionProblem: jest.fn(),
 }));
 
 import { getAuthProvider } from '@/server/auth';
 import { getStorage } from '@/server/persistence';
-import { sessionManagerHolder } from '@/server/session-manager';
+import * as SessionService from '@/server/services/session-service';
 import type { User } from '@/server/auth/types';
 import type { Problem } from '@/server/types/problem';
 import type { Session } from '@/server/types';
@@ -39,6 +34,9 @@ describe('POST /api/sessions/:sessionId/load-problem', () => {
   const mockStorage = {
     problems: {
       getById: jest.fn(),
+    },
+    sessions: {
+      getSession: jest.fn(),
     },
   };
 
@@ -130,8 +128,8 @@ describe('POST /api/sessions/:sessionId/load-problem', () => {
         user: mockInstructor,
       });
       mockStorage.problems.getById.mockResolvedValue(mockProblem);
-      (sessionManagerHolder.instance.getSession as jest.Mock).mockResolvedValue(mockSession);
-      (sessionManagerHolder.instance.updateSessionProblem as jest.Mock).mockResolvedValue(true);
+      mockStorage.sessions.getSession.mockResolvedValue(mockSession);
+      (SessionService.updateSessionProblem as jest.Mock).mockResolvedValue(undefined);
 
       // Execute
       const request = createRequest({ problemId: 'problem-123' });
@@ -145,7 +143,8 @@ describe('POST /api/sessions/:sessionId/load-problem', () => {
       expect(data.success).toBe(true);
       expect(data.message).toContain('FizzBuzz');
 
-      expect(sessionManagerHolder.instance.updateSessionProblem).toHaveBeenCalledWith(
+      expect(SessionService.updateSessionProblem).toHaveBeenCalledWith(
+        mockStorage,
         'session-123',
         mockProblem,
         mockProblem.executionSettings
@@ -242,7 +241,7 @@ describe('POST /api/sessions/:sessionId/load-problem', () => {
     });
 
     it('should return 404 when session does not exist', async () => {
-      (sessionManagerHolder.instance.getSession as jest.Mock).mockResolvedValue(null);
+      mockStorage.sessions.getSession.mockResolvedValue(null);
 
       const request = createRequest({ problemId: 'problem-123' });
       const response = await POST(request, {
@@ -255,7 +254,7 @@ describe('POST /api/sessions/:sessionId/load-problem', () => {
     });
 
     it('should return 404 when problem does not exist', async () => {
-      (sessionManagerHolder.instance.getSession as jest.Mock).mockResolvedValue(mockSession);
+      mockStorage.sessions.getSession.mockResolvedValue(mockSession);
       mockStorage.problems.getById.mockResolvedValue(null);
 
       const request = createRequest({ problemId: 'nonexistent' });
@@ -275,7 +274,7 @@ describe('POST /api/sessions/:sessionId/load-problem', () => {
         id: 'auth-session-123',
         user: mockInstructor,
       });
-      (sessionManagerHolder.instance.getSession as jest.Mock).mockResolvedValue(mockSession);
+      mockStorage.sessions.getSession.mockResolvedValue(mockSession);
     });
 
     it('should return 403 when instructor tries to access private problem of another instructor', async () => {
@@ -302,25 +301,12 @@ describe('POST /api/sessions/:sessionId/load-problem', () => {
         id: 'auth-session-123',
         user: mockInstructor,
       });
-      (sessionManagerHolder.instance.getSession as jest.Mock).mockResolvedValue(mockSession);
+      mockStorage.sessions.getSession.mockResolvedValue(mockSession);
       mockStorage.problems.getById.mockResolvedValue(mockProblem);
     });
 
-    it('should return 500 when updateSessionProblem fails', async () => {
-      (sessionManagerHolder.instance.updateSessionProblem as jest.Mock).mockResolvedValue(false);
-
-      const request = createRequest({ problemId: 'problem-123' });
-      const response = await POST(request, {
-        params: Promise.resolve({ sessionId: 'session-123' }),
-      });
-
-      expect(response.status).toBe(500);
-      const data = await response.json();
-      expect(data.error).toContain('Failed to load problem');
-    });
-
     it('should handle unexpected errors gracefully', async () => {
-      (sessionManagerHolder.instance.updateSessionProblem as jest.Mock).mockRejectedValue(
+      (SessionService.updateSessionProblem as jest.Mock).mockRejectedValue(
         new Error('Database connection failed')
       );
 
