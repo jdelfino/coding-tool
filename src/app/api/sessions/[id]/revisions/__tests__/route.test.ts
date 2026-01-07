@@ -74,7 +74,7 @@ describe('GET /api/sessions/[sessionId]/revisions', () => {
     );
 
     const response = await GET(request, {
-      params: Promise.resolve({ sessionId: 'session-1' }),
+      params: Promise.resolve({ id: 'session-1' }),
     });
     const data = await response.json();
 
@@ -104,7 +104,7 @@ describe('GET /api/sessions/[sessionId]/revisions', () => {
     );
 
     const response = await GET(request, {
-      params: Promise.resolve({ sessionId: 'session-1' }),
+      params: Promise.resolve({ id: 'session-1' }),
     });
     const data = await response.json();
 
@@ -124,7 +124,7 @@ describe('GET /api/sessions/[sessionId]/revisions', () => {
     );
 
     const response = await GET(request, {
-      params: Promise.resolve({ sessionId: 'session-1' }),
+      params: Promise.resolve({ id: 'session-1' }),
     });
     const data = await response.json();
 
@@ -149,7 +149,7 @@ describe('GET /api/sessions/[sessionId]/revisions', () => {
     );
 
     const response = await GET(request, {
-      params: Promise.resolve({ sessionId: 'session-1' }),
+      params: Promise.resolve({ id: 'session-1' }),
     });
     const data = await response.json();
 
@@ -173,7 +173,7 @@ describe('GET /api/sessions/[sessionId]/revisions', () => {
     );
 
     const response = await GET(request, {
-      params: Promise.resolve({ sessionId: 'session-1' }),
+      params: Promise.resolve({ id: 'session-1' }),
     });
     const data = await response.json();
 
@@ -198,7 +198,7 @@ describe('GET /api/sessions/[sessionId]/revisions', () => {
     );
 
     const response = await GET(request, {
-      params: Promise.resolve({ sessionId: 'session-1' }),
+      params: Promise.resolve({ id: 'session-1' }),
     });
     const data = await response.json();
 
@@ -224,7 +224,7 @@ describe('GET /api/sessions/[sessionId]/revisions', () => {
     );
 
     const response = await GET(request, {
-      params: Promise.resolve({ sessionId: 'session-1' }),
+      params: Promise.resolve({ id: 'session-1' }),
     });
 
     expect(response.status).toBe(200);

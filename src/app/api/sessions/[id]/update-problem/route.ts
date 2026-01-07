@@ -1,6 +1,6 @@
 /**
  * API endpoint for updating a session's problem inline
- * POST /api/sessions/:sessionId/update-problem
+ * POST /api/sessions/:id/update-problem
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -11,12 +11,12 @@ import * as SessionService from '@/server/services/session-service';
 
 type Params = {
   params: Promise<{
-    sessionId: string;
+    id: string;
   }>;
 };
 
 /**
- * POST /api/sessions/:sessionId/update-problem
+ * POST /api/sessions/:id/update-problem
  *
  * Update the problem in an active session directly (inline editing)
  *
@@ -37,7 +37,7 @@ export async function POST(
   { params }: Params
 ) {
   try {
-    const { sessionId } = await params;
+    const { id: sessionId } = await params;
 
     // Verify authentication
     const cookieSessionId = request.cookies.get('sessionId')?.value;

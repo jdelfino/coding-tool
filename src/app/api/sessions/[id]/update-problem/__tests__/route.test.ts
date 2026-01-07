@@ -86,7 +86,7 @@ describe('POST /api/sessions/[sessionId]/update-problem', () => {
     });
 
     const response = await POST(request, {
-      params: Promise.resolve({ sessionId: 'session-1' }),
+      params: Promise.resolve({ id: 'session-1' }),
     });
     const data = await response.json();
 
@@ -119,7 +119,7 @@ describe('POST /api/sessions/[sessionId]/update-problem', () => {
     });
 
     const response = await POST(request, {
-      params: Promise.resolve({ sessionId: 'session-1' }),
+      params: Promise.resolve({ id: 'session-1' }),
     });
     const data = await response.json();
 
@@ -147,7 +147,7 @@ describe('POST /api/sessions/[sessionId]/update-problem', () => {
     });
 
     const response = await POST(request, {
-      params: Promise.resolve({ sessionId: 'session-1' }),
+      params: Promise.resolve({ id: 'session-1' }),
     });
     const data = await response.json();
 
@@ -174,7 +174,7 @@ describe('POST /api/sessions/[sessionId]/update-problem', () => {
     });
 
     const response = await POST(request, {
-      params: Promise.resolve({ sessionId: 'session-1' }),
+      params: Promise.resolve({ id: 'session-1' }),
     });
     const data = await response.json();
 
@@ -198,7 +198,7 @@ describe('POST /api/sessions/[sessionId]/update-problem', () => {
     });
 
     const response = await POST(request, {
-      params: Promise.resolve({ sessionId: 'session-1' }),
+      params: Promise.resolve({ id: 'session-1' }),
     });
     const data = await response.json();
 
@@ -224,7 +224,7 @@ describe('POST /api/sessions/[sessionId]/update-problem', () => {
     });
 
     const response = await POST(request, {
-      params: Promise.resolve({ sessionId: 'session-1' }),
+      params: Promise.resolve({ id: 'session-1' }),
     });
     const data = await response.json();
 
@@ -251,7 +251,7 @@ describe('POST /api/sessions/[sessionId]/update-problem', () => {
     });
 
     const response = await POST(request, {
-      params: Promise.resolve({ sessionId: 'session-1' }),
+      params: Promise.resolve({ id: 'session-1' }),
     });
     const data = await response.json();
 
@@ -280,7 +280,7 @@ describe('POST /api/sessions/[sessionId]/update-problem', () => {
     });
 
     const response = await POST(request, {
-      params: Promise.resolve({ sessionId: 'session-1' }),
+      params: Promise.resolve({ id: 'session-1' }),
     });
 
     expect(response.status).toBe(200);

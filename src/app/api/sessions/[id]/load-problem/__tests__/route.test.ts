@@ -134,7 +134,7 @@ describe('POST /api/sessions/:sessionId/load-problem', () => {
       // Execute
       const request = createRequest({ problemId: 'problem-123' });
       const response = await POST(request, {
-        params: Promise.resolve({ sessionId: 'session-123' }),
+        params: Promise.resolve({ id: 'session-123' }),
       });
 
       // Verify
@@ -163,7 +163,7 @@ describe('POST /api/sessions/:sessionId/load-problem', () => {
       });
 
       const response = await POST(request, {
-        params: Promise.resolve({ sessionId: 'session-123' }),
+        params: Promise.resolve({ id: 'session-123' }),
       });
 
       expect(response.status).toBe(401);
@@ -176,7 +176,7 @@ describe('POST /api/sessions/:sessionId/load-problem', () => {
 
       const request = createRequest({ problemId: 'problem-123' });
       const response = await POST(request, {
-        params: Promise.resolve({ sessionId: 'session-123' }),
+        params: Promise.resolve({ id: 'session-123' }),
       });
 
       expect(response.status).toBe(401);
@@ -192,7 +192,7 @@ describe('POST /api/sessions/:sessionId/load-problem', () => {
 
       const request = createRequest({ problemId: 'problem-123' });
       const response = await POST(request, {
-        params: Promise.resolve({ sessionId: 'session-123' }),
+        params: Promise.resolve({ id: 'session-123' }),
       });
 
       expect(response.status).toBe(403);
@@ -212,7 +212,7 @@ describe('POST /api/sessions/:sessionId/load-problem', () => {
     it('should return 400 when problemId is missing', async () => {
       const request = createRequest({});
       const response = await POST(request, {
-        params: Promise.resolve({ sessionId: 'session-123' }),
+        params: Promise.resolve({ id: 'session-123' }),
       });
 
       expect(response.status).toBe(400);
@@ -223,7 +223,7 @@ describe('POST /api/sessions/:sessionId/load-problem', () => {
     it('should return 400 when problemId is not a string', async () => {
       const request = createRequest({ problemId: 123 });
       const response = await POST(request, {
-        params: Promise.resolve({ sessionId: 'session-123' }),
+        params: Promise.resolve({ id: 'session-123' }),
       });
 
       expect(response.status).toBe(400);
@@ -245,7 +245,7 @@ describe('POST /api/sessions/:sessionId/load-problem', () => {
 
       const request = createRequest({ problemId: 'problem-123' });
       const response = await POST(request, {
-        params: Promise.resolve({ sessionId: 'nonexistent' }),
+        params: Promise.resolve({ id: 'nonexistent' }),
       });
 
       expect(response.status).toBe(404);
@@ -259,7 +259,7 @@ describe('POST /api/sessions/:sessionId/load-problem', () => {
 
       const request = createRequest({ problemId: 'nonexistent' });
       const response = await POST(request, {
-        params: Promise.resolve({ sessionId: 'session-123' }),
+        params: Promise.resolve({ id: 'session-123' }),
       });
 
       expect(response.status).toBe(404);
@@ -286,7 +286,7 @@ describe('POST /api/sessions/:sessionId/load-problem', () => {
 
       const request = createRequest({ problemId: 'problem-123' });
       const response = await POST(request, {
-        params: Promise.resolve({ sessionId: 'session-123' }),
+        params: Promise.resolve({ id: 'session-123' }),
       });
 
       expect(response.status).toBe(403);
@@ -312,7 +312,7 @@ describe('POST /api/sessions/:sessionId/load-problem', () => {
 
       const request = createRequest({ problemId: 'problem-123' });
       const response = await POST(request, {
-        params: Promise.resolve({ sessionId: 'session-123' }),
+        params: Promise.resolve({ id: 'session-123' }),
       });
 
       expect(response.status).toBe(500);

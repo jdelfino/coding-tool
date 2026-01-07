@@ -4,17 +4,17 @@ import { getStorage } from '@/server/persistence';
 import * as SessionService from '@/server/services/session-service';
 
 /**
- * DELETE /api/sessions/:sessionId
+ * DELETE /api/sessions/:id
  *
  * End a session (mark as completed).
  * Only the session creator or admin can end a session.
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ sessionId: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { sessionId } = await params;
+    const { id: sessionId } = await params;
 
     // Authenticate user
     const user = await getAuthenticatedUser(request);

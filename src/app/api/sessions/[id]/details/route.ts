@@ -3,14 +3,14 @@ import { requireAuth } from '@/server/auth/api-helpers';
 import { getStorage } from '@/server/persistence';
 
 /**
- * GET /api/sessions/:sessionId/details
+ * GET /api/sessions/:id/details
  * Get detailed information about a specific session (for read-only viewing)
  * - Returns session metadata and all student code submissions
  * - Used for viewing completed sessions
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ sessionId: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Check authentication
@@ -19,7 +19,7 @@ export async function GET(
       return auth; // Return 401 error response
     }
 
-    const { sessionId } = await params;
+    const { id: sessionId } = await params;
     const user = auth.user;
     const storage = await getStorage();
 

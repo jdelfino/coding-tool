@@ -1,6 +1,6 @@
 /**
  * API endpoint for fetching code revision history
- * GET /api/sessions/:sessionId/revisions
+ * GET /api/sessions/:id/revisions
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -10,12 +10,12 @@ import * as DiffMatchPatch from 'diff-match-patch';
 
 type Params = {
   params: Promise<{
-    sessionId: string;
+    id: string;
   }>;
 };
 
 /**
- * GET /api/sessions/:sessionId/revisions?studentId=xxx
+ * GET /api/sessions/:id/revisions?studentId=xxx
  *
  * Fetch revision history for a student in a session.
  * Reconstructs full code from diffs.
@@ -34,7 +34,7 @@ export async function GET(
   { params }: Params
 ) {
   try {
-    const { sessionId } = await params;
+    const { id: sessionId } = await params;
 
     // Verify authentication
     const cookieSessionId = request.cookies.get('sessionId')?.value;

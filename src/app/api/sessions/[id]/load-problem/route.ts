@@ -1,6 +1,6 @@
 /**
  * API endpoint for loading a problem into an active session
- * POST /api/sessions/:sessionId/load-problem
+ * POST /api/sessions/:id/load-problem
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -10,12 +10,12 @@ import * as SessionService from '@/server/services/session-service';
 
 type Params = {
   params: Promise<{
-    sessionId: string;
+    id: string;
   }>;
 };
 
 /**
- * POST /api/sessions/:sessionId/load-problem
+ * POST /api/sessions/:id/load-problem
  *
  * Load a pre-defined problem into an active session
  *
@@ -35,7 +35,7 @@ export async function POST(
   { params }: Params
 ) {
   try {
-    const { sessionId } = await params;
+    const { id: sessionId } = await params;
 
     // Verify authentication
     const cookieSessionId = request.cookies.get('sessionId')?.value;
