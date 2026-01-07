@@ -7,8 +7,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthProvider } from '@/server/auth';
 import { getStorage } from '@/server/persistence';
-import { getSessionManager } from '@/server/session-manager';
 import { requirePermission } from '@/server/auth/api-helpers';
+import * as SessionService from '@/server/services/session-service';
 
 export async function POST(request: NextRequest) {
   try {
@@ -53,14 +53,13 @@ export async function POST(request: NextRequest) {
     // 6. Auth sessions (depend on users)
     // 7. Users (last)
 
-    // 1. Clear all active sessions via session manager
-    const sessionManager = await getSessionManager();
+    // 1. Clear all active sessions via session service
     const allSessions = await storage.sessions.listAllSessions();
-    for (const session of allSessions) {
+    for (const s of allSessions) {
       try {
-        await sessionManager.endSession(session.id);
+        await SessionService.endSession(storage, s.id);
       } catch (error) {
-        console.error(`[Admin Clear Data] Error ending session ${session.id}:`, error);
+        console.error(`[Admin Clear Data] Error ending session ${s.id}:`, error);
       }
     }
 

@@ -1,7 +1,7 @@
 /**
  * Admin API - System Statistics
  * GET /api/admin/stats
- * 
+ *
  * Returns system-wide statistics for the admin dashboard
  * Requires 'system.admin' permission.
  */
@@ -10,7 +10,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAuthProvider } from '@/server/auth/instance';
 import { getSectionRepository } from '@/server/classes';
 import { getMembershipRepository } from '@/server/classes';
-import { getSessionManager } from '@/server/session-manager';
+import { getStorage } from '@/server/persistence';
 import { requirePermission } from '@/server/auth/api-helpers';
 
 export async function GET(request: NextRequest) {
@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
     // Get repositories
     const sectionRepo = await getSectionRepository();
     const membershipRepo = await getMembershipRepository();
-    const sessionManager = getSessionManager();
+    const storage = await getStorage();
 
     // Get all users
     const users = await authProvider.getAllUsers();
@@ -39,9 +39,9 @@ export async function GET(request: NextRequest) {
     // Get all sections (to count classes from unique classIds)
     const allSections = await sectionRepo.listSections();
     const uniqueClassIds = new Set(allSections.map(s => s.classId));
-    
-    // Get session count
-    const sessionCount = await sessionManager.getSessionCount();
+
+    // Get session count from storage
+    const sessionCount = await storage.sessions.countSessions();
 
     const stats = {
       users: {
