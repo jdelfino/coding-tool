@@ -5,7 +5,8 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUser, checkPermission } from '@/server/auth/api-auth';
-import { getSessionManager } from '@/server/session-manager';
+import { getStorage } from '@/server/persistence';
+import * as SessionService from '@/server/services/session-service';
 
 interface FeatureStudentBody {
   studentId?: string;
@@ -35,8 +36,8 @@ export async function POST(
     const { studentId } = body;
 
     // Get session
-    const sessionManager = getSessionManager();
-    const session = await sessionManager.getSession(sessionId);
+    const storage = await getStorage();
+    const session = await storage.sessions.getSession(sessionId);
 
     if (!session) {
       return NextResponse.json(
@@ -56,15 +57,8 @@ export async function POST(
         );
       }
 
-      // Set featured submission
-      const success = await sessionManager.setFeaturedSubmission(sessionId, studentId);
-
-      if (!success) {
-        return NextResponse.json(
-          { error: 'Failed to set featured student' },
-          { status: 500 }
-        );
-      }
+      // Set featured submission via service
+      await SessionService.setFeaturedSubmission(storage, session, studentId);
 
       return NextResponse.json({
         success: true,
@@ -72,23 +66,16 @@ export async function POST(
         featuredCode: student.code,
       });
     } else {
-      // Clear featured submission
-      const success = await sessionManager.clearFeaturedSubmission(sessionId);
-
-      if (!success) {
-        return NextResponse.json(
-          { error: 'Failed to clear featured student' },
-          { status: 500 }
-        );
-      }
+      // Clear featured submission via service
+      await SessionService.clearFeaturedSubmission(storage, sessionId);
 
       return NextResponse.json({
         success: true,
       });
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     // Handle authentication errors
-    if (error.message === 'Not authenticated') {
+    if (error instanceof Error && error.message === 'Not authenticated') {
       return NextResponse.json(
         { error: 'Not authenticated' },
         { status: 401 }
