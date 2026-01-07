@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState, useEffect, useMemo, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useWebSocket } from '@/hooks/useWebSocket';
+import { useRealtimeSession } from '@/hooks/useRealtimeSession';
+import { useSessionOperations } from '@/hooks/useSessionOperations';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { useAuth } from '@/contexts/AuthContext';
 import NamespaceHeader from '@/components/NamespaceHeader';
@@ -65,7 +66,6 @@ function InstructorPage() {
   // Session state
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [joinCode, setJoinCode] = useState<string | null>(null);
-  const [students, setStudents] = useState<Student[]>([]);
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
   const [selectedStudentCode, setSelectedStudentCode] = useState<string>('');
   const [executionResult, setExecutionResult] = useState<any>(null);
@@ -93,19 +93,46 @@ function InstructorPage() {
     attachedFiles?: Array<{ name: string; content: string }>;
   }>({});
 
-  // Construct WebSocket URL
-  const [wsUrl, setWsUrl] = useState('');
+  // Realtime session hook
+  const {
+    session: realtimeSession,
+    students: realtimeStudents,
+    featuredStudent,
+    isConnected,
+    connectionStatus,
+    connectionError,
+    executeCode,
+    featureStudent,
+  } = useRealtimeSession({
+    sessionId: sessionId || '',
+    userId: user?.id,
+    userName: user?.username,
+  });
 
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const host = window.location.host;
-      const url = `${protocol}//${host}/ws`;
-      setWsUrl(url);
-    }
-  }, []);
+  // Session operations hook
+  const {
+    createSession: apiCreateSession,
+    endSession: apiEndSession,
+    loadProblem: apiLoadProblem,
+    updateProblem: apiUpdateProblem,
+    loading: operationsLoading,
+    error: operationsError,
+  } = useSessionOperations();
 
-  const { isConnected, connectionStatus, connectionError, lastMessage, sendMessage } = useWebSocket(wsUrl);
+  // Derive students array from realtime data
+  const students = useMemo(() =>
+    realtimeStudents.map(s => ({
+      id: s.id,
+      name: s.name,
+      hasCode: !!s.code,
+      executionSettings: {
+        randomSeed: s.executionSettings?.randomSeed,
+        stdin: s.executionSettings?.stdin,
+        attachedFiles: s.executionSettings?.attachedFiles,
+      },
+    })),
+    [realtimeStudents]
+  );
 
   // Update URL when viewMode changes to preserve on refresh
   useEffect(() => {
@@ -116,163 +143,25 @@ function InstructorPage() {
     }
   }, [viewMode, router]);
 
-  //Auto-join session from URL params (e.g., after creating session from problem)
+  // Sync state from Realtime session
   useEffect(() => {
-    const sessionIdParam = searchParams.get('sessionId');
+    if (!realtimeSession) return;
 
-    // Only auto-join if:
-    // 1. There's a sessionId in the URL
-    // 2. WebSocket is connected
-    // 3. We're not already in that specific session (allow switching sessions)
-    if (sessionIdParam && isConnected && sessionId !== sessionIdParam) {
-      sendMessage('JOIN_EXISTING_SESSION', { sessionId: sessionIdParam });
+    // Update local state from Realtime
+    setSessionProblem(realtimeSession.problem || null);
+    setSessionExecutionSettings(realtimeSession.problem?.executionSettings || {});
+    // Note: joinCode comes from section, not session - already set when creating session
+  }, [realtimeSession]);
 
-      // Clear URL params after initiating join
-      const timer = setTimeout(() => {
-        router.replace('/instructor');
-      }, 500); // Delay to ensure message is sent
-      return () => clearTimeout(timer);
-    }
-  }, [searchParams, isConnected, sessionId, router, sendMessage]);
-
-  // Handle incoming WebSocket messages
+  // Update selected student code when realtime students change
   useEffect(() => {
-    if (!lastMessage) return;
+    if (!selectedStudentId) return;
 
-    switch (lastMessage.type) {
-      case 'SESSION_CREATED':
-        setSessionId(lastMessage.payload.sessionId);
-        setJoinCode(lastMessage.payload.joinCode); // Capture join code from section
-        setSessionContext({
-          sectionId: lastMessage.payload.sectionId,
-          sectionName: lastMessage.payload.sectionName,
-        });
-        // Restore execution settings from problem
-        setSessionProblem(lastMessage.payload.problem || null);
-        setSessionExecutionSettings(
-          lastMessage.payload.executionSettings ||
-          lastMessage.payload.problem?.executionSettings ||
-          {}
-        );
-        setViewMode('session');
-        setIsCreatingSession(false);
-        setError(null);
-        break;
-
-      case 'SESSION_JOINED':
-        setSessionId(lastMessage.payload.sessionId);
-        // Restore execution settings from problem
-        setSessionProblem(lastMessage.payload.problem || null);
-        setSessionExecutionSettings(lastMessage.payload.problem?.executionSettings || {});
-        setViewMode('session');
-        setError(null);
-        break;
-
-      case 'SESSION_ENDED':
-        if (lastMessage.payload.sessionId === sessionId) {
-          // Determine navigation target based on where we came from
-          // If we're in the sessions view, stay there; otherwise navigate based on context
-          const targetView = viewMode === 'sessions' ? 'sessions' : (classContext ? 'sections' : 'classes');
-
-          // Clear sessionId from URL and set the correct view parameter
-          router.replace(`/instructor?view=${targetView}`);
-
-          // Clear ALL session-related state
-          setSessionId(null);
-          setJoinCode(null);
-          setStudents([]);
-          setSelectedStudentId(null);
-          setSelectedStudentCode('');
-          setExecutionResult(null);
-          setRevisionViewerState(null);
-          setSessionProblem(null);
-          setSessionExecutionSettings({});
-          setSessionContext(null);
-
-          // Navigate based on where we came from
-          setViewMode(targetView);
-        }
-
-        break;
-
-      case 'STUDENT_LIST_UPDATE':
-        setStudents(lastMessage.payload.students || []);
-        break;
-
-      case 'STUDENT_JOINED':
-        setStudents(prev => {
-          const exists = prev.find(s => s.id === lastMessage.payload.studentId);
-          if (exists) return prev;
-
-          return [...prev, {
-            id: lastMessage.payload.studentId,
-            name: lastMessage.payload.studentName,
-            hasCode: false,
-          }];
-        });
-        break;
-
-      case 'STUDENT_LEFT':
-        setStudents(prev =>
-          prev.filter(s => s.id !== lastMessage.payload.studentId)
-        );
-        if (selectedStudentId === lastMessage.payload.studentId) {
-          setSelectedStudentId(null);
-          setSelectedStudentCode('');
-        }
-        break;
-
-      case 'CODE_UPDATE':
-        setStudents(prev =>
-          prev.map(s =>
-            s.id === lastMessage.payload.studentId
-              ? {
-                  ...s,
-                  hasCode: true,
-                  randomSeed: lastMessage.payload.randomSeed !== undefined ? lastMessage.payload.randomSeed : s.randomSeed,
-                  attachedFiles: lastMessage.payload.attachedFiles !== undefined ? lastMessage.payload.attachedFiles : s.attachedFiles,
-                }
-              : s
-          )
-        );
-
-        if (selectedStudentId === lastMessage.payload.studentId) {
-          setSelectedStudentCode(lastMessage.payload.code);
-        }
-        break;
-
-      case 'STUDENT_CODE':
-        if (lastMessage.payload.studentId === selectedStudentId) {
-          setSelectedStudentCode(lastMessage.payload.code);
-          // Update student's execution settings in the students array
-          setStudents(prev =>
-            prev.map(s =>
-              s.id === lastMessage.payload.studentId
-                ? {
-                    ...s,
-                    executionSettings: lastMessage.payload.executionSettings,
-                  }
-                : s
-            )
-          );
-        }
-        break;
-
-      case 'EXECUTION_RESULT':
-        setExecutionResult(lastMessage.payload);
-        setIsExecutingCode(false);
-        break;
-
-      case 'PROBLEM_UPDATED':
-        // Problem update acknowledged
-        break;
-
-      case 'ERROR':
-        setError(lastMessage.payload.message);
-        setIsCreatingSession(false);
-        break;
+    const student = realtimeStudents.find(s => s.id === selectedStudentId);
+    if (student) {
+      setSelectedStudentCode(student.code || '');
     }
-  }, [lastMessage, sessionId, selectedStudentId]);
+  }, [realtimeStudents, selectedStudentId]);
 
   // Navigation handlers
   const handleSelectClass = async (classId: string) => {
@@ -310,13 +199,7 @@ function InstructorPage() {
     }
   };
 
-  const handleCreateSession = (sectionId: string, sectionName: string) => {
-    if (!isConnected) {
-      console.error('[handleCreateSession] WebSocket not connected');
-      alert('Not connected to server. Please wait for connection or refresh the page.');
-      return;
-    }
-
+  const handleCreateSession = async (sectionId: string, sectionName: string) => {
     // Check if instructor already has an active session
     if (sessionId) {
       const message = 'You already have an active session running. Please end your current session before starting a new one.';
@@ -328,16 +211,26 @@ function InstructorPage() {
     setIsCreatingSession(true);
     setSessionContext({ sectionId, sectionName });
     setViewMode('session'); // Switch to session view to show "Creating session..." message
-    sendMessage('CREATE_SESSION', { sectionId });
+
+    try {
+      const session = await apiCreateSession(sectionId, sectionName);
+      setSessionId(session.id);
+      setJoinCode(session.joinCode);
+      setSessionProblem(session.problem || null);
+      setSessionExecutionSettings(session.problem?.executionSettings || {});
+      setError(null);
+    } catch (err: any) {
+      setError(err.message || 'Failed to create session');
+      setViewMode(classContext ? 'sections' : 'classes');
+    } finally {
+      setIsCreatingSession(false);
+    }
   };
 
   const handleJoinSession = (sessionId: string) => {
-    if (!isConnected) {
-      setError('Not connected to server');
-      return;
-    }
-
-    sendMessage('JOIN_EXISTING_SESSION', { sessionId });
+    // With Realtime, just set the sessionId and the hook will subscribe
+    setSessionId(sessionId);
+    setViewMode('session');
   };
 
   const handleLeaveSession = () => {
@@ -356,37 +249,38 @@ function InstructorPage() {
     }
   };
 
-  const handleEndSession = () => {
+  const handleEndSession = async () => {
     if (!sessionId) {
       return;
     }
 
     if (confirm('Are you sure you want to end this session? Students will be disconnected.')) {
-      sendMessage('END_SESSION', { sessionId });
-
       // Determine navigation target based on where we came from
-      // If we're in the sessions view, stay there; otherwise navigate based on context
       const targetView = viewMode === 'sessions' ? 'sessions' : (classContext ? 'sections' : 'classes');
 
-      // Clear sessionId from URL and set the correct view parameter
-      router.replace(`/instructor?view=${targetView}`);
+      try {
+        await apiEndSession(sessionId);
 
-      // Clear ALL session-related state immediately
-      setSessionId(null);
-      setJoinCode(null);
-      setStudents([]);
-      setSelectedStudentId(null);
-      setSelectedStudentCode('');
-      setExecutionResult(null);
-      setRevisionViewerState(null);
-      setSessionProblem(null);
-      setSessionExecutionSettings({});
-      setSessionContext(null);
+        // Clear sessionId from URL and set the correct view parameter
+        router.replace(`/instructor?view=${targetView}`);
 
-      // Navigate based on context
-      setViewMode(targetView);
+        // Clear ALL session-related state immediately
+        setSessionId(null);
+        setJoinCode(null);
+        setSelectedStudentId(null);
+        setSelectedStudentCode('');
+        setExecutionResult(null);
+        setRevisionViewerState(null);
+        setSessionProblem(null);
+        setSessionExecutionSettings({});
+        setSessionContext(null);
+
+        // Navigate based on context
+        setViewMode(targetView);
+      } catch (err: any) {
+        setError(err.message || 'Failed to end session');
+      }
     }
-
   };
 
   const handleOpenProblemLoader = () => {
@@ -404,7 +298,7 @@ function InstructorPage() {
     // Could optionally show a success toast notification here
   };
 
-  const handleUpdateProblem = (
+  const handleUpdateProblem = async (
     problem: { title: string; description: string; starterCode: string },
     executionSettings?: {
       stdin?: string;
@@ -413,33 +307,35 @@ function InstructorPage() {
     }
   ) => {
     if (!sessionId) return;
-    // Update local state to keep in sync with server
-    setSessionProblem(problem as Problem);
-    setSessionExecutionSettings(executionSettings || {});
-    sendMessage('UPDATE_PROBLEM', { sessionId, problem, executionSettings });
+
+    try {
+      await apiUpdateProblem(sessionId, problem, executionSettings);
+      // State updates automatically via Realtime subscription
+    } catch (err: any) {
+      setError(err.message || 'Failed to update problem');
+    }
   };
 
   const handleSelectStudent = (studentId: string) => {
     setSelectedStudentId(studentId);
     setExecutionResult(null);
-
-    sendMessage('REQUEST_STUDENT_CODE', {
-      sessionId,
-      studentId,
-    });
+    // Code will be automatically updated from realtimeStudents via useEffect
   };
 
-  const handleExecuteStudentCode = (executionSettings: ExecutionSettings) => {
+  const handleExecuteStudentCode = async (executionSettings: ExecutionSettings) => {
     if (!selectedStudentId || !sessionId) return;
 
     setIsExecutingCode(true);
     setExecutionResult(null);
 
-    sendMessage('EXECUTE_STUDENT_CODE', {
-      sessionId,
-      studentId: selectedStudentId,
-      executionSettings,
-    });
+    try {
+      const result = await executeCode(selectedStudentId, selectedStudentCode, executionSettings);
+      setExecutionResult(result);
+    } catch (err: any) {
+      setError(err.message || 'Failed to execute code');
+    } finally {
+      setIsExecutingCode(false);
+    }
   };
 
   const handleViewRevisions = (studentId: string, studentName: string) => {
@@ -453,12 +349,15 @@ function InstructorPage() {
     setRevisionViewerState(null);
   };
 
-  const handleShowOnPublicView = (studentId: string) => {
+  const handleShowOnPublicView = async (studentId: string) => {
     if (!sessionId) return;
-    sendMessage('SELECT_SUBMISSION_FOR_PUBLIC', {
-      sessionId,
-      studentId,
-    });
+
+    try {
+      await featureStudent(studentId);
+      // State updates automatically via Realtime
+    } catch (err: any) {
+      setError(err.message || 'Failed to feature student');
+    }
   };
 
   const handleSignOut = async () => {
@@ -527,26 +426,18 @@ function InstructorPage() {
       return (
         <SessionsList
           refreshTrigger={sessionsListRefreshTrigger}
-          onRejoinSession={(sessionId) => {
-            // Send JOIN_EXISTING_SESSION message via WebSocket
-            if (isConnected) {
-              // First, join the session via WebSocket
-              sendMessage('JOIN_EXISTING_SESSION', { sessionId });
-              // Then navigate to session view
-              setViewMode('session');
-              setSessionId(sessionId);
-            } else {
-              alert('WebSocket not connected. Please refresh the page.');
-            }
+          onRejoinSession={(sessionIdToJoin) => {
+            // With Realtime, just set the sessionId and navigate
+            setSessionId(sessionIdToJoin);
+            setViewMode('session');
           }}
-          onEndSession={async (sessionId) => {
-            // Send END_SESSION message via WebSocket
-            if (isConnected) {
-              sendMessage('END_SESSION', { sessionId });
+          onEndSession={async (sessionIdToEnd) => {
+            try {
+              await apiEndSession(sessionIdToEnd);
               // Trigger refresh of sessions list
               setSessionsListRefreshTrigger(prev => prev + 1);
-            } else {
-              alert('Failed to end session: WebSocket not connected');
+            } catch (err: any) {
+              alert(`Failed to end session: ${err.message || 'Unknown error'}`);
             }
           }}
           onViewDetails={(sessionId) => {
@@ -693,8 +584,6 @@ function InstructorPage() {
               sessionId={sessionId}
               studentId={revisionViewerState.studentId}
               studentName={revisionViewerState.studentName}
-              sendMessage={sendMessage}
-              lastMessage={lastMessage}
               onClose={handleCloseRevisionViewer}
             />
           )}

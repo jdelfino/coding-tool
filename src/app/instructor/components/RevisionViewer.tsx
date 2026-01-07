@@ -7,8 +7,6 @@ interface RevisionViewerProps {
   sessionId: string;
   studentId: string;
   studentName: string;
-  sendMessage: (type: string, payload: any) => void;
-  lastMessage: any;
   onClose: () => void;
 }
 
@@ -16,8 +14,6 @@ export default function RevisionViewer({
   sessionId,
   studentId,
   studentName,
-  sendMessage,
-  lastMessage,
   onClose,
 }: RevisionViewerProps) {
   const {
@@ -37,8 +33,6 @@ export default function RevisionViewer({
   } = useRevisionHistory({
     sessionId,
     studentId,
-    sendMessage,
-    lastMessage,
   });
 
   const formatTimestamp = (date: Date) => {

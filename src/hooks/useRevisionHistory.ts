@@ -11,90 +11,56 @@ export interface CodeRevision {
 interface UseRevisionHistoryProps {
   sessionId: string | null;
   studentId: string | null;
-  sendMessage?: (type: string, payload: any) => void;
-  lastMessage?: any;
 }
 
 export function useRevisionHistory({
   sessionId,
   studentId,
-  sendMessage,
-  lastMessage,
 }: UseRevisionHistoryProps) {
   const [revisions, setRevisions] = useState<CodeRevision[]>([]);
   const [currentIndex, setCurrentIndex] = useState<number>(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Load revisions via API when WebSocket is not available
+  // Load revisions via API
   useEffect(() => {
     if (!sessionId || !studentId) return;
 
-    // Use WebSocket if available, otherwise use API
-    if (sendMessage) {
+    const loadRevisions = async () => {
       setLoading(true);
       setError(null);
-      sendMessage('GET_REVISIONS', { studentId });
-    } else {
-      // Use API
-      const loadRevisions = async () => {
-        setLoading(true);
-        setError(null);
 
-        try {
-          const response = await fetch(
-            `/api/sessions/${sessionId}/revisions?studentId=${studentId}`
-          );
+      try {
+        const response = await fetch(
+          `/api/sessions/${sessionId}/revisions?studentId=${studentId}`
+        );
 
-          if (!response.ok) {
-            const errorData = await response
-              .json()
-              .catch(() => ({ error: 'Failed to fetch revisions' }));
-            throw new Error(errorData.error || 'Failed to fetch revisions');
-          }
-
-          const data = await response.json();
-
-          // Convert timestamp strings to Date objects
-          const processedRevisions = data.revisions.map((rev: any) => ({
-            ...rev,
-            timestamp: new Date(rev.timestamp),
-          }));
-
-          setRevisions(processedRevisions);
-          setCurrentIndex(processedRevisions.length > 0 ? processedRevisions.length - 1 : 0);
-        } catch (err: any) {
-          setError(err.message || 'Failed to fetch revisions');
-        } finally {
-          setLoading(false);
+        if (!response.ok) {
+          const errorData = await response
+            .json()
+            .catch(() => ({ error: 'Failed to fetch revisions' }));
+          throw new Error(errorData.error || 'Failed to fetch revisions');
         }
-      };
 
-      loadRevisions();
-    }
-  }, [sessionId, studentId, sendMessage]);
+        const data = await response.json();
 
-  // Handle incoming revision data from WebSocket
-  useEffect(() => {
-    if (!lastMessage) return;
-
-    if (lastMessage.type === 'REVISIONS_DATA') {
-      const { sessionId: msgSessionId, studentId: msgStudentId, revisions: rawRevisions } = lastMessage.payload;
-
-      // Only process if it's for the current session/student
-      if (msgSessionId === sessionId && msgStudentId === studentId) {
         // Convert timestamp strings to Date objects
-        const processedRevisions = rawRevisions.map((rev: any) => ({
+        const processedRevisions = data.revisions.map((rev: any) => ({
           ...rev,
           timestamp: new Date(rev.timestamp),
         }));
 
         setRevisions(processedRevisions);
         setCurrentIndex(processedRevisions.length > 0 ? processedRevisions.length - 1 : 0);
+      } catch (err: any) {
+        setError(err.message || 'Failed to fetch revisions');
+      } finally {
         setLoading(false);
       }
-    }
-  }, [lastMessage, sessionId, studentId]);
+    };
+
+    loadRevisions();
+  }, [sessionId, studentId]);
 
   const goToRevision = useCallback((index: number) => {
     if (index >= 0 && index < revisions.length) {
