@@ -1,13 +1,22 @@
+/**
+ * Tests for DELETE /api/sessions/:sessionId route
+ *
+ * These are unit tests for the HTTP layer - they mock session-service
+ * to test route behavior (auth, validation, error handling).
+ */
+
 import { NextRequest } from 'next/server';
 import { DELETE } from '../route';
-import { getAuthProvider } from '@/server/auth';
-import { getSessionManager } from '@/server/session-manager';
+import { getAuthenticatedUser } from '@/server/auth/api-auth';
 import { getStorage } from '@/server/persistence';
+import * as SessionService from '@/server/services/session-service';
 
-// Mock dependencies
-jest.mock('@/server/auth');
-jest.mock('@/server/session-manager');
+jest.mock('@/server/auth/api-auth');
 jest.mock('@/server/persistence');
+jest.mock('@/server/services/session-service');
+
+const mockGetAuthenticatedUser = getAuthenticatedUser as jest.MockedFunction<typeof getAuthenticatedUser>;
+const mockGetStorage = getStorage as jest.MockedFunction<typeof getStorage>;
 
 describe('DELETE /api/sessions/:sessionId', () => {
   const mockInstructor = {
@@ -15,7 +24,8 @@ describe('DELETE /api/sessions/:sessionId', () => {
     username: 'instructor',
     email: 'instructor@test.com',
     role: 'instructor' as const,
-    createdAt: new Date('2024-01-01'),
+    namespaceId: 'default',
+    createdAt: new Date(),
   };
 
   const mockOtherInstructor = {
@@ -23,7 +33,8 @@ describe('DELETE /api/sessions/:sessionId', () => {
     username: 'other-instructor',
     email: 'other@test.com',
     role: 'instructor' as const,
-    createdAt: new Date('2024-01-01'),
+    namespaceId: 'default',
+    createdAt: new Date(),
   };
 
   const mockAdmin = {
@@ -31,58 +42,46 @@ describe('DELETE /api/sessions/:sessionId', () => {
     username: 'admin',
     email: 'admin@test.com',
     role: 'namespace-admin' as const,
-    createdAt: new Date('2024-01-01'),
+    namespaceId: 'default',
+    createdAt: new Date(),
   };
 
   const mockCodingSession = {
     id: 'session-1',
-    joinCode: 'ABC123',
     sectionId: 'section-1',
     sectionName: 'Section A',
     status: 'active' as const,
-    createdAt: new Date('2024-01-01'),
+    createdAt: new Date(),
     creatorId: 'instructor-1',
     participants: ['instructor-1'],
     students: new Map(),
-    lastActivity: new Date('2024-01-01'),
+    lastActivity: new Date(),
+    namespaceId: 'default',
+    problem: {} as any,
   };
 
-  let mockAuthProvider: any;
-  let mockSessionManager: any;
   let mockStorage: any;
 
   beforeEach(() => {
     jest.clearAllMocks();
 
-    mockAuthProvider = {
-      getSession: jest.fn(),
-    };
-
-    mockSessionManager = {
-      endSession: jest.fn(),
-    };
-
     mockStorage = {
       sessions: {
-        getSession: jest.fn(),
+        getSession: jest.fn().mockResolvedValue(mockCodingSession),
       },
     };
 
-    (getAuthProvider as jest.Mock).mockResolvedValue(mockAuthProvider);
-    (getSessionManager as jest.Mock).mockResolvedValue(mockSessionManager);
-    (getStorage as jest.Mock).mockResolvedValue(mockStorage);
+    mockGetStorage.mockResolvedValue(mockStorage);
+
+    // Default service mock
+    (SessionService.endSession as jest.Mock).mockResolvedValue(undefined);
   });
 
-  it('successfully ends session when user is creator', async () => {
-    mockAuthProvider.getSession.mockResolvedValue({ user: mockInstructor });
-    mockStorage.sessions.getSession.mockResolvedValue(mockCodingSession);
-    mockSessionManager.endSession.mockResolvedValue(true);
+  it('ends session when user is creator', async () => {
+    mockGetAuthenticatedUser.mockResolvedValue(mockInstructor);
 
     const request = new NextRequest('http://localhost/api/sessions/session-1', {
       method: 'DELETE',
-      headers: {
-        Cookie: 'sessionId=test-session-id',
-      },
     });
 
     const response = await DELETE(request, { params: Promise.resolve({ sessionId: 'session-1' }) });
@@ -91,19 +90,14 @@ describe('DELETE /api/sessions/:sessionId', () => {
     expect(response.status).toBe(200);
     expect(data.success).toBe(true);
     expect(data.message).toBe('Session ended successfully');
-    expect(mockSessionManager.endSession).toHaveBeenCalledWith('session-1');
+    expect(SessionService.endSession).toHaveBeenCalledWith(mockStorage, 'session-1');
   });
 
-  it('successfully ends session when user is admin', async () => {
-    mockAuthProvider.getSession.mockResolvedValue({ user: mockAdmin });
-    mockStorage.sessions.getSession.mockResolvedValue(mockCodingSession);
-    mockSessionManager.endSession.mockResolvedValue(true);
+  it('ends session when user is admin', async () => {
+    mockGetAuthenticatedUser.mockResolvedValue(mockAdmin);
 
     const request = new NextRequest('http://localhost/api/sessions/session-1', {
       method: 'DELETE',
-      headers: {
-        Cookie: 'sessionId=test-session-id',
-      },
     });
 
     const response = await DELETE(request, { params: Promise.resolve({ sessionId: 'session-1' }) });
@@ -114,25 +108,10 @@ describe('DELETE /api/sessions/:sessionId', () => {
   });
 
   it('returns 401 when not authenticated', async () => {
-    const request = new NextRequest('http://localhost/api/sessions/session-1', {
-      method: 'DELETE',
-    });
-
-    const response = await DELETE(request, { params: Promise.resolve({ sessionId: 'session-1' }) });
-    const data = await response.json();
-
-    expect(response.status).toBe(401);
-    expect(data.error).toBe('Unauthorized');
-  });
-
-  it('returns 401 when session cookie is invalid', async () => {
-    mockAuthProvider.getSession.mockResolvedValue(null);
+    mockGetAuthenticatedUser.mockRejectedValue(new Error('Not authenticated'));
 
     const request = new NextRequest('http://localhost/api/sessions/session-1', {
       method: 'DELETE',
-      headers: {
-        Cookie: 'sessionId=invalid-session',
-      },
     });
 
     const response = await DELETE(request, { params: Promise.resolve({ sessionId: 'session-1' }) });
@@ -143,14 +122,11 @@ describe('DELETE /api/sessions/:sessionId', () => {
   });
 
   it('returns 404 when session does not exist', async () => {
-    mockAuthProvider.getSession.mockResolvedValue({ user: mockInstructor });
+    mockGetAuthenticatedUser.mockResolvedValue(mockInstructor);
     mockStorage.sessions.getSession.mockResolvedValue(null);
 
     const request = new NextRequest('http://localhost/api/sessions/session-1', {
       method: 'DELETE',
-      headers: {
-        Cookie: 'sessionId=test-session-id',
-      },
     });
 
     const response = await DELETE(request, { params: Promise.resolve({ sessionId: 'session-1' }) });
@@ -161,14 +137,10 @@ describe('DELETE /api/sessions/:sessionId', () => {
   });
 
   it('returns 403 when user is not the creator', async () => {
-    mockAuthProvider.getSession.mockResolvedValue({ user: mockOtherInstructor });
-    mockStorage.sessions.getSession.mockResolvedValue(mockCodingSession);
+    mockGetAuthenticatedUser.mockResolvedValue(mockOtherInstructor);
 
     const request = new NextRequest('http://localhost/api/sessions/session-1', {
       method: 'DELETE',
-      headers: {
-        Cookie: 'sessionId=test-session-id',
-      },
     });
 
     const response = await DELETE(request, { params: Promise.resolve({ sessionId: 'session-1' }) });
@@ -178,34 +150,12 @@ describe('DELETE /api/sessions/:sessionId', () => {
     expect(data.error).toContain('Only the session creator or admin');
   });
 
-  it('returns 500 when endSession fails', async () => {
-    mockAuthProvider.getSession.mockResolvedValue({ user: mockInstructor });
-    mockStorage.sessions.getSession.mockResolvedValue(mockCodingSession);
-    mockSessionManager.endSession.mockResolvedValue(false);
+  it('returns 500 when service fails', async () => {
+    mockGetAuthenticatedUser.mockResolvedValue(mockInstructor);
+    (SessionService.endSession as jest.Mock).mockRejectedValue(new Error('Database error'));
 
     const request = new NextRequest('http://localhost/api/sessions/session-1', {
       method: 'DELETE',
-      headers: {
-        Cookie: 'sessionId=test-session-id',
-      },
-    });
-
-    const response = await DELETE(request, { params: Promise.resolve({ sessionId: 'session-1' }) });
-    const data = await response.json();
-
-    expect(response.status).toBe(500);
-    expect(data.error).toBe('Failed to end session');
-  });
-
-  it('handles exceptions gracefully', async () => {
-    mockAuthProvider.getSession.mockResolvedValue({ user: mockInstructor });
-    mockStorage.sessions.getSession.mockRejectedValue(new Error('Database error'));
-
-    const request = new NextRequest('http://localhost/api/sessions/session-1', {
-      method: 'DELETE',
-      headers: {
-        Cookie: 'sessionId=test-session-id',
-      },
     });
 
     const response = await DELETE(request, { params: Promise.resolve({ sessionId: 'session-1' }) });

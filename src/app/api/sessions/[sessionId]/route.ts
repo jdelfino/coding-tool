@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAuthProvider } from '@/server/auth';
-import { getSessionManager } from '@/server/session-manager';
+import { getAuthenticatedUser } from '@/server/auth/api-auth';
 import { getStorage } from '@/server/persistence';
+import * as SessionService from '@/server/services/session-service';
 
 /**
  * DELETE /api/sessions/:sessionId
@@ -17,24 +17,7 @@ export async function DELETE(
     const { sessionId } = await params;
 
     // Authenticate user
-    const authSessionId = request.cookies.get('sessionId')?.value;
-    if (!authSessionId) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
-
-    const authProvider = await getAuthProvider();
-    const session = await authProvider.getSession(authSessionId);
-    if (!session) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
-
-    const user = session.user;
+    const user = await getAuthenticatedUser(request);
 
     // Get the session to verify it exists and check ownership
     const storage = await getStorage();
@@ -48,30 +31,30 @@ export async function DELETE(
     }
 
     // Verify user is the creator or an admin
-    if (codingSession.creatorId !== user.id && user.role !== 'namespace-admin') {
+    if (codingSession.creatorId !== user.id && user.role !== 'namespace-admin' && user.role !== 'system-admin') {
       return NextResponse.json(
         { error: 'Forbidden: Only the session creator or admin can end this session' },
         { status: 403 }
       );
     }
 
-    // End the session (marks as completed, preserves data)
-    const sessionManager = await getSessionManager();
-    const success = await sessionManager.endSession(sessionId);
-
-    if (!success) {
-      return NextResponse.json(
-        { error: 'Failed to end session' },
-        { status: 500 }
-      );
-    }
+    // End the session via service
+    await SessionService.endSession(storage, sessionId);
 
     return NextResponse.json({
       success: true,
       message: 'Session ended successfully',
     });
 
-  } catch (error) {
+  } catch (error: unknown) {
+    // Handle authentication errors
+    if (error instanceof Error && error.message === 'Not authenticated') {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
     console.error('Error ending session:', error);
     return NextResponse.json(
       {
