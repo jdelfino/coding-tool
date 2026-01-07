@@ -1,20 +1,24 @@
 /**
  * Tests for POST /api/sessions/[id]/join route
+ *
+ * These are unit tests for the HTTP layer - they mock session-service
+ * to test route behavior (auth, validation, error handling).
  */
 
 import { NextRequest } from 'next/server';
 import { POST } from '../route';
 import { getAuthenticatedUser } from '@/server/auth/api-auth';
-import { getSessionManager } from '@/server/session-manager';
+import { getStorage } from '@/server/persistence';
+import * as SessionService from '@/server/services/session-service';
 import { Session } from '@/server/types';
 import { Problem } from '@/server/types/problem';
 
-// Mock dependencies
 jest.mock('@/server/auth/api-auth');
-jest.mock('@/server/session-manager');
+jest.mock('@/server/persistence');
+jest.mock('@/server/services/session-service');
 
 const mockGetAuthenticatedUser = getAuthenticatedUser as jest.MockedFunction<typeof getAuthenticatedUser>;
-const mockGetSessionManager = getSessionManager as jest.MockedFunction<typeof getSessionManager>;
+const mockGetStorage = getStorage as jest.MockedFunction<typeof getStorage>;
 
 describe('POST /api/sessions/[id]/join', () => {
   const mockUser = {
@@ -24,7 +28,6 @@ describe('POST /api/sessions/[id]/join', () => {
     role: 'student' as const,
     namespaceId: 'default',
     createdAt: new Date(),
-    lastLoginAt: new Date(),
   };
 
   const mockProblem: Problem = {
@@ -34,9 +37,7 @@ describe('POST /api/sessions/[id]/join', () => {
     description: 'Test description',
     starterCode: 'print("Hello")',
     testCases: [],
-    executionSettings: undefined,
     authorId: 'user-1',
-    classId: undefined,
     createdAt: new Date(),
     updatedAt: new Date(),
   };
@@ -55,66 +56,40 @@ describe('POST /api/sessions/[id]/join', () => {
     sectionName: 'Test Section',
   };
 
+  const mockStudent = {
+    id: 'user-1',
+    name: 'Alice',
+    code: 'print("Hello")',
+    lastUpdate: new Date(),
+  };
+
+  let mockStorage: any;
+
   beforeEach(() => {
     jest.clearAllMocks();
-  });
 
-  it('should successfully join a session', async () => {
-    mockGetAuthenticatedUser.mockResolvedValue(mockUser);
-
-    const mockSessionManager = {
-      getSession: jest.fn().mockResolvedValue(mockSession),
-      addStudent: jest.fn().mockResolvedValue(true),
-      getStudentData: jest.fn().mockResolvedValue(undefined), // First time joining
+    mockStorage = {
+      sessions: {
+        getSession: jest.fn().mockResolvedValue(mockSession),
+      },
     };
 
-    mockGetSessionManager.mockReturnValue(mockSessionManager as any);
+    mockGetStorage.mockResolvedValue(mockStorage);
 
-    const request = new NextRequest('http://localhost:3000/api/sessions/session-1/join', {
-      method: 'POST',
-      body: JSON.stringify({
-        studentId: 'user-1',
-        name: 'Alice',
-      }),
-    });
-    const params = Promise.resolve({ id: 'session-1' });
-
-    const response = await POST(request, { params });
-    const data = await response.json();
-
-    expect(response.status).toBe(200);
-    expect(data.success).toBe(true);
-    expect(data.student).toEqual({
-      id: 'user-1',
-      name: 'Alice',
-      code: 'print("Hello")', // Starter code from problem
+    // Default service mocks
+    (SessionService.addStudent as jest.Mock).mockResolvedValue(mockStudent);
+    (SessionService.getStudentData as jest.Mock).mockReturnValue({
+      code: mockStudent.code,
       executionSettings: undefined,
     });
-    expect(mockSessionManager.addStudent).toHaveBeenCalledWith('session-1', 'user-1', 'Alice');
   });
 
-  it('should allow rejoining with existing code', async () => {
+  it('joins session successfully', async () => {
     mockGetAuthenticatedUser.mockResolvedValue(mockUser);
-
-    const existingCode = 'print("Existing code")';
-
-    const mockSessionManager = {
-      getSession: jest.fn().mockResolvedValue(mockSession),
-      addStudent: jest.fn().mockResolvedValue(true),
-      getStudentData: jest.fn().mockResolvedValue({
-        code: existingCode,
-        executionSettings: undefined,
-      }),
-    };
-
-    mockGetSessionManager.mockReturnValue(mockSessionManager as any);
 
     const request = new NextRequest('http://localhost:3000/api/sessions/session-1/join', {
       method: 'POST',
-      body: JSON.stringify({
-        studentId: 'user-1',
-        name: 'Alice',
-      }),
+      body: JSON.stringify({ studentId: 'user-1', name: 'Alice' }),
     });
     const params = Promise.resolve({ id: 'session-1' });
 
@@ -123,36 +98,50 @@ describe('POST /api/sessions/[id]/join', () => {
 
     expect(response.status).toBe(200);
     expect(data.success).toBe(true);
-    expect(data.student.code).toBe(existingCode);
+    expect(data.student.id).toBe('user-1');
+    expect(data.student.name).toBe('Alice');
+    expect(SessionService.addStudent).toHaveBeenCalledWith(
+      mockStorage, mockSession, 'user-1', 'Alice'
+    );
   });
 
-  it('should return 401 when not authenticated', async () => {
+  it('uses authenticated user ID when studentId not provided', async () => {
+    mockGetAuthenticatedUser.mockResolvedValue(mockUser);
+
+    const request = new NextRequest('http://localhost:3000/api/sessions/session-1/join', {
+      method: 'POST',
+      body: JSON.stringify({ name: 'Alice' }),
+    });
+    const params = Promise.resolve({ id: 'session-1' });
+
+    const response = await POST(request, { params });
+
+    expect(response.status).toBe(200);
+    expect(SessionService.addStudent).toHaveBeenCalledWith(
+      mockStorage, mockSession, 'user-1', 'Alice'
+    );
+  });
+
+  it('returns 401 when not authenticated', async () => {
     mockGetAuthenticatedUser.mockRejectedValue(new Error('Not authenticated'));
 
     const request = new NextRequest('http://localhost:3000/api/sessions/session-1/join', {
       method: 'POST',
-      body: JSON.stringify({
-        studentId: 'user-1',
-        name: 'Alice',
-      }),
+      body: JSON.stringify({ name: 'Alice' }),
     });
     const params = Promise.resolve({ id: 'session-1' });
 
     const response = await POST(request, { params });
-    const data = await response.json();
 
     expect(response.status).toBe(401);
-    expect(data.error).toBe('Not authenticated');
   });
 
-  it('should return 400 when name is missing', async () => {
+  it('returns 400 when name is missing', async () => {
     mockGetAuthenticatedUser.mockResolvedValue(mockUser);
 
     const request = new NextRequest('http://localhost:3000/api/sessions/session-1/join', {
       method: 'POST',
-      body: JSON.stringify({
-        studentId: 'user-1',
-      }),
+      body: JSON.stringify({ studentId: 'user-1' }),
     });
     const params = Promise.resolve({ id: 'session-1' });
 
@@ -163,17 +152,12 @@ describe('POST /api/sessions/[id]/join', () => {
     expect(data.error).toBe('Student name is required');
   });
 
-  it('should return 400 when name is too long', async () => {
+  it('returns 400 when name is too long', async () => {
     mockGetAuthenticatedUser.mockResolvedValue(mockUser);
-
-    const longName = 'A'.repeat(51); // Max is 50 characters
 
     const request = new NextRequest('http://localhost:3000/api/sessions/session-1/join', {
       method: 'POST',
-      body: JSON.stringify({
-        studentId: 'user-1',
-        name: longName,
-      }),
+      body: JSON.stringify({ name: 'A'.repeat(51) }),
     });
     const params = Promise.resolve({ id: 'session-1' });
 
@@ -184,21 +168,13 @@ describe('POST /api/sessions/[id]/join', () => {
     expect(data.error).toBe('Student name is too long (max 50 characters)');
   });
 
-  it('should return 404 when session not found', async () => {
+  it('returns 404 when session not found', async () => {
     mockGetAuthenticatedUser.mockResolvedValue(mockUser);
-
-    const mockSessionManager = {
-      getSession: jest.fn().mockResolvedValue(null),
-    };
-
-    mockGetSessionManager.mockReturnValue(mockSessionManager as any);
+    mockStorage.sessions.getSession.mockResolvedValue(null);
 
     const request = new NextRequest('http://localhost:3000/api/sessions/session-1/join', {
       method: 'POST',
-      body: JSON.stringify({
-        studentId: 'user-1',
-        name: 'Alice',
-      }),
+      body: JSON.stringify({ name: 'Alice' }),
     });
     const params = Promise.resolve({ id: 'session-1' });
 
@@ -209,26 +185,16 @@ describe('POST /api/sessions/[id]/join', () => {
     expect(data.error).toBe('Session not found');
   });
 
-  it('should return 400 when session is completed', async () => {
+  it('returns 400 when session is completed', async () => {
     mockGetAuthenticatedUser.mockResolvedValue(mockUser);
-
-    const completedSession: Session = {
+    mockStorage.sessions.getSession.mockResolvedValue({
       ...mockSession,
       status: 'completed',
-    };
-
-    const mockSessionManager = {
-      getSession: jest.fn().mockResolvedValue(completedSession),
-    };
-
-    mockGetSessionManager.mockReturnValue(mockSessionManager as any);
+    });
 
     const request = new NextRequest('http://localhost:3000/api/sessions/session-1/join', {
       method: 'POST',
-      body: JSON.stringify({
-        studentId: 'user-1',
-        name: 'Alice',
-      }),
+      body: JSON.stringify({ name: 'Alice' }),
     });
     const params = Promise.resolve({ id: 'session-1' });
 
@@ -239,23 +205,13 @@ describe('POST /api/sessions/[id]/join', () => {
     expect(data.error).toBe('This session has ended and cannot be joined');
   });
 
-  it('should return 500 when addStudent fails', async () => {
+  it('returns 500 when service fails', async () => {
     mockGetAuthenticatedUser.mockResolvedValue(mockUser);
-
-    const mockSessionManager = {
-      getSession: jest.fn().mockResolvedValue(mockSession),
-      addStudent: jest.fn().mockResolvedValue(false), // Failure
-      getStudentData: jest.fn().mockResolvedValue(undefined),
-    };
-
-    mockGetSessionManager.mockReturnValue(mockSessionManager as any);
+    (SessionService.addStudent as jest.Mock).mockRejectedValue(new Error('Database error'));
 
     const request = new NextRequest('http://localhost:3000/api/sessions/session-1/join', {
       method: 'POST',
-      body: JSON.stringify({
-        studentId: 'user-1',
-        name: 'Alice',
-      }),
+      body: JSON.stringify({ name: 'Alice' }),
     });
     const params = Promise.resolve({ id: 'session-1' });
 
@@ -264,35 +220,5 @@ describe('POST /api/sessions/[id]/join', () => {
 
     expect(response.status).toBe(500);
     expect(data.error).toBe('Failed to join session');
-  });
-
-  it('should use authenticated user ID if no studentId provided', async () => {
-    mockGetAuthenticatedUser.mockResolvedValue(mockUser);
-
-    const mockSessionManager = {
-      getSession: jest.fn().mockResolvedValue(mockSession),
-      addStudent: jest.fn().mockResolvedValue(true),
-      getStudentData: jest.fn().mockResolvedValue(undefined),
-    };
-
-    mockGetSessionManager.mockReturnValue(mockSessionManager as any);
-
-    const request = new NextRequest('http://localhost:3000/api/sessions/session-1/join', {
-      method: 'POST',
-      body: JSON.stringify({
-        name: 'Alice',
-      }),
-    });
-    const params = Promise.resolve({ id: 'session-1' });
-
-    const response = await POST(request, { params });
-    const data = await response.json();
-
-    expect(response.status).toBe(200);
-    expect(data.success).toBe(true);
-    expect(data.student.id).toBe('user-1'); // Uses authenticated user ID
-    expect(data.student.name).toBe('Alice');
-    expect(data.student.code).toBe('print("Hello")');
-    expect(mockSessionManager.addStudent).toHaveBeenCalledWith('session-1', 'user-1', 'Alice');
   });
 });

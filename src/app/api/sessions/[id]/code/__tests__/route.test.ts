@@ -1,21 +1,25 @@
 /**
  * Tests for POST /api/sessions/[id]/code route
+ *
+ * These are unit tests for the HTTP layer - they mock session-service
+ * to test route behavior (auth, validation, error handling).
  */
 
 import { NextRequest } from 'next/server';
 import { POST } from '../route';
 import { getAuthenticatedUser } from '@/server/auth/api-auth';
-import { getSessionManager } from '@/server/session-manager';
+import { getStorage } from '@/server/persistence';
 import { revisionBufferHolder } from '@/server/revision-buffer';
+import * as SessionService from '@/server/services/session-service';
 import { Session } from '@/server/types';
-import { Problem, ExecutionSettings } from '@/server/types/problem';
+import { Problem } from '@/server/types/problem';
 
-// Mock dependencies
 jest.mock('@/server/auth/api-auth');
-jest.mock('@/server/session-manager');
+jest.mock('@/server/persistence');
+jest.mock('@/server/services/session-service');
 
 const mockGetAuthenticatedUser = getAuthenticatedUser as jest.MockedFunction<typeof getAuthenticatedUser>;
-const mockGetSessionManager = getSessionManager as jest.MockedFunction<typeof getSessionManager>;
+const mockGetStorage = getStorage as jest.MockedFunction<typeof getStorage>;
 
 describe('POST /api/sessions/[id]/code', () => {
   const mockUser = {
@@ -25,7 +29,6 @@ describe('POST /api/sessions/[id]/code', () => {
     role: 'student' as const,
     namespaceId: 'default',
     createdAt: new Date(),
-    lastLoginAt: new Date(),
   };
 
   const mockProblem: Problem = {
@@ -40,29 +43,48 @@ describe('POST /api/sessions/[id]/code', () => {
       randomSeed: 42,
     },
     authorId: 'user-1',
-    classId: undefined,
     createdAt: new Date(),
     updatedAt: new Date(),
   };
 
-  const mockSession: Session = {
+  const createMockSession = (): Session => ({
     id: 'session-1',
     namespaceId: 'default',
     problem: mockProblem,
-    students: new Map(),
+    students: new Map([
+      ['user-1', {
+        id: 'user-1',
+        name: 'Test Student',
+        code: 'old code',
+        lastUpdate: new Date(),
+      }],
+    ]),
     createdAt: new Date(),
     lastActivity: new Date(),
     creatorId: 'instructor-1',
-    participants: [],
+    participants: ['user-1'],
     status: 'active',
     sectionId: 'section-1',
     sectionName: 'Test Section',
-  };
+  });
+
+  let mockStorage: any;
 
   beforeEach(() => {
     jest.clearAllMocks();
 
-    // Mock revision buffer
+    mockStorage = {
+      sessions: {
+        getSession: jest.fn().mockResolvedValue(createMockSession()),
+      },
+    };
+
+    mockGetStorage.mockResolvedValue(mockStorage);
+
+    // Default service mock
+    (SessionService.updateStudentCode as jest.Mock).mockResolvedValue(undefined);
+
+    // Setup revision buffer mock
     revisionBufferHolder.instance = {
       addRevision: jest.fn().mockResolvedValue(undefined),
     } as any;
@@ -72,24 +94,13 @@ describe('POST /api/sessions/[id]/code', () => {
     revisionBufferHolder.instance = null;
   });
 
-  it('should successfully save code', async () => {
+  it('saves code successfully', async () => {
     mockGetAuthenticatedUser.mockResolvedValue(mockUser);
-
-    const mockSessionManager = {
-      getSession: jest.fn().mockResolvedValue(mockSession),
-      updateStudentCode: jest.fn().mockResolvedValue(true),
-    };
-
-    mockGetSessionManager.mockReturnValue(mockSessionManager as any);
-
     const code = 'print("Updated code")';
 
     const request = new NextRequest('http://localhost:3000/api/sessions/session-1/code', {
       method: 'POST',
-      body: JSON.stringify({
-        studentId: 'user-1',
-        code,
-      }),
+      body: JSON.stringify({ studentId: 'user-1', code }),
     });
     const params = Promise.resolve({ id: 'session-1' });
 
@@ -98,72 +109,63 @@ describe('POST /api/sessions/[id]/code', () => {
 
     expect(response.status).toBe(200);
     expect(data.success).toBe(true);
-    expect(mockSessionManager.updateStudentCode).toHaveBeenCalledWith('session-1', 'user-1', code);
-    expect(revisionBufferHolder.instance!.addRevision).toHaveBeenCalledWith('session-1', 'user-1', code, 'default');
+    expect(SessionService.updateStudentCode).toHaveBeenCalledWith(
+      mockStorage,
+      expect.objectContaining({ id: 'session-1' }),
+      'user-1',
+      code,
+      undefined
+    );
+    expect(revisionBufferHolder.instance!.addRevision).toHaveBeenCalledWith(
+      'session-1', 'user-1', code, 'default'
+    );
   });
 
-  it('should update execution settings if provided', async () => {
+  it('passes execution settings to service', async () => {
     mockGetAuthenticatedUser.mockResolvedValue(mockUser);
-
-    const mockSessionManager = {
-      getSession: jest.fn().mockResolvedValue(mockSession),
-      updateStudentCode: jest.fn().mockResolvedValue(true),
-      updateStudentSettings: jest.fn().mockResolvedValue(undefined),
-    };
-
-    mockGetSessionManager.mockReturnValue(mockSessionManager as any);
-
-    const code = 'print("Updated code")';
-    const executionSettings: ExecutionSettings = {
-      stdin: 'custom stdin',
-      randomSeed: 123,
-    };
-
-    const request = new NextRequest('http://localhost:3000/api/sessions/session-1/code', {
-      method: 'POST',
-      body: JSON.stringify({
-        studentId: 'user-1',
-        code,
-        executionSettings,
-      }),
-    });
-    const params = Promise.resolve({ id: 'session-1' });
-
-    const response = await POST(request, { params });
-    const data = await response.json();
-
-    expect(response.status).toBe(200);
-    expect(data.success).toBe(true);
-    expect(mockSessionManager.updateStudentSettings).toHaveBeenCalledWith('session-1', 'user-1', executionSettings);
-  });
-
-  it('should return 401 when not authenticated', async () => {
-    mockGetAuthenticatedUser.mockRejectedValue(new Error('Not authenticated'));
 
     const request = new NextRequest('http://localhost:3000/api/sessions/session-1/code', {
       method: 'POST',
       body: JSON.stringify({
         studentId: 'user-1',
         code: 'print("code")',
+        executionSettings: { stdin: 'custom stdin', randomSeed: 123 },
       }),
     });
     const params = Promise.resolve({ id: 'session-1' });
 
     const response = await POST(request, { params });
-    const data = await response.json();
 
-    expect(response.status).toBe(401);
-    expect(data.error).toBe('Not authenticated');
+    expect(response.status).toBe(200);
+    expect(SessionService.updateStudentCode).toHaveBeenCalledWith(
+      mockStorage,
+      expect.any(Object),
+      'user-1',
+      'print("code")',
+      { stdin: 'custom stdin', randomSeed: 123 }
+    );
   });
 
-  it('should return 400 when code is missing', async () => {
+  it('returns 401 when not authenticated', async () => {
+    mockGetAuthenticatedUser.mockRejectedValue(new Error('Not authenticated'));
+
+    const request = new NextRequest('http://localhost:3000/api/sessions/session-1/code', {
+      method: 'POST',
+      body: JSON.stringify({ studentId: 'user-1', code: 'print("code")' }),
+    });
+    const params = Promise.resolve({ id: 'session-1' });
+
+    const response = await POST(request, { params });
+
+    expect(response.status).toBe(401);
+  });
+
+  it('returns 400 when code is missing', async () => {
     mockGetAuthenticatedUser.mockResolvedValue(mockUser);
 
     const request = new NextRequest('http://localhost:3000/api/sessions/session-1/code', {
       method: 'POST',
-      body: JSON.stringify({
-        studentId: 'user-1',
-      }),
+      body: JSON.stringify({ studentId: 'user-1' }),
     });
     const params = Promise.resolve({ id: 'session-1' });
 
@@ -174,14 +176,12 @@ describe('POST /api/sessions/[id]/code', () => {
     expect(data.error).toBe('Code is required');
   });
 
-  it('should return 400 when studentId is missing', async () => {
+  it('returns 400 when studentId is missing', async () => {
     mockGetAuthenticatedUser.mockResolvedValue(mockUser);
 
     const request = new NextRequest('http://localhost:3000/api/sessions/session-1/code', {
       method: 'POST',
-      body: JSON.stringify({
-        code: 'print("code")',
-      }),
+      body: JSON.stringify({ code: 'print("code")' }),
     });
     const params = Promise.resolve({ id: 'session-1' });
 
@@ -192,21 +192,13 @@ describe('POST /api/sessions/[id]/code', () => {
     expect(data.error).toBe('Student ID is required');
   });
 
-  it('should return 404 when session not found', async () => {
+  it('returns 404 when session not found', async () => {
     mockGetAuthenticatedUser.mockResolvedValue(mockUser);
-
-    const mockSessionManager = {
-      getSession: jest.fn().mockResolvedValue(null),
-    };
-
-    mockGetSessionManager.mockReturnValue(mockSessionManager as any);
+    mockStorage.sessions.getSession.mockResolvedValue(null);
 
     const request = new NextRequest('http://localhost:3000/api/sessions/session-1/code', {
       method: 'POST',
-      body: JSON.stringify({
-        studentId: 'user-1',
-        code: 'print("code")',
-      }),
+      body: JSON.stringify({ studentId: 'user-1', code: 'print("code")' }),
     });
     const params = Promise.resolve({ id: 'session-1' });
 
@@ -217,22 +209,48 @@ describe('POST /api/sessions/[id]/code', () => {
     expect(data.error).toBe('Session not found');
   });
 
-  it('should return 500 when updateStudentCode fails', async () => {
+  it('returns 404 when student not found in session', async () => {
     mockGetAuthenticatedUser.mockResolvedValue(mockUser);
-
-    const mockSessionManager = {
-      getSession: jest.fn().mockResolvedValue(mockSession),
-      updateStudentCode: jest.fn().mockResolvedValue(false), // Failure
-    };
-
-    mockGetSessionManager.mockReturnValue(mockSessionManager as any);
+    mockStorage.sessions.getSession.mockResolvedValue({
+      ...createMockSession(),
+      students: new Map(),
+    });
 
     const request = new NextRequest('http://localhost:3000/api/sessions/session-1/code', {
       method: 'POST',
-      body: JSON.stringify({
-        studentId: 'user-1',
-        code: 'print("code")',
-      }),
+      body: JSON.stringify({ studentId: 'user-1', code: 'print("code")' }),
+    });
+    const params = Promise.resolve({ id: 'session-1' });
+
+    const response = await POST(request, { params });
+    const data = await response.json();
+
+    expect(response.status).toBe(404);
+    expect(data.error).toBe('Student not found in session');
+  });
+
+  it('works without revision buffer', async () => {
+    revisionBufferHolder.instance = null;
+    mockGetAuthenticatedUser.mockResolvedValue(mockUser);
+
+    const request = new NextRequest('http://localhost:3000/api/sessions/session-1/code', {
+      method: 'POST',
+      body: JSON.stringify({ studentId: 'user-1', code: 'print("code")' }),
+    });
+    const params = Promise.resolve({ id: 'session-1' });
+
+    const response = await POST(request, { params });
+
+    expect(response.status).toBe(200);
+  });
+
+  it('returns 500 when service fails', async () => {
+    mockGetAuthenticatedUser.mockResolvedValue(mockUser);
+    (SessionService.updateStudentCode as jest.Mock).mockRejectedValue(new Error('Database error'));
+
+    const request = new NextRequest('http://localhost:3000/api/sessions/session-1/code', {
+      method: 'POST',
+      body: JSON.stringify({ studentId: 'user-1', code: 'print("code")' }),
     });
     const params = Promise.resolve({ id: 'session-1' });
 
@@ -241,36 +259,5 @@ describe('POST /api/sessions/[id]/code', () => {
 
     expect(response.status).toBe(500);
     expect(data.error).toBe('Failed to save code');
-  });
-
-  it('should work without revision buffer', async () => {
-    // Remove revision buffer
-    revisionBufferHolder.instance = null;
-
-    mockGetAuthenticatedUser.mockResolvedValue(mockUser);
-
-    const mockSessionManager = {
-      getSession: jest.fn().mockResolvedValue(mockSession),
-      updateStudentCode: jest.fn().mockResolvedValue(true),
-    };
-
-    mockGetSessionManager.mockReturnValue(mockSessionManager as any);
-
-    const code = 'print("Updated code")';
-
-    const request = new NextRequest('http://localhost:3000/api/sessions/session-1/code', {
-      method: 'POST',
-      body: JSON.stringify({
-        studentId: 'user-1',
-        code,
-      }),
-    });
-    const params = Promise.resolve({ id: 'session-1' });
-
-    const response = await POST(request, { params });
-    const data = await response.json();
-
-    expect(response.status).toBe(200);
-    expect(data.success).toBe(true);
   });
 });

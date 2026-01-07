@@ -5,8 +5,9 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUser } from '@/server/auth/api-auth';
-import { getSessionManager } from '@/server/session-manager';
+import { getStorage } from '@/server/persistence';
 import { revisionBufferHolder } from '@/server/revision-buffer';
+import * as SessionService from '@/server/services/session-service';
 import { ExecutionSettings } from '@/server/types/problem';
 
 interface SaveCodeBody {
@@ -21,7 +22,7 @@ export async function POST(
 ) {
   try {
     // Authenticate user
-    const user = await getAuthenticatedUser(request);
+    await getAuthenticatedUser(request);
 
     // Get session ID from params
     const { id: sessionId } = await params;
@@ -30,7 +31,7 @@ export async function POST(
     const body: SaveCodeBody = await request.json();
     const { studentId, code, executionSettings } = body;
 
-    // Validate inputs
+    // Validate inputs (HTTP-level validation)
     if (!studentId || typeof studentId !== 'string') {
       return NextResponse.json(
         { error: 'Student ID is required' },
@@ -46,8 +47,8 @@ export async function POST(
     }
 
     // Get session
-    const sessionManager = getSessionManager();
-    const session = await sessionManager.getSession(sessionId);
+    const storage = await getStorage();
+    const session = await storage.sessions.getSession(sessionId);
 
     if (!session) {
       return NextResponse.json(
@@ -56,20 +57,22 @@ export async function POST(
       );
     }
 
-    // Update student code
-    const success = await sessionManager.updateStudentCode(sessionId, studentId, code);
-
-    if (!success) {
+    // Verify student exists in session
+    if (!session.students.has(studentId)) {
       return NextResponse.json(
-        { error: 'Failed to save code' },
-        { status: 500 }
+        { error: 'Student not found in session' },
+        { status: 404 }
       );
     }
 
-    // Update execution settings if provided
-    if (executionSettings) {
-      await sessionManager.updateStudentSettings(sessionId, studentId, executionSettings);
-    }
+    // Update student code via service
+    await SessionService.updateStudentCode(
+      storage,
+      session,
+      studentId,
+      code,
+      executionSettings
+    );
 
     // Track revision using revision buffer (for batched persistence)
     if (revisionBufferHolder.instance) {
@@ -84,9 +87,9 @@ export async function POST(
     return NextResponse.json({
       success: true,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     // Handle authentication errors
-    if (error.message === 'Not authenticated') {
+    if (error instanceof Error && error.message === 'Not authenticated') {
       return NextResponse.json(
         { error: 'Not authenticated' },
         { status: 401 }

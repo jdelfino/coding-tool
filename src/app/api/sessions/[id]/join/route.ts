@@ -5,7 +5,8 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUser } from '@/server/auth/api-auth';
-import { getSessionManager } from '@/server/session-manager';
+import { getStorage } from '@/server/persistence';
+import * as SessionService from '@/server/services/session-service';
 
 interface JoinSessionBody {
   studentId?: string;
@@ -27,7 +28,7 @@ export async function POST(
     const body: JoinSessionBody = await request.json();
     const { name } = body;
 
-    // Validate name
+    // Validate name (HTTP-level validation)
     if (!name || typeof name !== 'string' || name.trim().length === 0) {
       return NextResponse.json(
         { error: 'Student name is required' },
@@ -46,8 +47,8 @@ export async function POST(
     const studentId = body.studentId || user.id;
 
     // Get session
-    const sessionManager = getSessionManager();
-    const session = await sessionManager.getSession(sessionId);
+    const storage = await getStorage();
+    const session = await storage.sessions.getSession(sessionId);
 
     if (!session) {
       return NextResponse.json(
@@ -64,32 +65,25 @@ export async function POST(
       );
     }
 
-    // Check if student has existing code (rejoining)
-    const studentData = await sessionManager.getStudentData(sessionId, studentId);
+    // Add student via service (handles starter code, participants, persistence)
+    const student = await SessionService.addStudent(storage, session, studentId, name);
 
-    // Add student to session
-    const success = await sessionManager.addStudent(sessionId, studentId, name.trim());
-
-    if (!success) {
-      return NextResponse.json(
-        { error: 'Failed to join session' },
-        { status: 500 }
-      );
-    }
+    // Get merged execution settings via service
+    const studentData = SessionService.getStudentData(session, studentId);
 
     // Return student information
     return NextResponse.json({
       success: true,
       student: {
-        id: studentId,
-        name: name.trim(),
-        code: studentData?.code || session.problem?.starterCode || '',
+        id: student.id,
+        name: student.name,
+        code: student.code,
         executionSettings: studentData?.executionSettings,
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     // Handle authentication errors
-    if (error.message === 'Not authenticated') {
+    if (error instanceof Error && error.message === 'Not authenticated') {
       return NextResponse.json(
         { error: 'Not authenticated' },
         { status: 401 }
