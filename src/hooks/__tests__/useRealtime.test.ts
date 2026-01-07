@@ -5,21 +5,36 @@ import { renderHook, act, waitFor } from '@testing-library/react';
 import { useRealtime } from '../useRealtime';
 import { REALTIME_SUBSCRIBE_STATES } from '@supabase/supabase-js';
 
-// Mock Supabase client
-// Store the current channel mock so we can reset it between tests
-let mockChannel: any;
-let subscribeStatus: string = REALTIME_SUBSCRIBE_STATES.SUBSCRIBED;
+// Mock Supabase client types
+interface MockChannel {
+  on: jest.Mock;
+  subscribe: jest.Mock;
+  track: jest.Mock;
+  presenceState: jest.Mock;
+}
 
-const createMockChannel = () => ({
-  on: jest.fn().mockReturnThis(),
-  subscribe: jest.fn(function(this: any, callback) {
-    // Call callback asynchronously to simulate real behavior
-    Promise.resolve().then(() => callback(subscribeStatus));
-    return this;
-  }),
-  track: jest.fn().mockResolvedValue('ok'),
-  presenceState: jest.fn().mockReturnValue({}),
-});
+// Store the current channel mock so we can reset it between tests
+let mockChannel: MockChannel;
+// Configure what status the subscribe callback should receive
+let subscribeStatus: string = REALTIME_SUBSCRIBE_STATES.SUBSCRIBED;
+// Track if subscribe should auto-invoke (for most tests) or not (for initial state tests)
+let autoInvokeSubscribe = true;
+
+const createMockChannel = (): MockChannel => {
+  const channel: MockChannel = {
+    on: jest.fn().mockImplementation(() => channel),
+    subscribe: jest.fn((callback: (status: string) => void) => {
+      // Call callback synchronously during effect for proper state updates
+      if (autoInvokeSubscribe) {
+        callback(subscribeStatus);
+      }
+      return channel;
+    }),
+    track: jest.fn().mockResolvedValue('ok'),
+    presenceState: jest.fn().mockReturnValue({}),
+  };
+  return channel;
+};
 
 const mockSupabaseClient = {
   channel: jest.fn(),
@@ -36,13 +51,20 @@ describe('useRealtime', () => {
     jest.clearAllMocks();
     // Reset subscribe status to SUBSCRIBED by default
     subscribeStatus = REALTIME_SUBSCRIBE_STATES.SUBSCRIBED;
+    // Enable auto-invoke by default (most tests want connected state)
+    autoInvokeSubscribe = true;
     // Create a fresh mock channel for each test
     mockChannel = createMockChannel();
     mockSupabaseClient.channel.mockReturnValue(mockChannel);
   });
 
   describe('Initial connection', () => {
-    it('should initialize with disconnected status', () => {
+    it('should initialize with connecting status before subscription completes', () => {
+      // Disable auto-invoke to test initial state
+      autoInvokeSubscribe = false;
+      mockChannel = createMockChannel();
+      mockSupabaseClient.channel.mockReturnValue(mockChannel);
+
       const { result } = renderHook(() =>
         useRealtime({
           sessionId: 'test-session',
@@ -50,7 +72,7 @@ describe('useRealtime', () => {
         })
       );
 
-      // Initial state before subscription
+      // Initial state before subscription completes
       expect(result.current.connectionStatus).toBe('connecting');
       expect(result.current.isConnected).toBe(false);
     });
@@ -140,7 +162,8 @@ describe('useRealtime', () => {
   });
 
   describe('Connection status', () => {
-    it('should update status to connected when subscription succeeds', async () => {
+    it('should update status to connected when subscription succeeds', () => {
+      // subscribeStatus is already SUBSCRIBED by default
       const { result } = renderHook(() =>
         useRealtime({
           sessionId: 'test-session',
@@ -148,16 +171,13 @@ describe('useRealtime', () => {
         })
       );
 
-      await waitFor(() => {
-        expect(result.current.connectionStatus).toBe('connected');
-        expect(result.current.isConnected).toBe(true);
-      });
-
+      expect(result.current.connectionStatus).toBe('connected');
+      expect(result.current.isConnected).toBe(true);
       // Verify track was called
       expect(mockChannel.track).toHaveBeenCalled();
     });
 
-    it('should track presence when connected with userId', async () => {
+    it('should track presence when connected with userId', () => {
       mockChannel.track.mockResolvedValue('ok');
 
       renderHook(() =>
@@ -168,24 +188,17 @@ describe('useRealtime', () => {
         })
       );
 
-      const subscribeCallback = mockChannel.subscribe.mock.calls[0][0];
-
-      await act(async () => {
-        await subscribeCallback(REALTIME_SUBSCRIBE_STATES.SUBSCRIBED);
-      });
-
-      await waitFor(() => {
-        expect(mockChannel.track).toHaveBeenCalledWith(
-          expect.objectContaining({
-            user_id: 'user-123',
-            user_name: 'Test User',
-            online_at: expect.any(String),
-          })
-        );
-      });
+      expect(mockChannel.track).toHaveBeenCalledWith(
+        expect.objectContaining({
+          user_id: 'user-123',
+          user_name: 'Test User',
+          online_at: expect.any(String),
+        })
+      );
     });
 
-    it('should handle channel error', async () => {
+    it('should handle channel error', () => {
+      // Configure the subscribe status
       subscribeStatus = REALTIME_SUBSCRIBE_STATES.CHANNEL_ERROR;
       mockChannel = createMockChannel();
       mockSupabaseClient.channel.mockReturnValue(mockChannel);
@@ -196,14 +209,13 @@ describe('useRealtime', () => {
         })
       );
 
-      await waitFor(() => {
-        expect(result.current.connectionStatus).toBe('failed');
-        expect(result.current.connectionError).toBe('Failed to connect to real-time server');
-        expect(result.current.isConnected).toBe(false);
-      });
+      expect(result.current.connectionStatus).toBe('failed');
+      expect(result.current.connectionError).toBe('Failed to connect to real-time server');
+      expect(result.current.isConnected).toBe(false);
     });
 
-    it('should handle timeout', async () => {
+    it('should handle timeout', () => {
+      // Configure the subscribe status
       subscribeStatus = REALTIME_SUBSCRIBE_STATES.TIMED_OUT;
       mockChannel = createMockChannel();
       mockSupabaseClient.channel.mockReturnValue(mockChannel);
@@ -214,13 +226,12 @@ describe('useRealtime', () => {
         })
       );
 
-      await waitFor(() => {
-        expect(result.current.connectionStatus).toBe('failed');
-        expect(result.current.connectionError).toBe('Connection timed out');
-      });
+      expect(result.current.connectionStatus).toBe('failed');
+      expect(result.current.connectionError).toBe('Connection timed out');
     });
 
-    it('should handle channel closed', async () => {
+    it('should handle channel closed', () => {
+      // Configure the subscribe status
       subscribeStatus = REALTIME_SUBSCRIBE_STATES.CLOSED;
       mockChannel = createMockChannel();
       mockSupabaseClient.channel.mockReturnValue(mockChannel);
@@ -231,9 +242,7 @@ describe('useRealtime', () => {
         })
       );
 
-      await waitFor(() => {
-        expect(result.current.connectionStatus).toBe('disconnected');
-      });
+      expect(result.current.connectionStatus).toBe('disconnected');
     });
   });
 
@@ -405,18 +414,17 @@ describe('useRealtime', () => {
       expect(mockSupabaseClient.removeChannel).toHaveBeenCalledWith(mockChannel);
     });
 
-    it('should reset connection status on unmount', async () => {
-      const { unmount } = renderHook(() =>
+    it('should reset connection status on unmount', () => {
+      const { result, unmount } = renderHook(() =>
         useRealtime({
           sessionId: 'test-session',
           userId: 'user-123',
         })
       );
 
-      // Wait for connection
-      await waitFor(() => {
-        expect(mockChannel.subscribe).toHaveBeenCalled();
-      });
+      // Verify subscribe was called and connected
+      expect(mockChannel.subscribe).toHaveBeenCalled();
+      expect(result.current.connectionStatus).toBe('connected');
 
       // Unmount
       unmount();
@@ -427,7 +435,7 @@ describe('useRealtime', () => {
   });
 
   describe('Session changes', () => {
-    it('should reconnect when sessionId changes', async () => {
+    it('should reconnect when sessionId changes', () => {
       const { rerender } = renderHook(
         ({ sessionId }) => useRealtime({ sessionId }),
         { initialProps: { sessionId: 'session-1' } }
@@ -439,17 +447,20 @@ describe('useRealtime', () => {
       );
 
       jest.clearAllMocks();
+      // Create new mock channel for rerender
+      mockChannel = createMockChannel();
+      mockSupabaseClient.channel.mockReturnValue(mockChannel);
 
       // Change sessionId
       rerender({ sessionId: 'session-2' });
 
-      await waitFor(() => {
-        expect(mockSupabaseClient.removeChannel).toHaveBeenCalled();
-        expect(mockSupabaseClient.channel).toHaveBeenCalledWith(
-          'session:session-2',
-          expect.any(Object)
-        );
-      });
+      // Old channel should be removed
+      expect(mockSupabaseClient.removeChannel).toHaveBeenCalled();
+      // New channel should be created
+      expect(mockSupabaseClient.channel).toHaveBeenCalledWith(
+        'session:session-2',
+        expect.any(Object)
+      );
     });
   });
 });
