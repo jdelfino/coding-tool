@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/server/auth/api-helpers';
-import { sessionManagerHolder } from '@/server/session-manager';
+import { getStorage } from '@/server/persistence';
 
 /**
  * GET /api/sessions/:sessionId/details
@@ -21,9 +21,10 @@ export async function GET(
 
     const { sessionId } = await params;
     const user = auth.user;
+    const storage = await getStorage();
 
     // Get the session
-    const session = await sessionManagerHolder.instance.getSession(sessionId);
+    const session = await storage.sessions.getSession(sessionId);
     if (!session) {
       return NextResponse.json(
         { error: 'Session not found' },
@@ -39,8 +40,8 @@ export async function GET(
       );
     }
 
-    // Get all students with their code
-    const students = await sessionManagerHolder.instance.getStudents(sessionId);
+    // Get all students from the session's students map
+    const students = Array.from(session.students.values());
     const studentData = students.map(student => ({
       id: student.id,
       name: student.name,

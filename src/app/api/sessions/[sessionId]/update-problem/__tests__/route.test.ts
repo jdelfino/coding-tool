@@ -1,12 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { POST } from '../route';
 import { getAuthProvider } from '@/server/auth';
-import { getSessionManager } from '@/server/session-manager';
 import type { User } from '@/server/auth/types';
 
 // Mock dependencies
 jest.mock('@/server/auth');
-jest.mock('@/server/session-manager');
+jest.mock('@/server/persistence', () => ({
+  getStorage: jest.fn(),
+}));
+jest.mock('@/server/services/session-service', () => ({
+  updateSessionProblem: jest.fn(),
+}));
+
+import { getStorage } from '@/server/persistence';
+import * as SessionService from '@/server/services/session-service';
 
 describe('POST /api/sessions/[sessionId]/update-problem', () => {
   const mockUser: User = {
@@ -41,7 +48,7 @@ describe('POST /api/sessions/[sessionId]/update-problem', () => {
   };
 
   let mockAuthProvider: any;
-  let mockSessionManager: any;
+  let mockStorage: any;
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -50,21 +57,21 @@ describe('POST /api/sessions/[sessionId]/update-problem', () => {
       getSession: jest.fn(),
     };
 
-    mockSessionManager = {
-      getSession: jest.fn(),
-      updateSessionProblem: jest.fn(),
+    mockStorage = {
+      sessions: {
+        getSession: jest.fn(),
+      },
     };
 
     (getAuthProvider as jest.Mock).mockResolvedValue(mockAuthProvider);
-    (getSessionManager as jest.Mock).mockResolvedValue(mockSessionManager);
+    (getStorage as jest.Mock).mockResolvedValue(mockStorage);
   });
 
   it('updates problem with execution settings', async () => {
     mockAuthProvider.getSession.mockResolvedValue({
       user: mockUser,
     });
-    mockSessionManager.getSession.mockResolvedValue(mockSession);
-    mockSessionManager.updateSessionProblem.mockResolvedValue(true);
+    mockStorage.sessions.getSession.mockResolvedValue(mockSession);
 
     const request = new NextRequest('http://localhost/api/sessions/session-1/update-problem', {
       method: 'POST',
@@ -86,7 +93,8 @@ describe('POST /api/sessions/[sessionId]/update-problem', () => {
     expect(response.status).toBe(200);
     expect(data.success).toBe(true);
     expect(data.message).toContain('Updated Problem');
-    expect(mockSessionManager.updateSessionProblem).toHaveBeenCalledWith(
+    expect(SessionService.updateSessionProblem).toHaveBeenCalledWith(
+      mockStorage,
       'session-1',
       mockProblem,
       mockExecutionSettings
@@ -97,8 +105,7 @@ describe('POST /api/sessions/[sessionId]/update-problem', () => {
     mockAuthProvider.getSession.mockResolvedValue({
       user: mockUser,
     });
-    mockSessionManager.getSession.mockResolvedValue(mockSession);
-    mockSessionManager.updateSessionProblem.mockResolvedValue(true);
+    mockStorage.sessions.getSession.mockResolvedValue(mockSession);
 
     const request = new NextRequest('http://localhost/api/sessions/session-1/update-problem', {
       method: 'POST',
@@ -118,7 +125,8 @@ describe('POST /api/sessions/[sessionId]/update-problem', () => {
 
     expect(response.status).toBe(200);
     expect(data.success).toBe(true);
-    expect(mockSessionManager.updateSessionProblem).toHaveBeenCalledWith(
+    expect(SessionService.updateSessionProblem).toHaveBeenCalledWith(
+      mockStorage,
       'session-1',
       mockProblem,
       undefined
@@ -152,7 +160,7 @@ describe('POST /api/sessions/[sessionId]/update-problem', () => {
     mockAuthProvider.getSession.mockResolvedValue({
       user: studentUser,
     });
-    mockSessionManager.getSession.mockResolvedValue(mockSession);
+    mockStorage.sessions.getSession.mockResolvedValue(mockSession);
 
     const request = new NextRequest('http://localhost/api/sessions/session-1/update-problem', {
       method: 'POST',
@@ -178,7 +186,7 @@ describe('POST /api/sessions/[sessionId]/update-problem', () => {
     mockAuthProvider.getSession.mockResolvedValue({
       user: mockUser,
     });
-    mockSessionManager.getSession.mockResolvedValue(mockSession);
+    mockStorage.sessions.getSession.mockResolvedValue(mockSession);
 
     const request = new NextRequest('http://localhost/api/sessions/session-1/update-problem', {
       method: 'POST',
@@ -202,7 +210,7 @@ describe('POST /api/sessions/[sessionId]/update-problem', () => {
     mockAuthProvider.getSession.mockResolvedValue({
       user: mockUser,
     });
-    mockSessionManager.getSession.mockResolvedValue(null);
+    mockStorage.sessions.getSession.mockResolvedValue(null);
 
     const request = new NextRequest('http://localhost/api/sessions/session-1/update-problem', {
       method: 'POST',
@@ -224,12 +232,12 @@ describe('POST /api/sessions/[sessionId]/update-problem', () => {
     expect(data.error).toBe('Session not found');
   });
 
-  it('returns 500 when update fails', async () => {
+  it('returns 500 when update throws error', async () => {
     mockAuthProvider.getSession.mockResolvedValue({
       user: mockUser,
     });
-    mockSessionManager.getSession.mockResolvedValue(mockSession);
-    mockSessionManager.updateSessionProblem.mockResolvedValue(false);
+    mockStorage.sessions.getSession.mockResolvedValue(mockSession);
+    (SessionService.updateSessionProblem as jest.Mock).mockRejectedValue(new Error('Update failed'));
 
     const request = new NextRequest('http://localhost/api/sessions/session-1/update-problem', {
       method: 'POST',
@@ -248,7 +256,7 @@ describe('POST /api/sessions/[sessionId]/update-problem', () => {
     const data = await response.json();
 
     expect(response.status).toBe(500);
-    expect(data.error).toBe('Failed to update problem in session');
+    expect(data.error).toBe('Internal server error');
   });
 
   it('allows namespace-admin to update problem', async () => {
@@ -256,8 +264,9 @@ describe('POST /api/sessions/[sessionId]/update-problem', () => {
     mockAuthProvider.getSession.mockResolvedValue({
       user: adminUser,
     });
-    mockSessionManager.getSession.mockResolvedValue(mockSession);
-    mockSessionManager.updateSessionProblem.mockResolvedValue(true);
+    mockStorage.sessions.getSession.mockResolvedValue(mockSession);
+    // Reset the mock to resolve successfully
+    (SessionService.updateSessionProblem as jest.Mock).mockResolvedValue(undefined);
 
     const request = new NextRequest('http://localhost/api/sessions/session-1/update-problem', {
       method: 'POST',

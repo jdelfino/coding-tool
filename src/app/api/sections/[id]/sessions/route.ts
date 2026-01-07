@@ -5,7 +5,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthProvider } from '@/server/auth';
 import { getSectionRepository, getMembershipRepository } from '@/server/classes';
-import { getSessionManager } from '@/server/session-manager';
+import { getStorage } from '@/server/persistence';
 
 export async function GET(
   request: NextRequest,
@@ -23,9 +23,9 @@ export async function GET(
     }
 
     const authProvider = await getAuthProvider();
-    const session = await authProvider.getSession(sessionId);
+    const authSession = await authProvider.getSession(sessionId);
 
-    if (!session) {
+    if (!authSession) {
       return NextResponse.json(
         { error: 'Session expired' },
         { status: 401 }
@@ -44,12 +44,12 @@ export async function GET(
 
     // Check if user has access to this section
     // Access granted if: user is a section instructor OR a member (student/instructor)
-    const isInstructor = section.instructorIds.includes(session.user.id);
-    
+    const isInstructor = section.instructorIds.includes(authSession.user.id);
+
     if (!isInstructor) {
       const membershipRepo = await getMembershipRepository();
-      const membership = await membershipRepo.getMembership(session.user.id, id);
-      
+      const membership = await membershipRepo.getMembership(authSession.user.id, id);
+
       if (!membership) {
         return NextResponse.json(
           { error: 'You do not have access to this section' },
@@ -58,9 +58,10 @@ export async function GET(
       }
     }
 
-    // Get sessions for this section
-    const sessionManager = getSessionManager();
-    const sessions = await sessionManager.getSessionsBySection(id);
+    // Get sessions for this section from storage
+    const storage = await getStorage();
+    const allSessions = await storage.sessions.listAllSessions();
+    const sessions = allSessions.filter(s => s.sectionId === id);
 
     return NextResponse.json({ sessions });
   } catch (error) {

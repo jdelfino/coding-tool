@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAuthProvider } from '@/server/auth';
-import { sessionManagerHolder } from '@/server/session-manager';
 import { requireAuth } from '@/server/auth/api-helpers';
+import { getStorage } from '@/server/persistence';
 
 /**
  * GET /api/sessions/history
@@ -23,15 +22,17 @@ export async function GET(request: NextRequest) {
     }
 
     const user = auth.user;
+    const storage = await getStorage();
     let sessions;
 
     // Check permission for viewing sessions
     if (auth.rbac.hasPermission(user, 'session.viewAll')) {
       // Instructors see sessions they created
-      sessions = await sessionManagerHolder.instance.getSessionsByCreator(user.id);
+      sessions = await storage.sessions.listAllSessions({ instructorId: user.id });
     } else if (auth.rbac.hasPermission(user, 'session.viewOwn')) {
       // Students see sessions they participated in
-      sessions = await sessionManagerHolder.instance.getSessionsByParticipant(user.id);
+      const allSessions = await storage.sessions.listAllSessions();
+      sessions = allSessions.filter(s => s.participants.includes(user.id));
     } else {
       return NextResponse.json(
         { error: 'Forbidden: No session view permission' },

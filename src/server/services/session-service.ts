@@ -317,6 +317,38 @@ export async function clearFeaturedSubmission(
 }
 
 // ============================================================================
+// Problem Management
+// ============================================================================
+
+/**
+ * Update the problem in an active session
+ *
+ * @param storage Storage repository
+ * @param sessionId Session to update
+ * @param problem Problem to set (will be cloned)
+ * @param executionSettings Optional execution settings override
+ */
+export async function updateSessionProblem(
+  storage: IStorageRepository,
+  sessionId: string,
+  problem: Problem,
+  executionSettings?: ExecutionSettings
+): Promise<void> {
+  // Clone the problem to avoid mutation
+  const clonedProblem = cloneProblem(problem);
+
+  // Merge executionSettings into the cloned problem
+  if (executionSettings !== undefined) {
+    clonedProblem.executionSettings = executionSettings;
+  }
+
+  await storage.sessions.updateSession(sessionId, {
+    problem: clonedProblem,
+    lastActivity: new Date(),
+  });
+}
+
+// ============================================================================
 // Session Lifecycle
 // ============================================================================
 

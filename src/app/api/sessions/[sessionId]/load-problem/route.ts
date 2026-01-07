@@ -6,7 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthProvider } from '@/server/auth';
 import { getStorage } from '@/server/persistence';
-import { sessionManagerHolder } from '@/server/session-manager';
+import * as SessionService from '@/server/services/session-service';
 
 type Params = {
   params: Promise<{
@@ -16,14 +16,14 @@ type Params = {
 
 /**
  * POST /api/sessions/:sessionId/load-problem
- * 
+ *
  * Load a pre-defined problem into an active session
- * 
+ *
  * Request body:
  * {
  *   problemId: string
  * }
- * 
+ *
  * Response:
  * {
  *   success: boolean,
@@ -36,7 +36,7 @@ export async function POST(
 ) {
   try {
     const { sessionId } = await params;
-    
+
     // Verify authentication
     const cookieSessionId = request.cookies.get('sessionId')?.value;
     if (!cookieSessionId) {
@@ -74,8 +74,11 @@ export async function POST(
       );
     }
 
+    // Get storage
+    const storage = await getStorage();
+
     // Verify session exists
-    const session = await sessionManagerHolder.instance.getSession(sessionId);
+    const session = await storage.sessions.getSession(sessionId);
     if (!session) {
       return NextResponse.json(
         { error: 'Session not found' },
@@ -88,7 +91,6 @@ export async function POST(
     // For now, just check if user is an instructor
 
     // Fetch problem from repository
-    const storage = await getStorage();
     const problem = await storage.problems.getById(problemId);
 
     if (!problem) {
@@ -110,20 +112,13 @@ export async function POST(
       );
     }
 
-    // Load problem into session
-    // SessionManager will clone the problem and broadcast via WebSocket
-    const success = await sessionManagerHolder.instance.updateSessionProblem(
+    // Load problem into session via service
+    await SessionService.updateSessionProblem(
+      storage,
       sessionId,
       problem,
       problem.executionSettings
     );
-
-    if (!success) {
-      return NextResponse.json(
-        { error: 'Failed to load problem into session' },
-        { status: 500 }
-      );
-    }
 
     return NextResponse.json({
       success: true,

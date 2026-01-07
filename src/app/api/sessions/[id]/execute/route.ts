@@ -5,9 +5,10 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUser } from '@/server/auth/api-auth';
-import { getSessionManager } from '@/server/session-manager';
+import { getStorage } from '@/server/persistence';
 import { executeCodeSafe } from '@/server/code-executor';
 import { ExecutionSettings } from '@/server/types/problem';
+import * as SessionService from '@/server/services/session-service';
 
 interface ExecuteCodeBody {
   studentId: string;
@@ -45,9 +46,9 @@ export async function POST(
       );
     }
 
-    // Get session
-    const sessionManager = getSessionManager();
-    const session = await sessionManager.getSession(sessionId);
+    // Get session from storage
+    const storage = await getStorage();
+    const session = await storage.sessions.getSession(sessionId);
 
     if (!session) {
       return NextResponse.json(
@@ -56,13 +57,13 @@ export async function POST(
       );
     }
 
-    // Get student data for their execution settings
-    const studentData = await sessionManager.getStudentData(sessionId, studentId);
+    // Get student data for their execution settings using service
+    const studentData = SessionService.getStudentData(session, studentId);
 
     // Merge execution settings: payload (highest) → student → session (lowest)
     const effectiveSettings: ExecutionSettings = payloadSettings ||
       studentData?.executionSettings ||
-      session.problem.executionSettings ||
+      session.problem?.executionSettings ||
       {};
 
     // Execute code
@@ -72,9 +73,9 @@ export async function POST(
     });
 
     return NextResponse.json(result);
-  } catch (error: any) {
+  } catch (error: unknown) {
     // Handle authentication errors
-    if (error.message === 'Not authenticated') {
+    if (error instanceof Error && error.message === 'Not authenticated') {
       return NextResponse.json(
         { error: 'Not authenticated' },
         { status: 401 }

@@ -5,8 +5,9 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthProvider } from '@/server/auth';
-import { getSessionManager } from '@/server/session-manager';
-import { Problem, ExecutionSettings } from '@/server/types/problem';
+import { getStorage } from '@/server/persistence';
+import { Problem } from '@/server/types/problem';
+import * as SessionService from '@/server/services/session-service';
 
 type Params = {
   params: Promise<{
@@ -76,8 +77,8 @@ export async function POST(
     }
 
     // Verify session exists
-    const sessionManager = await getSessionManager();
-    const session = await sessionManager.getSession(sessionId);
+    const storage = await getStorage();
+    const session = await storage.sessions.getSession(sessionId);
     if (!session) {
       return NextResponse.json(
         { error: 'Session not found' },
@@ -85,19 +86,13 @@ export async function POST(
       );
     }
 
-    // Update the session's problem
-    const success = await sessionManager.updateSessionProblem(
+    // Update the session's problem via service
+    await SessionService.updateSessionProblem(
+      storage,
       sessionId,
       problem as Problem,
       executionSettings
     );
-
-    if (!success) {
-      return NextResponse.json(
-        { error: 'Failed to update problem in session' },
-        { status: 500 }
-      );
-    }
 
     return NextResponse.json({
       success: true,

@@ -5,18 +5,25 @@
 import { NextRequest } from 'next/server';
 import { POST } from '../route';
 import { getAuthenticatedUser } from '@/server/auth/api-auth';
-import { getSessionManager } from '@/server/session-manager';
 import { executeCodeSafe } from '@/server/code-executor';
 import { Session } from '@/server/types';
 import { Problem, ExecutionSettings } from '@/server/types/problem';
 
 // Mock dependencies
 jest.mock('@/server/auth/api-auth');
-jest.mock('@/server/session-manager');
+jest.mock('@/server/persistence', () => ({
+  getStorage: jest.fn(),
+}));
+jest.mock('@/server/services/session-service', () => ({
+  getStudentData: jest.fn(),
+}));
 jest.mock('@/server/code-executor');
 
+import { getStorage } from '@/server/persistence';
+import * as SessionService from '@/server/services/session-service';
+
 const mockGetAuthenticatedUser = getAuthenticatedUser as jest.MockedFunction<typeof getAuthenticatedUser>;
-const mockGetSessionManager = getSessionManager as jest.MockedFunction<typeof getSessionManager>;
+const mockGetStorage = getStorage as jest.MockedFunction<typeof getStorage>;
 const mockExecuteCodeSafe = executeCodeSafe as jest.MockedFunction<typeof executeCodeSafe>;
 
 describe('POST /api/sessions/[id]/execute', () => {
@@ -61,22 +68,25 @@ describe('POST /api/sessions/[id]/execute', () => {
     sectionName: 'Test Section',
   };
 
+  let mockStorage: any;
+
   beforeEach(() => {
     jest.clearAllMocks();
+    mockStorage = {
+      sessions: {
+        getSession: jest.fn(),
+      },
+    };
+    mockGetStorage.mockResolvedValue(mockStorage);
   });
 
   it('should successfully execute code', async () => {
     mockGetAuthenticatedUser.mockResolvedValue(mockUser);
-
-    const mockSessionManager = {
-      getSession: jest.fn().mockResolvedValue(mockSession),
-      getStudentData: jest.fn().mockResolvedValue({
-        code: 'print("Hello")',
-        executionSettings: undefined,
-      }),
-    };
-
-    mockGetSessionManager.mockReturnValue(mockSessionManager as any);
+    mockStorage.sessions.getSession.mockResolvedValue(mockSession);
+    (SessionService.getStudentData as jest.Mock).mockReturnValue({
+      code: 'print("Hello")',
+      executionSettings: undefined,
+    });
 
     const mockResult = {
       success: true,
@@ -112,21 +122,17 @@ describe('POST /api/sessions/[id]/execute', () => {
 
   it('should merge execution settings (student overrides session)', async () => {
     mockGetAuthenticatedUser.mockResolvedValue(mockUser);
+    mockStorage.sessions.getSession.mockResolvedValue(mockSession);
 
     const studentSettings: ExecutionSettings = {
       stdin: 'student stdin',
       randomSeed: 999,
     };
 
-    const mockSessionManager = {
-      getSession: jest.fn().mockResolvedValue(mockSession),
-      getStudentData: jest.fn().mockResolvedValue({
-        code: 'print("Hello")',
-        executionSettings: studentSettings,
-      }),
-    };
-
-    mockGetSessionManager.mockReturnValue(mockSessionManager as any);
+    (SessionService.getStudentData as jest.Mock).mockReturnValue({
+      code: 'print("Hello")',
+      executionSettings: studentSettings,
+    });
 
     const mockResult = {
       success: true,
@@ -157,6 +163,7 @@ describe('POST /api/sessions/[id]/execute', () => {
 
   it('should use payload settings if provided (highest priority)', async () => {
     mockGetAuthenticatedUser.mockResolvedValue(mockUser);
+    mockStorage.sessions.getSession.mockResolvedValue(mockSession);
 
     const studentSettings: ExecutionSettings = {
       stdin: 'student stdin',
@@ -168,15 +175,10 @@ describe('POST /api/sessions/[id]/execute', () => {
       randomSeed: 555,
     };
 
-    const mockSessionManager = {
-      getSession: jest.fn().mockResolvedValue(mockSession),
-      getStudentData: jest.fn().mockResolvedValue({
-        code: 'print("Hello")',
-        executionSettings: studentSettings,
-      }),
-    };
-
-    mockGetSessionManager.mockReturnValue(mockSessionManager as any);
+    (SessionService.getStudentData as jest.Mock).mockReturnValue({
+      code: 'print("Hello")',
+      executionSettings: studentSettings,
+    });
 
     const mockResult = {
       success: true,
@@ -263,12 +265,7 @@ describe('POST /api/sessions/[id]/execute', () => {
 
   it('should return 404 when session not found', async () => {
     mockGetAuthenticatedUser.mockResolvedValue(mockUser);
-
-    const mockSessionManager = {
-      getSession: jest.fn().mockResolvedValue(null),
-    };
-
-    mockGetSessionManager.mockReturnValue(mockSessionManager as any);
+    mockStorage.sessions.getSession.mockResolvedValue(null);
 
     const request = new NextRequest('http://localhost:3000/api/sessions/session-1/execute', {
       method: 'POST',
@@ -288,16 +285,11 @@ describe('POST /api/sessions/[id]/execute', () => {
 
   it('should return 500 on execution error', async () => {
     mockGetAuthenticatedUser.mockResolvedValue(mockUser);
-
-    const mockSessionManager = {
-      getSession: jest.fn().mockResolvedValue(mockSession),
-      getStudentData: jest.fn().mockResolvedValue({
-        code: 'print("Hello")',
-        executionSettings: undefined,
-      }),
-    };
-
-    mockGetSessionManager.mockReturnValue(mockSessionManager as any);
+    mockStorage.sessions.getSession.mockResolvedValue(mockSession);
+    (SessionService.getStudentData as jest.Mock).mockReturnValue({
+      code: 'print("Hello")',
+      executionSettings: undefined,
+    });
 
     mockExecuteCodeSafe.mockRejectedValue(new Error('Execution failed'));
 
