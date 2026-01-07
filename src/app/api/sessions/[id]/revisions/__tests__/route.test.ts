@@ -44,7 +44,7 @@ describe('GET /api/sessions/[sessionId]/revisions', () => {
     jest.clearAllMocks();
 
     mockAuthProvider = {
-      getSession: jest.fn(),
+      getSessionFromRequest: jest.fn(),
     };
 
     mockStorage = {
@@ -58,7 +58,7 @@ describe('GET /api/sessions/[sessionId]/revisions', () => {
   });
 
   it('returns revisions for a student', async () => {
-    mockAuthProvider.getSession.mockResolvedValue({
+    mockAuthProvider.getSessionFromRequest.mockResolvedValue({
       user: mockUser,
     });
     mockStorage.revisions.getRevisions.mockResolvedValue(mockRevisions);
@@ -88,7 +88,7 @@ describe('GET /api/sessions/[sessionId]/revisions', () => {
   });
 
   it('returns empty array when no revisions exist', async () => {
-    mockAuthProvider.getSession.mockResolvedValue({
+    mockAuthProvider.getSessionFromRequest.mockResolvedValue({
       user: mockUser,
     });
     mockStorage.revisions.getRevisions.mockResolvedValue([]);
@@ -114,7 +114,7 @@ describe('GET /api/sessions/[sessionId]/revisions', () => {
   });
 
   it('returns 401 when not authenticated', async () => {
-    mockAuthProvider.getSession.mockResolvedValue(null);
+    mockAuthProvider.getSessionFromRequest.mockResolvedValue(null);
 
     const request = new NextRequest(
       'http://localhost/api/sessions/session-1/revisions?studentId=student-1',
@@ -134,7 +134,7 @@ describe('GET /api/sessions/[sessionId]/revisions', () => {
 
   it('returns 403 when user is a student', async () => {
     const studentUser: User = { ...mockUser, role: 'student' };
-    mockAuthProvider.getSession.mockResolvedValue({
+    mockAuthProvider.getSessionFromRequest.mockResolvedValue({
       user: studentUser,
     });
 
@@ -158,7 +158,7 @@ describe('GET /api/sessions/[sessionId]/revisions', () => {
   });
 
   it('returns 400 when studentId is missing', async () => {
-    mockAuthProvider.getSession.mockResolvedValue({
+    mockAuthProvider.getSessionFromRequest.mockResolvedValue({
       user: mockUser,
     });
 
@@ -182,7 +182,7 @@ describe('GET /api/sessions/[sessionId]/revisions', () => {
   });
 
   it('handles errors when fetching revisions', async () => {
-    mockAuthProvider.getSession.mockResolvedValue({
+    mockAuthProvider.getSessionFromRequest.mockResolvedValue({
       user: mockUser,
     });
     mockStorage.revisions.getRevisions.mockRejectedValue(new Error('Database error'));
@@ -208,7 +208,7 @@ describe('GET /api/sessions/[sessionId]/revisions', () => {
 
   it('allows namespace-admin to fetch revisions', async () => {
     const adminUser: User = { ...mockUser, role: 'namespace-admin' };
-    mockAuthProvider.getSession.mockResolvedValue({
+    mockAuthProvider.getSessionFromRequest.mockResolvedValue({
       user: adminUser,
     });
     mockStorage.revisions.getRevisions.mockResolvedValue([]);

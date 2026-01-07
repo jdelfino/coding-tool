@@ -132,12 +132,12 @@ export class SupabaseAuthProvider implements IAuthProvider {
       }
 
       // 2. Create user_profiles row
+      // Note: email is stored in auth.users, not user_profiles
       const { error: profileError } = await this.serviceRoleClient
         .from('user_profiles')
         .insert({
           id: data.user.id,
           username,
-          email,
           role,
           namespace_id: namespaceId || null,
           display_name: username,

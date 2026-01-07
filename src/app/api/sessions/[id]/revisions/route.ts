@@ -36,17 +36,9 @@ export async function GET(
   try {
     const { id: sessionId } = await params;
 
-    // Verify authentication
-    const cookieSessionId = request.cookies.get('sessionId')?.value;
-    if (!cookieSessionId) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
-
+    // Verify authentication using Supabase session
     const authProvider = await getAuthProvider();
-    const authSession = await authProvider.getSession(cookieSessionId);
+    const authSession = await authProvider.getSessionFromRequest(request);
     if (!authSession || !authSession.user) {
       return NextResponse.json(
         { error: 'Unauthorized' },

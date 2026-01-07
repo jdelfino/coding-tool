@@ -1,6 +1,6 @@
 /**
  * Tests for /api/execute route
- * 
+ *
  * @jest-environment node
  */
 
@@ -16,35 +16,27 @@ jest.mock('@/server/auth');
 const mockExecuteCode = executeCode as jest.MockedFunction<typeof executeCode>;
 const mockGetAuthProvider = getAuthProvider as jest.MockedFunction<typeof getAuthProvider>;
 
+// Helper to create authenticated mock auth provider
+const createMockAuthProvider = (authenticated: boolean) => ({
+  getSessionFromRequest: jest.fn().mockResolvedValue(
+    authenticated
+      ? { user: { id: 'user-123', username: 'testuser', role: 'student' } }
+      : null
+  ),
+});
+
 describe('POST /api/execute', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    // Default to unauthenticated
+    mockGetAuthProvider.mockResolvedValue(createMockAuthProvider(false) as any);
   });
 
-  const createMockRequest = (body: any, sessionId?: string) => {
-    const request = new NextRequest('http://localhost:3000/api/execute', {
+  const createMockRequest = (body: any) => {
+    return new NextRequest('http://localhost:3000/api/execute', {
       method: 'POST',
       body: JSON.stringify(body),
     });
-
-    // Mock cookies
-    if (sessionId) {
-      Object.defineProperty(request, 'cookies', {
-        value: {
-          get: (name: string) => name === 'sessionId' ? { value: sessionId } : undefined,
-        },
-        writable: false,
-      });
-    } else {
-      Object.defineProperty(request, 'cookies', {
-        value: {
-          get: () => undefined,
-        },
-        writable: false,
-      });
-    }
-
-    return request;
   };
 
   it('should return 401 if user is not authenticated', async () => {
@@ -59,11 +51,9 @@ describe('POST /api/execute', () => {
   });
 
   it('should return 401 if session is invalid', async () => {
-    mockGetAuthProvider.mockResolvedValue({
-      getSession: jest.fn().mockResolvedValue(null),
-    } as any);
+    mockGetAuthProvider.mockResolvedValue(createMockAuthProvider(false) as any);
 
-    const request = createMockRequest({ code: 'print("hello")' }, 'invalid-session');
+    const request = createMockRequest({ code: 'print("hello")' });
 
     const response = await POST(request);
     const data = await response.json();
@@ -74,14 +64,9 @@ describe('POST /api/execute', () => {
   });
 
   it('should return 400 if code is missing', async () => {
-    mockGetAuthProvider.mockResolvedValue({
-      getSession: jest.fn().mockResolvedValue({
-        userId: 'user-123',
-        expiresAt: Date.now() + 3600000,
-      }),
-    } as any);
+    mockGetAuthProvider.mockResolvedValue(createMockAuthProvider(true) as any);
 
-    const request = createMockRequest({}, 'session-123');
+    const request = createMockRequest({});
 
     const response = await POST(request);
     const data = await response.json();
@@ -92,12 +77,7 @@ describe('POST /api/execute', () => {
   });
 
   it('should execute code and return results', async () => {
-    mockGetAuthProvider.mockResolvedValue({
-      getSession: jest.fn().mockResolvedValue({
-        userId: 'user-123',
-        expiresAt: Date.now() + 3600000,
-      }),
-    } as any);
+    mockGetAuthProvider.mockResolvedValue(createMockAuthProvider(true) as any);
 
     mockExecuteCode.mockResolvedValue({
       success: true,
@@ -109,7 +89,7 @@ describe('POST /api/execute', () => {
 
     const request = createMockRequest({
       code: 'print("Hello, World!")',
-    }, 'session-123');
+    });
 
     const response = await POST(request);
     const data = await response.json();
@@ -132,12 +112,7 @@ describe('POST /api/execute', () => {
   });
 
   it('should execute code with stdin and randomSeed', async () => {
-    mockGetAuthProvider.mockResolvedValue({
-      getSession: jest.fn().mockResolvedValue({
-        userId: 'user-123',
-        expiresAt: Date.now() + 3600000,
-      }),
-    } as any);
+    mockGetAuthProvider.mockResolvedValue(createMockAuthProvider(true) as any);
 
     mockExecuteCode.mockResolvedValue({
       success: true,
@@ -151,7 +126,7 @@ describe('POST /api/execute', () => {
       code: 'import random\nprint(random.randint(1, 100))',
       stdin: 'test input',
       randomSeed: 42,
-    }, 'session-123');
+    });
 
     const response = await POST(request);
     const data = await response.json();
@@ -172,12 +147,7 @@ describe('POST /api/execute', () => {
   });
 
   it('should execute code with attached files', async () => {
-    mockGetAuthProvider.mockResolvedValue({
-      getSession: jest.fn().mockResolvedValue({
-        userId: 'user-123',
-        expiresAt: Date.now() + 3600000,
-      }),
-    } as any);
+    mockGetAuthProvider.mockResolvedValue(createMockAuthProvider(true) as any);
 
     mockExecuteCode.mockResolvedValue({
       success: true,
@@ -194,7 +164,7 @@ describe('POST /api/execute', () => {
     const request = createMockRequest({
       code: 'with open("data.txt") as f:\n    print(f.read())',
       attachedFiles,
-    }, 'session-123');
+    });
 
     const response = await POST(request);
     const data = await response.json();
@@ -215,12 +185,7 @@ describe('POST /api/execute', () => {
   });
 
   it('should handle execution errors', async () => {
-    mockGetAuthProvider.mockResolvedValue({
-      getSession: jest.fn().mockResolvedValue({
-        userId: 'user-123',
-        expiresAt: Date.now() + 3600000,
-      }),
-    } as any);
+    mockGetAuthProvider.mockResolvedValue(createMockAuthProvider(true) as any);
 
     mockExecuteCode.mockResolvedValue({
       success: false,
@@ -232,7 +197,7 @@ describe('POST /api/execute', () => {
 
     const request = createMockRequest({
       code: 'print(x)',
-    }, 'session-123');
+    });
 
     const response = await POST(request);
     const data = await response.json();
@@ -243,12 +208,7 @@ describe('POST /api/execute', () => {
   });
 
   it('should respect custom timeout', async () => {
-    mockGetAuthProvider.mockResolvedValue({
-      getSession: jest.fn().mockResolvedValue({
-        userId: 'user-123',
-        expiresAt: Date.now() + 3600000,
-      }),
-    } as any);
+    mockGetAuthProvider.mockResolvedValue(createMockAuthProvider(true) as any);
 
     mockExecuteCode.mockResolvedValue({
       success: false,
@@ -261,7 +221,7 @@ describe('POST /api/execute', () => {
     const request = createMockRequest({
       code: 'import time\ntime.sleep(10)',
       timeout: 5000,
-    }, 'session-123');
+    });
 
     const response = await POST(request);
 
@@ -280,18 +240,13 @@ describe('POST /api/execute', () => {
   });
 
   it('should handle unexpected errors', async () => {
-    mockGetAuthProvider.mockResolvedValue({
-      getSession: jest.fn().mockResolvedValue({
-        userId: 'user-123',
-        expiresAt: Date.now() + 3600000,
-      }),
-    } as any);
+    mockGetAuthProvider.mockResolvedValue(createMockAuthProvider(true) as any);
 
     mockExecuteCode.mockRejectedValue(new Error('Unexpected error'));
 
     const request = createMockRequest({
       code: 'print("test")',
-    }, 'session-123');
+    });
 
     const response = await POST(request);
     const data = await response.json();

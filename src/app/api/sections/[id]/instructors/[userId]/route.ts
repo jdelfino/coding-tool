@@ -12,21 +12,14 @@ export async function DELETE(
 ) {
   try {
     const { id: sectionId, userId } = await params;
-    const sessionId = request.cookies.get('sessionId')?.value;
 
-    if (!sessionId) {
+    // Authenticate using Supabase session from request
+    const authProvider = await getAuthProvider();
+    const session = await authProvider.getSessionFromRequest(request);
+
+    if (!session || !session.user) {
       return NextResponse.json(
         { error: 'Not authenticated' },
-        { status: 401 }
-      );
-    }
-
-    const authProvider = await getAuthProvider();
-    const session = await authProvider.getSession(sessionId);
-
-    if (!session) {
-      return NextResponse.json(
-        { error: 'Session expired' },
         { status: 401 }
       );
     }

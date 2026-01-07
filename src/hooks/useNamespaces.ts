@@ -17,7 +17,7 @@ export interface UseNamespacesResult {
   updateNamespace: (id: string, updates: { displayName?: string; active?: boolean }) => Promise<Namespace>;
   deleteNamespace: (id: string) => Promise<void>;
   getNamespaceUsers: (namespaceId: string) => Promise<User[]>;
-  createUser: (namespaceId: string, username: string, role: 'namespace-admin' | 'instructor' | 'student') => Promise<User>;
+  createUser: (namespaceId: string, email: string, username: string, password: string, role: 'namespace-admin' | 'instructor' | 'student') => Promise<User>;
   updateUserRole: (userId: string, role: 'namespace-admin' | 'instructor' | 'student') => Promise<User>;
   deleteUser: (userId: string) => Promise<void>;
 }
@@ -185,7 +185,9 @@ export function useNamespaces(): UseNamespacesResult {
    */
   const createUser = useCallback(async (
     namespaceId: string,
+    email: string,
     username: string,
+    password: string,
     role: 'namespace-admin' | 'instructor' | 'student'
   ): Promise<User> => {
     setLoading(true);
@@ -194,7 +196,7 @@ export function useNamespaces(): UseNamespacesResult {
       const response = await fetch(`/api/system/namespaces/${namespaceId}/users`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, role }),
+        body: JSON.stringify({ email, username, password, role }),
       });
 
       if (!response.ok) {

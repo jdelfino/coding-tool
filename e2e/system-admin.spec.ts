@@ -54,9 +54,15 @@ describeE2E('System Admin Core Flows', () => {
     await expect(page.locator('h3:has-text("Test Organization")').first()).toBeVisible();
 
     // Click "Manage Users" for the new namespace specifically
-    // The namespace card shows "Test Organization" as h3, find its sibling Manage Users button
-    const newNamespaceCard = page.locator('h3:has-text("Test Organization")').locator('..').locator('..');
-    await newNamespaceCard.getByRole('button', { name: 'Manage Users' }).click();
+    // Wait for our namespace to appear and scroll it into view if needed
+    await page.locator(`text=${namespaceId}`).scrollIntoViewIfNeeded();
+
+    // Find the card containing our namespace ID and click its Manage Users button
+    // Use a more direct selector approach
+    const manageUsersButtons = await page.locator('button:has-text("Manage Users")').all();
+    // Our namespace should be the last one created (most recent)
+    const lastButton = manageUsersButtons[manageUsersButtons.length - 1];
+    await lastButton.click();
 
     // Should navigate to user management page
     await expect(page).toHaveURL(`/system/namespaces/${namespaceId}`);
@@ -66,10 +72,14 @@ describeE2E('System Admin Core Flows', () => {
     await page.click('button:has-text("Create New User")');
 
     // Wait for form to appear
-    await expect(page.locator('input[placeholder="Enter username"]')).toBeVisible();
+    await expect(page.locator('input[placeholder="Enter email"]')).toBeVisible();
 
     const testUsername = `testuser-${Date.now()}`;
+    const testEmail = `${testUsername}@test.local`;
+    const testPassword = 'TestPassword123!';
+    await page.locator('input[placeholder="Enter email"]').fill(testEmail);
     await page.locator('input[placeholder="Enter username"]').fill(testUsername);
+    await page.locator('input[placeholder="Enter password"]').fill(testPassword);
     await page.selectOption('select', 'instructor');
 
     // Listen for the API response
@@ -88,7 +98,7 @@ describeE2E('System Admin Core Flows', () => {
     }
 
     // Wait for form to close (user created successfully)
-    await expect(page.locator('input[placeholder="Enter username"]')).not.toBeVisible({ timeout: 5000 });
+    await expect(page.locator('input[placeholder="Enter email"]')).not.toBeVisible({ timeout: 5000 });
 
     // Reload the page to force a fresh fetch
     await page.reload();

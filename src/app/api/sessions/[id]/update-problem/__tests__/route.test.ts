@@ -54,7 +54,7 @@ describe('POST /api/sessions/[sessionId]/update-problem', () => {
     jest.clearAllMocks();
 
     mockAuthProvider = {
-      getSession: jest.fn(),
+      getSessionFromRequest: jest.fn(),
     };
 
     mockStorage = {
@@ -68,7 +68,7 @@ describe('POST /api/sessions/[sessionId]/update-problem', () => {
   });
 
   it('updates problem with execution settings', async () => {
-    mockAuthProvider.getSession.mockResolvedValue({
+    mockAuthProvider.getSessionFromRequest.mockResolvedValue({
       user: mockUser,
     });
     mockStorage.sessions.getSession.mockResolvedValue(mockSession);
@@ -102,7 +102,7 @@ describe('POST /api/sessions/[sessionId]/update-problem', () => {
   });
 
   it('updates problem without execution settings', async () => {
-    mockAuthProvider.getSession.mockResolvedValue({
+    mockAuthProvider.getSessionFromRequest.mockResolvedValue({
       user: mockUser,
     });
     mockStorage.sessions.getSession.mockResolvedValue(mockSession);
@@ -134,7 +134,7 @@ describe('POST /api/sessions/[sessionId]/update-problem', () => {
   });
 
   it('returns 401 when not authenticated', async () => {
-    mockAuthProvider.getSession.mockResolvedValue(null);
+    mockAuthProvider.getSessionFromRequest.mockResolvedValue(null);
 
     const request = new NextRequest('http://localhost/api/sessions/session-1/update-problem', {
       method: 'POST',
@@ -157,7 +157,7 @@ describe('POST /api/sessions/[sessionId]/update-problem', () => {
 
   it('returns 403 when user is not an instructor', async () => {
     const studentUser: User = { ...mockUser, role: 'student' };
-    mockAuthProvider.getSession.mockResolvedValue({
+    mockAuthProvider.getSessionFromRequest.mockResolvedValue({
       user: studentUser,
     });
     mockStorage.sessions.getSession.mockResolvedValue(mockSession);
@@ -183,7 +183,7 @@ describe('POST /api/sessions/[sessionId]/update-problem', () => {
   });
 
   it('returns 400 when problem is missing', async () => {
-    mockAuthProvider.getSession.mockResolvedValue({
+    mockAuthProvider.getSessionFromRequest.mockResolvedValue({
       user: mockUser,
     });
     mockStorage.sessions.getSession.mockResolvedValue(mockSession);
@@ -207,7 +207,7 @@ describe('POST /api/sessions/[sessionId]/update-problem', () => {
   });
 
   it('returns 404 when session not found', async () => {
-    mockAuthProvider.getSession.mockResolvedValue({
+    mockAuthProvider.getSessionFromRequest.mockResolvedValue({
       user: mockUser,
     });
     mockStorage.sessions.getSession.mockResolvedValue(null);
@@ -233,7 +233,7 @@ describe('POST /api/sessions/[sessionId]/update-problem', () => {
   });
 
   it('returns 500 when update throws error', async () => {
-    mockAuthProvider.getSession.mockResolvedValue({
+    mockAuthProvider.getSessionFromRequest.mockResolvedValue({
       user: mockUser,
     });
     mockStorage.sessions.getSession.mockResolvedValue(mockSession);
@@ -261,7 +261,7 @@ describe('POST /api/sessions/[sessionId]/update-problem', () => {
 
   it('allows namespace-admin to update problem', async () => {
     const adminUser: User = { ...mockUser, role: 'namespace-admin' };
-    mockAuthProvider.getSession.mockResolvedValue({
+    mockAuthProvider.getSessionFromRequest.mockResolvedValue({
       user: adminUser,
     });
     mockStorage.sessions.getSession.mockResolvedValue(mockSession);

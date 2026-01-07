@@ -25,18 +25,10 @@ import { getAuthProvider } from '@/server/auth';
 
 export async function POST(request: NextRequest) {
   try {
-    // Verify user is authenticated
-    const sessionId = request.cookies.get('sessionId')?.value;
-    if (!sessionId) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
-
+    // Verify user is authenticated using Supabase session
     const authProvider = await getAuthProvider();
-    const session = await authProvider.getSession(sessionId);
-    if (!session) {
+    const session = await authProvider.getSessionFromRequest(request);
+    if (!session || !session.user) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }

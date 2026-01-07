@@ -12,19 +12,10 @@ import * as SessionService from '@/server/services/session-service';
 
 export async function POST(request: NextRequest) {
   try {
-    // Check authentication and authorization - require admin or instructor
-    // (Instructors can clear data for development/testing purposes)
-    const sessionId = request.cookies.get('sessionId')?.value;
-    if (!sessionId) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
-
+    // Check authentication and authorization using Supabase session
     const authProvider = await getAuthProvider();
-    const session = await authProvider.getSession(sessionId);
-    if (!session) {
+    const session = await authProvider.getSessionFromRequest(request);
+    if (!session || !session.user) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }

@@ -30,7 +30,9 @@ export default function NamespaceUsersPage() {
   const [namespace, setNamespace] = useState<Namespace | null>(null);
   const [users, setUsers] = useState<User[]>([]);
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [newEmail, setNewEmail] = useState('');
   const [newUsername, setNewUsername] = useState('');
+  const [newPassword, setNewPassword] = useState('');
   const [newUserRole, setNewUserRole] = useState<'namespace-admin' | 'instructor' | 'student'>('student');
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
   const [editingRole, setEditingRole] = useState<'namespace-admin' | 'instructor' | 'student'>('student');
@@ -72,12 +74,14 @@ export default function NamespaceUsersPage() {
     e.preventDefault();
     setActionError(null);
 
-    if (!newUsername.trim()) return;
+    if (!newEmail.trim() || !newUsername.trim() || !newPassword.trim()) return;
 
     try {
-      await createUser(namespaceId, newUsername.trim(), newUserRole);
+      await createUser(namespaceId, newEmail.trim(), newUsername.trim(), newPassword, newUserRole);
       await fetchData();
+      setNewEmail('');
       setNewUsername('');
+      setNewPassword('');
       setNewUserRole('student');
       setShowCreateForm(false);
     } catch (err) {
@@ -199,6 +203,27 @@ export default function NamespaceUsersPage() {
           <form onSubmit={handleCreateUser}>
             <div style={{ marginBottom: '1rem' }}>
               <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>
+                Email
+              </label>
+              <input
+                type="email"
+                value={newEmail}
+                onChange={(e) => setNewEmail(e.target.value)}
+                placeholder="Enter email"
+                disabled={loading}
+                style={{
+                  width: '100%',
+                  padding: '0.5rem',
+                  border: '1px solid #dee2e6',
+                  borderRadius: '4px',
+                  fontSize: '1rem',
+                  boxSizing: 'border-box'
+                }}
+              />
+            </div>
+
+            <div style={{ marginBottom: '1rem' }}>
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>
                 Username
               </label>
               <input
@@ -206,6 +231,27 @@ export default function NamespaceUsersPage() {
                 value={newUsername}
                 onChange={(e) => setNewUsername(e.target.value)}
                 placeholder="Enter username"
+                disabled={loading}
+                style={{
+                  width: '100%',
+                  padding: '0.5rem',
+                  border: '1px solid #dee2e6',
+                  borderRadius: '4px',
+                  fontSize: '1rem',
+                  boxSizing: 'border-box'
+                }}
+              />
+            </div>
+
+            <div style={{ marginBottom: '1rem' }}>
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>
+                Password
+              </label>
+              <input
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="Enter password"
                 disabled={loading}
                 style={{
                   width: '100%',
@@ -243,14 +289,14 @@ export default function NamespaceUsersPage() {
             <div style={{ display: 'flex', gap: '0.5rem' }}>
               <button
                 type="submit"
-                disabled={loading || !newUsername.trim()}
+                disabled={loading || !newEmail.trim() || !newUsername.trim() || !newPassword.trim()}
                 style={{
                   padding: '0.5rem 1rem',
-                  background: loading || !newUsername.trim() ? '#ccc' : '#0070f3',
+                  background: loading || !newEmail.trim() || !newUsername.trim() || !newPassword.trim() ? '#ccc' : '#0070f3',
                   color: 'white',
                   border: 'none',
                   borderRadius: '4px',
-                  cursor: loading || !newUsername.trim() ? 'not-allowed' : 'pointer',
+                  cursor: loading || !newEmail.trim() || !newUsername.trim() || !newPassword.trim() ? 'not-allowed' : 'pointer',
                   fontWeight: '500'
                 }}
               >
@@ -260,7 +306,9 @@ export default function NamespaceUsersPage() {
                 type="button"
                 onClick={() => {
                   setShowCreateForm(false);
+                  setNewEmail('');
                   setNewUsername('');
+                  setNewPassword('');
                   setNewUserRole('student');
                 }}
                 disabled={loading}

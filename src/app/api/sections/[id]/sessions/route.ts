@@ -13,21 +13,14 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const sessionId = request.cookies.get('sessionId')?.value;
 
-    if (!sessionId) {
+    // Authenticate using Supabase session from request
+    const authProvider = await getAuthProvider();
+    const authSession = await authProvider.getSessionFromRequest(request);
+
+    if (!authSession || !authSession.user) {
       return NextResponse.json(
         { error: 'Not authenticated' },
-        { status: 401 }
-      );
-    }
-
-    const authProvider = await getAuthProvider();
-    const authSession = await authProvider.getSession(sessionId);
-
-    if (!authSession) {
-      return NextResponse.json(
-        { error: 'Session expired' },
         { status: 401 }
       );
     }

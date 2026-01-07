@@ -28,7 +28,7 @@ import type { Session } from '@/server/types';
 
 describe('POST /api/sessions/:sessionId/load-problem', () => {
   const mockAuthProvider = {
-    getSession: jest.fn(),
+    getSessionFromRequest: jest.fn(),
   };
 
   const mockStorage = {
@@ -123,7 +123,7 @@ describe('POST /api/sessions/:sessionId/load-problem', () => {
   describe('Success cases', () => {
     it('should successfully load a problem into a session', async () => {
       // Setup mocks
-      mockAuthProvider.getSession.mockResolvedValue({
+      mockAuthProvider.getSessionFromRequest.mockResolvedValue({
         id: 'auth-session-123',
         user: mockInstructor,
       });
@@ -155,6 +155,9 @@ describe('POST /api/sessions/:sessionId/load-problem', () => {
 
   describe('Authentication errors', () => {
     it('should return 401 when no session cookie present', async () => {
+      // Mock no authentication
+      mockAuthProvider.getSessionFromRequest.mockResolvedValue(null);
+
       const headers = new Headers();
       const request = new NextRequest('http://localhost:3000/api/sessions/session-123/load-problem', {
         method: 'POST',
@@ -172,7 +175,7 @@ describe('POST /api/sessions/:sessionId/load-problem', () => {
     });
 
     it('should return 401 when session is invalid', async () => {
-      mockAuthProvider.getSession.mockResolvedValue(null);
+      mockAuthProvider.getSessionFromRequest.mockResolvedValue(null);
 
       const request = createRequest({ problemId: 'problem-123' });
       const response = await POST(request, {
@@ -185,7 +188,7 @@ describe('POST /api/sessions/:sessionId/load-problem', () => {
     });
 
     it('should return 403 when user is not an instructor', async () => {
-      mockAuthProvider.getSession.mockResolvedValue({
+      mockAuthProvider.getSessionFromRequest.mockResolvedValue({
         id: 'auth-session-123',
         user: mockStudent,
       });
@@ -203,7 +206,7 @@ describe('POST /api/sessions/:sessionId/load-problem', () => {
 
   describe('Validation errors', () => {
     beforeEach(() => {
-      mockAuthProvider.getSession.mockResolvedValue({
+      mockAuthProvider.getSessionFromRequest.mockResolvedValue({
         id: 'auth-session-123',
         user: mockInstructor,
       });
@@ -234,7 +237,7 @@ describe('POST /api/sessions/:sessionId/load-problem', () => {
 
   describe('Not found errors', () => {
     beforeEach(() => {
-      mockAuthProvider.getSession.mockResolvedValue({
+      mockAuthProvider.getSessionFromRequest.mockResolvedValue({
         id: 'auth-session-123',
         user: mockInstructor,
       });
@@ -270,7 +273,7 @@ describe('POST /api/sessions/:sessionId/load-problem', () => {
 
   describe('Permission errors', () => {
     beforeEach(() => {
-      mockAuthProvider.getSession.mockResolvedValue({
+      mockAuthProvider.getSessionFromRequest.mockResolvedValue({
         id: 'auth-session-123',
         user: mockInstructor,
       });
@@ -297,7 +300,7 @@ describe('POST /api/sessions/:sessionId/load-problem', () => {
 
   describe('Server errors', () => {
     beforeEach(() => {
-      mockAuthProvider.getSession.mockResolvedValue({
+      mockAuthProvider.getSessionFromRequest.mockResolvedValue({
         id: 'auth-session-123',
         user: mockInstructor,
       });
