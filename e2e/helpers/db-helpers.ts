@@ -1,11 +1,4 @@
-import * as fs from 'fs';
-import * as path from 'path';
 import { createClient } from '@supabase/supabase-js';
-
-/**
- * Path to the data directory
- */
-const DATA_DIR = path.join(process.cwd(), 'data');
 
 /**
  * Base URL for API calls
@@ -13,13 +6,22 @@ const DATA_DIR = path.join(process.cwd(), 'data');
 const API_BASE_URL = process.env.PLAYWRIGHT_TEST_BASE_URL || 'http://localhost:3000';
 
 /**
+ * Check if Supabase credentials are available
+ */
+export function hasSupabaseCredentials(): boolean {
+  return Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY);
+}
+
+/**
  * Supabase client for E2E tests (uses service role key for admin operations)
+ * Returns null if Supabase credentials are not available
  */
 function getSupabaseClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'http://127.0.0.1:54321';
   const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!supabaseServiceKey) {
+    console.warn('SUPABASE_SERVICE_ROLE_KEY not set - E2E tests require Supabase');
     throw new Error('SUPABASE_SERVICE_ROLE_KEY environment variable is required for E2E tests');
   }
 
@@ -32,46 +34,49 @@ function getSupabaseClient() {
 }
 
 /**
- * Clears all test data by resetting data directory to empty state
- * Creates empty JSON files with empty objects/arrays
- *
- * Note: This clears files directly. The Next.js server needs to restart
- * or reload data to see these changes.
+ * Clears all test data from Supabase
+ * Deletes test users (identified by @test.local email suffix) which
+ * cascades to user_profiles and other related data.
  */
 export async function clearTestData(): Promise<void> {
-  const dataFiles = [
-    'users.json',
-    'auth-sessions.json',
-    'classes.json',
-    'sections.json',
-    'memberships.json',
-    'sessions.json',
-    'revisions.json',
-    'namespaces.json'  // Add namespaces to clear
-  ];
+  try {
+    const supabase = getSupabaseClient();
 
-  for (const file of dataFiles) {
-    const filePath = path.join(DATA_DIR, file);
-    await fs.promises.writeFile(filePath, '{}', 'utf-8');
-  }
+    // Delete all test users (identified by @test.local email)
+    // This cascades to user_profiles and related data
+    const { data: users, error: listError } = await supabase.auth.admin.listUsers();
 
-  // Clear problems directory
-  const problemsDir = path.join(DATA_DIR, 'problems');
-  if (fs.existsSync(problemsDir)) {
-    const files = await fs.promises.readdir(problemsDir);
-    for (const file of files) {
-      await fs.promises.unlink(path.join(problemsDir, file));
+    if (listError) {
+      console.warn('Failed to list users for cleanup:', listError.message);
+      return;
     }
-  } else {
-    await fs.promises.mkdir(problemsDir, { recursive: true });
-  }
 
-  // Create empty problem index
-  const problemIndexPath = path.join(problemsDir, 'index.json');
-  await fs.promises.writeFile(problemIndexPath, JSON.stringify({
-    problems: [],
-    lastModified: new Date().toISOString()
-  }, null, 2), 'utf-8');
+    // Delete test users
+    const testUsers = users.users.filter(u =>
+      u.email?.endsWith('@test.local') ||
+      u.email?.endsWith('@integration-test.local')
+    );
+
+    for (const user of testUsers) {
+      await supabase.auth.admin.deleteUser(user.id);
+    }
+
+    if (testUsers.length > 0) {
+      console.log(`Cleared ${testUsers.length} test users`);
+    }
+
+    // Clear sessions and session_students (test data that might be left over)
+    await supabase.from('session_students').delete().neq('session_id', '');
+    await supabase.from('sessions').delete().neq('id', '');
+    await supabase.from('revisions').delete().neq('session_id', '');
+
+    // Note: We don't delete namespaces here as they may be needed for tests
+    // Test namespaces are cleaned up by cleanupNamespace() after each test
+
+  } catch (error) {
+    console.warn('Error clearing test data:', error);
+    // Don't throw - cleanup failures shouldn't fail test setup
+  }
 }
 
 /**

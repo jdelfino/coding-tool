@@ -6,16 +6,23 @@
  * 2. Create user within namespace and manage their role
  *
  * These tests are intentionally minimal to reduce maintenance burden.
+ *
+ * NOTE: These tests require Supabase to be running with proper credentials.
+ * They will be skipped if SUPABASE_SERVICE_ROLE_KEY is not set.
  */
 
 import { test, expect } from './helpers/setup';
-import { 
+import { hasSupabaseCredentials } from './helpers/db-helpers';
+import {
   loginAsSystemAdmin,
   generateTestNamespaceId,
-  cleanupNamespace 
+  cleanupNamespace
 } from './fixtures/auth-helpers';
 
-test.describe('System Admin Core Flows', () => {
+// Skip E2E tests if Supabase is not configured
+const describeE2E = hasSupabaseCredentials() ? test.describe : test.describe.skip;
+
+describeE2E('System Admin Core Flows', () => {
   test('System admin can create namespace and manage users', async ({ page }) => {
     // Generate unique namespace ID for this test
     const namespaceId = generateTestNamespaceId();

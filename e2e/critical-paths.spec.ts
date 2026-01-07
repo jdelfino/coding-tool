@@ -1,4 +1,5 @@
 import { test, expect } from './helpers/setup';
+import { hasSupabaseCredentials } from './helpers/db-helpers';
 import {
   loginAsInstructor,
   loginAsStudent,
@@ -18,9 +19,15 @@ import {
  *
  * This is the most important test to maintain - it verifies the core
  * functionality that users depend on from start to finish.
+ *
+ * NOTE: These tests require Supabase to be running with proper credentials.
+ * They will be skipped if SUPABASE_SERVICE_ROLE_KEY is not set.
  */
 
-test.describe('Critical User Paths', () => {
+// Skip E2E tests if Supabase is not configured
+const describeE2E = hasSupabaseCredentials() ? test.describe : test.describe.skip;
+
+describeE2E('Critical User Paths', () => {
   test('Complete workflow: Instructor setup and student participation', async ({ page, browser }) => {
     // Create unique namespace for this test
     const namespaceId = generateTestNamespaceId();

@@ -47,17 +47,6 @@ jest.mock('@/hooks/useDebugger', () => ({
   })
 }));
 
-// Mock useWebSocket hook
-jest.mock('@/hooks/useWebSocket', () => ({
-  useWebSocket: () => ({
-    isConnected: false,
-    connectionStatus: 'disconnected',
-    connectionError: null,
-    lastMessage: null,
-    sendMessage: jest.fn()
-  })
-}));
-
 // Mock useResponsiveLayout
 jest.mock('@/hooks/useResponsiveLayout', () => ({
   useResponsiveLayout: () => true,
