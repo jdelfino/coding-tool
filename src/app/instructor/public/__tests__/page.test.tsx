@@ -177,11 +177,11 @@ describe('PublicInstructorView', () => {
       expect(mockSupabase.channel).toHaveBeenCalledWith('public-view-test-session-id');
     });
 
-    // Verify subscription to postgres_changes
+    // Verify subscription to postgres_changes for UPDATE events
     expect(mockChannel.on).toHaveBeenCalledWith(
       'postgres_changes',
       expect.objectContaining({
-        event: '*',
+        event: 'UPDATE',
         schema: 'public',
         table: 'sessions',
         filter: 'id=eq.test-session-id',

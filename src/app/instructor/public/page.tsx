@@ -59,19 +59,22 @@ function PublicViewContent() {
       .on(
         'postgres_changes',
         {
-          event: '*',
+          event: 'UPDATE',
           schema: 'public',
           table: 'sessions',
           filter: `id=eq.${sessionId}`,
         },
         (payload) => {
-          console.log('[PublicView] Session updated:', payload);
+          console.log('[PublicView] Session UPDATE received:', payload);
           // Re-fetch state when session changes
           fetchState();
         }
       )
-      .subscribe((status) => {
-        console.log('[PublicView] Realtime status:', status);
+      .subscribe((status, err) => {
+        console.log('[PublicView] Realtime subscription status:', status);
+        if (err) {
+          console.error('[PublicView] Realtime subscription error:', err);
+        }
       });
 
     return () => {

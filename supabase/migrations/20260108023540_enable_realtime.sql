@@ -7,3 +7,8 @@
 ALTER PUBLICATION supabase_realtime ADD TABLE sessions;
 ALTER PUBLICATION supabase_realtime ADD TABLE session_students;
 ALTER PUBLICATION supabase_realtime ADD TABLE revisions;
+
+-- Set REPLICA IDENTITY FULL for tables that need UPDATE events
+-- This is required for Realtime to broadcast full row data on updates
+ALTER TABLE sessions REPLICA IDENTITY FULL;
+ALTER TABLE session_students REPLICA IDENTITY FULL;
