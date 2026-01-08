@@ -24,7 +24,7 @@ interface UseSectionsReturn {
 
 export function useSections(): UseSectionsReturn {
   const [sections, setSections] = useState<SectionWithClass[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true); // Start true to prevent flash of "No sections"
   const [error, setError] = useState<string | null>(null);
 
   const fetchMySections = useCallback(async () => {

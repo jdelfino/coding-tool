@@ -101,15 +101,19 @@ describeE2E('Critical User Paths', () => {
       // Join section with join code
       const joinSectionButton = page.locator('button:has-text("Join Section"), button:has-text("Join Your First Section")').first();
       await joinSectionButton.click();
+      // Wait for navigation to join page
+      await expect(page).toHaveURL('/sections/join', { timeout: 5000 });
       await expect(page.locator('h2:has-text("Join a Section")')).toBeVisible({ timeout: 5000 });
       console.log('Entering join code:', joinCode);
       await page.fill('input#joinCode', joinCode);
       await page.click('button[type="submit"]:has-text("Join Section")');
 
       // Wait for redirect back to sections page after successful join
+      await expect(page).toHaveURL('/sections', { timeout: 5000 });
       await expect(page.locator('h1:has-text("My Sections")')).toBeVisible({ timeout: 5000 });
 
-      // The active session should be visible - look for "Join Now" button
+      // Wait for the section card with active session to load
+      // The "Join Now" button appears when session data is loaded
       const joinNowButton = page.locator('button:has-text("Join Now")');
       await expect(joinNowButton).toBeVisible({ timeout: 10000 });
 

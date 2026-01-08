@@ -51,10 +51,9 @@ export async function GET(
       }
     }
 
-    // Get sessions for this section from storage
+    // Get sessions for this section from storage (filter at DB level for performance)
     const storage = await getStorage();
-    const allSessions = await storage.sessions.listAllSessions();
-    const sessions = allSessions.filter(s => s.sectionId === id);
+    const sessions = await storage.sessions.listAllSessions({ sectionId: id });
 
     return NextResponse.json({ sessions });
   } catch (error) {

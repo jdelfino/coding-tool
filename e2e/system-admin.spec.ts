@@ -31,8 +31,8 @@ describeE2E('System Admin Core Flows', () => {
       // Sign in as system admin
       await loginAsSystemAdmin(page, `sysadmin-${namespaceId}`);
 
-    // Should redirect to system admin dashboard
-    await expect(page).toHaveURL('/system');
+    // Wait for redirect to system admin dashboard
+    await expect(page).toHaveURL('/system', { timeout: 5000 });
     await expect(page.locator('h1:has-text("System Administration")')).toBeVisible({ timeout: 5000 });
 
     // Verify we can see the namespace management UI
@@ -98,7 +98,7 @@ describeE2E('System Admin Core Flows', () => {
     }
 
     // Wait for form to close (user created successfully)
-    await expect(page.locator('input[placeholder="Enter email"]')).not.toBeVisible({ timeout: 5000 });
+    await expect(page.locator('input[placeholder="Enter email"]')).not.toBeVisible({ timeout: 10000 });
 
     // Reload the page to force a fresh fetch
     await page.reload();

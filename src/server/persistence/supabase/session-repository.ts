@@ -435,6 +435,11 @@ export class SupabaseSessionRepository implements ISessionRepository {
       query = query.eq('creator_id', options.instructorId);
     }
 
+    // Apply section filter
+    if (options?.sectionId) {
+      query = query.eq('section_id', options.sectionId);
+    }
+
     // Apply sorting
     if (options?.sortBy) {
       const columnMap: Record<string, string> = {

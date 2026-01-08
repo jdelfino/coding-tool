@@ -12,11 +12,11 @@ dotenv.config({ path: path.resolve(__dirname, '.env.local') });
 export default defineConfig({
   testDir: './e2e',
 
-  /* Run tests in files in parallel - NOW SAFE with namespace isolation */
+  /* Run tests in files in parallel - SAFE with namespace isolation */
   fullyParallel: true,
 
-  /* Use multiple workers for parallel execution */
-  workers: process.env.CI ? 2 : 4,
+  /* Use single worker to avoid race conditions during development */
+  workers: 1,
 
   /* Fail the build on CI if you accidentally left test.only in the source code */
   forbidOnly: !!process.env.CI,

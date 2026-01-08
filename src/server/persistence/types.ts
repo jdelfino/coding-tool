@@ -177,6 +177,9 @@ export interface SessionQueryOptions {
   /** Filter by instructor ID */
   instructorId?: string;
 
+  /** Filter by section ID */
+  sectionId?: string;
+
   /** Limit number of results */
   limit?: number;
 
