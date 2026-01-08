@@ -23,6 +23,7 @@ import SessionsList from './components/SessionsList';
 import SessionDetails from './components/SessionDetails';
 import { Problem, ExecutionSettings } from '@/server/types/problem';
 import SessionProblemEditor from './components/SessionProblemEditor';
+import WalkthroughPanel from './components/WalkthroughPanel';
 
 interface Student {
   id: string;
@@ -80,7 +81,7 @@ function InstructorPage() {
   const [showProblemLoader, setShowProblemLoader] = useState(false);
 
   // Session tab state for instructor session view
-  const [sessionTab, setSessionTab] = useState<'problem' | 'students'>('problem');
+  const [sessionTab, setSessionTab] = useState<'problem' | 'students' | 'walkthrough'>('problem');
 
   // Refresh trigger for SessionsList (increment to force refresh)
   const [sessionsListRefreshTrigger, setSessionsListRefreshTrigger] = useState(0);
@@ -528,17 +529,28 @@ function InstructorPage() {
               >
                 👥 Student Code {students.length > 0 && `(${students.length})`}
               </button>
+              <button
+                onClick={() => setSessionTab('walkthrough')}
+                className={`flex-1 px-6 py-3 text-sm font-medium transition-colors ${
+                  sessionTab === 'walkthrough'
+                    ? 'bg-blue-50 text-blue-700 border-b-2 border-blue-600'
+                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                }`}
+              >
+                🤖 AI Walkthrough
+              </button>
             </div>
 
             {/* Tab Content */}
             <div className="p-6">
-              {sessionTab === 'problem' ? (
+              {sessionTab === 'problem' && (
                 <SessionProblemEditor
                   onUpdateProblem={handleUpdateProblem}
                   initialProblem={sessionProblem}
                   initialExecutionSettings={sessionExecutionSettings}
                 />
-              ) : (
+              )}
+              {sessionTab === 'students' && (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   <StudentList
                     students={students}
@@ -575,6 +587,13 @@ function InstructorPage() {
                     </div>
                   )}
                 </div>
+              )}
+              {sessionTab === 'walkthrough' && sessionId && (
+                <WalkthroughPanel
+                  sessionId={sessionId}
+                  onFeatureStudent={handleShowOnPublicView}
+                  studentCount={students.length}
+                />
               )}
             </div>
           </div>

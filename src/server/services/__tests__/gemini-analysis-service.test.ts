@@ -1,0 +1,346 @@
+/**
+ * Tests for GeminiAnalysisService
+ *
+ * Tests the pre-filtering logic, prompt building, response parsing,
+ * and error handling. Mocks the Gemini API for unit testing.
+ */
+
+import {
+  GeminiAnalysisService,
+  filterSubmissions,
+  buildPrompt,
+  parseGeminiResponse,
+  calculateDiffRatio,
+} from '../gemini-analysis-service';
+import { AnalysisInput } from '@/server/types/analysis';
+
+// Mock global fetch
+const mockFetch = jest.fn();
+global.fetch = mockFetch;
+
+describe('GeminiAnalysisService', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  describe('calculateDiffRatio', () => {
+    it('returns 0 for identical strings', () => {
+      expect(calculateDiffRatio('hello', 'hello')).toBe(0);
+    });
+
+    it('returns 0 for identical strings with different whitespace', () => {
+      expect(calculateDiffRatio('hello  world', 'hello world')).toBe(0);
+    });
+
+    it('returns 1 for completely different strings', () => {
+      const ratio = calculateDiffRatio('abc', 'xyz');
+      expect(ratio).toBeGreaterThan(0.5);
+    });
+
+    it('returns 0 for empty strings', () => {
+      expect(calculateDiffRatio('', '')).toBe(0);
+    });
+
+    it('returns 1 when one string is empty', () => {
+      expect(calculateDiffRatio('hello', '')).toBe(1);
+      expect(calculateDiffRatio('', 'hello')).toBe(1);
+    });
+  });
+
+  describe('filterSubmissions', () => {
+    const starterCode = 'print("Hello, World!")';
+
+    it('filters out empty submissions', () => {
+      const submissions = [
+        { studentId: 's1', code: '' },
+        { studentId: 's2', code: 'print("This is long enough code")' }, // > 20 chars
+        { studentId: 's3', code: '   ' },
+      ];
+
+      const result = filterSubmissions(submissions, starterCode);
+
+      expect(result.filtered).toHaveLength(1);
+      expect(result.filtered[0].studentId).toBe('s2');
+      expect(result.filteredOutCount).toBe(2);
+    });
+
+    it('filters out tiny submissions', () => {
+      const submissions = [
+        { studentId: 's1', code: 'x = 1' }, // 5 chars, too short
+        { studentId: 's2', code: 'print("This is long enough code")' },
+      ];
+
+      const result = filterSubmissions(submissions, starterCode);
+
+      expect(result.filtered).toHaveLength(1);
+      expect(result.filtered[0].studentId).toBe('s2');
+      expect(result.filteredOutCount).toBe(1);
+    });
+
+    it('filters submissions matching starter code', () => {
+      const submissions = [
+        { studentId: 's1', code: 'print("Hello, World!")' }, // matches starter
+        { studentId: 's2', code: 'print("Different code here!")' },
+      ];
+
+      const result = filterSubmissions(submissions, starterCode);
+
+      expect(result.filtered).toHaveLength(1);
+      expect(result.filtered[0].studentId).toBe('s2');
+      expect(result.filteredOutCount).toBe(1);
+    });
+
+    it('generates warning when many submissions are filtered', () => {
+      const submissions = [
+        { studentId: 's1', code: '' },
+        { studentId: 's2', code: '' },
+        { studentId: 's3', code: '' },
+        { studentId: 's4', code: 'print("Long enough code here")' },
+      ];
+
+      const result = filterSubmissions(submissions, starterCode);
+
+      expect(result.warning).toContain('75%');
+      expect(result.warning).toContain('empty or unchanged');
+    });
+
+    it('assigns sequential labels to filtered submissions', () => {
+      const submissions = [
+        { studentId: 's1', code: 'print("Code A is here now")' },
+        { studentId: 's2', code: 'print("Code B is here now")' },
+        { studentId: 's3', code: 'print("Code C is here now")' },
+      ];
+
+      const result = filterSubmissions(submissions, '');
+
+      expect(result.filtered[0].label).toBe('Student A');
+      expect(result.filtered[1].label).toBe('Student B');
+      expect(result.filtered[2].label).toBe('Student C');
+    });
+  });
+
+  describe('buildPrompt', () => {
+    it('builds prompt with problem and submissions', () => {
+      const submissions = [
+        { label: 'Student A', code: 'print("A")' },
+        { label: 'Student B', code: 'print("B")' },
+      ];
+
+      const prompt = buildPrompt('Test Problem', 'Solve this', submissions);
+
+      expect(prompt).toContain('Test Problem');
+      expect(prompt).toContain('Solve this');
+      expect(prompt).toContain('[A]:');
+      expect(prompt).toContain('print("A")');
+      expect(prompt).toContain('[B]:');
+      expect(prompt).toContain('print("B")');
+      expect(prompt).toContain('JSON only');
+    });
+
+    it('handles missing description', () => {
+      const prompt = buildPrompt('Test', '', [{ label: 'Student A', code: 'x' }]);
+      expect(prompt).toContain('(No description provided)');
+    });
+  });
+
+  describe('parseGeminiResponse', () => {
+    const labelToStudentId = new Map([
+      ['A', 'student-1'],
+      ['B', 'student-2'],
+    ]);
+
+    it('parses valid JSON response', () => {
+      const response = JSON.stringify({
+        entries: [
+          {
+            studentLabel: 'A',
+            discussionPoints: ['Point 1', 'Point 2'],
+            pedagogicalNote: 'This is interesting',
+            category: 'common-error',
+          },
+        ],
+        commonPatterns: ['Pattern 1'],
+      });
+
+      const result = parseGeminiResponse(response, labelToStudentId);
+
+      expect(result.entries).toHaveLength(1);
+      expect(result.entries[0].studentId).toBe('student-1');
+      expect(result.entries[0].studentLabel).toBe('Student A');
+      expect(result.entries[0].discussionPoints).toEqual(['Point 1', 'Point 2']);
+      expect(result.entries[0].category).toBe('common-error');
+      expect(result.commonPatterns).toEqual(['Pattern 1']);
+    });
+
+    it('handles JSON wrapped in markdown code blocks', () => {
+      const response = '```json\n{"entries": [], "commonPatterns": []}\n```';
+
+      const result = parseGeminiResponse(response, labelToStudentId);
+
+      expect(result.entries).toHaveLength(0);
+    });
+
+    it('throws error for unknown student label', () => {
+      const response = JSON.stringify({
+        entries: [{ studentLabel: 'Z', discussionPoints: [], pedagogicalNote: '', category: 'common-error' }],
+        commonPatterns: [],
+      });
+
+      expect(() => parseGeminiResponse(response, labelToStudentId)).toThrow('Unknown student label');
+    });
+
+    it('defaults invalid category to common-error', () => {
+      const response = JSON.stringify({
+        entries: [{ studentLabel: 'A', discussionPoints: [], pedagogicalNote: '', category: 'invalid' }],
+        commonPatterns: [],
+      });
+
+      const result = parseGeminiResponse(response, labelToStudentId);
+
+      expect(result.entries[0].category).toBe('common-error');
+    });
+  });
+
+  describe('GeminiAnalysisService', () => {
+    describe('isConfigured', () => {
+      it('returns false when no API key', () => {
+        const service = new GeminiAnalysisService('');
+        expect(service.isConfigured()).toBe(false);
+      });
+
+      it('returns true when API key provided', () => {
+        const service = new GeminiAnalysisService('test-key');
+        expect(service.isConfigured()).toBe(true);
+      });
+    });
+
+    describe('analyzeSubmissions', () => {
+      const service = new GeminiAnalysisService('test-api-key');
+
+      const baseInput: AnalysisInput = {
+        sessionId: 'session-1',
+        problemTitle: 'Test Problem',
+        problemDescription: 'Test description',
+        starterCode: '',
+        submissions: [],
+      };
+
+      it('returns empty script for no submissions', async () => {
+        const result = await service.analyzeSubmissions(baseInput);
+
+        expect(result.entries).toHaveLength(0);
+        expect(result.summary.totalSubmissions).toBe(0);
+        expect(result.summary.warning).toBe('No submissions to analyze');
+      });
+
+      it('returns empty script when all submissions filtered', async () => {
+        const input: AnalysisInput = {
+          ...baseInput,
+          submissions: [{ studentId: 's1', code: '' }],
+        };
+
+        const result = await service.analyzeSubmissions(input);
+
+        expect(result.entries).toHaveLength(0);
+        expect(result.summary.filteredOut).toBe(1);
+        expect(result.summary.warning).toContain("haven't modified");
+      });
+
+      it('calls Gemini API and returns parsed script', async () => {
+        const mockResponse = {
+          candidates: [
+            {
+              content: {
+                parts: [
+                  {
+                    text: JSON.stringify({
+                      entries: [
+                        {
+                          studentLabel: 'A',
+                          discussionPoints: ['Missing edge case'],
+                          pedagogicalNote: 'Common beginner mistake',
+                          category: 'common-error',
+                        },
+                      ],
+                      commonPatterns: ['Most students forgot error handling'],
+                    }),
+                  },
+                ],
+              },
+            },
+          ],
+        };
+
+        mockFetch.mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve(mockResponse),
+        });
+
+        const input: AnalysisInput = {
+          ...baseInput,
+          submissions: [{ studentId: 'student-1', code: 'print("Long enough code here")' }],
+        };
+
+        const result = await service.analyzeSubmissions(input);
+
+        expect(mockFetch).toHaveBeenCalledTimes(1);
+        expect(result.entries).toHaveLength(1);
+        expect(result.entries[0].position).toBe(1);
+        expect(result.entries[0].studentId).toBe('student-1');
+        expect(result.summary.commonPatterns).toContain('Most students forgot error handling');
+      });
+
+      it('throws error when not configured', async () => {
+        const unconfiguredService = new GeminiAnalysisService('');
+
+        await expect(unconfiguredService.analyzeSubmissions(baseInput)).rejects.toThrow(
+          'Gemini API key not configured'
+        );
+      });
+
+      it('handles rate limit error', async () => {
+        mockFetch.mockResolvedValueOnce({
+          ok: false,
+          status: 429,
+          text: () => Promise.resolve('Rate limited'),
+        });
+
+        const input: AnalysisInput = {
+          ...baseInput,
+          submissions: [{ studentId: 's1', code: 'print("Long enough code here")' }],
+        };
+
+        await expect(service.analyzeSubmissions(input)).rejects.toThrow('Rate limit exceeded');
+      });
+
+      it('handles invalid API key error', async () => {
+        mockFetch.mockResolvedValueOnce({
+          ok: false,
+          status: 401,
+          text: () => Promise.resolve('Unauthorized'),
+        });
+
+        const input: AnalysisInput = {
+          ...baseInput,
+          submissions: [{ studentId: 's1', code: 'print("Long enough code here")' }],
+        };
+
+        await expect(service.analyzeSubmissions(input)).rejects.toThrow('Invalid Gemini API key');
+      });
+
+      it('handles empty response from Gemini', async () => {
+        mockFetch.mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve({ candidates: [] }),
+        });
+
+        const input: AnalysisInput = {
+          ...baseInput,
+          submissions: [{ studentId: 's1', code: 'print("Long enough code here")' }],
+        };
+
+        await expect(service.analyzeSubmissions(input)).rejects.toThrow('No response generated');
+      });
+    });
+  });
+});
