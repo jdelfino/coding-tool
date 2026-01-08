@@ -65,10 +65,7 @@ function PublicViewContent() {
           table: 'sessions',
           filter: `id=eq.${sessionId}`,
         },
-        (payload) => {
-          console.log('[PublicView] Session updated:', payload);
-          fetchState();
-        }
+        () => fetchState()
       )
       .subscribe((status, err) => {
         if (err) {
@@ -79,6 +76,18 @@ function PublicViewContent() {
     return () => {
       supabase.removeChannel(channel);
     };
+  }, [sessionId, fetchState]);
+
+  // Fallback: Poll for updates every 2 seconds
+  // This compensates for Realtime connection issues in multi-tab scenarios
+  useEffect(() => {
+    if (!sessionId) return;
+
+    const pollInterval = setInterval(() => {
+      fetchState();
+    }, 2000);
+
+    return () => clearInterval(pollInterval);
   }, [sessionId, fetchState]);
 
   if (!sessionId) {

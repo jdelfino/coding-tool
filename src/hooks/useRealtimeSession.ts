@@ -178,7 +178,7 @@ export function useRealtimeSession({
           const updated = new Map(prev);
           updated.set(payload.student_id, {
             id: payload.student_id,
-            name: payload.student_name,
+            name: payload.name, // Column is 'name', not 'student_name'
             code: payload.code || '',
             lastUpdate: new Date(payload.last_update),
             executionSettings: payload.execution_settings,

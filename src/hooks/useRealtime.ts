@@ -112,13 +112,15 @@ export function useRealtime({
 
     // Subscribe to postgres_changes for each table (use ref for stable reference)
     tablesRef.current.forEach((table) => {
+      // The sessions table uses 'id', other tables use 'session_id'
+      const filterColumn = table === 'sessions' ? 'id' : 'session_id';
       channel.on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
           table,
-          filter: `session_id=eq.${sessionId}`,
+          filter: `${filterColumn}=eq.${sessionId}`,
         },
         handleDatabaseChange
       );
@@ -128,12 +130,8 @@ export function useRealtime({
     if (userId) {
       channel
         .on('presence', { event: 'sync' }, () => handlePresenceSync(channel))
-        .on('presence', { event: 'join' }, ({ key, newPresences }) => {
-          console.log('[Realtime] User joined:', key, newPresences);
-        })
-        .on('presence', { event: 'leave' }, ({ key, leftPresences }) => {
-          console.log('[Realtime] User left:', key, leftPresences);
-        });
+        .on('presence', { event: 'join' }, () => handlePresenceSync(channel))
+        .on('presence', { event: 'leave' }, () => handlePresenceSync(channel));
     }
 
     // Subscribe to channel
@@ -169,7 +167,6 @@ export function useRealtime({
         } else if (status === REALTIME_SUBSCRIBE_STATES.CLOSED) {
           setIsConnected(false);
           setConnectionStatus('disconnected');
-          console.log('[Realtime] Channel closed');
         }
       });
 

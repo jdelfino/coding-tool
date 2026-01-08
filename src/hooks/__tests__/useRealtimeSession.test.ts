@@ -164,7 +164,7 @@ describe('useRealtimeSession', () => {
         table: 'session_students',
         payload: {
           student_id: 'student-1',
-          student_name: 'Alice',
+          name: 'Alice',
           code: 'print("hello")',
           last_update: new Date().toISOString(),
         },
@@ -194,7 +194,7 @@ describe('useRealtimeSession', () => {
         table: 'session_students',
         payload: {
           student_id: 'student-1',
-          student_name: 'Alice',
+          name: 'Alice',
           code: '',
           last_update: new Date().toISOString(),
         },
@@ -209,7 +209,7 @@ describe('useRealtimeSession', () => {
         table: 'session_students',
         payload: {
           student_id: 'student-1',
-          student_name: 'Alice',
+          name: 'Alice',
           code: 'print("updated")',
           last_update: new Date().toISOString(),
         },
@@ -236,7 +236,7 @@ describe('useRealtimeSession', () => {
         table: 'session_students',
         payload: {
           student_id: 'student-1',
-          student_name: 'Alice',
+          name: 'Alice',
           code: '',
           last_update: new Date().toISOString(),
         },
