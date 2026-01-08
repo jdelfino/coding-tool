@@ -183,9 +183,13 @@ export class SupabaseAuthProvider implements IAuthProvider {
         }
       );
 
-      const { data, error } = await supabase.auth.getSession();
+      // SECURITY: Use getUser() instead of getSession() to verify the JWT
+      // with Supabase Auth server. getSession() only reads from cookies
+      // without verification, allowing attackers to spoof user.id.
+      // See: https://supabase.com/docs/reference/javascript/auth-getsession
+      const { data, error } = await supabase.auth.getUser();
 
-      if (error || !data.session) {
+      if (error || !data.user) {
         return null;
       }
 
@@ -193,7 +197,7 @@ export class SupabaseAuthProvider implements IAuthProvider {
       const { data: profile, error: profileError } = await supabase
         .from('user_profiles')
         .select('*')
-        .eq('id', data.session.user.id)
+        .eq('id', data.user.id)
         .single();
 
       if (profileError || !profile) {
@@ -201,10 +205,15 @@ export class SupabaseAuthProvider implements IAuthProvider {
         return null;
       }
 
+      // Get access token from session for sessionId field
+      // This is safe since we've already verified the user with getUser()
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData?.session?.access_token ?? data.user.id;
+
       return {
-        sessionId: data.session.access_token,
-        user: this.mapToUser(data.session.user, profile),
-        createdAt: new Date(data.session.user.created_at),
+        sessionId: accessToken,
+        user: this.mapToUser(data.user, profile),
+        createdAt: new Date(data.user.created_at),
       };
     } catch (error: any) {
       console.error('[SupabaseAuthProvider] getSessionFromRequest failed:', error.message);

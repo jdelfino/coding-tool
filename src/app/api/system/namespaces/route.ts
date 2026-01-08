@@ -6,7 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAuth, requirePermission } from '@/server/auth/api-helpers';
+import { requirePermission } from '@/server/auth/api-helpers';
 import { getNamespaceRepository, getUserRepository } from '@/server/auth';
 
 /**
@@ -77,12 +77,8 @@ export async function POST(request: NextRequest) {
       return permissionCheck;
     }
 
-    const auth = await requireAuth(request);
-    if (auth instanceof NextResponse) {
-      return auth;
-    }
-
-    const { user } = auth;
+    // Use user from permissionCheck - no need to call requireAuth again
+    const { user } = permissionCheck;
     const body = await request.json();
     const { id, displayName } = body;
 
