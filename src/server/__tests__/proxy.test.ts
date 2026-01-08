@@ -1,5 +1,5 @@
 /**
- * Tests for Next.js middleware that handles Supabase session refresh
+ * Tests for Next.js proxy that handles Supabase session refresh
  */
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -11,13 +11,13 @@ jest.mock('@supabase/ssr', () => ({
 }))
 
 // Import after mocking
-let middleware: any
-let config: any
+let proxy: (request: NextRequest) => Promise<NextResponse>
+let config: { matcher: string[] }
 
-describe('Middleware', () => {
+describe('Proxy (Supabase Session Refresh)', () => {
   let mockGetSession: jest.Mock
-  let mockAuth: any
-  let mockSupabaseClient: any
+  let mockAuth: { getSession: jest.Mock }
+  let mockSupabaseClient: { auth: { getSession: jest.Mock } }
 
   beforeEach(async () => {
     jest.clearAllMocks()
@@ -48,17 +48,17 @@ describe('Middleware', () => {
     process.env.NEXT_PUBLIC_SUPABASE_URL = 'http://localhost:54321'
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'test-anon-key'
 
-    // Import middleware after mocks are set up
-    const middlewareModule = await import('../../middleware')
-    middleware = middlewareModule.middleware
-    config = middlewareModule.config
+    // Import proxy after mocks are set up
+    const proxyModule = await import('../../proxy')
+    proxy = proxyModule.proxy
+    config = proxyModule.config
   })
 
   describe('Session Refresh', () => {
     it('should call getSession on every request', async () => {
       const request = new NextRequest('http://localhost:3000/api/test')
 
-      await middleware(request)
+      await proxy(request)
 
       expect(mockGetSession).toHaveBeenCalledTimes(1)
     })
@@ -66,7 +66,7 @@ describe('Middleware', () => {
     it('should create Supabase client with environment variables', async () => {
       const request = new NextRequest('http://localhost:3000/api/test')
 
-      await middleware(request)
+      await proxy(request)
 
       expect(createServerClient).toHaveBeenCalledWith(
         'http://localhost:54321',
@@ -80,7 +80,7 @@ describe('Middleware', () => {
     it('should return NextResponse on successful session refresh', async () => {
       const request = new NextRequest('http://localhost:3000/api/test')
 
-      const response = await middleware(request)
+      const response = await proxy(request)
 
       expect(response).toBeInstanceOf(NextResponse)
       expect(response.status).toBe(200)
@@ -94,7 +94,7 @@ describe('Middleware', () => {
 
       const request = new NextRequest('http://localhost:3000/api/test')
 
-      const response = await middleware(request)
+      const response = await proxy(request)
 
       // Middleware should still return a response even if session refresh fails
       expect(response).toBeInstanceOf(NextResponse)
@@ -110,7 +110,7 @@ describe('Middleware', () => {
         },
       })
 
-      await middleware(request)
+      await proxy(request)
 
       const createClientCall = (createServerClient as jest.Mock).mock.calls[0]
       const cookieConfig = createClientCall[2].cookies
@@ -123,7 +123,7 @@ describe('Middleware', () => {
     it('should provide cookie set callback to Supabase client', async () => {
       const request = new NextRequest('http://localhost:3000/api/test')
 
-      await middleware(request)
+      await proxy(request)
 
       const createClientCall = (createServerClient as jest.Mock).mock.calls[0]
       const cookieConfig = createClientCall[2].cookies
@@ -138,7 +138,7 @@ describe('Middleware', () => {
     it('should provide cookie remove callback to Supabase client', async () => {
       const request = new NextRequest('http://localhost:3000/api/test')
 
-      await middleware(request)
+      await proxy(request)
 
       const createClientCall = (createServerClient as jest.Mock).mock.calls[0]
       const cookieConfig = createClientCall[2].cookies
@@ -157,7 +157,7 @@ describe('Middleware', () => {
         },
       })
 
-      const response = await middleware(request)
+      const response = await proxy(request)
 
       // Response should be created with original request headers
       expect(response).toBeInstanceOf(NextResponse)
@@ -199,7 +199,7 @@ describe('Middleware', () => {
       const request = new NextRequest('http://localhost:3000/api/test')
 
       const startTime = Date.now()
-      await middleware(request)
+      await proxy(request)
       const duration = Date.now() - startTime
 
       // Should complete in less than 100ms (with mocked Supabase client)
@@ -215,16 +215,16 @@ describe('Middleware', () => {
       delete process.env.NEXT_PUBLIC_SUPABASE_URL
       delete process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-      // Re-import to get middleware with missing env vars
+      // Re-import to get proxy with missing env vars
       jest.resetModules()
-      const middlewareModule = await import('../../middleware')
-      const middlewareWithoutEnv = middlewareModule.middleware
+      const proxyModule = await import('../../proxy')
+      const proxyWithoutEnv = proxyModule.proxy
 
       const request = new NextRequest('http://localhost:3000/api/test')
 
       // Should throw due to missing environment variables
       await expect(async () => {
-        await middlewareWithoutEnv(request)
+        await proxyWithoutEnv(request)
       }).rejects.toThrow()
 
       // Restore for other tests
@@ -240,7 +240,7 @@ describe('Middleware', () => {
       const request = new NextRequest('http://localhost:3000/api/test')
 
       // Should propagate the error from client creation
-      await expect(middleware(request)).rejects.toThrow()
+      await expect(proxy(request)).rejects.toThrow()
     })
   })
 })
