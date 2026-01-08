@@ -1,10 +1,11 @@
 /**
  * GET /api/sessions/[id]/public-state
- * Load session state for public display (no auth required)
- * Only returns data safe for public display: problem, join code, featured code
+ * Load session state for public display (instructor auth required)
+ * Returns: problem, join code, featured code
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { getAuthenticatedUser, checkPermission } from '@/server/auth/api-auth';
 import { getStorage } from '@/server/persistence';
 
 export async function GET(
@@ -12,6 +13,15 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Require authentication - instructors only
+    const user = await getAuthenticatedUser(request);
+    if (!checkPermission(user, 'session.viewAll')) {
+      return NextResponse.json(
+        { error: 'Permission denied' },
+        { status: 403 }
+      );
+    }
+
     const { id: sessionId } = await params;
 
     const storage = await getStorage();
@@ -37,6 +47,12 @@ export async function GET(
       hasFeaturedSubmission: Boolean(session.featuredStudentId && session.featuredCode),
     });
   } catch (error: unknown) {
+    if (error instanceof Error && error.message === 'Not authenticated') {
+      return NextResponse.json(
+        { error: 'Not authenticated' },
+        { status: 401 }
+      );
+    }
     console.error('[API] Get public session state error:', error);
     return NextResponse.json(
       { error: 'Failed to load session state' },

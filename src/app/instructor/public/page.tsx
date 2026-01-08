@@ -54,6 +54,7 @@ function PublicViewContent() {
     if (!sessionId) return;
 
     const supabase = getSupabaseBrowserClient();
+
     const channel = supabase
       .channel(`public-view-${sessionId}`)
       .on(
@@ -65,13 +66,11 @@ function PublicViewContent() {
           filter: `id=eq.${sessionId}`,
         },
         (payload) => {
-          console.log('[PublicView] Session UPDATE received:', payload);
-          // Re-fetch state when session changes
+          console.log('[PublicView] Session updated:', payload);
           fetchState();
         }
       )
       .subscribe((status, err) => {
-        console.log('[PublicView] Realtime subscription status:', status);
         if (err) {
           console.error('[PublicView] Realtime subscription error:', err);
         }

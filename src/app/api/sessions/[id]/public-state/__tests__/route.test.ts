@@ -1,21 +1,35 @@
 /**
  * Tests for GET /api/sessions/[id]/public-state route
  *
- * This endpoint returns public-safe session state for the public display view.
- * It does NOT require authentication as it's meant for display on a projector.
+ * This endpoint returns session state for the public display view.
+ * Requires instructor authentication as it's shown on the instructor's projector.
  */
 
 import { NextRequest } from 'next/server';
 import { GET } from '../route';
+import { getAuthenticatedUser, checkPermission } from '@/server/auth/api-auth';
 import { getStorage } from '@/server/persistence';
 import { Session } from '@/server/types';
 import { Problem } from '@/server/types/problem';
 
+jest.mock('@/server/auth/api-auth');
 jest.mock('@/server/persistence');
+
+const mockGetAuthenticatedUser = getAuthenticatedUser as jest.MockedFunction<typeof getAuthenticatedUser>;
+const mockCheckPermission = checkPermission as jest.MockedFunction<typeof checkPermission>;
 
 const mockGetStorage = getStorage as jest.MockedFunction<typeof getStorage>;
 
 describe('GET /api/sessions/[id]/public-state', () => {
+  const mockUser = {
+    id: 'user-1',
+    email: 'instructor@example.com',
+    username: 'instructor',
+    role: 'instructor' as const,
+    namespaceId: 'default',
+    createdAt: new Date(),
+  };
+
   const mockProblem: Problem = {
     id: 'prob-1',
     namespaceId: 'default',
@@ -61,6 +75,9 @@ describe('GET /api/sessions/[id]/public-state', () => {
   beforeEach(() => {
     jest.clearAllMocks();
 
+    mockGetAuthenticatedUser.mockResolvedValue(mockUser);
+    mockCheckPermission.mockReturnValue(true);
+
     mockStorage = {
       sessions: {
         getSession: jest.fn().mockResolvedValue(mockSession),
@@ -73,7 +90,7 @@ describe('GET /api/sessions/[id]/public-state', () => {
     mockGetStorage.mockResolvedValue(mockStorage);
   });
 
-  it('returns public state without requiring authentication', async () => {
+  it('returns session state for authenticated instructor', async () => {
     const request = new NextRequest('http://localhost:3000/api/sessions/session-1/public-state');
     const params = Promise.resolve({ id: 'session-1' });
 
@@ -181,6 +198,32 @@ describe('GET /api/sessions/[id]/public-state', () => {
 
     expect(response.status).toBe(500);
     expect(data.error).toBe('Failed to load session state');
+  });
+
+  it('returns 401 when not authenticated', async () => {
+    mockGetAuthenticatedUser.mockRejectedValue(new Error('Not authenticated'));
+
+    const request = new NextRequest('http://localhost:3000/api/sessions/session-1/public-state');
+    const params = Promise.resolve({ id: 'session-1' });
+
+    const response = await GET(request, { params });
+    const data = await response.json();
+
+    expect(response.status).toBe(401);
+    expect(data.error).toBe('Not authenticated');
+  });
+
+  it('returns 403 when user lacks permission', async () => {
+    mockCheckPermission.mockReturnValue(false);
+
+    const request = new NextRequest('http://localhost:3000/api/sessions/session-1/public-state');
+    const params = Promise.resolve({ id: 'session-1' });
+
+    const response = await GET(request, { params });
+    const data = await response.json();
+
+    expect(response.status).toBe(403);
+    expect(data.error).toBe('Permission denied');
   });
 
   it('does not expose sensitive session data', async () => {
