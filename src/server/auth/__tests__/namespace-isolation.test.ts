@@ -7,30 +7,69 @@
 import { NextRequest, NextResponse } from 'next/server';
 import * as apiHelpers from '@/server/auth/api-helpers';
 import { User } from '@/server/auth/types';
+import { RBACService } from '@/server/auth/rbac';
 
-// Mock user data for tests
-const namespace1User: User = {
-  id: 'user-1',
+// Mock user data for tests - namespace-1 users
+const namespace1Instructor: User = {
+  id: 'instructor-ns1',
   username: 'alice',
-  email: "test@example.com",
+  email: 'alice@example.com',
   role: 'instructor',
   namespaceId: 'namespace-1',
   createdAt: new Date(),
 };
 
-const namespace2User: User = {
-  id: 'user-2',
+const namespace1Student: User = {
+  id: 'student-ns1',
+  username: 'student1',
+  email: 'student1@example.com',
+  role: 'student',
+  namespaceId: 'namespace-1',
+  createdAt: new Date(),
+};
+
+const namespace1Admin: User = {
+  id: 'admin-ns1',
+  username: 'admin1',
+  email: 'admin1@example.com',
+  role: 'namespace-admin',
+  namespaceId: 'namespace-1',
+  createdAt: new Date(),
+};
+
+// Namespace-2 users
+const namespace2Instructor: User = {
+  id: 'instructor-ns2',
   username: 'bob',
-  email: "test@example.com",
+  email: 'bob@example.com',
   role: 'instructor',
   namespaceId: 'namespace-2',
   createdAt: new Date(),
 };
 
+const namespace2Student: User = {
+  id: 'student-ns2',
+  username: 'student2',
+  email: 'student2@example.com',
+  role: 'student',
+  namespaceId: 'namespace-2',
+  createdAt: new Date(),
+};
+
+const namespace2Admin: User = {
+  id: 'admin-ns2',
+  username: 'admin2',
+  email: 'admin2@example.com',
+  role: 'namespace-admin',
+  namespaceId: 'namespace-2',
+  createdAt: new Date(),
+};
+
+// System admin (can access all namespaces)
 const systemAdminUser: User = {
   id: 'sys-admin',
   username: 'sysadmin',
-  email: "test@example.com",
+  email: 'sysadmin@example.com',
   role: 'system-admin',
   namespaceId: 'default',
   createdAt: new Date(),
@@ -39,7 +78,7 @@ const systemAdminUser: User = {
 describe('getNamespaceContext', () => {
   it('returns user namespace for regular users', () => {
     const request = new NextRequest('http://localhost/api/classes');
-    const namespaceId = apiHelpers.getNamespaceContext(request, namespace1User);
+    const namespaceId = apiHelpers.getNamespaceContext(request, namespace1Instructor);
     expect(namespaceId).toBe('namespace-1');
   });
 
@@ -57,7 +96,19 @@ describe('getNamespaceContext', () => {
 
   it('ignores query param namespace for non-system-admin users', () => {
     const request = new NextRequest('http://localhost/api/classes?namespace=namespace-2');
-    const namespaceId = apiHelpers.getNamespaceContext(request, namespace1User);
+    const namespaceId = apiHelpers.getNamespaceContext(request, namespace1Instructor);
+    expect(namespaceId).toBe('namespace-1');
+  });
+
+  it('ignores query param namespace for namespace-admin', () => {
+    const request = new NextRequest('http://localhost/api/classes?namespace=namespace-2');
+    const namespaceId = apiHelpers.getNamespaceContext(request, namespace1Admin);
+    expect(namespaceId).toBe('namespace-1');
+  });
+
+  it('ignores query param namespace for students', () => {
+    const request = new NextRequest('http://localhost/api/classes?namespace=namespace-2');
+    const namespaceId = apiHelpers.getNamespaceContext(request, namespace1Student);
     expect(namespaceId).toBe('namespace-1');
   });
 });
@@ -75,9 +126,8 @@ describe('API Namespace Isolation Patterns', () => {
 
   describe('Regular user access patterns', () => {
     it('should only access own namespace data', async () => {
-      // Mock requireAuth to return namespace1User
       requireAuthSpy.mockResolvedValue({
-        user: namespace1User,
+        user: namespace1Instructor,
         rbac: { hasPermission: jest.fn().mockReturnValue(true) },
       });
 
@@ -92,9 +142,7 @@ describe('API Namespace Isolation Patterns', () => {
 
     it('cannot access other namespace data via query param', () => {
       const request = new NextRequest('http://localhost/api/classes?namespace=namespace-2');
-      const namespaceId = apiHelpers.getNamespaceContext(request, namespace1User);
-
-      // Should still get their own namespace, not the requested one
+      const namespaceId = apiHelpers.getNamespaceContext(request, namespace1Instructor);
       expect(namespaceId).toBe('namespace-1');
     });
   });
@@ -124,98 +172,185 @@ describe('API Namespace Isolation Patterns', () => {
   });
 });
 
-describe('Integration: Namespace isolation in API routes', () => {
-  /**
-   * These tests document the expected behavior for namespace isolation
-   * in API routes. They serve as specification tests that should be
-   * implemented in the actual API route files.
-   */
-
-  describe('GET /api/classes', () => {
-    it('should filter classes by user namespace', () => {
-      // Expected: Classes endpoint calls getNamespaceContext(request, user)
-      // and passes namespaceId to classRepo.listClasses(userId, namespaceId)
-      expect(true).toBe(true); // Placeholder for documentation
+describe('Cross-namespace user management (RBAC)', () => {
+  describe('namespace-admin boundaries', () => {
+    it('namespace-admin-1 can manage users in namespace-1', () => {
+      const rbac = new RBACService(namespace1Admin);
+      expect(rbac.canManageUser(namespace1Admin, namespace1Instructor)).toBe(true);
+      expect(rbac.canManageUser(namespace1Admin, namespace1Student)).toBe(true);
     });
 
-    it('should allow system-admin to query specific namespace', () => {
-      // Expected: System admin with ?namespace=xxx query param
-      // gets classes from that namespace
-      expect(true).toBe(true);
-    });
-  });
-
-  describe('POST /api/classes', () => {
-    it('should create class in user namespace', () => {
-      // Expected: New class has namespaceId = user.namespaceId
-      expect(true).toBe(true);
+    it('namespace-admin-1 CANNOT manage users in namespace-2', () => {
+      const rbac = new RBACService(namespace1Admin);
+      expect(rbac.canManageUser(namespace1Admin, namespace2Admin)).toBe(false);
+      expect(rbac.canManageUser(namespace1Admin, namespace2Instructor)).toBe(false);
+      expect(rbac.canManageUser(namespace1Admin, namespace2Student)).toBe(false);
     });
 
-    it('should reject class creation with different namespaceId', () => {
-      // Expected: Cannot manually set namespaceId different from user.namespaceId
-      // (unless system-admin)
-      expect(true).toBe(true);
+    it('namespace-admin cannot manage other namespace-admins in same namespace', () => {
+      const anotherNs1Admin: User = {
+        ...namespace1Admin,
+        id: 'admin-ns1-2',
+        username: 'admin1b',
+      };
+      const rbac = new RBACService(namespace1Admin);
+      expect(rbac.canManageUser(namespace1Admin, anotherNs1Admin)).toBe(false);
     });
   });
 
-  describe('GET /api/sections', () => {
-    it('should filter sections by namespace', () => {
-      expect(true).toBe(true);
+  describe('instructor boundaries', () => {
+    it('instructor-1 can manage students in namespace-1', () => {
+      const rbac = new RBACService(namespace1Instructor);
+      expect(rbac.canManageUser(namespace1Instructor, namespace1Student)).toBe(true);
+    });
+
+    it('instructor-1 CANNOT manage students in namespace-2', () => {
+      const rbac = new RBACService(namespace1Instructor);
+      expect(rbac.canManageUser(namespace1Instructor, namespace2Student)).toBe(false);
+    });
+
+    it('instructor cannot manage other instructors', () => {
+      const rbac = new RBACService(namespace1Instructor);
+      const anotherNs1Instructor: User = {
+        ...namespace1Instructor,
+        id: 'instructor-ns1-2',
+        username: 'charlie',
+      };
+      expect(rbac.canManageUser(namespace1Instructor, anotherNs1Instructor)).toBe(false);
     });
   });
 
-  describe('POST /api/sections/join', () => {
-    it('should reject joining section from different namespace', () => {
-      // Expected: Validates section.namespaceId === user.namespaceId
-      // Returns 403 if mismatch
-      expect(true).toBe(true);
+  describe('system-admin boundaries', () => {
+    it('system-admin can manage users in any namespace', () => {
+      const rbac = new RBACService(systemAdminUser);
+      expect(rbac.canManageUser(systemAdminUser, namespace1Admin)).toBe(true);
+      expect(rbac.canManageUser(systemAdminUser, namespace1Instructor)).toBe(true);
+      expect(rbac.canManageUser(systemAdminUser, namespace1Student)).toBe(true);
+      expect(rbac.canManageUser(systemAdminUser, namespace2Admin)).toBe(true);
+      expect(rbac.canManageUser(systemAdminUser, namespace2Instructor)).toBe(true);
+      expect(rbac.canManageUser(systemAdminUser, namespace2Student)).toBe(true);
+    });
+
+    it('system-admin can manage other system-admins', () => {
+      const anotherSysAdmin: User = {
+        ...systemAdminUser,
+        id: 'sys-admin-2',
+        username: 'sysadmin2',
+      };
+      const rbac = new RBACService(systemAdminUser);
+      expect(rbac.canManageUser(systemAdminUser, anotherSysAdmin)).toBe(true);
     });
   });
 
-  describe('GET /api/sessions', () => {
-    it('should filter sessions by namespace', () => {
-      expect(true).toBe(true);
-    });
-  });
-
-  describe('GET /api/problems', () => {
-    it('should filter problems by namespace', () => {
-      expect(true).toBe(true);
-    });
-  });
-
-  describe('GET /api/admin/users', () => {
-    it('should filter users by namespace for namespace-admin', () => {
-      expect(true).toBe(true);
-    });
-
-    it('should allow system-admin to query specific namespace', () => {
-      expect(true).toBe(true);
+  describe('student boundaries', () => {
+    it('students cannot manage anyone', () => {
+      const rbac = new RBACService(namespace1Student);
+      expect(rbac.canManageUser(namespace1Student, namespace1Student)).toBe(false);
+      expect(rbac.canManageUser(namespace1Student, namespace1Instructor)).toBe(false);
+      expect(rbac.canManageUser(namespace1Student, namespace2Student)).toBe(false);
     });
   });
 });
 
-describe('Cross-namespace validation', () => {
+describe('Namespace context for API filtering', () => {
   /**
-   * Tests that verify cross-namespace operations are prevented
+   * These tests verify that the namespace context is correctly applied
+   * based on user role and query parameters.
    */
 
-  it('should prevent adding instructor from different namespace to section', () => {
-    // This would need to be tested in the actual API route
-    // Expected: When adding instructor to section, validate
-    // instructor.namespaceId === section.namespaceId
-    expect(true).toBe(true);
+  describe('Classes API namespace filtering', () => {
+    it('instructor gets their namespace for filtering classes', () => {
+      const request = new NextRequest('http://localhost/api/classes');
+      const namespaceId = apiHelpers.getNamespaceContext(request, namespace1Instructor);
+
+      // This namespaceId would be passed to classRepo.listClasses(userId, namespaceId)
+      expect(namespaceId).toBe('namespace-1');
+    });
+
+    it('system-admin can query different namespace for classes', () => {
+      const request = new NextRequest('http://localhost/api/classes?namespace=namespace-2');
+      const namespaceId = apiHelpers.getNamespaceContext(request, systemAdminUser);
+
+      expect(namespaceId).toBe('namespace-2');
+    });
   });
 
-  it('should prevent referencing class from different namespace in section', () => {
-    // Expected: When creating section with classId, validate
-    // class.namespaceId === user.namespaceId
-    expect(true).toBe(true);
+  describe('Sections API namespace filtering', () => {
+    it('student gets their namespace for section join', () => {
+      const request = new NextRequest('http://localhost/api/sections/join');
+      const namespaceId = apiHelpers.getNamespaceContext(request, namespace1Student);
+
+      // Section join would verify section.namespaceId === this namespaceId
+      expect(namespaceId).toBe('namespace-1');
+    });
   });
 
-  it('should prevent creating session with section from different namespace', () => {
-    // Expected: When creating session, validate
-    // section.namespaceId === user.namespaceId
-    expect(true).toBe(true);
+  describe('Sessions API namespace filtering', () => {
+    it('instructor gets their namespace for session filtering', () => {
+      const request = new NextRequest('http://localhost/api/sessions');
+      const namespaceId = apiHelpers.getNamespaceContext(request, namespace1Instructor);
+
+      expect(namespaceId).toBe('namespace-1');
+    });
+  });
+
+  describe('Problems API namespace filtering', () => {
+    it('instructor gets their namespace for problem filtering', () => {
+      const request = new NextRequest('http://localhost/api/problems');
+      const namespaceId = apiHelpers.getNamespaceContext(request, namespace1Instructor);
+
+      expect(namespaceId).toBe('namespace-1');
+    });
+  });
+
+  describe('Admin users API namespace filtering', () => {
+    it('namespace-admin cannot override namespace query param', () => {
+      const request = new NextRequest('http://localhost/api/admin/users?namespace=namespace-2');
+      const namespaceId = apiHelpers.getNamespaceContext(request, namespace1Admin);
+
+      // Still gets their own namespace
+      expect(namespaceId).toBe('namespace-1');
+    });
+
+    it('system-admin can query specific namespace for users', () => {
+      const request = new NextRequest('http://localhost/api/admin/users?namespace=namespace-2');
+      const namespaceId = apiHelpers.getNamespaceContext(request, systemAdminUser);
+
+      expect(namespaceId).toBe('namespace-2');
+    });
+  });
+});
+
+describe('Multi-tenant data isolation scenarios', () => {
+  /**
+   * These tests verify specific multi-tenant isolation scenarios
+   */
+
+  it('instructor in namespace-1 cannot access namespace-2 via any query param trick', () => {
+    // Try various query param formats
+    const urls = [
+      'http://localhost/api/classes?namespace=namespace-2',
+      'http://localhost/api/classes?namespaceId=namespace-2',
+      'http://localhost/api/classes?ns=namespace-2',
+    ];
+
+    for (const url of urls) {
+      const request = new NextRequest(url);
+      const namespaceId = apiHelpers.getNamespaceContext(request, namespace1Instructor);
+      expect(namespaceId).toBe('namespace-1');
+    }
+  });
+
+  it('system-admin defaults to their namespace when no query param provided', () => {
+    const request = new NextRequest('http://localhost/api/classes');
+    const namespaceId = apiHelpers.getNamespaceContext(request, systemAdminUser);
+    expect(namespaceId).toBe('default');
+  });
+
+  it('empty namespace query param is ignored for system-admin', () => {
+    const request = new NextRequest('http://localhost/api/classes?namespace=');
+    const namespaceId = apiHelpers.getNamespaceContext(request, systemAdminUser);
+    // Empty string should fall back to user's namespace
+    expect(namespaceId).toBe('default');
   });
 });

@@ -374,8 +374,8 @@ describe('SectionView', () => {
 
   it('should display empty session state with create button', async () => {
     const mockSections = [
-      { 
-        id: 'section-1', 
+      {
+        id: 'section-1',
         name: 'Section A',
         studentCount: 25,
         sessionCount: 0,
@@ -406,10 +406,233 @@ describe('SectionView', () => {
     });
 
     expect(screen.getByText('Create a new session to start teaching')).toBeInTheDocument();
-    
+
     const createButton = screen.getByRole('button', { name: /Create First Session/ });
     fireEvent.click(createButton);
 
     expect(mockOnCreateSession).toHaveBeenCalledWith('section-1', 'Section A');
+  });
+
+  describe('CreateSectionModal integration', () => {
+    it('should open modal when New Section button is clicked', async () => {
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ sections: [] }),
+      });
+
+      render(<SectionView {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByText('No Sections Yet')).toBeInTheDocument();
+      });
+
+      // Click the "New Section" button in the header
+      const newSectionButton = screen.getByRole('button', { name: /New Section/ });
+      fireEvent.click(newSectionButton);
+
+      // Verify modal appears
+      expect(screen.getByText('Create New Section')).toBeInTheDocument();
+      expect(screen.getByLabelText(/Section Name/)).toBeInTheDocument();
+    });
+
+    it('should open modal when Create Section button in empty state is clicked', async () => {
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ sections: [] }),
+      });
+
+      render(<SectionView {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByText('No Sections Yet')).toBeInTheDocument();
+      });
+
+      // Click the "Create Section" button in the empty state
+      const createSectionButton = screen.getByRole('button', { name: /Create Section/ });
+      fireEvent.click(createSectionButton);
+
+      // Verify modal appears
+      expect(screen.getByText('Create New Section')).toBeInTheDocument();
+    });
+
+    it('should close modal when Cancel button is clicked', async () => {
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ sections: [] }),
+      });
+
+      render(<SectionView {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByText('No Sections Yet')).toBeInTheDocument();
+      });
+
+      // Open the modal
+      fireEvent.click(screen.getByRole('button', { name: /New Section/ }));
+      expect(screen.getByText('Create New Section')).toBeInTheDocument();
+
+      // Click Cancel
+      const cancelButton = screen.getByRole('button', { name: /Cancel/ });
+      fireEvent.click(cancelButton);
+
+      // Verify modal is closed
+      await waitFor(() => {
+        expect(screen.queryByText('Create New Section')).not.toBeInTheDocument();
+      });
+    });
+
+    it('should submit form and call API when Create Section is clicked', async () => {
+      (global.fetch as jest.Mock)
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ sections: [] }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ section: { id: 'new-section', name: 'Test Section' } }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ sections: [{ id: 'new-section', name: 'Test Section', studentCount: 0, sessionCount: 0, activeSessionCount: 0 }] }),
+        });
+
+      render(<SectionView {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByText('No Sections Yet')).toBeInTheDocument();
+      });
+
+      // Open the modal
+      fireEvent.click(screen.getByRole('button', { name: /New Section/ }));
+
+      // Fill out the form
+      const nameInput = screen.getByLabelText(/Section Name/);
+      fireEvent.change(nameInput, { target: { value: 'Test Section' } });
+
+      const scheduleInput = screen.getByLabelText(/Schedule/);
+      fireEvent.change(scheduleInput, { target: { value: 'MWF 10am' } });
+
+      // Submit the form - use the submit button inside the modal form
+      const modal = screen.getByText('Create New Section').closest('div[class*="bg-white rounded-xl"]');
+      const submitButton = modal!.querySelector('button[type="submit"]') as HTMLButtonElement;
+      fireEvent.click(submitButton);
+
+      // Verify API was called with correct data
+      await waitFor(() => {
+        expect(global.fetch).toHaveBeenCalledWith(
+          '/api/classes/class-1/sections',
+          expect.objectContaining({
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: 'Test Section', schedule: 'MWF 10am', location: '' }),
+          })
+        );
+      });
+    });
+
+    it('should close modal and refresh sections after successful creation', async () => {
+      const newSection = {
+        id: 'new-section',
+        name: 'Test Section',
+        joinCode: 'ABC123',
+        studentCount: 0,
+        sessionCount: 0,
+        activeSessionCount: 0
+      };
+
+      (global.fetch as jest.Mock)
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ sections: [] }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ section: newSection }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ sections: [newSection] }),
+        });
+
+      render(<SectionView {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByText('No Sections Yet')).toBeInTheDocument();
+      });
+
+      // Open the modal
+      fireEvent.click(screen.getByRole('button', { name: /New Section/ }));
+
+      // Fill and submit using the modal's submit button
+      fireEvent.change(screen.getByLabelText(/Section Name/), { target: { value: 'Test Section' } });
+      const modal = screen.getByText('Create New Section').closest('div[class*="bg-white rounded-xl"]');
+      const submitButton = modal!.querySelector('button[type="submit"]') as HTMLButtonElement;
+      fireEvent.click(submitButton);
+
+      // Verify modal closes and new section appears
+      await waitFor(() => {
+        expect(screen.queryByText('Create New Section')).not.toBeInTheDocument();
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('Test Section')).toBeInTheDocument();
+      });
+    });
+
+    it('should display error when API call fails', async () => {
+      (global.fetch as jest.Mock)
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ sections: [] }),
+        })
+        .mockResolvedValueOnce({
+          ok: false,
+          json: async () => ({ error: 'Section name already exists' }),
+        });
+
+      render(<SectionView {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByText('No Sections Yet')).toBeInTheDocument();
+      });
+
+      // Open the modal
+      fireEvent.click(screen.getByRole('button', { name: /New Section/ }));
+
+      // Fill and submit using the modal's submit button
+      fireEvent.change(screen.getByLabelText(/Section Name/), { target: { value: 'Duplicate Section' } });
+      const modal = screen.getByText('Create New Section').closest('div[class*="bg-white rounded-xl"]');
+      const submitButton = modal!.querySelector('button[type="submit"]') as HTMLButtonElement;
+      fireEvent.click(submitButton);
+
+      // Verify error is displayed
+      await waitFor(() => {
+        expect(screen.getByText('Section name already exists')).toBeInTheDocument();
+      });
+
+      // Modal should still be open
+      expect(screen.getByText('Create New Section')).toBeInTheDocument();
+    });
+
+    it('should not allow submission with empty section name', async () => {
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ sections: [] }),
+      });
+
+      render(<SectionView {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByText('No Sections Yet')).toBeInTheDocument();
+      });
+
+      // Open the modal
+      fireEvent.click(screen.getByRole('button', { name: /New Section/ }));
+
+      // Get the submit button inside the modal - it should be disabled
+      const modal = screen.getByText('Create New Section').closest('div[class*="bg-white rounded-xl"]');
+      const submitButton = modal!.querySelector('button[type="submit"]') as HTMLButtonElement;
+      expect(submitButton).toBeDisabled();
+    });
   });
 });
