@@ -14,9 +14,9 @@ import {
 } from '@/server/types/analysis';
 
 // Configuration constants
-// Use gemini-2.0-flash-exp for free tier (or gemini-1.5-flash-latest as fallback)
-const GEMINI_MODEL = 'gemini-2.0-flash-exp';
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models';
+// Available models (from ListModels): gemini-2.5-flash, gemini-2.0-flash, gemini-2.0-flash-lite
+const GEMINI_MODEL = 'gemini-2.0-flash';
+const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1/models';
 const REQUEST_TIMEOUT_MS = 30000;
 const MIN_CODE_LENGTH = 20;
 const STARTER_CODE_DIFF_THRESHOLD = 0.1; // 10% - submissions with <10% diff from starter are filtered
