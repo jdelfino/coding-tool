@@ -14,8 +14,9 @@ import {
 } from '@/server/types/analysis';
 
 // Configuration constants
-// Available models (from ListModels): gemini-2.5-flash, gemini-2.0-flash, gemini-2.0-flash-lite
-const GEMINI_MODEL = 'gemini-2.0-flash';
+// Note: gemini-2.0-flash and gemini-2.0-flash-lite have limit=0 on free tier
+// Trying gemini-2.5-flash-lite
+const GEMINI_MODEL = 'gemini-2.5-flash-lite';
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1/models';
 const REQUEST_TIMEOUT_MS = 30000;
 const MIN_CODE_LENGTH = 20;
@@ -307,6 +308,9 @@ export class GeminiAnalysisService {
       toAnalyze.map((s) => ({ label: s.label, code: s.code }))
     );
 
+    // Log prompt size for debugging
+    console.log(`[Gemini] Analyzing ${toAnalyze.length} submissions, prompt length: ${prompt.length} chars (~${Math.ceil(prompt.length / 4)} tokens)`);
+
     const responseText = await this.callGeminiAPI(prompt);
 
     // Parse response
@@ -365,9 +369,12 @@ export class GeminiAnalysisService {
 
       if (!response.ok) {
         const errorBody = await response.text();
+        console.error(`[Gemini] API error ${response.status}:`, errorBody);
 
         if (response.status === 429) {
-          throw new Error('Rate limit exceeded. Please wait a moment and try again.');
+          // Log full error for debugging rate limits
+          console.error('[Gemini] Rate limit details:', errorBody);
+          throw new Error(`Rate limit exceeded. Please wait a moment and try again. Details: ${errorBody}`);
         }
 
         if (response.status === 401 || response.status === 403) {

@@ -7,6 +7,7 @@ interface WalkthroughEntryProps {
   entry: WalkthroughEntryType;
   isActive: boolean;
   onClick: () => void;
+  onShow: () => void;
 }
 
 const categoryStyles: Record<WalkthroughCategory, { bg: string; text: string; label: string }> = {
@@ -16,8 +17,13 @@ const categoryStyles: Record<WalkthroughCategory, { bg: string; text: string; la
   'exemplary': { bg: '#eff6ff', text: '#1e40af', label: 'Exemplary' },
 };
 
-export default function WalkthroughEntry({ entry, isActive, onClick }: WalkthroughEntryProps) {
+export default function WalkthroughEntry({ entry, isActive, onClick, onShow }: WalkthroughEntryProps) {
   const categoryStyle = categoryStyles[entry.category];
+
+  const handleShowClick = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Don't trigger the card click
+    onShow();
+  };
 
   return (
     <div
@@ -32,7 +38,7 @@ export default function WalkthroughEntry({ entry, isActive, onClick }: Walkthrou
         transition: 'all 0.15s ease',
       }}
     >
-      {/* Header row with position, label, and category */}
+      {/* Header row with position, label, category, and show button */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
         <span
           style={{
@@ -59,11 +65,26 @@ export default function WalkthroughEntry({ entry, isActive, onClick }: Walkthrou
             borderRadius: '9999px',
             fontSize: '0.7rem',
             fontWeight: 500,
-            marginLeft: 'auto',
           }}
         >
           {categoryStyle.label}
         </span>
+        <button
+          onClick={handleShowClick}
+          style={{
+            marginLeft: 'auto',
+            padding: '0.25rem 0.75rem',
+            backgroundColor: isActive ? '#0070f3' : '#10b981',
+            color: 'white',
+            border: 'none',
+            borderRadius: '4px',
+            fontSize: '0.75rem',
+            fontWeight: 500,
+            cursor: 'pointer',
+          }}
+        >
+          {isActive ? 'Showing' : 'Show'}
+        </button>
       </div>
 
       {/* Discussion points */}

@@ -463,4 +463,95 @@ describe('useRealtime', () => {
       );
     });
   });
+
+  describe('Reference stability', () => {
+    it('should NOT reconnect when presenceData has same content but new reference', () => {
+      const { rerender } = renderHook(
+        ({ sessionId, presenceData }) => useRealtime({ sessionId, userId: 'user-1', presenceData }),
+        { initialProps: { sessionId: 'session-1', presenceData: { foo: 'bar' } } }
+      );
+
+      expect(mockSupabaseClient.channel).toHaveBeenCalledTimes(1);
+      jest.clearAllMocks();
+
+      // Rerender with NEW object reference but SAME content
+      rerender({ sessionId: 'session-1', presenceData: { foo: 'bar' } });
+
+      // Should NOT create a new channel
+      expect(mockSupabaseClient.channel).not.toHaveBeenCalled();
+      expect(mockSupabaseClient.removeChannel).not.toHaveBeenCalled();
+    });
+
+    it('should NOT reconnect when tables has same content but new reference', () => {
+      const { rerender } = renderHook(
+        ({ sessionId, tables }) => useRealtime({ sessionId, tables }),
+        { initialProps: { sessionId: 'session-1', tables: ['session_students', 'sessions'] } }
+      );
+
+      expect(mockSupabaseClient.channel).toHaveBeenCalledTimes(1);
+      jest.clearAllMocks();
+
+      // Rerender with NEW array reference but SAME content
+      rerender({ sessionId: 'session-1', tables: ['session_students', 'sessions'] });
+
+      // Should NOT create a new channel
+      expect(mockSupabaseClient.channel).not.toHaveBeenCalled();
+      expect(mockSupabaseClient.removeChannel).not.toHaveBeenCalled();
+    });
+
+    it('should NOT reconnect when tables has same content in different order', () => {
+      const { rerender } = renderHook(
+        ({ sessionId, tables }) => useRealtime({ sessionId, tables }),
+        { initialProps: { sessionId: 'session-1', tables: ['sessions', 'session_students'] } }
+      );
+
+      expect(mockSupabaseClient.channel).toHaveBeenCalledTimes(1);
+      jest.clearAllMocks();
+
+      // Rerender with same tables in different order
+      rerender({ sessionId: 'session-1', tables: ['session_students', 'sessions'] });
+
+      // Should NOT create a new channel (order doesn't matter)
+      expect(mockSupabaseClient.channel).not.toHaveBeenCalled();
+      expect(mockSupabaseClient.removeChannel).not.toHaveBeenCalled();
+    });
+
+    it('should reconnect when presenceData content actually changes', () => {
+      const { rerender } = renderHook(
+        ({ sessionId, presenceData }) => useRealtime({ sessionId, userId: 'user-1', presenceData }),
+        { initialProps: { sessionId: 'session-1', presenceData: { foo: 'bar' } } }
+      );
+
+      expect(mockSupabaseClient.channel).toHaveBeenCalledTimes(1);
+      jest.clearAllMocks();
+      mockChannel = createMockChannel();
+      mockSupabaseClient.channel.mockReturnValue(mockChannel);
+
+      // Rerender with different content
+      rerender({ sessionId: 'session-1', presenceData: { foo: 'baz' } });
+
+      // SHOULD create a new channel since content changed
+      expect(mockSupabaseClient.removeChannel).toHaveBeenCalled();
+      expect(mockSupabaseClient.channel).toHaveBeenCalled();
+    });
+
+    it('should reconnect when tables content actually changes', () => {
+      const { rerender } = renderHook(
+        ({ sessionId, tables }) => useRealtime({ sessionId, tables }),
+        { initialProps: { sessionId: 'session-1', tables: ['session_students'] } }
+      );
+
+      expect(mockSupabaseClient.channel).toHaveBeenCalledTimes(1);
+      jest.clearAllMocks();
+      mockChannel = createMockChannel();
+      mockSupabaseClient.channel.mockReturnValue(mockChannel);
+
+      // Rerender with different tables
+      rerender({ sessionId: 'session-1', tables: ['session_students', 'sessions'] });
+
+      // SHOULD create a new channel since content changed
+      expect(mockSupabaseClient.removeChannel).toHaveBeenCalled();
+      expect(mockSupabaseClient.channel).toHaveBeenCalled();
+    });
+  });
 });

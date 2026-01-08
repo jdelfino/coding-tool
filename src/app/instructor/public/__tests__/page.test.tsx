@@ -1,14 +1,13 @@
 /**
  * Unit tests for the public instructor view component
  * Tests behavior of the public display page including:
- * - Clearing execution output when new code is sent
- * - WebSocket message handling
- * - State updates
+ * - Loading state from API
+ * - Realtime updates via Supabase
+ * - State management
  */
 
 import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
-import { MessageType } from '@/server/types';
 
 // Mock next/navigation
 jest.mock('next/navigation', () => ({
@@ -17,237 +16,265 @@ jest.mock('next/navigation', () => ({
   })),
 }));
 
-// Mock the useDebugger hook
-jest.mock('@/hooks/useDebugger', () => ({
-  useDebugger: jest.fn(() => ({
-    isLoading: false,
-    error: null,
-    trace: null,
-    setTrace: jest.fn(),
-    setError: jest.fn(),
-    clearTrace: jest.fn(),
-  })),
+// Mock Supabase client
+const mockChannel = {
+  on: jest.fn().mockReturnThis(),
+  subscribe: jest.fn().mockImplementation((callback) => {
+    if (callback) callback('SUBSCRIBED');
+    return mockChannel;
+  }),
+};
+
+const mockSupabase = {
+  channel: jest.fn().mockReturnValue(mockChannel),
+  removeChannel: jest.fn(),
+};
+
+jest.mock('@/lib/supabase/client', () => ({
+  getSupabaseBrowserClient: jest.fn(() => mockSupabase),
 }));
+
+// Mock fetch
+const mockFetch = jest.fn();
+global.fetch = mockFetch;
 
 // Mock CodeEditor component
 jest.mock('@/app/student/components/CodeEditor', () => {
-  return function MockCodeEditor({ code, executionResult }: any) {
+  return function MockCodeEditor({ code, title }: any) {
     return (
       <div data-testid="code-editor">
+        <div data-testid="code-title">{title}</div>
         <div data-testid="code-content">{code}</div>
-        {executionResult && (
-          <div data-testid="execution-result">
-            <div>{executionResult.success ? 'Success' : 'Error'}</div>
-            <div>{executionResult.output}</div>
-          </div>
-        )}
-        {!executionResult && <div data-testid="no-output">No output</div>}
       </div>
     );
   };
 });
 
-// We need to mock React for the component's JSX
-jest.mock('react', () => {
-  const actualReact = jest.requireActual('react');
-  return {
-    ...actualReact,
-    default: actualReact,
-  };
-});
-
 describe('PublicInstructorView', () => {
-  let mockWebSocket: any;
-
   beforeEach(() => {
-    // Mock WebSocket
-    mockWebSocket = {
-      send: jest.fn(),
-      close: jest.fn(),
-      readyState: 1, // OPEN
-      onopen: null as any,
-      onmessage: null as any,
-      onerror: null as any,
-      onclose: null as any,
-    };
-
-    // Mock the WebSocket constructor
-    global.WebSocket = jest.fn().mockImplementation(() => {
-      // Trigger onopen asynchronously
-      setTimeout(() => {
-        if (mockWebSocket.onopen) {
-          mockWebSocket.onopen(new Event('open'));
-        }
-      }, 0);
-      return mockWebSocket;
-    }) as any;
+    jest.clearAllMocks();
+    mockChannel.on.mockReturnThis();
+    mockChannel.subscribe.mockImplementation((callback) => {
+      if (callback) callback('SUBSCRIBED');
+      return mockChannel;
+    });
+    mockSupabase.channel.mockReturnValue(mockChannel);
   });
 
   afterEach(() => {
     jest.clearAllMocks();
   });
 
-  test('clears execution output when new code is sent to public view', async () => {
-    // Import the component after mocks are set up
-    const PublicInstructorView = require('../page').default;
+  test('shows loading state initially', async () => {
+    // Set up fetch to never resolve (to test loading state)
+    mockFetch.mockImplementation(() => new Promise(() => {}));
 
+    const PublicInstructorView = require('../page').default;
     render(<PublicInstructorView />);
 
-    // Wait for WebSocket to be initialized
-    await waitFor(() => {
-      expect(global.WebSocket).toHaveBeenCalled();
+    expect(screen.getByText('Loading...')).toBeInTheDocument();
+  });
+
+  test('fetches and displays session state from API', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        sessionId: 'test-session-id',
+        joinCode: 'ABC-123',
+        problem: {
+          title: 'Test Problem',
+          description: 'A test problem description',
+        },
+        featuredStudentId: 'student-1',
+        featuredCode: 'print("Hello, World!")',
+        hasFeaturedSubmission: true,
+      }),
     });
 
-    // Simulate initial code with execution result
-    const initialMessage = {
-      data: JSON.stringify({
-        type: MessageType.PUBLIC_SUBMISSION_UPDATE,
-        payload: {
-          code: 'print("Hello, World!")',
-          problem: {
-            title: 'Test Problem',
-            description: 'A test problem',
-            starterCode: '',
-          },
-          hasFeaturedSubmission: true,
-          executionSettings: {
-            stdin: '',
-          },
-        },
-      }),
-    };
+    const PublicInstructorView = require('../page').default;
+    render(<PublicInstructorView />);
 
-    if (mockWebSocket.onmessage) {
-      mockWebSocket.onmessage(initialMessage);
-    }
+    // Wait for fetch to complete
+    await waitFor(() => {
+      expect(mockFetch).toHaveBeenCalledWith('/api/sessions/test-session-id/public-state');
+    });
 
-    // Wait for code to be displayed
+    // Verify content is displayed
+    await waitFor(() => {
+      expect(screen.getByText('ABC-123')).toBeInTheDocument();
+    });
+
+    // Verify problem description is displayed
+    await waitFor(() => {
+      expect(screen.getByText('A test problem description')).toBeInTheDocument();
+    });
+
+    // Verify featured code is shown
     await waitFor(() => {
       expect(screen.getByTestId('code-content')).toHaveTextContent('print("Hello, World!")');
     });
-
-    // Simulate execution result (old output)
-    const executionMessage = {
-      data: JSON.stringify({
-        type: MessageType.EXECUTION_RESULT,
-        payload: {
-          success: true,
-          output: 'Hello, World!\n',
-          error: '',
-          executionTime: 100,
-        },
-      }),
-    };
-
-    if (mockWebSocket.onmessage) {
-      mockWebSocket.onmessage(executionMessage);
-    }
-
-    // Verify execution result is displayed
-    await waitFor(() => {
-      expect(screen.getByTestId('execution-result')).toBeInTheDocument();
-      expect(screen.getByText('Success')).toBeInTheDocument();
-      expect(screen.getByText('Hello, World!')).toBeInTheDocument();
-    });
-
-    // Now send new code to public view
-    const newCodeMessage = {
-      data: JSON.stringify({
-        type: MessageType.PUBLIC_SUBMISSION_UPDATE,
-        payload: {
-          code: 'def sum_array(arr):\n    return sum(arr)',
-          hasFeaturedSubmission: true,
-        },
-      }),
-    };
-
-    if (mockWebSocket.onmessage) {
-      mockWebSocket.onmessage(newCodeMessage);
-    }
-
-    // Verify that:
-    // 1. New code is displayed
-    // 2. Old execution output is CLEARED
-    await waitFor(() => {
-      expect(screen.getByTestId('code-content')).toHaveTextContent('def sum_array(arr)');
-      expect(screen.queryByTestId('execution-result')).not.toBeInTheDocument();
-      expect(screen.getByTestId('no-output')).toBeInTheDocument();
-    });
   });
 
-  test('preserves execution output when code is not updated', async () => {
-    const PublicInstructorView = require('../page').default;
+  test('shows no submission message when no featured submission', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        sessionId: 'test-session-id',
+        joinCode: 'ABC-123',
+        problem: null,
+        featuredStudentId: null,
+        featuredCode: null,
+        hasFeaturedSubmission: false,
+      }),
+    });
 
+    const PublicInstructorView = require('../page').default;
     render(<PublicInstructorView />);
 
     await waitFor(() => {
-      expect(global.WebSocket).toHaveBeenCalled();
+      expect(screen.getByText('No submission selected for display')).toBeInTheDocument();
+    });
+  });
+
+  test('shows error state when API fails', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      json: async () => ({ error: 'Session not found' }),
     });
 
-    // Send initial code
-    const initialMessage = {
-      data: JSON.stringify({
-        type: MessageType.PUBLIC_SUBMISSION_UPDATE,
-        payload: {
-          code: 'print("Test")',
-          problem: {
-            title: 'Test',
-            description: '',
-            starterCode: '',
-          },
-          hasFeaturedSubmission: true,
-        },
-      }),
-    };
-
-    if (mockWebSocket.onmessage) {
-      mockWebSocket.onmessage(initialMessage);
-    }
+    const PublicInstructorView = require('../page').default;
+    render(<PublicInstructorView />);
 
     await waitFor(() => {
-      expect(screen.getByTestId('code-content')).toHaveTextContent('print("Test")');
+      expect(screen.getByText('Error')).toBeInTheDocument();
+      expect(screen.getByText('Session not found')).toBeInTheDocument();
+    });
+  });
+
+  test('subscribes to Supabase Realtime for updates', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        sessionId: 'test-session-id',
+        joinCode: 'ABC-123',
+        problem: null,
+        featuredStudentId: null,
+        featuredCode: null,
+        hasFeaturedSubmission: false,
+      }),
     });
 
-    // Send execution result
-    const executionMessage = {
-      data: JSON.stringify({
-        type: MessageType.EXECUTION_RESULT,
-        payload: {
-          success: true,
-          output: 'Test\n',
-          error: '',
-          executionTime: 50,
-        },
-      }),
-    };
+    const PublicInstructorView = require('../page').default;
+    render(<PublicInstructorView />);
 
-    if (mockWebSocket.onmessage) {
-      mockWebSocket.onmessage(executionMessage);
-    }
-
+    // Wait for initial fetch
     await waitFor(() => {
-      expect(screen.getByTestId('execution-result')).toBeInTheDocument();
+      expect(mockFetch).toHaveBeenCalled();
     });
 
-    // Send update without code change (e.g., just updating execution settings)
-    const updateMessage = {
-      data: JSON.stringify({
-        type: MessageType.PUBLIC_SUBMISSION_UPDATE,
-        payload: {
-          executionSettings: {
-            stdin: 'new input',
-          },
-        },
-      }),
-    };
+    // Verify Supabase channel was created for session updates
+    await waitFor(() => {
+      expect(mockSupabase.channel).toHaveBeenCalledWith('public-view-test-session-id');
+    });
 
-    if (mockWebSocket.onmessage) {
-      mockWebSocket.onmessage(updateMessage);
+    // Verify subscription to postgres_changes
+    expect(mockChannel.on).toHaveBeenCalledWith(
+      'postgres_changes',
+      expect.objectContaining({
+        event: '*',
+        schema: 'public',
+        table: 'sessions',
+        filter: 'id=eq.test-session-id',
+      }),
+      expect.any(Function)
+    );
+
+    expect(mockChannel.subscribe).toHaveBeenCalled();
+  });
+
+  test('re-fetches state when realtime update received', async () => {
+    // First fetch returns initial state
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        sessionId: 'test-session-id',
+        joinCode: 'ABC-123',
+        problem: null,
+        featuredStudentId: null,
+        featuredCode: null,
+        hasFeaturedSubmission: false,
+      }),
+    });
+
+    // Capture the realtime callback using a container object (TypeScript handles this better)
+    const callbackRef: { current: ((payload: any) => void) | null } = { current: null };
+    mockChannel.on.mockImplementation((event: string, config: any, callback: (payload: any) => void) => {
+      if (event === 'postgres_changes') {
+        callbackRef.current = callback;
+      }
+      return mockChannel;
+    });
+
+    const PublicInstructorView = require('../page').default;
+    render(<PublicInstructorView />);
+
+    // Wait for initial fetch
+    await waitFor(() => {
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+    });
+
+    // Second fetch returns updated state
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        sessionId: 'test-session-id',
+        joinCode: 'ABC-123',
+        problem: {
+          title: 'New Problem',
+          description: 'Updated problem',
+        },
+        featuredStudentId: 'student-2',
+        featuredCode: 'print("Updated code")',
+        hasFeaturedSubmission: true,
+      }),
+    });
+
+    // Simulate realtime update
+    if (callbackRef.current) {
+      callbackRef.current({ new: { id: 'test-session-id' } });
     }
 
-    // Execution result should still be present since code wasn't updated
+    // Wait for re-fetch
     await waitFor(() => {
-      expect(screen.getByTestId('execution-result')).toBeInTheDocument();
+      expect(mockFetch).toHaveBeenCalledTimes(2);
+    });
+
+    // Verify updated content is displayed
+    await waitFor(() => {
+      expect(screen.getByTestId('code-content')).toHaveTextContent('print("Updated code")');
+    });
+  });
+
+});
+
+// Separate describe block with different navigation mock for no-sessionId case
+describe('PublicInstructorView without sessionId', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+
+    // Override the mock to return null for sessionId
+    const { useSearchParams } = require('next/navigation');
+    (useSearchParams as jest.Mock).mockReturnValue({
+      get: jest.fn(() => null)
+    });
+  });
+
+  test('shows no session message when sessionId is missing', async () => {
+    const PublicInstructorView = require('../page').default;
+    render(<PublicInstructorView />);
+
+    await waitFor(() => {
+      expect(screen.getByText('No Session')).toBeInTheDocument();
     });
   });
 });

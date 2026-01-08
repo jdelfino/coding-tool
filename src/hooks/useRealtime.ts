@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { RealtimeChannel, REALTIME_SUBSCRIBE_STATES } from '@supabase/supabase-js';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 
@@ -27,6 +27,8 @@ export interface UseRealtimeOptions {
   tables?: string[];
 }
 
+const DEFAULT_TABLES = ['session_students', 'sessions', 'revisions'];
+
 /**
  * Low-level hook for Supabase Realtime subscriptions
  *
@@ -40,7 +42,7 @@ export function useRealtime({
   sessionId,
   userId,
   presenceData = {},
-  tables = ['session_students', 'sessions', 'revisions'],
+  tables = DEFAULT_TABLES,
 }: UseRealtimeOptions) {
   const [isConnected, setIsConnected] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('disconnected');
@@ -50,6 +52,22 @@ export function useRealtime({
 
   const channelRef = useRef<RealtimeChannel | null>(null);
   const supabaseRef = useRef(getSupabaseBrowserClient());
+
+  // Stabilize tables and presenceData to prevent unnecessary reconnections
+  // when callers pass new object/array references with the same content
+  const tablesKey = useMemo(() => JSON.stringify(tables.slice().sort()), [tables]);
+  const presenceDataKey = useMemo(() => JSON.stringify(presenceData), [presenceData]);
+  const tablesRef = useRef(tables);
+  const presenceDataRef = useRef(presenceData);
+
+  // Update refs when content actually changes
+  useEffect(() => {
+    tablesRef.current = tables;
+  }, [tablesKey]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    presenceDataRef.current = presenceData;
+  }, [presenceDataKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /**
    * Handle postgres_changes events
@@ -92,8 +110,8 @@ export function useRealtime({
       },
     });
 
-    // Subscribe to postgres_changes for each table
-    tables.forEach((table) => {
+    // Subscribe to postgres_changes for each table (use ref for stable reference)
+    tablesRef.current.forEach((table) => {
       channel.on(
         'postgres_changes',
         {
@@ -126,12 +144,12 @@ export function useRealtime({
           setConnectionStatus('connected');
           setConnectionError(null);
 
-          // Track presence if userId provided
+          // Track presence if userId provided (use ref for stable reference)
           if (userId) {
             const trackStatus = await channel.track({
               user_id: userId,
               online_at: new Date().toISOString(),
-              ...presenceData,
+              ...presenceDataRef.current,
             });
 
             if (trackStatus !== 'ok') {
@@ -166,7 +184,8 @@ export function useRealtime({
       setIsConnected(false);
       setConnectionStatus('disconnected');
     };
-  }, [sessionId, userId, handleDatabaseChange, handlePresenceSync, tables, presenceData]);
+    // Use stable keys instead of object/array references to prevent reconnection loops
+  }, [sessionId, userId, handleDatabaseChange, handlePresenceSync, tablesKey, presenceDataKey]);
 
   return {
     isConnected,

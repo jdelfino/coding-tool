@@ -1,151 +1,83 @@
 'use client';
 
-import React, { useEffect, useState, Suspense } from 'react';
+import React, { useEffect, useState, useCallback, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { MessageType } from '@/server/types';
-import { ExecutionSettings, Problem } from '@/server/types/problem';
+import { getSupabaseBrowserClient } from '@/lib/supabase/client';
+import { Problem } from '@/server/types/problem';
 import CodeEditor from '@/app/student/components/CodeEditor';
-import { useDebugger } from '@/hooks/useDebugger';
 
-interface ExecutionResult {
-  success: boolean;
-  output: string;
-  error: string;
-  executionTime: number;
+interface PublicSessionState {
+  sessionId: string;
+  joinCode: string;
+  problem: Problem | null;
+  featuredStudentId: string | null;
+  featuredCode: string | null;
+  hasFeaturedSubmission: boolean;
 }
 
 function PublicViewContent() {
   const searchParams = useSearchParams();
   const sessionId = searchParams.get('sessionId');
 
-  const [ws, setWs] = useState<WebSocket | null>(null);
-  const [joinCode, setJoinCode] = useState('');
-  const [problem, setProblem] = useState<Problem | null>(null);
-  const [problemText, setProblemText] = useState('');
-  const [code, setCode] = useState('');
-  const [hasFeaturedSubmission, setHasFeaturedSubmission] = useState(false);
-  const [executionResult, setExecutionResult] = useState<ExecutionResult | null>(null);
-  const [isExecuting, setIsExecuting] = useState(false);
-  const [exampleInput, setExampleInput] = useState('');
-  const [randomSeed, setRandomSeed] = useState<number | undefined>(undefined);
-  const [attachedFiles, setAttachedFiles] = useState<Array<{ name: string; content: string }>>([]);
+  const [state, setState] = useState<PublicSessionState | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Setup debugger with manual sendMessage function
-  const sendMessage = (type: string, payload: any) => {
-    if (ws && ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({ type, payload }));
+  // Fetch session state from API
+  const fetchState = useCallback(async () => {
+    if (!sessionId) return;
+
+    try {
+      const res = await fetch(`/api/sessions/${sessionId}/public-state`);
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Failed to load session');
+      }
+      const data = await res.json();
+      setState(data);
+      setError(null);
+    } catch (e: any) {
+      console.error('[PublicView] Failed to fetch state:', e);
+      setError(e.message || 'Failed to load session');
+    } finally {
+      setLoading(false);
     }
-  };
-  const debuggerHook = useDebugger(sendMessage);
+  }, [sessionId]);
 
+  // Initial fetch
+  useEffect(() => {
+    fetchState();
+  }, [fetchState]);
+
+  // Subscribe to Supabase Realtime for session updates
   useEffect(() => {
     if (!sessionId) return;
 
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${protocol}//${window.location.host}/ws`;
-    const websocket = new WebSocket(wsUrl);
-
-    websocket.onopen = () => {
-      // Small delay to ensure connection is fully established
-      setTimeout(() => {
-        websocket.send(JSON.stringify({
-          type: MessageType.JOIN_PUBLIC_VIEW,
-          payload: { sessionId },
-        }));
-      }, 100);
-    };
-
-    websocket.onmessage = (event) => {
-      const message = JSON.parse(event.data);
-
-      switch (message.type) {
-        case MessageType.PUBLIC_SUBMISSION_UPDATE:
-          if (message.payload.joinCode !== undefined) {
-            setJoinCode(message.payload.joinCode);
-          }
-          if (message.payload.problem !== undefined) {
-            setProblem(message.payload.problem);
-            setProblemText(message.payload.problem.description || '');
-          }
-          if (message.payload.code !== undefined) {
-            setCode(message.payload.code);
-            // Clear execution output when new code is loaded
-            setExecutionResult(null);
-          }
-          if (message.payload.hasFeaturedSubmission !== undefined) {
-            setHasFeaturedSubmission(message.payload.hasFeaturedSubmission);
-          }
-          // Extract execution settings from either featured submission settings or problem defaults
-          if (message.payload.executionSettings !== undefined || message.payload.problem !== undefined) {
-            const effectiveSettings = message.payload.executionSettings || message.payload.problem?.executionSettings;
-            setExampleInput(effectiveSettings?.stdin || '');
-            setRandomSeed(effectiveSettings?.randomSeed);
-            setAttachedFiles(effectiveSettings?.attachedFiles || []);
-          }
-          break;
-
-        case MessageType.EXECUTION_RESULT:
-          setIsExecuting(false);
-          setExecutionResult(message.payload);
-          break;
-
-        case MessageType.TRACE_RESPONSE:
-          debuggerHook.setTrace(message.payload.trace);
-          break;
-
-          case MessageType.PROBLEM_UPDATE:
-          setProblemText(message.payload.problemText);
-          setExampleInput(message.payload.exampleInput || '');
-          setRandomSeed(message.payload.randomSeed);
-          setAttachedFiles(message.payload.attachedFiles || []);
-          break;
-
-        case MessageType.ERROR:
-          console.error('Error:', message.payload.error);
-          // Reset debugger loading state if trace request failed
-          if (debuggerHook.isLoading) {
-            debuggerHook.setError(message.payload.error || 'An error occurred');
-          }
-          break;
-      }
-    };
-
-    websocket.onerror = (error) => {
-      console.error('WebSocket error:', error);
-    };
-
-    websocket.onclose = () => {
-      console.log('Public view disconnected from WebSocket');
-    };
-
-    setWs(websocket);
+    const supabase = getSupabaseBrowserClient();
+    const channel = supabase
+      .channel(`public-view-${sessionId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'sessions',
+          filter: `id=eq.${sessionId}`,
+        },
+        (payload) => {
+          console.log('[PublicView] Session updated:', payload);
+          // Re-fetch state when session changes
+          fetchState();
+        }
+      )
+      .subscribe((status) => {
+        console.log('[PublicView] Realtime status:', status);
+      });
 
     return () => {
-      websocket.close();
+      supabase.removeChannel(channel);
     };
-  }, [sessionId]);
-
-  const handleCodeChange = (newCode: string) => {
-    setCode(newCode);
-    if (ws && ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({
-        type: MessageType.PUBLIC_CODE_EDIT,
-        payload: { code: newCode },
-      }));
-    }
-  };
-
-  const handleRun = (executionSettings: ExecutionSettings) => {
-    if (!ws || ws.readyState !== WebSocket.OPEN) return;
-
-    setIsExecuting(true);
-    setExecutionResult(null);
-
-    ws.send(JSON.stringify({
-      type: MessageType.PUBLIC_EXECUTE_CODE,
-      payload: { code, executionSettings },
-    }));
-  };
+  }, [sessionId, fetchState]);
 
   if (!sessionId) {
     return (
@@ -168,6 +100,44 @@ function PublicViewContent() {
       </div>
     );
   }
+
+  if (loading) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        backgroundColor: '#f9fafb',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
+      }}>
+        <div style={{ fontSize: '1.25rem', color: '#666' }}>Loading...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        backgroundColor: '#f9fafb',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
+      }}>
+        <div style={{
+          backgroundColor: 'white',
+          padding: '2rem',
+          border: '1px solid #fca5a5',
+          borderRadius: '4px'
+        }}>
+          <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1rem', color: '#dc2626' }}>Error</h1>
+          <p style={{ color: '#666' }}>{error}</p>
+        </div>
+      </div>
+    );
+  }
+
+  const problemText = state?.problem?.description || '';
 
   return (
     <main style={{
@@ -223,7 +193,7 @@ function PublicViewContent() {
             margin: 0,
             marginBottom: '0.5rem'
           }}>
-            {joinCode || '------'}
+            {state?.joinCode || '------'}
           </p>
           <p style={{ fontSize: '0.7rem', color: '#666', marginTop: '0.5rem', marginBottom: 0 }}>
             Students join your section with this code
@@ -232,7 +202,7 @@ function PublicViewContent() {
       </div>
 
       {/* Featured Submission */}
-      {hasFeaturedSubmission ? (
+      {state?.hasFeaturedSubmission ? (
         <div style={{
           padding: '1rem',
           border: '1px solid #ccc',
@@ -244,17 +214,13 @@ function PublicViewContent() {
         }}>
           <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
             <CodeEditor
-              code={code}
-              onChange={handleCodeChange}
-              onRun={handleRun}
-              isRunning={isExecuting}
-              exampleInput={exampleInput}
-              randomSeed={randomSeed}
-              attachedFiles={attachedFiles}
-              executionResult={executionResult}
-              problem={problem}
+              code={state.featuredCode || ''}
+              onChange={() => {}} // Read-only
+              onRun={() => {}} // Disable run for now
+              isRunning={false}
+              problem={state.problem}
               title="Featured Code"
-              debugger={debuggerHook}
+              readOnly
             />
           </div>
         </div>

@@ -22,6 +22,7 @@ describe('WalkthroughEntry', () => {
     entry: mockEntry,
     isActive: false,
     onClick: jest.fn(),
+    onShow: jest.fn(),
   };
 
   beforeEach(() => {

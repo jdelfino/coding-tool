@@ -27,6 +27,7 @@ VALUES
 
 -- Create test users in auth.users
 -- Password for all test users: 'password123'
+-- Note: GoTrue v2.184+ requires certain string columns to be empty strings, not NULL
 INSERT INTO auth.users (
   id,
   instance_id,
@@ -40,7 +41,15 @@ INSERT INTO auth.users (
   is_super_admin,
   role,
   aud,
-  confirmation_token
+  confirmation_token,
+  -- Required non-NULL string fields for GoTrue v2.184+
+  email_change,
+  email_change_token_new,
+  email_change_token_current,
+  phone_change,
+  phone_change_token,
+  recovery_token,
+  reauthentication_token
 ) VALUES
   -- System admin
   (
@@ -56,7 +65,8 @@ INSERT INTO auth.users (
     false,
     'authenticated',
     'authenticated',
-    ''
+    '',
+    '', '', '', '', '', '', ''
   ),
   -- Instructor
   (
@@ -72,7 +82,8 @@ INSERT INTO auth.users (
     false,
     'authenticated',
     'authenticated',
-    ''
+    '',
+    '', '', '', '', '', '', ''
   ),
   -- Student 1
   (
@@ -88,7 +99,8 @@ INSERT INTO auth.users (
     false,
     'authenticated',
     'authenticated',
-    ''
+    '',
+    '', '', '', '', '', '', ''
   ),
   -- Student 2
   (
@@ -104,7 +116,8 @@ INSERT INTO auth.users (
     false,
     'authenticated',
     'authenticated',
-    ''
+    '',
+    '', '', '', '', '', '', ''
   );
 
 -- Also insert into auth.identities for proper auth flow

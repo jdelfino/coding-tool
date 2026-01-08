@@ -58,8 +58,13 @@ export default function WalkthroughPanel({
 
       setIsNavigating(true);
       try {
+        const studentId = script.entries[index].studentId;
+        console.log('[Walkthrough] Featuring student:', studentId);
         setCurrentIndex(index);
-        await onFeatureStudent(script.entries[index].studentId);
+        await onFeatureStudent(studentId);
+        console.log('[Walkthrough] Feature request completed');
+      } catch (err) {
+        console.error('[Walkthrough] Feature error:', err);
       } finally {
         setIsNavigating(false);
       }
@@ -299,6 +304,7 @@ export default function WalkthroughPanel({
               entry={entry}
               isActive={index === currentIndex}
               onClick={() => handleEntryClick(index)}
+              onShow={() => handleEntryClick(index)}
             />
           ))}
         </div>
