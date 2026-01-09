@@ -48,6 +48,14 @@ export async function POST(
       );
     }
 
+    // SECURITY: Block execution in closed sessions
+    if (session.status === 'completed') {
+      return NextResponse.json(
+        { error: 'Session is closed. Code execution is no longer available.' },
+        { status: 400 }
+      );
+    }
+
     // SECURITY: Verify user is session creator or participant
     const isCreator = session.creatorId === user.id;
     const isParticipant = session.participants.includes(user.id);

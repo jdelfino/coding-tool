@@ -283,6 +283,30 @@ describe('POST /api/sessions/[id]/execute', () => {
     expect(data.error).toBe('Session not found');
   });
 
+  it('should return 400 when session is closed', async () => {
+    mockGetAuthenticatedUser.mockResolvedValue(mockUser);
+    mockStorage.sessions.getSession.mockResolvedValue({
+      ...mockSession,
+      status: 'completed',
+    });
+
+    const request = new NextRequest('http://localhost:3000/api/sessions/session-1/execute', {
+      method: 'POST',
+      body: JSON.stringify({
+        studentId: 'user-1',
+        code: 'print("Hello")',
+      }),
+    });
+    const params = Promise.resolve({ id: 'session-1' });
+
+    const response = await POST(request, { params });
+    const data = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(data.error).toBe('Session is closed. Code execution is no longer available.');
+    expect(mockExecuteCodeSafe).not.toHaveBeenCalled();
+  });
+
   it('should return 500 on execution error', async () => {
     mockGetAuthenticatedUser.mockResolvedValue(mockUser);
     mockStorage.sessions.getSession.mockResolvedValue(mockSession);

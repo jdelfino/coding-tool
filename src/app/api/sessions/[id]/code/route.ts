@@ -57,6 +57,14 @@ export async function POST(
       );
     }
 
+    // SECURITY: Block code saving in closed sessions
+    if (session.status === 'completed') {
+      return NextResponse.json(
+        { error: 'Session is closed. Code execution is no longer available.' },
+        { status: 400 }
+      );
+    }
+
     // Verify student exists in session
     if (!session.students.has(studentId)) {
       return NextResponse.json(
