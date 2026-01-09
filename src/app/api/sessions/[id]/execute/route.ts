@@ -57,6 +57,16 @@ export async function POST(
       );
     }
 
+    // SECURITY: Verify user is session creator or participant
+    const isCreator = session.creatorId === user.id;
+    const isParticipant = session.participants.includes(user.id);
+    if (!isCreator && !isParticipant) {
+      return NextResponse.json(
+        { error: 'Access denied. You are not a participant in this session.' },
+        { status: 403 }
+      );
+    }
+
     // Get student data for their execution settings using service
     const studentData = SessionService.getStudentData(session, studentId);
 

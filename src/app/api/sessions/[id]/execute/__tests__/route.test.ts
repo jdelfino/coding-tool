@@ -62,7 +62,7 @@ describe('POST /api/sessions/[id]/execute', () => {
     createdAt: new Date(),
     lastActivity: new Date(),
     creatorId: 'instructor-1',
-    participants: [],
+    participants: ['user-1'], // Include mockUser as participant
     status: 'active',
     sectionId: 'section-1',
     sectionName: 'Test Section',
@@ -307,5 +307,123 @@ describe('POST /api/sessions/[id]/execute', () => {
 
     expect(response.status).toBe(500);
     expect(data.error).toBe('Failed to execute code');
+  });
+
+  describe('Security: participant authorization', () => {
+    it('should return 403 when user is not a participant or creator', async () => {
+      const nonParticipantUser = {
+        ...mockUser,
+        id: 'other-user-id',
+      };
+      mockGetAuthenticatedUser.mockResolvedValue(nonParticipantUser);
+
+      // Session where user is neither creator nor participant
+      const restrictedSession = {
+        ...mockSession,
+        creatorId: 'instructor-1',
+        participants: ['student-1', 'student-2'],
+      };
+      mockStorage.sessions.getSession.mockResolvedValue(restrictedSession);
+
+      const request = new NextRequest('http://localhost:3000/api/sessions/session-1/execute', {
+        method: 'POST',
+        body: JSON.stringify({
+          studentId: 'student-1',
+          code: 'print("Hello")',
+        }),
+      });
+      const params = Promise.resolve({ id: 'session-1' });
+
+      const response = await POST(request, { params });
+      const data = await response.json();
+
+      expect(response.status).toBe(403);
+      expect(data.error).toBe('Access denied. You are not a participant in this session.');
+      expect(mockExecuteCodeSafe).not.toHaveBeenCalled();
+    });
+
+    it('should allow execution when user is the session creator', async () => {
+      const creatorUser = {
+        ...mockUser,
+        id: 'instructor-1',
+      };
+      mockGetAuthenticatedUser.mockResolvedValue(creatorUser);
+
+      // Session where user is the creator but not in participants list
+      const creatorSession = {
+        ...mockSession,
+        creatorId: 'instructor-1',
+        participants: ['student-1'],
+      };
+      mockStorage.sessions.getSession.mockResolvedValue(creatorSession);
+      (SessionService.getStudentData as jest.Mock).mockReturnValue({
+        code: 'print("Hello")',
+        executionSettings: undefined,
+      });
+
+      const mockResult = {
+        success: true,
+        output: 'Hello\n',
+        error: '',
+        executionTime: 100,
+      };
+      mockExecuteCodeSafe.mockResolvedValue(mockResult);
+
+      const request = new NextRequest('http://localhost:3000/api/sessions/session-1/execute', {
+        method: 'POST',
+        body: JSON.stringify({
+          studentId: 'student-1',
+          code: 'print("Hello")',
+        }),
+      });
+      const params = Promise.resolve({ id: 'session-1' });
+
+      const response = await POST(request, { params });
+
+      expect(response.status).toBe(200);
+      expect(mockExecuteCodeSafe).toHaveBeenCalled();
+    });
+
+    it('should allow execution when user is a participant', async () => {
+      const participantUser = {
+        ...mockUser,
+        id: 'student-2',
+      };
+      mockGetAuthenticatedUser.mockResolvedValue(participantUser);
+
+      // Session where user is a participant but not creator
+      const participantSession = {
+        ...mockSession,
+        creatorId: 'instructor-1',
+        participants: ['student-1', 'student-2'],
+      };
+      mockStorage.sessions.getSession.mockResolvedValue(participantSession);
+      (SessionService.getStudentData as jest.Mock).mockReturnValue({
+        code: 'print("Hello")',
+        executionSettings: undefined,
+      });
+
+      const mockResult = {
+        success: true,
+        output: 'Hello\n',
+        error: '',
+        executionTime: 100,
+      };
+      mockExecuteCodeSafe.mockResolvedValue(mockResult);
+
+      const request = new NextRequest('http://localhost:3000/api/sessions/session-1/execute', {
+        method: 'POST',
+        body: JSON.stringify({
+          studentId: 'student-1',
+          code: 'print("Hello")',
+        }),
+      });
+      const params = Promise.resolve({ id: 'session-1' });
+
+      const response = await POST(request, { params });
+
+      expect(response.status).toBe(200);
+      expect(mockExecuteCodeSafe).toHaveBeenCalled();
+    });
   });
 });

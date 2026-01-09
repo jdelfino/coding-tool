@@ -20,7 +20,7 @@ export async function POST(
 ) {
   try {
     // Authenticate user
-    await getAuthenticatedUser(request);
+    const user = await getAuthenticatedUser(request);
 
     // Get session ID from params
     const { id: sessionId } = await params;
@@ -45,6 +45,16 @@ export async function POST(
       return NextResponse.json(
         { error: 'Session not found' },
         { status: 404 }
+      );
+    }
+
+    // SECURITY: Verify user is session creator or participant
+    const isCreator = session.creatorId === user.id;
+    const isParticipant = session.participants.includes(user.id);
+    if (!isCreator && !isParticipant) {
+      return NextResponse.json(
+        { error: 'Access denied. You are not a participant in this session.' },
+        { status: 403 }
       );
     }
 
