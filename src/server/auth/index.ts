@@ -16,8 +16,5 @@ export { RBACService } from './rbac';
 // Permissions
 export * from './permissions';
 
-// Middleware
-export * from './middleware';
-
 // Instance
 export { getAuthProvider, getUserRepository, getNamespaceRepository } from './instance';
