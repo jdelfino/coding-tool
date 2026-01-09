@@ -74,13 +74,12 @@ npm run lint         # Run ESLint
 
 ### Data Management
 ```bash
-npm run clear-data   # Clear all data files (users, sessions, revisions)
-npm run seed-data    # Populate with test data (creates users, namespaces, sections)
+npm run seed-data    # Reset database and populate with seed data (runs supabase db reset)
 ```
 
 ## Key Architecture Concepts
 
-**Repository Pattern:** All data access through interfaces in `src/server/persistence/interfaces.ts`. Current impl: local JSON files in `data/`. All repos return `Promise<T>`, throw `PersistenceError` on errors, return `null` for not-found.
+**Repository Pattern:** All data access through interfaces in `src/server/persistence/interfaces.ts`. Current impl: Supabase (PostgreSQL). All repos return `Promise<T>`, throw `PersistenceError` on errors, return `null` for not-found.
 
 **RBAC:** Roles = `system-admin`, `namespace-admin`, `instructor`, `student`. API routes use `requireAuth(permission)` middleware. WebSocket uses `hasPermission(connection, permission)`. Frontend uses `usePermissions()` hook.
 
