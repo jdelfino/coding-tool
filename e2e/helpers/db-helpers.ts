@@ -188,8 +188,14 @@ export async function createTestNamespace(
 }
 
 /**
- * Cleans up a test namespace by deleting all users and associated data
- * Uses Supabase service role to delete directly (bypasses RLS)
+ * Cleans up a test namespace by deleting it and all associated data.
+ * Uses Supabase service role to delete directly (bypasses RLS).
+ *
+ * CASCADE deletes handle all related data automatically:
+ * - user_profiles, classes, sections, problems, sessions, revisions
+ * - session_students, section_memberships (via their parent cascades)
+ *
+ * Auth users must be deleted separately as they're in a different schema.
  *
  * @param namespaceId - The namespace ID to clean up
  */
@@ -197,28 +203,13 @@ export async function cleanupNamespace(namespaceId: string): Promise<void> {
   try {
     const supabase = getSupabaseClient();
 
-    // 1. Get all user_profiles in this namespace
-    const { data: profiles, error: profileError } = await supabase
+    // 1. Get user IDs before deleting (needed for auth.users cleanup)
+    const { data: profiles } = await supabase
       .from('user_profiles')
       .select('id')
       .eq('namespace_id', namespaceId);
 
-    if (profileError) {
-      console.warn(`Warning: Failed to query user_profiles for namespace ${namespaceId}:`, profileError);
-    }
-
-    // 2. Delete auth.users (CASCADE will delete user_profiles)
-    if (profiles && profiles.length > 0) {
-      for (const profile of profiles) {
-        const { error: deleteError } = await supabase.auth.admin.deleteUser(profile.id);
-        if (deleteError) {
-          console.warn(`Warning: Failed to delete user ${profile.id}:`, deleteError);
-        }
-      }
-      console.log(`Cleaned up ${profiles.length} users from namespace ${namespaceId}`);
-    }
-
-    // 3. Delete the namespace directly via Supabase (service role bypasses RLS)
+    // 2. Delete namespace - CASCADE handles all related data in public schema
     const { error: deleteError } = await supabase
       .from('namespaces')
       .delete()
@@ -228,7 +219,18 @@ export async function cleanupNamespace(namespaceId: string): Promise<void> {
       console.warn(`Warning: Failed to delete namespace ${namespaceId}:`, deleteError);
     }
 
-    console.log(`Cleaned up test namespace: ${namespaceId}`);
+    // 3. Delete auth.users (separate schema, not handled by CASCADE)
+    if (profiles && profiles.length > 0) {
+      for (const profile of profiles) {
+        const { error: userError } = await supabase.auth.admin.deleteUser(profile.id);
+        if (userError) {
+          console.warn(`Warning: Failed to delete auth user ${profile.id}:`, userError);
+        }
+      }
+      console.log(`Cleaned up namespace ${namespaceId} with ${profiles.length} users`);
+    } else {
+      console.log(`Cleaned up namespace ${namespaceId}`);
+    }
   } catch (error) {
     console.warn(`Warning: Error cleaning up namespace ${namespaceId}:`, error);
     // Don't throw - cleanup failures shouldn't fail tests
