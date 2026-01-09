@@ -2,7 +2,7 @@
  * Browser-side Supabase client
  *
  * This module provides the Supabase client for browser/client components.
- * Uses the anon key and respects RLS policies based on user authentication.
+ * Uses the publishable key and respects RLS policies based on user authentication.
  */
 
 import { createBrowserClient } from '@supabase/ssr';
@@ -14,7 +14,7 @@ let browserClient: ReturnType<typeof createBrowserClient<Database>> | null = nul
 /**
  * Get the browser-side Supabase client
  *
- * Uses the anon key and respects RLS policies. Safe to use in client components.
+ * Uses the publishable key and respects RLS policies. Safe to use in client components.
  * Creates a singleton instance that persists across renders.
  *
  * @returns Typed Supabase client for browser use
@@ -25,7 +25,7 @@ export function getSupabaseBrowserClient() {
   }
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const supabasePublishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 
   if (!supabaseUrl) {
     throw new Error(
@@ -34,14 +34,14 @@ export function getSupabaseBrowserClient() {
     );
   }
 
-  if (!supabaseAnonKey) {
+  if (!supabasePublishableKey) {
     throw new Error(
-      'NEXT_PUBLIC_SUPABASE_ANON_KEY is not set. ' +
+      'NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY is not set. ' +
       'Ensure environment variables are configured.'
     );
   }
 
-  browserClient = createBrowserClient<Database>(supabaseUrl, supabaseAnonKey);
+  browserClient = createBrowserClient<Database>(supabaseUrl, supabasePublishableKey);
 
   return browserClient;
 }
@@ -56,11 +56,11 @@ export function getSupabaseBrowserClient() {
  */
 export function createSupabaseBrowserClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const supabasePublishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 
-  if (!supabaseUrl || !supabaseAnonKey) {
+  if (!supabaseUrl || !supabasePublishableKey) {
     throw new Error('Supabase environment variables not configured.');
   }
 
-  return createBrowserClient<Database>(supabaseUrl, supabaseAnonKey);
+  return createBrowserClient<Database>(supabaseUrl, supabasePublishableKey);
 }

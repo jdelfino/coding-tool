@@ -65,7 +65,7 @@ E2E tests require a running Supabase instance. To run them:
    npm run test:e2e
    ```
 
-**Note:** E2E tests will be skipped automatically if `SUPABASE_SERVICE_ROLE_KEY` is not set. This allows CI to skip E2E tests when Supabase isn't available.
+**Note:** E2E tests will be skipped automatically if `SUPABASE_SECRET_KEY` is not set. This allows CI to skip E2E tests when Supabase isn't available.
 
 ### Linting
 ```bash

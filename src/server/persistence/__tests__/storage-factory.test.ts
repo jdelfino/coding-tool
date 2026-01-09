@@ -13,10 +13,10 @@ describe('Storage Factory', () => {
     it('should create Supabase storage backend', async () => {
       // Mock environment variables for Supabase
       const originalUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-      const originalKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+      const originalKey = process.env.SUPABASE_SECRET_KEY;
 
       process.env.NEXT_PUBLIC_SUPABASE_URL = 'http://localhost:54321';
-      process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-service-key';
+      process.env.SUPABASE_SECRET_KEY = 'test-service-key';
 
       try {
         const config: StorageConfig = {
@@ -43,9 +43,9 @@ describe('Storage Factory', () => {
           delete process.env.NEXT_PUBLIC_SUPABASE_URL;
         }
         if (originalKey) {
-          process.env.SUPABASE_SERVICE_ROLE_KEY = originalKey;
+          process.env.SUPABASE_SECRET_KEY = originalKey;
         } else {
-          delete process.env.SUPABASE_SERVICE_ROLE_KEY;
+          delete process.env.SUPABASE_SECRET_KEY;
         }
       }
     });

@@ -2,10 +2,10 @@
  * Server-side Supabase client
  *
  * This module provides a singleton Supabase client for server-side operations.
- * Uses the service role key for admin access, bypassing RLS when needed.
+ * Uses the secret key for admin access, bypassing RLS when needed.
  *
  * IMPORTANT: Only use this client on the server side (API routes, server components).
- * Never expose the service role key to the browser.
+ * Never expose the secret key to the browser.
  */
 
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
@@ -17,7 +17,7 @@ let supabaseClient: SupabaseClient<Database> | null = null;
 /**
  * Get the server-side Supabase client singleton
  *
- * Uses service role key for admin access. This client:
+ * Uses secret key for admin access. This client:
  * - Bypasses RLS by default (be careful!)
  * - Should only be used server-side
  * - Is configured for server environments (no session persistence)
@@ -31,7 +31,7 @@ export function getSupabaseClient(): SupabaseClient<Database> {
   }
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const supabaseSecretKey = process.env.SUPABASE_SECRET_KEY;
 
   if (!supabaseUrl) {
     throw new Error(
@@ -40,14 +40,14 @@ export function getSupabaseClient(): SupabaseClient<Database> {
     );
   }
 
-  if (!supabaseServiceKey) {
+  if (!supabaseSecretKey) {
     throw new Error(
-      'SUPABASE_SERVICE_ROLE_KEY is not set. ' +
+      'SUPABASE_SECRET_KEY is not set. ' +
       'Copy from `supabase status` output to .env.local'
     );
   }
 
-  supabaseClient = createClient<Database>(supabaseUrl, supabaseServiceKey, {
+  supabaseClient = createClient<Database>(supabaseUrl, supabaseSecretKey, {
     auth: {
       // Server-side: don't persist sessions
       autoRefreshToken: false,
@@ -69,16 +69,16 @@ export function getSupabaseClient(): SupabaseClient<Database> {
  */
 export function getSupabaseClientWithAuth(accessToken: string): SupabaseClient<Database> {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const supabasePublishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 
-  if (!supabaseUrl || !supabaseAnonKey) {
+  if (!supabaseUrl || !supabasePublishableKey) {
     throw new Error(
       'Supabase environment variables not configured. ' +
-      'Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY'
+      'Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY'
     );
   }
 
-  return createClient<Database>(supabaseUrl, supabaseAnonKey, {
+  return createClient<Database>(supabaseUrl, supabasePublishableKey, {
     auth: {
       autoRefreshToken: false,
       persistSession: false,
