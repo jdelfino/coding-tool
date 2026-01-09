@@ -121,7 +121,7 @@ export class SupabaseAuthProvider implements IAuthProvider {
       const { data, error } = await this.serviceRoleClient.auth.admin.createUser({
         email,
         password,
-        email_confirm: false, // Disable email confirmation for local dev
+        email_confirm: true, // Auto-confirm email (no verification required)
         user_metadata: {
           username,
         },
