@@ -55,11 +55,27 @@ jobs:
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps
 
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Start Supabase
+        run: |
+          supabase start
+          # Extract keys and export to GitHub environment (strip quotes from values)
+          supabase status --output env | grep -E '^(ANON_KEY|SERVICE_ROLE_KEY)=' | sed 's/"//g' >> $GITHUB_ENV
+
       - name: Initialize data directory
         run: npm run clear-data
 
       - name: Run E2E tests
         run: npm run test:e2e
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ env.ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ env.SERVICE_ROLE_KEY }}
+          SYSTEM_ADMIN_EMAIL: admin@test.local
 
       - name: Upload Playwright Report
         uses: actions/upload-artifact@v4
