@@ -1,0 +1,294 @@
+/**
+ * Tests for POST /api/sessions/[id]/trace route
+ */
+
+import { NextRequest } from 'next/server';
+import { POST } from '../route';
+import { getAuthenticatedUser } from '@/server/auth/api-auth';
+import { traceExecution } from '@/server/code-tracer';
+import { Session, ExecutionTrace } from '@/server/types';
+import { Problem } from '@/server/types/problem';
+
+// Mock dependencies
+jest.mock('@/server/auth/api-auth');
+jest.mock('@/server/persistence', () => ({
+  getStorage: jest.fn(),
+}));
+jest.mock('@/server/code-tracer');
+
+import { getStorage } from '@/server/persistence';
+
+const mockGetAuthenticatedUser = getAuthenticatedUser as jest.MockedFunction<typeof getAuthenticatedUser>;
+const mockGetStorage = getStorage as jest.MockedFunction<typeof getStorage>;
+const mockTraceExecution = traceExecution as jest.MockedFunction<typeof traceExecution>;
+
+describe('POST /api/sessions/[id]/trace', () => {
+  const mockUser = {
+    id: 'user-1',
+    email: 'student@example.com',
+    username: 'student',
+    role: 'student' as const,
+    namespaceId: 'default',
+    createdAt: new Date(),
+    lastLoginAt: new Date(),
+  };
+
+  const mockProblem: Problem = {
+    id: 'prob-1',
+    namespaceId: 'default',
+    title: 'Test Problem',
+    description: 'Test description',
+    starterCode: 'print("Hello")',
+    testCases: [],
+    authorId: 'user-1',
+    classId: undefined,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+
+  const mockSession: Session = {
+    id: 'session-1',
+    namespaceId: 'default',
+    problem: mockProblem,
+    students: new Map(),
+    createdAt: new Date(),
+    lastActivity: new Date(),
+    creatorId: 'instructor-1',
+    participants: [],
+    status: 'active',
+    sectionId: 'section-1',
+    sectionName: 'Test Section',
+  };
+
+  const mockTrace: ExecutionTrace = {
+    steps: [
+      {
+        line: 1,
+        event: 'line',
+        locals: {},
+        globals: {},
+        callStack: [{ functionName: '<module>', filename: '<string>', line: 1 }],
+        stdout: '',
+      },
+      {
+        line: 1,
+        event: 'return',
+        locals: {},
+        globals: {},
+        callStack: [],
+        stdout: 'Hello\n',
+      },
+    ],
+    totalSteps: 2,
+    exitCode: 0,
+    truncated: false,
+  };
+
+  let mockStorage: any;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockStorage = {
+      sessions: {
+        getSession: jest.fn(),
+      },
+    };
+    mockGetStorage.mockResolvedValue(mockStorage);
+  });
+
+  it('should successfully trace code execution', async () => {
+    mockGetAuthenticatedUser.mockResolvedValue(mockUser);
+    mockStorage.sessions.getSession.mockResolvedValue(mockSession);
+    mockTraceExecution.mockResolvedValue(mockTrace);
+
+    const request = new NextRequest('http://localhost:3000/api/sessions/session-1/trace', {
+      method: 'POST',
+      body: JSON.stringify({
+        code: 'print("Hello")',
+      }),
+    });
+    const params = Promise.resolve({ id: 'session-1' });
+
+    const response = await POST(request, { params });
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data).toEqual(mockTrace);
+    expect(mockTraceExecution).toHaveBeenCalledWith('print("Hello")', {
+      stdin: '',
+      maxSteps: undefined,
+    });
+  });
+
+  it('should pass stdin and maxSteps to trace execution', async () => {
+    mockGetAuthenticatedUser.mockResolvedValue(mockUser);
+    mockStorage.sessions.getSession.mockResolvedValue(mockSession);
+    mockTraceExecution.mockResolvedValue(mockTrace);
+
+    const request = new NextRequest('http://localhost:3000/api/sessions/session-1/trace', {
+      method: 'POST',
+      body: JSON.stringify({
+        code: 'print(input())',
+        stdin: 'test input',
+        maxSteps: 100,
+      }),
+    });
+    const params = Promise.resolve({ id: 'session-1' });
+
+    const response = await POST(request, { params });
+
+    expect(response.status).toBe(200);
+    expect(mockTraceExecution).toHaveBeenCalledWith('print(input())', {
+      stdin: 'test input',
+      maxSteps: 100,
+    });
+  });
+
+  it('should return 401 when not authenticated', async () => {
+    mockGetAuthenticatedUser.mockRejectedValue(new Error('Not authenticated'));
+
+    const request = new NextRequest('http://localhost:3000/api/sessions/session-1/trace', {
+      method: 'POST',
+      body: JSON.stringify({
+        code: 'print("Hello")',
+      }),
+    });
+    const params = Promise.resolve({ id: 'session-1' });
+
+    const response = await POST(request, { params });
+    const data = await response.json();
+
+    expect(response.status).toBe(401);
+    expect(data.error).toBe('Not authenticated');
+  });
+
+  it('should return 400 when code is missing', async () => {
+    mockGetAuthenticatedUser.mockResolvedValue(mockUser);
+
+    const request = new NextRequest('http://localhost:3000/api/sessions/session-1/trace', {
+      method: 'POST',
+      body: JSON.stringify({}),
+    });
+    const params = Promise.resolve({ id: 'session-1' });
+
+    const response = await POST(request, { params });
+    const data = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(data.error).toBe('Code is required');
+  });
+
+  it('should return 400 when code is not a string', async () => {
+    mockGetAuthenticatedUser.mockResolvedValue(mockUser);
+
+    const request = new NextRequest('http://localhost:3000/api/sessions/session-1/trace', {
+      method: 'POST',
+      body: JSON.stringify({
+        code: 123,
+      }),
+    });
+    const params = Promise.resolve({ id: 'session-1' });
+
+    const response = await POST(request, { params });
+    const data = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(data.error).toBe('Code is required');
+  });
+
+  it('should return 404 when session not found', async () => {
+    mockGetAuthenticatedUser.mockResolvedValue(mockUser);
+    mockStorage.sessions.getSession.mockResolvedValue(null);
+
+    const request = new NextRequest('http://localhost:3000/api/sessions/session-1/trace', {
+      method: 'POST',
+      body: JSON.stringify({
+        code: 'print("Hello")',
+      }),
+    });
+    const params = Promise.resolve({ id: 'session-1' });
+
+    const response = await POST(request, { params });
+    const data = await response.json();
+
+    expect(response.status).toBe(404);
+    expect(data.error).toBe('Session not found');
+  });
+
+  it('should return 500 on trace execution error', async () => {
+    mockGetAuthenticatedUser.mockResolvedValue(mockUser);
+    mockStorage.sessions.getSession.mockResolvedValue(mockSession);
+    mockTraceExecution.mockRejectedValue(new Error('Trace execution failed'));
+
+    const request = new NextRequest('http://localhost:3000/api/sessions/session-1/trace', {
+      method: 'POST',
+      body: JSON.stringify({
+        code: 'print("Hello")',
+      }),
+    });
+    const params = Promise.resolve({ id: 'session-1' });
+
+    const response = await POST(request, { params });
+    const data = await response.json();
+
+    expect(response.status).toBe(500);
+    expect(data.error).toBe('Failed to trace code execution');
+  });
+
+  it('should return trace with error when code has syntax error', async () => {
+    mockGetAuthenticatedUser.mockResolvedValue(mockUser);
+    mockStorage.sessions.getSession.mockResolvedValue(mockSession);
+
+    const errorTrace: ExecutionTrace = {
+      steps: [],
+      totalSteps: 0,
+      exitCode: 1,
+      error: 'SyntaxError: invalid syntax',
+      truncated: false,
+    };
+    mockTraceExecution.mockResolvedValue(errorTrace);
+
+    const request = new NextRequest('http://localhost:3000/api/sessions/session-1/trace', {
+      method: 'POST',
+      body: JSON.stringify({
+        code: 'print("Hello"',
+      }),
+    });
+    const params = Promise.resolve({ id: 'session-1' });
+
+    const response = await POST(request, { params });
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.error).toBe('SyntaxError: invalid syntax');
+    expect(data.steps).toEqual([]);
+  });
+
+  it('should return truncated trace when maxSteps is exceeded', async () => {
+    mockGetAuthenticatedUser.mockResolvedValue(mockUser);
+    mockStorage.sessions.getSession.mockResolvedValue(mockSession);
+
+    const truncatedTrace: ExecutionTrace = {
+      steps: [{ line: 1, event: 'line', locals: {}, globals: {}, callStack: [], stdout: '' }],
+      totalSteps: 1,
+      exitCode: 0,
+      truncated: true,
+    };
+    mockTraceExecution.mockResolvedValue(truncatedTrace);
+
+    const request = new NextRequest('http://localhost:3000/api/sessions/session-1/trace', {
+      method: 'POST',
+      body: JSON.stringify({
+        code: 'while True: pass',
+        maxSteps: 1,
+      }),
+    });
+    const params = Promise.resolve({ id: 'session-1' });
+
+    const response = await POST(request, { params });
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.truncated).toBe(true);
+  });
+});
