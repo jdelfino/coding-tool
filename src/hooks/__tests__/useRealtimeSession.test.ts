@@ -282,6 +282,37 @@ describe('useRealtimeSession', () => {
       expect(result.current.featuredStudent.studentId).toBe('student-1');
       expect(result.current.featuredStudent.code).toBe('print("featured")');
     });
+
+    it('should handle sessions UPDATE messages (session status change to completed)', async () => {
+      const { result, rerender } = renderHook(() =>
+        useRealtimeSession({
+          sessionId: 'session-1',
+        })
+      );
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      // Initially session has no status set (or 'active')
+      expect(result.current.session?.status).toBeUndefined();
+
+      // Simulate session being ended by instructor
+      mockUseRealtime.lastMessage = {
+        type: 'UPDATE' as const,
+        table: 'sessions',
+        payload: {
+          status: 'completed',
+          ended_at: '2026-01-09T12:00:00Z',
+          featured_student_id: null,
+          featured_code: null,
+        },
+      };
+      rerender();
+
+      expect(result.current.session?.status).toBe('completed');
+      expect(result.current.session?.endedAt).toBe('2026-01-09T12:00:00Z');
+    });
   });
 
   describe('updateCode action', () => {

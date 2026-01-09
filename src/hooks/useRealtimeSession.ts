@@ -194,13 +194,15 @@ export function useRealtimeSession({
       }
     }
 
-    // Handle sessions updates (featured student changes)
+    // Handle sessions updates (featured student changes, status changes)
     if (table === 'sessions') {
       if (type === 'UPDATE') {
         setSession(prev => ({
           ...prev,
           featuredStudentId: payload.featured_student_id,
           featuredCode: payload.featured_code,
+          status: payload.status,
+          endedAt: payload.ended_at,
         }));
         setFeaturedStudent({
           studentId: payload.featured_student_id,

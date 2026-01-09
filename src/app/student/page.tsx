@@ -120,6 +120,13 @@ function StudentPage() {
     }
   }, [session]);
 
+  // Detect when session ends (status changes to 'completed')
+  useEffect(() => {
+    if (session?.status === 'completed') {
+      setSessionEnded(true);
+    }
+  }, [session?.status]);
+
   // Debounced code update (keeping 500ms to match original behavior)
   useEffect(() => {
     if (!joined || !studentId || !sessionIdFromUrl) return;
