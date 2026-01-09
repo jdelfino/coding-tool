@@ -1,8 +1,5 @@
-// For format details, see https://aka.ms/devcontainer.json. For config options, see the
-// README at: https://github.com/devcontainers/templates/tree/main/src/javascript-node
 {
 	"name": "Node.js",
-	// Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
 	"image": "mcr.microsoft.com/devcontainers/javascript-node:1-22-bookworm",
 	"features": {
 		"ghcr.io/devcontainers/features/python:1": {
@@ -13,7 +10,6 @@
         "ghcr.io/devcontainers/features/github-cli:1": {}
 	},
 
-	// Use 'postCreateCommand' to run commands after the container is created.
 	"postCreateCommand": "curl -fsSL https://raw.githubusercontent.com/steveyegge/beads/main/scripts/install.sh | bash && npm install && npx playwright install-deps chromium && curl -fsSL https://claude.ai/install.sh | bash && ./.devcontainer/install-nsjail.sh",
 
 	// Forward Supabase ports
