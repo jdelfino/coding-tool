@@ -1,8 +1,16 @@
 {
-  "enabledPlugins": {
-    "beads@beads-marketplace": true
+  "permissions": {
+    "allow": [
+      "Bash(bd:*)",
+      "Bash(git:*)",
+      "Bash(npm:*)",
+      "Bash(npx:*)",
+      "Bash(sed:*)"
+    ]
   },
-  "enabledMcpjsonServers": ["beads"],
+  "enabledMcpjsonServers": [
+    "beads"
+  ],
   "hooks": {
     "SessionStart": [
       {
@@ -14,5 +22,8 @@
         ]
       }
     ]
+  },
+  "enabledPlugins": {
+    "beads@beads-marketplace": true
   }
 }

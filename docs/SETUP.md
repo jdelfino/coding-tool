@@ -2,288 +2,187 @@
 
 ## Prerequisites
 
-Before you begin, ensure you have the following installed:
+| Software | Version | Verify |
+|----------|---------|--------|
+| Node.js | 18+ | `node --version` |
+| npm | 9+ | `npm --version` |
+| Python 3 | 3.8+ | `python3 --version` |
+| Docker | Latest | `docker --version` |
+| Git | Latest | `git --version` |
 
-### Required Software
+**Note:** Docker is required for local Supabase. Python must be accessible as `python3`.
 
-1. **Node.js** (v18 or higher)
-   - Download from https://nodejs.org/
-   - Verify installation: `node --version`
-   - Should output v18.x.x or higher
-
-2. **npm** (v9 or higher)
-   - Comes with Node.js
-   - Verify installation: `npm --version`
-   - Should output 9.x.x or higher
-
-3. **Python 3** (v3.8 or higher)
-   - Download from https://python.org/
-   - Verify installation: `python3 --version`
-   - Should output Python 3.8.x or higher
-   - **Important**: Python must be accessible as `python3` command
-
-4. **Git**
-   - Download from https://git-scm.com/
-   - Verify installation: `git --version`
-
-### Optional Configuration
-
-**System Administrator**: To designate a system administrator (who can manage namespaces and users across all namespaces), create a `.env` file with:
-```
-SYSTEM_ADMIN_EMAIL=your-email@example.com
-```
-
-The first user who registers with this email will be elevated to system-admin role.
-
-**Supabase Authentication**: The application uses Supabase Auth for user authentication. For local development:
-1. Start Supabase: `npx supabase start`
-2. Copy the API URL, anon key (publishable), and service role key (secret) from the output
-3. Add to `.env.local`:
-```
-NEXT_PUBLIC_SUPABASE_URL=http://localhost:54321
-NEXT_PUBLIC_SUPABASE_ANON_KEY=<publishable-key>
-SUPABASE_SERVICE_ROLE_KEY=<secret-key>
-```
-4. Reset database: `npx supabase db reset`
-
-**Default Test Users** (after seed):
-- admin@test.local / password123 (system-admin)
-- instructor@test.local / password123 (instructor)
-- student1@test.local / password123 (student)
-
-### Recommended Software
-
-- **VS Code** - Recommended IDE with TypeScript support
-- **Chrome/Firefox** - Modern browser for testing
-
-## Initial Setup
-
-### 1. Clone the Repository
+## Quick Setup
 
 ```bash
+# 1. Clone repository
 git clone https://github.com/jdelfino/coding-tool.git
 cd coding-tool
-```
 
-### 2. Install Dependencies
-
-```bash
+# 2. Install dependencies
 npm install
-```
 
-This will install all required packages including:
-- Next.js and React
-- Express and WebSocket libraries
-- TypeScript and type definitions
-- Monaco Editor
-- Development tools (nodemon, tsx)
+# 3. Start local Supabase (requires Docker)
+npx supabase start
 
-### 3. Verify Python
+# 4. Configure environment
+cp .env.example .env.local
+# Edit .env.local with keys from supabase start output
 
-The application executes student code using Python. Verify it's accessible:
+# 5. Reset database with migrations and seed data
+npx supabase db reset
 
-```bash
-python3 --version
-```
-
-If this command fails, you may need to:
-- Install Python 3
-- Add Python to your PATH
-- Create a symlink: `ln -s python python3` (Linux/Mac)
-
-## Running the Application
-
-### Development Mode
-
-```bash
+# 6. Start development server
 npm run dev
 ```
 
-This starts:
-- Next.js development server with hot reload
-- Express backend server
-- WebSocket server
-- All running on http://localhost:3000
+## Environment Configuration
 
-The server watches for changes in `src/server/` and automatically restarts.
-
-### Production Build
+Create `.env.local` with these values (from `npx supabase start` output):
 
 ```bash
-npm run build
-npm start
+# Required
+NEXT_PUBLIC_SUPABASE_URL=http://localhost:54321
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon-key>
+SUPABASE_SERVICE_ROLE_KEY=<service-role-key>
+
+# Optional
+SYSTEM_ADMIN_EMAIL=admin@example.com  # Auto-promotes to system-admin
+GEMINI_API_KEY=                        # For AI Walkthrough feature
 ```
 
-This creates an optimized production build and starts the server.
+## Test Users
 
-## Development Workflow
+After running `npx supabase db reset`:
 
-### Project Structure
+| Email | Password | Role |
+|-------|----------|------|
+| admin@test.local | password123 | system-admin |
+| instructor@test.local | password123 | instructor |
+| student1@test.local | password123 | student |
 
-```
-coding-tool/
-├── src/
-│   ├── app/                   # Next.js frontend
-│   │   ├── instructor/       # Instructor pages
-│   │   ├── student/          # Student pages
-│   │   ├── layout.tsx        # Root layout
-│   │   └── page.tsx          # Landing page
-│   ├── hooks/                # React hooks
-│   └── server/               # Backend
-│       ├── index.ts          # Main server
-│       ├── session-manager.ts # Session logic
-│       ├── code-executor.ts  # Python execution
-│       ├── websocket-handler.ts # WebSocket routing
-│       └── types.ts          # TypeScript types
-├── docs/                     # Documentation
-├── package.json              # Dependencies
-├── tsconfig.json            # TypeScript config
-└── next.config.js           # Next.js config
-```
-
-### Making Changes
-
-#### Backend Changes
-
-1. Edit files in `src/server/`
-2. Server auto-restarts via nodemon
-3. Test WebSocket connections
-
-#### Frontend Changes
-
-1. Edit files in `src/app/`
-2. Next.js hot-reloads automatically
-3. Check browser console for errors
-
-#### Type Changes
-
-1. Update `src/server/types.ts`
-2. Update both frontend and backend code
-3. TypeScript will catch type errors
-
-### Testing Locally
-
-1. **Open Multiple Browser Windows**
-   - One for instructor (http://localhost:3000/instructor)
-   - Multiple for students (http://localhost:3000/student)
-
-2. **Create a Session**
-   - In instructor window, click "Create Session"
-   - Note the join code
-
-3. **Join as Students**
-   - In student windows, enter different names
-   - Use the join code
-   - Verify connection
-
-4. **Test Features**
-   - Update problem from instructor
-   - Write code as students
-   - Run code and check output
-   - View student code from instructor
-
-## Common Development Tasks
-
-### Adding a New WebSocket Message Type
-
-1. Add to `MessageType` enum in `src/server/types.ts`
-2. Handle in `src/server/websocket-handler.ts`
-3. Send from frontend components
-4. Handle response in `useWebSocket` hook
-
-### Adding a New UI Component
-
-1. Create component file in appropriate directory
-2. Import and use in page component
-3. Add TypeScript types for props
-4. Test in multiple browsers
-
-### Debugging
-
-#### Backend Debugging
-
-- Check server console output
-- Add `console.log()` statements
-- Use Node.js debugger with `--inspect` flag
-
-#### Frontend Debugging
-
-- Open browser DevTools (F12)
-- Check Console tab for errors
-- Use React DevTools extension
-- Check Network tab for WebSocket messages
-
-#### WebSocket Debugging
-
-- Use browser Network tab
-- Filter for WS (WebSocket) connections
-- Inspect messages sent/received
-- Check connection status
-
-## Environment Variables
-
-Create a `.env.local` file for local configuration:
+## Development Commands
 
 ```bash
-PORT=3000
-NODE_ENV=development
+npm run dev              # Start dev server (http://localhost:3000)
+npm test                 # Run Jest tests
+npm run test:watch       # Tests in watch mode
+npm run test:coverage    # Coverage report
+npm run test:e2e         # Playwright E2E tests
+npm run lint             # ESLint
+npx tsc --noEmit         # Type check
+
+# Supabase
+npx supabase start       # Start local instance
+npx supabase stop        # Stop local instance
+npx supabase db reset    # Reset with migrations + seed
+npx supabase studio      # Open Studio UI (http://localhost:54323)
 ```
 
-## Known Development Issues
+## Project Structure
 
-### Port Already in Use
+```
+src/
+├── app/                    # Next.js App Router
+│   ├── api/               # API routes (REST endpoints)
+│   ├── instructor/        # Instructor pages
+│   ├── student/           # Student pages
+│   ├── admin/             # Admin pages
+│   ├── system/            # System admin pages
+│   ├── classes/           # Class management
+│   ├── sections/          # Section management
+│   └── auth/              # Auth pages
+├── server/                # Backend logic (runs server-side)
+│   ├── persistence/       # Supabase repositories
+│   │   └── supabase/     # Supabase implementations
+│   ├── auth/             # Auth & RBAC
+│   ├── classes/          # Class/Section logic
+│   ├── services/         # Business services
+│   └── types/            # TypeScript types
+├── hooks/                 # React hooks
+├── contexts/              # React contexts
+└── components/            # Shared components
 
-If port 3000 is taken:
+supabase/
+├── migrations/            # Database migrations
+└── seed.sql              # Seed data
+```
+
+## Making Changes
+
+### API Routes
+- Edit `src/app/api/**/route.ts`
+- Use repository pattern from `src/server/persistence/`
+- Auth: Use `createServerAuthChecker()` for auth validation
+
+### Frontend
+- Edit `src/app/**/page.tsx` or components
+- Next.js hot-reloads automatically
+- Use hooks from `src/hooks/`
+
+### Database
+- Add migrations: `npx supabase migration new <name>`
+- Edit `supabase/migrations/*.sql`
+- Apply: `npx supabase db reset`
+
+### Types
+- Backend types: `src/server/types.ts`, `src/server/classes/types.ts`
+- Persistence types: `src/server/persistence/types.ts`
+- Run `npx tsc --noEmit` to verify
+
+## Testing
+
+### Running Tests
+
 ```bash
-PORT=3001 npm run dev
+# All tests
+npm test
+
+# Single file
+npm test -- src/server/code-executor.test.ts
+
+# Pattern matching
+npm test -- -t "executeCode"
+
+# Watch mode
+npm run test:watch
 ```
 
-### Python Not Found
+### E2E Tests
 
-Ensure Python 3 is in PATH:
+E2E tests require running Supabase:
+
 ```bash
-which python3  # Linux/Mac
-where python3  # Windows
+npx supabase start
+source .env.local
+npx playwright install chromium  # First time only
+npm run test:e2e
 ```
 
-### WebSocket Connection Failed
+## Troubleshooting
 
-- Check firewall settings
-- Ensure server is running
-- Check browser console for errors
-- Try different browser
-
-### Hot Reload Not Working
-
-- Restart dev server
-- Clear Next.js cache: `rm -rf .next`
-- Check file watchers limit (Linux)
+| Issue | Solution |
+|-------|----------|
+| Port 3000 in use | `lsof -ti:3000 \| xargs kill -9` |
+| Python not found | Ensure `python3` is in PATH |
+| Supabase won't start | Check Docker is running |
+| Type errors | Run `npx tsc --noEmit` |
+| Hot reload broken | Delete `.next/` and restart |
 
 ## IDE Setup (VS Code)
 
-### Recommended Extensions
-
+Recommended extensions:
 - ESLint
 - Prettier
 - TypeScript and JavaScript Language Features
-- Python (for testing student code)
 
-### VS Code Settings
-
-Add to `.vscode/settings.json`:
+Settings (`.vscode/settings.json`):
 ```json
 {
   "editor.formatOnSave": true,
   "editor.codeActionsOnSave": {
-    "source.fixAll.eslint": true
+    "source.fixAll.eslint": "explicit"
   },
   "typescript.tsdk": "node_modules/typescript/lib"
 }
 ```
-
-## Getting Help
-
-- Check [README.md](../README.md) for overview
-- See [USER_GUIDE.md](USER_GUIDE.md) for usage instructions
-- Check GitHub issues for known problems
-- Review code comments in source files
