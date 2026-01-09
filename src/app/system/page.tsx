@@ -14,7 +14,7 @@ import CreateNamespaceForm from './components/CreateNamespaceForm';
  * Provides namespace management and high-level statistics.
  */
 export default function SystemAdminPage() {
-  const { user, isLoading: authLoading } = useAuth();
+  const { user, isLoading: authLoading, signOut } = useAuth();
   const router = useRouter();
   const {
     namespaces,
@@ -28,6 +28,18 @@ export default function SystemAdminPage() {
 
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [includeInactive, setIncludeInactive] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
+
+  const handleSignOut = async () => {
+    setIsSigningOut(true);
+    try {
+      await signOut();
+      router.push('/auth/signin');
+    } catch (err) {
+      console.error('Sign out error:', err);
+      setIsSigningOut(false);
+    }
+  };
 
   // Redirect if not system admin
   useEffect(() => {
@@ -75,11 +87,28 @@ export default function SystemAdminPage() {
   return (
     <main style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
       {/* Header */}
-      <div style={{ marginBottom: '2rem' }}>
-        <h1 style={{ marginBottom: '0.5rem' }}>System Administration</h1>
-        <p style={{ color: '#666', margin: 0 }}>
-          Manage namespaces and users across the system
-        </p>
+      <div style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div>
+          <h1 style={{ marginBottom: '0.5rem' }}>System Administration</h1>
+          <p style={{ color: '#666', margin: 0 }}>
+            Manage namespaces and users across the system
+          </p>
+        </div>
+        <button
+          onClick={handleSignOut}
+          disabled={isSigningOut}
+          style={{
+            padding: '0.5rem 1rem',
+            background: '#dc3545',
+            color: 'white',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: isSigningOut ? 'not-allowed' : 'pointer',
+            opacity: isSigningOut ? 0.7 : 1,
+          }}
+        >
+          {isSigningOut ? 'Signing out...' : 'Sign Out'}
+        </button>
       </div>
 
       {/* Statistics */}
