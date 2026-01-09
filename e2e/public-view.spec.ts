@@ -5,7 +5,7 @@
  * Based on the critical-paths test flow.
  *
  * NOTE: These tests require Supabase to be running with proper credentials.
- * They will be skipped if SUPABASE_SERVICE_ROLE_KEY is not set.
+ * They will be skipped if SUPABASE_SECRET_KEY is not set.
  */
 
 import { test, expect } from './helpers/setup';

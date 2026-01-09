@@ -52,8 +52,8 @@ npm run dev
 | Variable | Description |
 |----------|-------------|
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase API URL |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon/publishable key |
-| `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Supabase publishable key (safe for browser) |
+| `SUPABASE_SECRET_KEY` | Supabase secret key (server-only) |
 | `SYSTEM_ADMIN_EMAIL` | Email auto-promoted to system-admin |
 | `GEMINI_API_KEY` | (Optional) For AI Walkthrough feature |
 

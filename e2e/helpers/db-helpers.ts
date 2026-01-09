@@ -4,7 +4,7 @@ import { createClient } from '@supabase/supabase-js';
  * Check if Supabase credentials are available
  */
 export function hasSupabaseCredentials(): boolean {
-  return Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY);
+  return Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SECRET_KEY);
 }
 
 /**
@@ -13,11 +13,11 @@ export function hasSupabaseCredentials(): boolean {
  */
 function getSupabaseClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'http://127.0.0.1:54321';
-  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const supabaseServiceKey = process.env.SUPABASE_SECRET_KEY;
 
   if (!supabaseServiceKey) {
-    console.warn('SUPABASE_SERVICE_ROLE_KEY not set - E2E tests require Supabase');
-    throw new Error('SUPABASE_SERVICE_ROLE_KEY environment variable is required for E2E tests');
+    console.warn('SUPABASE_SECRET_KEY not set - E2E tests require Supabase');
+    throw new Error('SUPABASE_SECRET_KEY environment variable is required for E2E tests');
   }
 
   return createClient(supabaseUrl, supabaseServiceKey, {

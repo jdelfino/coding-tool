@@ -46,7 +46,7 @@ describe('Proxy (Supabase Session Refresh)', () => {
 
     // Set required environment variables
     process.env.NEXT_PUBLIC_SUPABASE_URL = 'http://localhost:54321'
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'test-anon-key'
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY = 'test-publishable-key'
 
     // Import proxy after mocks are set up
     const proxyModule = await import('../../proxy')
@@ -70,7 +70,7 @@ describe('Proxy (Supabase Session Refresh)', () => {
 
       expect(createServerClient).toHaveBeenCalledWith(
         'http://localhost:54321',
-        'test-anon-key',
+        'test-publishable-key',
         expect.objectContaining({
           cookies: expect.any(Object),
         })
@@ -210,10 +210,10 @@ describe('Proxy (Supabase Session Refresh)', () => {
   describe('Error Handling', () => {
     it('should handle missing environment variables', async () => {
       const originalUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-      const originalKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+      const originalKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
 
       delete process.env.NEXT_PUBLIC_SUPABASE_URL
-      delete process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+      delete process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
 
       // Re-import to get proxy with missing env vars
       jest.resetModules()
@@ -229,7 +229,7 @@ describe('Proxy (Supabase Session Refresh)', () => {
 
       // Restore for other tests
       process.env.NEXT_PUBLIC_SUPABASE_URL = originalUrl
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = originalKey
+      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY = originalKey
     })
 
     it('should handle Supabase client creation failure', async () => {

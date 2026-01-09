@@ -28,10 +28,10 @@ export class SupabaseAuthProvider implements IAuthProvider {
     // Initialize user repository
     this.userRepository = new SupabaseUserRepository();
 
-    // Service role client for admin operations (bypasses RLS)
+    // Secret key client for admin operations (bypasses RLS)
     this.serviceRoleClient = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      process.env.SUPABASE_SECRET_KEY!,
       {
         auth: {
           autoRefreshToken: false,
@@ -48,7 +48,7 @@ export class SupabaseAuthProvider implements IAuthProvider {
     const cookieStore = await cookies();
     return createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
       {
         cookies: {
           get(name: string) {
@@ -175,7 +175,7 @@ export class SupabaseAuthProvider implements IAuthProvider {
       // Create client that can read from the request cookies
       const supabase = createServerClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
         {
           cookies: {
             get: (name: string) => request.cookies.get(name)?.value,

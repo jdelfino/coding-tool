@@ -43,8 +43,8 @@ Create `.env.local` with these values (from `npx supabase start` output):
 ```bash
 # Required
 NEXT_PUBLIC_SUPABASE_URL=http://localhost:54321
-NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon-key>
-SUPABASE_SERVICE_ROLE_KEY=<service-role-key>
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=<anon-key>
+SUPABASE_SECRET_KEY=<service-role-key>
 
 # Optional
 SYSTEM_ADMIN_EMAIL=admin@example.com  # Auto-promotes to system-admin

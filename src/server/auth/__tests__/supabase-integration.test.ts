@@ -18,7 +18,7 @@ import { UserRole } from '../types';
 
 // Skip these tests if Supabase credentials are not available
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const serviceRoleKey = process.env.SUPABASE_SECRET_KEY;
 const hasSupabaseCredentials = Boolean(supabaseUrl && serviceRoleKey);
 
 const describeIfSupabase = hasSupabaseCredentials ? describe : describe.skip;

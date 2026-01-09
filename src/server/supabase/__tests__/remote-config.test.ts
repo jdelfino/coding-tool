@@ -1,11 +1,17 @@
 /**
- * Unit tests for remote Supabase configuration
+ * Unit tests for Supabase configuration
  *
- * These tests verify the environment detection and client creation
- * logic for remote vs local Supabase instances.
+ * These tests verify the environment detection and configuration
+ * logic for local vs remote Supabase instances.
+ *
+ * The app uses unified env vars:
+ * - NEXT_PUBLIC_SUPABASE_URL - Points to local or remote
+ * - NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY - Safe for browser (anon key)
+ * - SUPABASE_SECRET_KEY - Server-only (service role key)
+ * - TEST_REMOTE_SUPABASE - Flag to indicate remote testing mode
  */
 
-describe('Remote Supabase Configuration', () => {
+describe('Supabase Configuration', () => {
   const originalEnv = process.env;
 
   beforeEach(() => {
@@ -51,114 +57,61 @@ describe('Remote Supabase Configuration', () => {
     });
   });
 
-  describe('Environment Variable Selection', () => {
-    it('should use local variables when in local mode', () => {
+  describe('Environment Variable Usage', () => {
+    it('should use standard env vars for local mode', () => {
       delete process.env.TEST_REMOTE_SUPABASE;
       process.env.NEXT_PUBLIC_SUPABASE_URL = 'http://localhost:54321';
-      process.env.SUPABASE_SERVICE_ROLE_KEY = 'local_key';
-      process.env.REMOTE_SUPABASE_URL = 'https://remote.supabase.co';
-      process.env.REMOTE_SUPABASE_SECRET_KEY = 'remote_key';
+      process.env.SUPABASE_SECRET_KEY = 'local_key';
 
-      const isRemoteTest = process.env.TEST_REMOTE_SUPABASE === 'true';
-      const LOCAL_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-      const REMOTE_URL = process.env.REMOTE_SUPABASE_URL || '';
-      const SUPABASE_URL = isRemoteTest ? REMOTE_URL : LOCAL_URL;
+      const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+      const SUPABASE_SECRET = process.env.SUPABASE_SECRET_KEY || '';
 
       expect(SUPABASE_URL).toBe('http://localhost:54321');
+      expect(SUPABASE_SECRET).toBe('local_key');
     });
 
-    it('should use remote variables when in remote mode', () => {
+    it('should use same env vars for remote mode (just different values)', () => {
       process.env.TEST_REMOTE_SUPABASE = 'true';
-      process.env.NEXT_PUBLIC_SUPABASE_URL = 'http://localhost:54321';
-      process.env.SUPABASE_SERVICE_ROLE_KEY = 'local_key';
-      process.env.REMOTE_SUPABASE_URL = 'https://remote.supabase.co';
-      process.env.REMOTE_SUPABASE_SECRET_KEY = 'remote_key';
+      process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://project.supabase.co';
+      process.env.SUPABASE_SECRET_KEY = 'remote_key';
 
-      const isRemoteTest = process.env.TEST_REMOTE_SUPABASE === 'true';
-      const LOCAL_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-      const REMOTE_URL = process.env.REMOTE_SUPABASE_URL || '';
-      const SUPABASE_URL = isRemoteTest ? REMOTE_URL : LOCAL_URL;
+      const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+      const SUPABASE_SECRET = process.env.SUPABASE_SECRET_KEY || '';
 
-      expect(SUPABASE_URL).toBe('https://remote.supabase.co');
+      expect(SUPABASE_URL).toBe('https://project.supabase.co');
+      expect(SUPABASE_SECRET).toBe('remote_key');
     });
 
-    it('should handle missing local variables gracefully', () => {
-      delete process.env.TEST_REMOTE_SUPABASE;
+    it('should handle missing variables gracefully', () => {
       delete process.env.NEXT_PUBLIC_SUPABASE_URL;
-      delete process.env.SUPABASE_SERVICE_ROLE_KEY;
+      delete process.env.SUPABASE_SECRET_KEY;
 
-      const isRemoteTest = process.env.TEST_REMOTE_SUPABASE === 'true';
-      const LOCAL_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-      const LOCAL_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+      const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+      const SUPABASE_SECRET = process.env.SUPABASE_SECRET_KEY || '';
 
-      expect(LOCAL_URL).toBe('');
-      expect(LOCAL_KEY).toBe('');
-    });
-
-    it('should handle missing remote variables gracefully', () => {
-      process.env.TEST_REMOTE_SUPABASE = 'true';
-      delete process.env.REMOTE_SUPABASE_URL;
-      delete process.env.REMOTE_SUPABASE_SECRET_KEY;
-      delete process.env.REMOTE_SUPABASE_SERVICE_ROLE_KEY;
-
-      const isRemoteTest = process.env.TEST_REMOTE_SUPABASE === 'true';
-      const REMOTE_URL = process.env.REMOTE_SUPABASE_URL || '';
-      const REMOTE_KEY = process.env.REMOTE_SUPABASE_SECRET_KEY || process.env.REMOTE_SUPABASE_SERVICE_ROLE_KEY || '';
-
-      expect(REMOTE_URL).toBe('');
-      expect(REMOTE_KEY).toBe('');
+      expect(SUPABASE_URL).toBe('');
+      expect(SUPABASE_SECRET).toBe('');
     });
   });
 
   describe('Test Skip Logic', () => {
-    it('should skip tests when remote credentials are missing', () => {
-      process.env.TEST_REMOTE_SUPABASE = 'true';
-      delete process.env.REMOTE_SUPABASE_URL;
-      delete process.env.REMOTE_SUPABASE_SECRET_KEY;
-      delete process.env.REMOTE_SUPABASE_SERVICE_ROLE_KEY;
+    it('should skip tests when credentials are missing', () => {
+      delete process.env.SUPABASE_SECRET_KEY;
 
-      const isRemoteTest = process.env.TEST_REMOTE_SUPABASE === 'true';
-      const REMOTE_URL = process.env.REMOTE_SUPABASE_URL || '';
-      const REMOTE_KEY = process.env.REMOTE_SUPABASE_SECRET_KEY || process.env.REMOTE_SUPABASE_SERVICE_ROLE_KEY || '';
-      const canRunTests = REMOTE_KEY.length > 0 && REMOTE_URL.length > 0;
+      const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'http://127.0.0.1:54321';
+      const SUPABASE_SECRET = process.env.SUPABASE_SECRET_KEY || '';
+      const canRunTests = SUPABASE_SECRET.length > 0 && SUPABASE_URL.length > 0;
 
       expect(canRunTests).toBe(false);
     });
 
-    it('should skip tests when local credentials are missing', () => {
-      delete process.env.TEST_REMOTE_SUPABASE;
-      delete process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-      const isRemoteTest = process.env.TEST_REMOTE_SUPABASE === 'true';
-      const LOCAL_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
-      const LOCAL_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'http://127.0.0.1:54321';
-      const canRunTests = LOCAL_KEY.length > 0 && LOCAL_URL.length > 0;
-
-      expect(canRunTests).toBe(false);
-    });
-
-    it('should allow tests when remote credentials are present', () => {
-      process.env.TEST_REMOTE_SUPABASE = 'true';
-      process.env.REMOTE_SUPABASE_URL = 'https://test.supabase.co';
-      process.env.REMOTE_SUPABASE_SECRET_KEY = 'test_key';
-
-      const isRemoteTest = process.env.TEST_REMOTE_SUPABASE === 'true';
-      const REMOTE_URL = process.env.REMOTE_SUPABASE_URL || '';
-      const REMOTE_KEY = process.env.REMOTE_SUPABASE_SECRET_KEY || process.env.REMOTE_SUPABASE_SERVICE_ROLE_KEY || '';
-      const canRunTests = REMOTE_KEY.length > 0 && REMOTE_URL.length > 0;
-
-      expect(canRunTests).toBe(true);
-    });
-
-    it('should allow tests when local credentials are present', () => {
-      delete process.env.TEST_REMOTE_SUPABASE;
+    it('should allow tests when credentials are present', () => {
       process.env.NEXT_PUBLIC_SUPABASE_URL = 'http://localhost:54321';
-      process.env.SUPABASE_SERVICE_ROLE_KEY = 'local_key';
+      process.env.SUPABASE_SECRET_KEY = 'test_key';
 
-      const isRemoteTest = process.env.TEST_REMOTE_SUPABASE === 'true';
-      const LOCAL_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
-      const LOCAL_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'http://127.0.0.1:54321';
-      const canRunTests = LOCAL_KEY.length > 0 && LOCAL_URL.length > 0;
+      const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+      const SUPABASE_SECRET = process.env.SUPABASE_SECRET_KEY || '';
+      const canRunTests = SUPABASE_SECRET.length > 0 && SUPABASE_URL.length > 0;
 
       expect(canRunTests).toBe(true);
     });
@@ -183,28 +136,10 @@ describe('Remote Supabase Configuration', () => {
       expect(testLabel).toBe('Remote Supabase');
     });
 
-    it('should generate correct skip message for local mode', () => {
-      delete process.env.TEST_REMOTE_SUPABASE;
+    it('should generate correct skip message', () => {
+      const skipMessage = 'Skipping tests: SUPABASE_SECRET_KEY not set';
 
-      const isRemoteTest = process.env.TEST_REMOTE_SUPABASE === 'true';
-      const skipMessage = isRemoteTest
-        ? 'Skipping remote tests: REMOTE_SUPABASE_URL or REMOTE_SUPABASE_SERVICE_ROLE_KEY not set'
-        : 'Skipping local tests: SUPABASE_SERVICE_ROLE_KEY not set';
-
-      expect(skipMessage).toContain('local tests');
-      expect(skipMessage).toContain('SUPABASE_SERVICE_ROLE_KEY');
-    });
-
-    it('should generate correct skip message for remote mode', () => {
-      process.env.TEST_REMOTE_SUPABASE = 'true';
-
-      const isRemoteTest = process.env.TEST_REMOTE_SUPABASE === 'true';
-      const skipMessage = isRemoteTest
-        ? 'Skipping remote tests: REMOTE_SUPABASE_URL or REMOTE_SUPABASE_SECRET_KEY not set'
-        : 'Skipping local tests: SUPABASE_SERVICE_ROLE_KEY not set';
-
-      expect(skipMessage).toContain('remote tests');
-      expect(skipMessage).toContain('REMOTE_SUPABASE_URL');
+      expect(skipMessage).toContain('SUPABASE_SECRET_KEY');
     });
   });
 
