@@ -12,6 +12,17 @@ export async function executeCode(
   submission: CodeSubmission,
   timeout: number = DEFAULT_TIMEOUT
 ): Promise<ExecutionResult> {
+  // On Vercel, code execution requires sandbox to be enabled
+  if (process.env.VERCEL && !process.env.VERCEL_SANDBOX_ENABLED) {
+    return {
+      success: false,
+      output: '',
+      error: 'Code execution is not yet available in production. Coming soon!',
+      executionTime: 0,
+      stdin: submission.executionSettings?.stdin,
+    };
+  }
+
   const { code, executionSettings } = submission;
   const stdin = executionSettings?.stdin;
   const randomSeed = executionSettings?.randomSeed;

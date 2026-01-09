@@ -1,6 +1,50 @@
 import { traceExecution } from '../code-tracer';
 
 describe('code-tracer', () => {
+  describe('Vercel environment handling', () => {
+    const originalEnv = process.env;
+
+    beforeEach(() => {
+      process.env = { ...originalEnv };
+    });
+
+    afterEach(() => {
+      process.env = originalEnv;
+    });
+
+    it('should return early with error when VERCEL is set without VERCEL_SANDBOX_ENABLED', async () => {
+      process.env.VERCEL = '1';
+      delete process.env.VERCEL_SANDBOX_ENABLED;
+
+      const result = await traceExecution('x = 5');
+
+      expect(result.steps).toEqual([]);
+      expect(result.totalSteps).toBe(0);
+      expect(result.exitCode).toBe(1);
+      expect(result.error).toBe('Code tracing is not yet available in production. Coming soon!');
+      expect(result.truncated).toBe(false);
+    });
+
+    it('should execute normally when VERCEL_SANDBOX_ENABLED is set', async () => {
+      process.env.VERCEL = '1';
+      process.env.VERCEL_SANDBOX_ENABLED = 'true';
+
+      const result = await traceExecution('x = 5');
+
+      expect(result.steps.length).toBeGreaterThan(0);
+      expect(result.exitCode).toBe(0);
+    });
+
+    it('should execute normally when not on Vercel', async () => {
+      delete process.env.VERCEL;
+
+      const result = await traceExecution('x = 5');
+
+      expect(result.steps.length).toBeGreaterThan(0);
+      expect(result.exitCode).toBe(0);
+    });
+  });
+
   it('traces simple code execution', async () => {
     const code = 'x = 5\ny = 10\nprint(x + y)';
     

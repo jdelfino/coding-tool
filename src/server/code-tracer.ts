@@ -14,6 +14,17 @@ export async function traceExecution(
   code: string,
   options: TraceOptions = {}
 ): Promise<ExecutionTrace> {
+  // On Vercel, tracing requires sandbox to be enabled
+  if (process.env.VERCEL && !process.env.VERCEL_SANDBOX_ENABLED) {
+    return {
+      steps: [],
+      totalSteps: 0,
+      exitCode: 1,
+      error: 'Code tracing is not yet available in production. Coming soon!',
+      truncated: false,
+    };
+  }
+
   const { stdin = '', maxSteps = DEFAULT_MAX_STEPS } = options;
 
   return new Promise((resolve, reject) => {

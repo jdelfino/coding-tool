@@ -19,6 +19,78 @@ describe('code-executor', () => {
     jest.useRealTimers();
   });
 
+  describe('Vercel environment handling', () => {
+    const originalEnv = process.env;
+
+    beforeEach(() => {
+      process.env = { ...originalEnv };
+    });
+
+    afterEach(() => {
+      process.env = originalEnv;
+    });
+
+    it('should return early with error when VERCEL is set without VERCEL_SANDBOX_ENABLED', async () => {
+      process.env.VERCEL = '1';
+      delete process.env.VERCEL_SANDBOX_ENABLED;
+
+      const result = await executeCode({ code: 'print("test")' });
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Code execution is not yet available in production. Coming soon!');
+      expect(result.executionTime).toBe(0);
+      expect(mockSpawn).not.toHaveBeenCalled();
+    });
+
+    it('should include stdin in result when returning early on Vercel', async () => {
+      process.env.VERCEL = '1';
+      delete process.env.VERCEL_SANDBOX_ENABLED;
+
+      const result = await executeCode({
+        code: 'print("test")',
+        executionSettings: { stdin: 'test input' }
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.stdin).toBe('test input');
+    });
+
+    it('should execute normally when VERCEL_SANDBOX_ENABLED is set', async () => {
+      process.env.VERCEL = '1';
+      process.env.VERCEL_SANDBOX_ENABLED = 'true';
+
+      const mockProcess = createMockProcess();
+      mockSpawn.mockReturnValue(mockProcess as any);
+
+      const promise = executeCode({ code: 'print("test")' });
+
+      mockProcess.stdout.emit('data', Buffer.from('test\n'));
+      mockProcess.emit('close', 0);
+
+      const result = await promise;
+
+      expect(result.success).toBe(true);
+      expect(mockSpawn).toHaveBeenCalled();
+    });
+
+    it('should execute normally when not on Vercel', async () => {
+      delete process.env.VERCEL;
+
+      const mockProcess = createMockProcess();
+      mockSpawn.mockReturnValue(mockProcess as any);
+
+      const promise = executeCode({ code: 'print("test")' });
+
+      mockProcess.stdout.emit('data', Buffer.from('test\n'));
+      mockProcess.emit('close', 0);
+
+      const result = await promise;
+
+      expect(result.success).toBe(true);
+      expect(mockSpawn).toHaveBeenCalled();
+    });
+  });
+
   describe('executeCode', () => {
     describe('successful execution', () => {
       it('should execute code and return stdout', async () => {
