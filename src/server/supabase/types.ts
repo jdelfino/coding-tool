@@ -247,6 +247,13 @@ export type Database = {
             referencedRelation: "sections"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "section_memberships_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
         ]
       }
       sections: {
@@ -299,6 +306,32 @@ export type Database = {
             columns: ["namespace_id"]
             isOneToOne: false
             referencedRelation: "namespaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      session_sandboxes: {
+        Row: {
+          created_at: string
+          sandbox_id: string
+          session_id: string
+        }
+        Insert: {
+          created_at?: string
+          sandbox_id: string
+          session_id: string
+        }
+        Update: {
+          created_at?: string
+          sandbox_id?: string
+          session_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "session_sandboxes_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: true
+            referencedRelation: "sessions"
             referencedColumns: ["id"]
           },
         ]
