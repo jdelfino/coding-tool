@@ -8,6 +8,15 @@ import { RBACService } from '@/server/auth/rbac';
 jest.mock('@/server/persistence');
 jest.mock('@/server/services/session-service');
 
+// Mock vercel-sandbox module
+const mockCreateSandboxForSession = jest.fn().mockResolvedValue('sb_test123');
+const mockShouldUseVercelSandbox = jest.fn().mockReturnValue(false);
+
+jest.mock('@/server/vercel-sandbox', () => ({
+  createSandboxForSession: (...args: unknown[]) => mockCreateSandboxForSession(...args),
+  shouldUseVercelSandbox: () => mockShouldUseVercelSandbox(),
+}));
+
 jest.mock('@/server/auth/api-helpers', () => ({
   requireAuth: jest.fn(),
   getNamespaceContext: jest.fn((req: any, user: any) => user.namespaceId || 'default'),
@@ -257,6 +266,74 @@ describe('POST /api/sessions', () => {
 
     expect(response.status).toBe(403);
     expect(data.error).toContain('must be an instructor');
+  });
+
+  describe('Vercel Sandbox integration', () => {
+    beforeEach(() => {
+      mockCreateSandboxForSession.mockClear();
+      mockShouldUseVercelSandbox.mockClear();
+    });
+
+    it('creates sandbox when shouldUseVercelSandbox returns true', async () => {
+      mockShouldUseVercelSandbox.mockReturnValue(true);
+      (requireAuth as jest.Mock).mockResolvedValue(createAuthContext(mockUser));
+      (SessionService.createSession as jest.Mock).mockResolvedValue(mockSession);
+
+      const request = new NextRequest('http://localhost/api/sessions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sectionId: 'section-1' }),
+      });
+
+      const response = await POST(request);
+
+      expect(response.status).toBe(201);
+      expect(mockCreateSandboxForSession).toHaveBeenCalledWith('session-1');
+    });
+
+    it('does not create sandbox when shouldUseVercelSandbox returns false', async () => {
+      mockShouldUseVercelSandbox.mockReturnValue(false);
+      (requireAuth as jest.Mock).mockResolvedValue(createAuthContext(mockUser));
+      (SessionService.createSession as jest.Mock).mockResolvedValue(mockSession);
+
+      const request = new NextRequest('http://localhost/api/sessions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sectionId: 'section-1' }),
+      });
+
+      const response = await POST(request);
+
+      expect(response.status).toBe(201);
+      expect(mockCreateSandboxForSession).not.toHaveBeenCalled();
+    });
+
+    it('succeeds even if sandbox creation fails', async () => {
+      mockShouldUseVercelSandbox.mockReturnValue(true);
+      mockCreateSandboxForSession.mockRejectedValue(new Error('Sandbox API error'));
+      (requireAuth as jest.Mock).mockResolvedValue(createAuthContext(mockUser));
+      (SessionService.createSession as jest.Mock).mockResolvedValue(mockSession);
+
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+
+      const request = new NextRequest('http://localhost/api/sessions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sectionId: 'section-1' }),
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(201);
+      expect(data.success).toBe(true);
+      expect(consoleSpy).toHaveBeenCalledWith(
+        'Failed to create sandbox for session:',
+        expect.any(Error)
+      );
+
+      consoleSpy.mockRestore();
+    });
   });
 });
 
