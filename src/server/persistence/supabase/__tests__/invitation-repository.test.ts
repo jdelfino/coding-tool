@@ -247,6 +247,17 @@ describe('SupabaseInvitationRepository', () => {
 
       expect(result).toBeNull();
     });
+
+    it('throws error on database failure', async () => {
+      mockSingle.mockResolvedValue({
+        data: null,
+        error: { message: 'Database error' },
+      });
+
+      await expect(
+        repository.getInvitationBySupabaseUserId('supabase-user-123')
+      ).rejects.toThrow('Failed to get invitation by Supabase user ID');
+    });
   });
 
   describe('getPendingInvitationByEmail', () => {
@@ -301,6 +312,17 @@ describe('SupabaseInvitationRepository', () => {
 
       expect(result).toBeNull();
     });
+
+    it('throws error on database failure', async () => {
+      mockSingle.mockResolvedValue({
+        data: null,
+        error: { message: 'Database error' },
+      });
+
+      await expect(
+        repository.getPendingInvitationByEmail('user@example.com', 'test-namespace')
+      ).rejects.toThrow('Failed to get pending invitation by email');
+    });
   });
 
   describe('listInvitations', () => {
@@ -314,6 +336,83 @@ describe('SupabaseInvitationRepository', () => {
 
       expect(result).toHaveLength(1);
       expect(result[0].id).toBe('invitation-123');
+    });
+
+    it('filters by namespaceId', async () => {
+      mockOrder.mockResolvedValue({
+        data: [mockInvitationRow],
+        error: null,
+      });
+
+      await repository.listInvitations({ namespaceId: 'test-namespace' });
+
+      expect(mockFrom).toHaveBeenCalledWith('invitations');
+    });
+
+    it('filters by targetRole', async () => {
+      mockOrder.mockResolvedValue({
+        data: [mockInvitationRow],
+        error: null,
+      });
+
+      await repository.listInvitations({ targetRole: 'instructor' });
+
+      expect(mockFrom).toHaveBeenCalledWith('invitations');
+    });
+
+    it('filters by email pattern', async () => {
+      mockOrder.mockResolvedValue({
+        data: [mockInvitationRow],
+        error: null,
+      });
+
+      await repository.listInvitations({ email: 'user@' });
+
+      expect(mockFrom).toHaveBeenCalledWith('invitations');
+    });
+
+    it('filters by pending status', async () => {
+      mockOrder.mockResolvedValue({
+        data: [mockInvitationRow],
+        error: null,
+      });
+
+      await repository.listInvitations({ status: 'pending' });
+
+      expect(mockFrom).toHaveBeenCalledWith('invitations');
+    });
+
+    it('filters by consumed status', async () => {
+      mockOrder.mockResolvedValue({
+        data: [mockInvitationRow],
+        error: null,
+      });
+
+      await repository.listInvitations({ status: 'consumed' });
+
+      expect(mockFrom).toHaveBeenCalledWith('invitations');
+    });
+
+    it('filters by revoked status', async () => {
+      mockOrder.mockResolvedValue({
+        data: [mockInvitationRow],
+        error: null,
+      });
+
+      await repository.listInvitations({ status: 'revoked' });
+
+      expect(mockFrom).toHaveBeenCalledWith('invitations');
+    });
+
+    it('filters by expired status', async () => {
+      mockOrder.mockResolvedValue({
+        data: [mockInvitationRow],
+        error: null,
+      });
+
+      await repository.listInvitations({ status: 'expired' });
+
+      expect(mockFrom).toHaveBeenCalledWith('invitations');
     });
 
     it('handles database errors during list', async () => {
@@ -356,6 +455,25 @@ describe('SupabaseInvitationRepository', () => {
       await expect(
         repository.updateInvitation('nonexistent', { supabaseUserId: 'test' })
       ).rejects.toThrow(InvitationError);
+    });
+
+    it('updates expiresAt field', async () => {
+      const newExpiry = new Date('2026-02-01T00:00:00.000Z');
+      const updatedRow = {
+        ...mockInvitationRow,
+        expires_at: newExpiry.toISOString(),
+      };
+
+      mockSingle.mockResolvedValue({
+        data: updatedRow,
+        error: null,
+      });
+
+      const result = await repository.updateInvitation('invitation-123', {
+        expiresAt: newExpiry,
+      });
+
+      expect(result.expiresAt.toISOString()).toBe(newExpiry.toISOString());
     });
 
     it('handles database errors during update', async () => {
