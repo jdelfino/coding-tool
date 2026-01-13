@@ -63,8 +63,22 @@ describeWithCredentials('Vercel Sandbox Integration', () => {
 
     expect(sandbox).toBeDefined();
     expect(sandbox.sandboxId).toBeDefined();
+    console.log(`Created sandbox: ${sandbox.sandboxId}, status: ${sandbox.status}`);
+
+    // Wait for sandbox to be ready (may start as "pending")
+    if (sandbox.status !== 'running') {
+      console.log('Waiting for sandbox to become ready...');
+      let attempts = 0;
+      const maxAttempts = 30; // 30 seconds max wait
+      while (sandbox.status !== 'running' && attempts < maxAttempts) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        // Re-fetch sandbox status
+        sandbox = await Sandbox.get({ sandboxId: sandbox.sandboxId, ...credentials });
+        attempts++;
+      }
+      console.log(`Sandbox ready after ${attempts} seconds, status: ${sandbox.status}`);
+    }
     expect(sandbox.status).toBe('running');
-    console.log(`Created sandbox: ${sandbox.sandboxId}`);
 
     // Step 2: First execution - simple print
     await sandbox.writeFiles([
