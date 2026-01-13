@@ -19,6 +19,7 @@ import { Sandbox } from '@vercel/sandbox';
 import { getSupabaseClient } from '../supabase/client';
 import { ExecutionResult, CodeSubmission, ExecutionTrace } from '../types';
 import { TRACER_SCRIPT, TRACER_PATH } from './tracer-script';
+import { logSandboxEvent } from './logger';
 
 // Session sandbox timeout: 45 minutes (Hobby plan max)
 const SESSION_TIMEOUT_MS = 45 * 60 * 1000;
@@ -55,6 +56,8 @@ export class SandboxError extends Error {
  * @throws SandboxError if creation fails
  */
 export async function createSessionSandbox(sessionId: string): Promise<string> {
+  const startTime = Date.now();
+
   try {
     const sandbox = await Sandbox.create({
       runtime: 'python3.13',
@@ -84,8 +87,25 @@ export async function createSessionSandbox(sessionId: string): Promise<string> {
       );
     }
 
+    logSandboxEvent({
+      event: 'sandbox_create',
+      sessionId,
+      sandboxId: sandbox.sandboxId,
+      durationMs: Date.now() - startTime,
+      success: true,
+    });
+
     return sandbox.sandboxId;
   } catch (error) {
+    logSandboxEvent({
+      event: 'sandbox_create',
+      sessionId,
+      durationMs: Date.now() - startTime,
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+      errorCode: error instanceof SandboxError ? error.code : undefined,
+    });
+
     if (error instanceof SandboxError) {
       throw error;
     }
@@ -109,6 +129,7 @@ export async function createSessionSandbox(sessionId: string): Promise<string> {
  * @throws SandboxError if sandbox cannot be obtained
  */
 export async function getSandbox(sessionId: string): Promise<Sandbox> {
+  const startTime = Date.now();
   const supabase = getSupabaseClient();
 
   // Fetch sandbox ID from Supabase
@@ -119,6 +140,14 @@ export async function getSandbox(sessionId: string): Promise<Sandbox> {
     .single();
 
   if (error || !data) {
+    logSandboxEvent({
+      event: 'sandbox_reconnect',
+      sessionId,
+      durationMs: Date.now() - startTime,
+      success: false,
+      error: `No sandbox found: ${error?.message || 'Not found'}`,
+      errorCode: 'UNAVAILABLE',
+    });
     throw new SandboxError(
       `No sandbox found for session: ${error?.message || 'Not found'}`,
       'UNAVAILABLE',
@@ -132,15 +161,38 @@ export async function getSandbox(sessionId: string): Promise<Sandbox> {
 
     // Check if sandbox is still running
     if (sandbox.status === 'running') {
+      logSandboxEvent({
+        event: 'sandbox_reconnect',
+        sessionId,
+        sandboxId: data.sandbox_id,
+        durationMs: Date.now() - startTime,
+        success: true,
+      });
       return sandbox;
     }
 
     // Sandbox has timed out or failed - recreate
-    console.log(`Sandbox ${data.sandbox_id} status is ${sandbox.status}, recreating...`);
+    logSandboxEvent({
+      event: 'sandbox_reconnect',
+      sessionId,
+      sandboxId: data.sandbox_id,
+      durationMs: Date.now() - startTime,
+      success: false,
+      error: `Sandbox status is ${sandbox.status}`,
+      metadata: { status: sandbox.status, needsRecreate: true },
+    });
     return await recreateSandbox(sessionId, data.sandbox_id);
   } catch (error) {
     // Sandbox may not exist anymore - try to recreate
-    console.log(`Failed to reconnect to sandbox ${data.sandbox_id}, recreating...`, error);
+    logSandboxEvent({
+      event: 'sandbox_reconnect',
+      sessionId,
+      sandboxId: data.sandbox_id,
+      durationMs: Date.now() - startTime,
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+      metadata: { needsRecreate: true },
+    });
     return await recreateSandbox(sessionId, data.sandbox_id);
   }
 }
@@ -156,6 +208,7 @@ export async function getSandbox(sessionId: string): Promise<Sandbox> {
  * @returns New Sandbox instance
  */
 async function recreateSandbox(sessionId: string, oldSandboxId: string): Promise<Sandbox> {
+  const startTime = Date.now();
   const supabase = getSupabaseClient();
 
   try {
@@ -189,6 +242,14 @@ async function recreateSandbox(sessionId: string, oldSandboxId: string): Promise
         .single();
 
       if (!winner) {
+        logSandboxEvent({
+          event: 'sandbox_recreate',
+          sessionId,
+          durationMs: Date.now() - startTime,
+          success: false,
+          error: 'Failed to get sandbox after race condition',
+          metadata: { oldSandboxId, raceCondition: true },
+        });
         throw new SandboxError(
           'Failed to get sandbox after race condition',
           'RECONNECTION_FAILED',
@@ -196,11 +257,39 @@ async function recreateSandbox(sessionId: string, oldSandboxId: string): Promise
         );
       }
 
+      logSandboxEvent({
+        event: 'sandbox_recreate',
+        sessionId,
+        sandboxId: winner.sandbox_id,
+        durationMs: Date.now() - startTime,
+        success: true,
+        metadata: { oldSandboxId, raceCondition: true, usedWinner: true },
+      });
+
       return await Sandbox.get({ sandboxId: winner.sandbox_id });
     }
 
+    logSandboxEvent({
+      event: 'sandbox_recreate',
+      sessionId,
+      sandboxId: newSandbox.sandboxId,
+      durationMs: Date.now() - startTime,
+      success: true,
+      metadata: { oldSandboxId },
+    });
+
     return newSandbox;
   } catch (error) {
+    logSandboxEvent({
+      event: 'sandbox_recreate',
+      sessionId,
+      durationMs: Date.now() - startTime,
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+      errorCode: error instanceof SandboxError ? error.code : undefined,
+      metadata: { oldSandboxId },
+    });
+
     if (error instanceof SandboxError) {
       throw error;
     }
@@ -283,9 +372,22 @@ export async function executeOnVercelSandbox(
       const stdout = await result.stdout();
       const stderr = await result.stderr();
       const executionTime = Date.now() - startTime;
+      const success = result.exitCode === 0 && stderr.length === 0;
+
+      logSandboxEvent({
+        event: 'sandbox_execute',
+        sessionId,
+        durationMs: executionTime,
+        success,
+        metadata: {
+          exitCode: result.exitCode,
+          hasStderr: stderr.length > 0,
+          codeLength: code.length,
+        },
+      });
 
       return {
-        success: result.exitCode === 0 && stderr.length === 0,
+        success,
         output: stdout,
         error: stderr,
         executionTime,
@@ -299,6 +401,15 @@ export async function executeOnVercelSandbox(
 
     // Handle abort/timeout
     if (error instanceof Error && error.name === 'AbortError') {
+      logSandboxEvent({
+        event: 'sandbox_execute',
+        sessionId,
+        durationMs: executionTime,
+        success: false,
+        error: 'Execution timed out',
+        errorCode: 'TIMEOUT',
+        metadata: { codeLength: code.length },
+      });
       return {
         success: false,
         output: '',
@@ -310,6 +421,15 @@ export async function executeOnVercelSandbox(
 
     // Handle sandbox errors
     if (error instanceof SandboxError) {
+      logSandboxEvent({
+        event: 'sandbox_execute',
+        sessionId,
+        durationMs: executionTime,
+        success: false,
+        error: error.message,
+        errorCode: error.code,
+        metadata: { codeLength: code.length },
+      });
       return {
         success: false,
         output: '',
@@ -318,6 +438,15 @@ export async function executeOnVercelSandbox(
         stdin,
       };
     }
+
+    logSandboxEvent({
+      event: 'sandbox_execute',
+      sessionId,
+      durationMs: executionTime,
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+      metadata: { codeLength: code.length },
+    });
 
     return {
       success: false,
@@ -338,6 +467,7 @@ export async function executeOnVercelSandbox(
  * @param sessionId - Session ID
  */
 export async function cleanupSandbox(sessionId: string): Promise<void> {
+  const startTime = Date.now();
   const supabase = getSupabaseClient();
 
   try {
@@ -350,17 +480,26 @@ export async function cleanupSandbox(sessionId: string): Promise<void> {
 
     if (!data) {
       // No sandbox record - nothing to clean up
+      logSandboxEvent({
+        event: 'sandbox_cleanup',
+        sessionId,
+        durationMs: Date.now() - startTime,
+        success: true,
+        metadata: { noRecord: true },
+      });
       return;
     }
 
     // Stop sandbox (best effort)
+    let stopError: string | undefined;
     try {
       const sandbox = await Sandbox.get({ sandboxId: data.sandbox_id });
       if (sandbox.status === 'running') {
         await sandbox.stop();
       }
     } catch (error) {
-      console.log(`Failed to stop sandbox ${data.sandbox_id} (may already be stopped):`, error);
+      stopError = error instanceof Error ? error.message : 'Unknown error';
+      // Continue with cleanup - sandbox may already be stopped
     }
 
     // Delete record (ON DELETE CASCADE handles this when session is deleted,
@@ -369,8 +508,23 @@ export async function cleanupSandbox(sessionId: string): Promise<void> {
       .from('session_sandboxes')
       .delete()
       .eq('session_id', sessionId);
+
+    logSandboxEvent({
+      event: 'sandbox_cleanup',
+      sessionId,
+      sandboxId: data.sandbox_id,
+      durationMs: Date.now() - startTime,
+      success: true,
+      metadata: stopError ? { stopWarning: stopError } : undefined,
+    });
   } catch (error) {
-    console.error(`Failed to cleanup sandbox for session ${sessionId}:`, error);
+    logSandboxEvent({
+      event: 'sandbox_cleanup',
+      sessionId,
+      durationMs: Date.now() - startTime,
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
     // Don't throw - sandbox will auto-timeout
   }
 }
@@ -435,6 +589,7 @@ export async function traceOnVercelSandbox(
   code: string,
   options: TraceOptions = {}
 ): Promise<ExecutionTrace> {
+  const startTime = Date.now();
   const { stdin = '', maxSteps = DEFAULT_MAX_STEPS } = options;
 
   try {
@@ -461,16 +616,35 @@ export async function traceOnVercelSandbox(
 
       const stdout = await result.stdout();
       const stderr = await result.stderr();
-
-      if (stderr) {
-        console.error('Tracer stderr:', stderr);
-      }
+      const durationMs = Date.now() - startTime;
 
       // Parse JSON output from tracer
       try {
         const trace: ExecutionTrace = JSON.parse(stdout);
+
+        logSandboxEvent({
+          event: 'sandbox_trace',
+          sessionId,
+          durationMs,
+          success: !trace.error,
+          metadata: {
+            totalSteps: trace.totalSteps,
+            truncated: trace.truncated,
+            codeLength: code.length,
+            hasStderr: !!stderr,
+          },
+        });
+
         return trace;
       } catch {
+        logSandboxEvent({
+          event: 'sandbox_trace',
+          sessionId,
+          durationMs,
+          success: false,
+          error: 'Failed to parse trace output',
+          metadata: { codeLength: code.length },
+        });
         return {
           steps: [],
           totalSteps: 0,
@@ -483,8 +657,19 @@ export async function traceOnVercelSandbox(
       clearTimeout(timeoutId);
     }
   } catch (error) {
+    const durationMs = Date.now() - startTime;
+
     // Handle abort/timeout
     if (error instanceof Error && error.name === 'AbortError') {
+      logSandboxEvent({
+        event: 'sandbox_trace',
+        sessionId,
+        durationMs,
+        success: false,
+        error: 'Trace execution timed out',
+        errorCode: 'TIMEOUT',
+        metadata: { codeLength: code.length },
+      });
       return {
         steps: [],
         totalSteps: 0,
@@ -496,6 +681,15 @@ export async function traceOnVercelSandbox(
 
     // Handle sandbox errors
     if (error instanceof SandboxError) {
+      logSandboxEvent({
+        event: 'sandbox_trace',
+        sessionId,
+        durationMs,
+        success: false,
+        error: error.message,
+        errorCode: error.code,
+        metadata: { codeLength: code.length },
+      });
       return {
         steps: [],
         totalSteps: 0,
@@ -504,6 +698,15 @@ export async function traceOnVercelSandbox(
         truncated: false,
       };
     }
+
+    logSandboxEvent({
+      event: 'sandbox_trace',
+      sessionId,
+      durationMs,
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+      metadata: { codeLength: code.length },
+    });
 
     return {
       steps: [],
