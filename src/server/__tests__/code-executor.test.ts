@@ -3,6 +3,12 @@ import { executeCode, executeCodeSafe, sanitizeError } from '../code-executor';
 // Mock child_process
 jest.mock('child_process');
 
+// Mock vercel-sandbox
+const mockExecuteInSandbox = jest.fn();
+jest.mock('../vercel-sandbox', () => ({
+  executeInSandbox: (...args: unknown[]) => mockExecuteInSandbox(...args),
+}));
+
 import { spawn } from 'child_process';
 import { EventEmitter } from 'events';
 
@@ -88,6 +94,160 @@ describe('code-executor', () => {
 
       expect(result.success).toBe(true);
       expect(mockSpawn).toHaveBeenCalled();
+    });
+  });
+
+  describe('sandbox integration with sessionId', () => {
+    const originalEnv = process.env;
+
+    beforeEach(() => {
+      process.env = { ...originalEnv };
+      mockExecuteInSandbox.mockReset();
+    });
+
+    afterEach(() => {
+      process.env = originalEnv;
+    });
+
+    it('should use sandbox result when sessionId provided and sandbox returns result', async () => {
+      const sandboxResult = {
+        success: true,
+        output: 'sandbox output',
+        error: '',
+        executionTime: 50,
+      };
+      mockExecuteInSandbox.mockResolvedValue(sandboxResult);
+
+      const result = await executeCode(
+        { code: 'print("test")' },
+        10000,
+        'session-123'
+      );
+
+      expect(mockExecuteInSandbox).toHaveBeenCalledWith('session-123', { code: 'print("test")' });
+      expect(result).toEqual(sandboxResult);
+      expect(mockSpawn).not.toHaveBeenCalled();
+    });
+
+    it('should use sandbox error result when Vercel sandbox disabled', async () => {
+      const errorResult = {
+        success: false,
+        output: '',
+        error: 'Code execution is not yet available in production. Coming soon!',
+        executionTime: 0,
+      };
+      mockExecuteInSandbox.mockResolvedValue(errorResult);
+
+      const result = await executeCode(
+        { code: 'print("test")' },
+        10000,
+        'session-123'
+      );
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('not yet available');
+      expect(mockSpawn).not.toHaveBeenCalled();
+    });
+
+    it('should fall back to local execution when sandbox returns null', async () => {
+      mockExecuteInSandbox.mockResolvedValue(null);
+
+      const mockProcess = createMockProcess();
+      mockSpawn.mockReturnValue(mockProcess as any);
+
+      const promise = executeCode(
+        { code: 'print("local")' },
+        10000,
+        'session-123'
+      );
+
+      // Allow the async sandbox call to resolve before emitting process events
+      await Promise.resolve();
+      await Promise.resolve();
+
+      mockProcess.stdout.emit('data', Buffer.from('local\n'));
+      mockProcess.emit('close', 0);
+
+      const result = await promise;
+
+      expect(mockExecuteInSandbox).toHaveBeenCalledWith('session-123', { code: 'print("local")' });
+      expect(result.success).toBe(true);
+      expect(result.output).toBe('local\n');
+      expect(mockSpawn).toHaveBeenCalled();
+    });
+
+    it('should not call sandbox when sessionId is not provided', async () => {
+      delete process.env.VERCEL;
+
+      const mockProcess = createMockProcess();
+      mockSpawn.mockReturnValue(mockProcess as any);
+
+      const promise = executeCode({ code: 'print("test")' });
+
+      mockProcess.stdout.emit('data', Buffer.from('test\n'));
+      mockProcess.emit('close', 0);
+
+      await promise;
+
+      expect(mockExecuteInSandbox).not.toHaveBeenCalled();
+      expect(mockSpawn).toHaveBeenCalled();
+    });
+
+    it('should use legacy Vercel check when sessionId not provided on Vercel', async () => {
+      process.env.VERCEL = '1';
+      delete process.env.VERCEL_SANDBOX_ENABLED;
+
+      const result = await executeCode({ code: 'print("test")' });
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Code execution is not yet available in production. Coming soon!');
+      expect(mockExecuteInSandbox).not.toHaveBeenCalled();
+      expect(mockSpawn).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('executeCodeSafe with sessionId', () => {
+    beforeEach(() => {
+      mockExecuteInSandbox.mockReset();
+    });
+
+    it('should pass sessionId to executeCode', async () => {
+      const sandboxResult = {
+        success: true,
+        output: 'result',
+        error: '',
+        executionTime: 100,
+      };
+      mockExecuteInSandbox.mockResolvedValue(sandboxResult);
+
+      const result = await executeCodeSafe(
+        { code: 'print("test")' },
+        undefined,
+        'session-456'
+      );
+
+      expect(mockExecuteInSandbox).toHaveBeenCalledWith('session-456', { code: 'print("test")' });
+      expect(result).toEqual(sandboxResult);
+    });
+
+    it('should sanitize errors from sandbox execution', async () => {
+      const sandboxResult = {
+        success: false,
+        output: '',
+        error: 'File "/home/user/code.py", line 1\nException',
+        executionTime: 50,
+      };
+      mockExecuteInSandbox.mockResolvedValue(sandboxResult);
+
+      const result = await executeCodeSafe(
+        { code: 'raise Exception()' },
+        undefined,
+        'session-456'
+      );
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('<student code>');
+      expect(result.error).not.toContain('/home/user/');
     });
   });
 

@@ -111,13 +111,17 @@ describe('POST /api/sessions/[id]/execute', () => {
 
     expect(response.status).toBe(200);
     expect(data).toEqual(mockResult);
-    expect(mockExecuteCodeSafe).toHaveBeenCalledWith({
-      code: 'print("Hello")',
-      executionSettings: {
-        stdin: 'default stdin',
-        randomSeed: 42,
+    expect(mockExecuteCodeSafe).toHaveBeenCalledWith(
+      {
+        code: 'print("Hello")',
+        executionSettings: {
+          stdin: 'default stdin',
+          randomSeed: 42,
+        },
       },
-    });
+      undefined, // default timeout
+      'session-1' // sessionId
+    );
   });
 
   it('should merge execution settings (student overrides session)', async () => {
@@ -155,10 +159,14 @@ describe('POST /api/sessions/[id]/execute', () => {
     const response = await POST(request, { params });
 
     expect(response.status).toBe(200);
-    expect(mockExecuteCodeSafe).toHaveBeenCalledWith({
-      code: 'print("Hello")',
-      executionSettings: studentSettings,
-    });
+    expect(mockExecuteCodeSafe).toHaveBeenCalledWith(
+      {
+        code: 'print("Hello")',
+        executionSettings: studentSettings,
+      },
+      undefined, // default timeout
+      'session-1' // sessionId
+    );
   });
 
   it('should use payload settings if provided (highest priority)', async () => {
@@ -202,10 +210,14 @@ describe('POST /api/sessions/[id]/execute', () => {
     const response = await POST(request, { params });
 
     expect(response.status).toBe(200);
-    expect(mockExecuteCodeSafe).toHaveBeenCalledWith({
-      code: 'print("Hello")',
-      executionSettings: payloadSettings,
-    });
+    expect(mockExecuteCodeSafe).toHaveBeenCalledWith(
+      {
+        code: 'print("Hello")',
+        executionSettings: payloadSettings,
+      },
+      undefined, // default timeout
+      'session-1' // sessionId
+    );
   });
 
   it('should return 401 when not authenticated', async () => {

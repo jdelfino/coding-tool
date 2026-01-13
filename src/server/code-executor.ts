@@ -3,6 +3,7 @@ import { ExecutionResult, CodeSubmission } from './types';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
+import { executeInSandbox } from './vercel-sandbox';
 
 const DEFAULT_TIMEOUT = 10000; // 10 seconds
 const MAX_FILE_SIZE = 10 * 1024; // 10KB per file
@@ -10,17 +11,28 @@ const MAX_FILES = 5;
 
 export async function executeCode(
   submission: CodeSubmission,
-  timeout: number = DEFAULT_TIMEOUT
+  timeout: number = DEFAULT_TIMEOUT,
+  sessionId?: string
 ): Promise<ExecutionResult> {
-  // On Vercel, code execution requires sandbox to be enabled
-  if (process.env.VERCEL && !process.env.VERCEL_SANDBOX_ENABLED) {
-    return {
-      success: false,
-      output: '',
-      error: 'Code execution is not yet available in production. Coming soon!',
-      executionTime: 0,
-      stdin: submission.executionSettings?.stdin,
-    };
+  // Use sandbox abstraction for environment-based execution
+  if (sessionId) {
+    const sandboxResult = await executeInSandbox(sessionId, submission);
+    if (sandboxResult !== null) {
+      // Sandbox handled execution (either Vercel sandbox or "not available" error)
+      return sandboxResult;
+    }
+    // sandboxResult === null means local development - continue with local execution
+  } else {
+    // No sessionId provided - use legacy Vercel check for backward compatibility
+    if (process.env.VERCEL && !process.env.VERCEL_SANDBOX_ENABLED) {
+      return {
+        success: false,
+        output: '',
+        error: 'Code execution is not yet available in production. Coming soon!',
+        executionTime: 0,
+        stdin: submission.executionSettings?.stdin,
+      };
+    }
   }
 
   const { code, executionSettings } = submission;
@@ -226,16 +238,21 @@ export function sanitizeError(error: string): string {
 
 /**
  * Execute code with sanitized errors
+ *
+ * @param submission - Code submission with code and execution settings
+ * @param timeout - Optional timeout in milliseconds (defaults to 10s)
+ * @param sessionId - Optional session ID for Vercel Sandbox integration
  */
 export async function executeCodeSafe(
   submission: CodeSubmission,
-  timeout?: number
+  timeout?: number,
+  sessionId?: string
 ): Promise<ExecutionResult> {
-  const result = await executeCode(submission, timeout);
-  
+  const result = await executeCode(submission, timeout, sessionId);
+
   if (!result.success && result.error) {
     result.error = sanitizeError(result.error);
   }
-  
+
   return result;
 }

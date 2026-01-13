@@ -84,11 +84,15 @@ export async function POST(
       session.problem?.executionSettings ||
       {};
 
-    // Execute code
-    const result = await executeCodeSafe({
-      code,
-      executionSettings: effectiveSettings,
-    });
+    // Execute code with sessionId for Vercel Sandbox integration
+    const result = await executeCodeSafe(
+      {
+        code,
+        executionSettings: effectiveSettings,
+      },
+      undefined, // use default timeout
+      sessionId
+    );
 
     return NextResponse.json(result);
   } catch (error: unknown) {
