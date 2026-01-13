@@ -4,7 +4,7 @@
  * auth providers (local, OAuth, third-party services, etc.) for easy swapping.
  */
 
-import { User, UserRole, AuthSession, Namespace } from './types';
+import { User, UserRole, AuthSession, Namespace, NamespaceCapacityUsage, CapacityLimitsUpdate } from './types';
 import type { NextRequest } from 'next/server';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
@@ -314,4 +314,25 @@ export interface INamespaceRepository {
    * @returns True if namespace exists, false otherwise
    */
   namespaceExists(id: string): Promise<boolean>;
+
+  /**
+   * Get capacity usage for a namespace.
+   *
+   * Returns current counts of instructors and students, along with
+   * the configured limits. Used for displaying capacity info and
+   * checking if new users can be added.
+   *
+   * @param id - Namespace ID
+   * @returns Capacity usage info, or null if namespace not found
+   */
+  getCapacityUsage(id: string): Promise<NamespaceCapacityUsage | null>;
+
+  /**
+   * Update capacity limits for a namespace.
+   *
+   * @param id - Namespace ID
+   * @param limits - New limits (null values = unlimited)
+   * @throws {Error} If namespace not found
+   */
+  updateCapacityLimits(id: string, limits: CapacityLimitsUpdate): Promise<void>;
 }

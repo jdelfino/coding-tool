@@ -5,7 +5,7 @@
  * Namespaces represent organizations/tenants in the multi-tenant system.
  */
 
-import { Namespace } from '../../auth/types';
+import { Namespace, NamespaceCapacityUsage, CapacityLimitsUpdate } from '../../auth/types';
 import { INamespaceRepository } from '../../auth/interfaces';
 import { getSupabaseClient } from '../../supabase/client';
 
@@ -56,6 +56,8 @@ function mapRowToNamespace(row: any): Namespace {
     createdAt: new Date(row.created_at),
     createdBy: row.created_by,
     updatedAt: new Date(row.updated_at),
+    maxInstructors: row.max_instructors ?? null,
+    maxStudents: row.max_students ?? null,
   };
 }
 
@@ -199,5 +201,69 @@ export class SupabaseNamespaceRepository implements INamespaceRepository {
   async namespaceExists(id: string): Promise<boolean> {
     const namespace = await this.getNamespace(id);
     return namespace !== null;
+  }
+
+  async getCapacityUsage(id: string): Promise<NamespaceCapacityUsage | null> {
+    const supabase = getSupabaseClient();
+
+    // First get the namespace to check if it exists and get limits
+    const namespace = await this.getNamespace(id);
+    if (!namespace) {
+      return null;
+    }
+
+    // Count instructors in this namespace
+    const { count: instructorCount, error: instructorError } = await supabase
+      .from('user_profiles')
+      .select('*', { count: 'exact', head: true })
+      .eq('namespace_id', id)
+      .eq('role', 'instructor');
+
+    if (instructorError) {
+      throw new Error(`Failed to count instructors: ${instructorError.message}`);
+    }
+
+    // Count students in this namespace
+    const { count: studentCount, error: studentError } = await supabase
+      .from('user_profiles')
+      .select('*', { count: 'exact', head: true })
+      .eq('namespace_id', id)
+      .eq('role', 'student');
+
+    if (studentError) {
+      throw new Error(`Failed to count students: ${studentError.message}`);
+    }
+
+    return {
+      instructorCount: instructorCount ?? 0,
+      studentCount: studentCount ?? 0,
+      maxInstructors: namespace.maxInstructors ?? null,
+      maxStudents: namespace.maxStudents ?? null,
+    };
+  }
+
+  async updateCapacityLimits(id: string, limits: CapacityLimitsUpdate): Promise<void> {
+    const supabase = getSupabaseClient();
+
+    // Build update object only with provided values
+    const updateData: Record<string, number | null | string> = {
+      updated_at: new Date().toISOString(),
+    };
+
+    if (limits.maxInstructors !== undefined) {
+      updateData.max_instructors = limits.maxInstructors;
+    }
+    if (limits.maxStudents !== undefined) {
+      updateData.max_students = limits.maxStudents;
+    }
+
+    const { error } = await supabase
+      .from('namespaces')
+      .update(updateData)
+      .eq('id', id);
+
+    if (error) {
+      throw new Error(`Failed to update capacity limits: ${error.message}`);
+    }
   }
 }

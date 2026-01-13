@@ -58,6 +58,35 @@ export interface Namespace {
   createdBy: string;
   /** When the namespace was last updated */
   updatedAt: Date;
+  /** Maximum number of instructors allowed (null = unlimited) */
+  maxInstructors?: number | null;
+  /** Maximum number of students allowed (null = unlimited) */
+  maxStudents?: number | null;
+}
+
+/**
+ * Capacity usage information for a namespace.
+ * Used to check and display how much of the namespace capacity is used.
+ */
+export interface NamespaceCapacityUsage {
+  /** Current number of instructors in the namespace */
+  instructorCount: number;
+  /** Current number of students in the namespace */
+  studentCount: number;
+  /** Maximum instructors allowed (null = unlimited) */
+  maxInstructors: number | null;
+  /** Maximum students allowed (null = unlimited) */
+  maxStudents: number | null;
+}
+
+/**
+ * Data for updating namespace capacity limits.
+ */
+export interface CapacityLimitsUpdate {
+  /** New maximum instructors limit (null = unlimited, undefined = no change) */
+  maxInstructors?: number | null;
+  /** New maximum students limit (null = unlimited, undefined = no change) */
+  maxStudents?: number | null;
 }
 
 /**
