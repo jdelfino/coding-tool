@@ -22,7 +22,7 @@ export async function POST(
 ) {
   try {
     // Authenticate user
-    await getAuthenticatedUser(request);
+    const user = await getAuthenticatedUser(request);
 
     // Get session ID from params
     const { id: sessionId } = await params;
@@ -54,6 +54,15 @@ export async function POST(
       return NextResponse.json(
         { error: 'Session not found' },
         { status: 404 }
+      );
+    }
+
+    // SECURITY: Students can only save their own code
+    // Instructors, namespace-admins, and system-admins can save code for any student
+    if (user.role === 'student' && studentId !== user.id) {
+      return NextResponse.json(
+        { error: 'Forbidden: You can only save your own code' },
+        { status: 403 }
       );
     }
 

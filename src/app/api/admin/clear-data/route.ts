@@ -22,10 +22,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Only admins and instructors can clear data
-    if (session.user.role !== 'namespace-admin' && session.user.role !== 'instructor') {
+    // SECURITY: Only system-admin can clear ALL data (destructive operation)
+    if (session.user.role !== 'system-admin') {
       return NextResponse.json(
-        { error: 'Forbidden: Only admins and instructors can clear data' },
+        { error: 'Forbidden: Only system administrators can clear all data' },
         { status: 403 }
       );
     }

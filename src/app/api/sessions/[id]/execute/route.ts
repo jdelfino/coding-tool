@@ -75,6 +75,15 @@ export async function POST(
       );
     }
 
+    // SECURITY: Students can only execute their own code
+    // Instructors/admins can execute code for any student
+    if (user.role === 'student' && studentId !== user.id) {
+      return NextResponse.json(
+        { error: 'Forbidden: You can only execute your own code' },
+        { status: 403 }
+      );
+    }
+
     // Get student data for their execution settings using service
     const studentData = SessionService.getStudentData(session, studentId);
 

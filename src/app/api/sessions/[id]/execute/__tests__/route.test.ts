@@ -378,10 +378,12 @@ describe('POST /api/sessions/[id]/execute', () => {
       expect(mockExecuteCodeSafe).not.toHaveBeenCalled();
     });
 
-    it('should allow execution when user is the session creator', async () => {
+    it('should allow execution when user is the session creator (instructor)', async () => {
+      // Note: Creator must be instructor role, not student
       const creatorUser = {
         ...mockUser,
         id: 'instructor-1',
+        role: 'instructor' as const, // SECURITY: Instructor role required to execute other students' code
       };
       mockGetAuthenticatedUser.mockResolvedValue(creatorUser);
 
@@ -420,14 +422,16 @@ describe('POST /api/sessions/[id]/execute', () => {
       expect(mockExecuteCodeSafe).toHaveBeenCalled();
     });
 
-    it('should allow execution when user is a participant', async () => {
+    it('should allow student participant to execute their own code', async () => {
+      // SECURITY FIX: Students can only execute their own code
       const participantUser = {
         ...mockUser,
-        id: 'student-2',
+        id: 'student-1',
+        role: 'student' as const,
       };
       mockGetAuthenticatedUser.mockResolvedValue(participantUser);
 
-      // Session where user is a participant but not creator
+      // Session where user is a participant
       const participantSession = {
         ...mockSession,
         creatorId: 'instructor-1',
@@ -450,7 +454,126 @@ describe('POST /api/sessions/[id]/execute', () => {
       const request = new NextRequest('http://localhost:3000/api/sessions/session-1/execute', {
         method: 'POST',
         body: JSON.stringify({
-          studentId: 'student-1',
+          studentId: 'student-1', // SECURITY: Student executing their OWN code
+          code: 'print("Hello")',
+        }),
+      });
+      const params = Promise.resolve({ id: 'session-1' });
+
+      const response = await POST(request, { params });
+
+      expect(response.status).toBe(200);
+      expect(mockExecuteCodeSafe).toHaveBeenCalled();
+    });
+  });
+
+  describe('Security: student code ownership', () => {
+    it('should return 403 when student tries to execute code for another student', async () => {
+      const studentUser = {
+        ...mockUser,
+        id: 'student-1',
+        role: 'student' as const,
+      };
+      mockGetAuthenticatedUser.mockResolvedValue(studentUser);
+
+      // Session where both students are participants
+      const sessionWithBothStudents = {
+        ...mockSession,
+        creatorId: 'instructor-1',
+        participants: ['student-1', 'student-2'],
+      };
+      mockStorage.sessions.getSession.mockResolvedValue(sessionWithBothStudents);
+
+      const request = new NextRequest('http://localhost:3000/api/sessions/session-1/execute', {
+        method: 'POST',
+        body: JSON.stringify({
+          studentId: 'student-2', // Trying to execute code for another student
+          code: 'print("Hello")',
+        }),
+      });
+      const params = Promise.resolve({ id: 'session-1' });
+
+      const response = await POST(request, { params });
+      const data = await response.json();
+
+      expect(response.status).toBe(403);
+      expect(data.error).toBe('Forbidden: You can only execute your own code');
+      expect(mockExecuteCodeSafe).not.toHaveBeenCalled();
+    });
+
+    it('should allow student to execute their own code', async () => {
+      const studentUser = {
+        ...mockUser,
+        id: 'student-1',
+        role: 'student' as const,
+      };
+      mockGetAuthenticatedUser.mockResolvedValue(studentUser);
+
+      const sessionWithStudent = {
+        ...mockSession,
+        creatorId: 'instructor-1',
+        participants: ['student-1'],
+      };
+      mockStorage.sessions.getSession.mockResolvedValue(sessionWithStudent);
+      (SessionService.getStudentData as jest.Mock).mockReturnValue({
+        code: 'print("Hello")',
+        executionSettings: undefined,
+      });
+
+      const mockResult = {
+        success: true,
+        output: 'Hello\n',
+        error: '',
+        executionTime: 100,
+      };
+      mockExecuteCodeSafe.mockResolvedValue(mockResult);
+
+      const request = new NextRequest('http://localhost:3000/api/sessions/session-1/execute', {
+        method: 'POST',
+        body: JSON.stringify({
+          studentId: 'student-1', // Executing their own code
+          code: 'print("Hello")',
+        }),
+      });
+      const params = Promise.resolve({ id: 'session-1' });
+
+      const response = await POST(request, { params });
+
+      expect(response.status).toBe(200);
+      expect(mockExecuteCodeSafe).toHaveBeenCalled();
+    });
+
+    it('should allow instructor to execute code for any student', async () => {
+      const instructorUser = {
+        ...mockUser,
+        id: 'instructor-1',
+        role: 'instructor' as const,
+      };
+      mockGetAuthenticatedUser.mockResolvedValue(instructorUser);
+
+      const sessionAsCreator = {
+        ...mockSession,
+        creatorId: 'instructor-1',
+        participants: ['student-1'],
+      };
+      mockStorage.sessions.getSession.mockResolvedValue(sessionAsCreator);
+      (SessionService.getStudentData as jest.Mock).mockReturnValue({
+        code: 'print("Hello")',
+        executionSettings: undefined,
+      });
+
+      const mockResult = {
+        success: true,
+        output: 'Hello\n',
+        error: '',
+        executionTime: 100,
+      };
+      mockExecuteCodeSafe.mockResolvedValue(mockResult);
+
+      const request = new NextRequest('http://localhost:3000/api/sessions/session-1/execute', {
+        method: 'POST',
+        body: JSON.stringify({
+          studentId: 'student-1', // Instructor executing student's code
           code: 'print("Hello")',
         }),
       });

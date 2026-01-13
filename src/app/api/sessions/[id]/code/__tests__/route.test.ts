@@ -281,4 +281,112 @@ describe('POST /api/sessions/[id]/code', () => {
     expect(response.status).toBe(500);
     expect(data.error).toBe('Failed to save code');
   });
+
+  describe('Security: student ownership validation', () => {
+    it('returns 403 when student tries to save code for another student', async () => {
+      const studentUser = {
+        ...mockUser,
+        id: 'student-1',
+        role: 'student' as const,
+      };
+      mockGetAuthenticatedUser.mockResolvedValue(studentUser);
+
+      const request = new NextRequest('http://localhost:3000/api/sessions/session-1/code', {
+        method: 'POST',
+        body: JSON.stringify({ studentId: 'other-student', code: 'print("code")' }),
+      });
+      const params = Promise.resolve({ id: 'session-1' });
+
+      const response = await POST(request, { params });
+      const data = await response.json();
+
+      expect(response.status).toBe(403);
+      expect(data.error).toBe('Forbidden: You can only save your own code');
+      expect(SessionService.updateStudentCode).not.toHaveBeenCalled();
+    });
+
+    it('allows student to save their own code', async () => {
+      const studentUser = {
+        ...mockUser,
+        id: 'student-1',
+        role: 'student' as const,
+      };
+      mockGetAuthenticatedUser.mockResolvedValue(studentUser);
+      mockStorage.sessions.getSession.mockResolvedValue({
+        ...createMockSession(),
+        students: new Map([['student-1', { id: 'student-1', name: 'Student', code: '', lastUpdate: new Date() }]]),
+      });
+
+      const request = new NextRequest('http://localhost:3000/api/sessions/session-1/code', {
+        method: 'POST',
+        body: JSON.stringify({ studentId: 'student-1', code: 'print("code")' }),
+      });
+      const params = Promise.resolve({ id: 'session-1' });
+
+      const response = await POST(request, { params });
+
+      expect(response.status).toBe(200);
+      expect(SessionService.updateStudentCode).toHaveBeenCalled();
+    });
+
+    it('allows instructor to save code for any student', async () => {
+      const instructorUser = {
+        ...mockUser,
+        id: 'instructor-1',
+        role: 'instructor' as const,
+      };
+      mockGetAuthenticatedUser.mockResolvedValue(instructorUser);
+
+      const request = new NextRequest('http://localhost:3000/api/sessions/session-1/code', {
+        method: 'POST',
+        body: JSON.stringify({ studentId: 'user-1', code: 'print("code")' }),
+      });
+      const params = Promise.resolve({ id: 'session-1' });
+
+      const response = await POST(request, { params });
+
+      expect(response.status).toBe(200);
+      expect(SessionService.updateStudentCode).toHaveBeenCalled();
+    });
+
+    it('allows namespace-admin to save code for any student', async () => {
+      const namespaceAdminUser = {
+        ...mockUser,
+        id: 'ns-admin-1',
+        role: 'namespace-admin' as const,
+      };
+      mockGetAuthenticatedUser.mockResolvedValue(namespaceAdminUser);
+
+      const request = new NextRequest('http://localhost:3000/api/sessions/session-1/code', {
+        method: 'POST',
+        body: JSON.stringify({ studentId: 'user-1', code: 'print("code")' }),
+      });
+      const params = Promise.resolve({ id: 'session-1' });
+
+      const response = await POST(request, { params });
+
+      expect(response.status).toBe(200);
+      expect(SessionService.updateStudentCode).toHaveBeenCalled();
+    });
+
+    it('allows system-admin to save code for any student', async () => {
+      const sysAdminUser = {
+        ...mockUser,
+        id: 'sys-admin-1',
+        role: 'system-admin' as const,
+      };
+      mockGetAuthenticatedUser.mockResolvedValue(sysAdminUser);
+
+      const request = new NextRequest('http://localhost:3000/api/sessions/session-1/code', {
+        method: 'POST',
+        body: JSON.stringify({ studentId: 'user-1', code: 'print("code")' }),
+      });
+      const params = Promise.resolve({ id: 'session-1' });
+
+      const response = await POST(request, { params });
+
+      expect(response.status).toBe(200);
+      expect(SessionService.updateStudentCode).toHaveBeenCalled();
+    });
+  });
 });
