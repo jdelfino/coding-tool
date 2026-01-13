@@ -17,7 +17,8 @@
 
 import { Sandbox } from '@vercel/sandbox';
 import { getSupabaseClient } from '../supabase/client';
-import { ExecutionResult, CodeSubmission } from '../types';
+import { ExecutionResult, CodeSubmission, ExecutionTrace } from '../types';
+import { TRACER_SCRIPT, TRACER_PATH } from './tracer-script';
 
 // Session sandbox timeout: 45 minutes (Hobby plan max)
 const SESSION_TIMEOUT_MS = 45 * 60 * 1000;
@@ -406,4 +407,110 @@ function sanitizeFilename(filename: string): string {
   }
 
   return sanitized;
+}
+
+/**
+ * Trace options for execution tracing
+ */
+export interface TraceOptions {
+  stdin?: string;
+  maxSteps?: number;
+}
+
+const DEFAULT_MAX_STEPS = 5000;
+
+/**
+ * Trace code execution on Vercel Sandbox
+ *
+ * Writes the tracer script to the sandbox, executes the code with tracing,
+ * and returns the execution trace.
+ *
+ * @param sessionId - Session ID (for sandbox lookup)
+ * @param code - Python code to trace
+ * @param options - Trace options (stdin, maxSteps)
+ * @returns Execution trace
+ */
+export async function traceOnVercelSandbox(
+  sessionId: string,
+  code: string,
+  options: TraceOptions = {}
+): Promise<ExecutionTrace> {
+  const { stdin = '', maxSteps = DEFAULT_MAX_STEPS } = options;
+
+  try {
+    const sandbox = await getSandbox(sessionId);
+
+    // Write tracer script and code to sandbox
+    const filesToWrite: Array<{ path: string; content: Buffer }> = [
+      { path: TRACER_PATH, content: Buffer.from(TRACER_SCRIPT) },
+    ];
+
+    await sandbox.writeFiles(filesToWrite);
+
+    // Execute tracer with timeout using AbortController
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), EXECUTION_TIMEOUT_MS);
+
+    try {
+      const result = await sandbox.runCommand({
+        cmd: 'python3',
+        args: [TRACER_PATH, code, stdin, maxSteps.toString()],
+        cwd: SANDBOX_CWD,
+        signal: controller.signal,
+      });
+
+      const stdout = await result.stdout();
+      const stderr = await result.stderr();
+
+      if (stderr) {
+        console.error('Tracer stderr:', stderr);
+      }
+
+      // Parse JSON output from tracer
+      try {
+        const trace: ExecutionTrace = JSON.parse(stdout);
+        return trace;
+      } catch {
+        return {
+          steps: [],
+          totalSteps: 0,
+          exitCode: 1,
+          error: stderr || 'Failed to parse trace output',
+          truncated: false,
+        };
+      }
+    } finally {
+      clearTimeout(timeoutId);
+    }
+  } catch (error) {
+    // Handle abort/timeout
+    if (error instanceof Error && error.name === 'AbortError') {
+      return {
+        steps: [],
+        totalSteps: 0,
+        exitCode: 1,
+        error: `Trace execution timed out after ${EXECUTION_TIMEOUT_MS}ms`,
+        truncated: false,
+      };
+    }
+
+    // Handle sandbox errors
+    if (error instanceof SandboxError) {
+      return {
+        steps: [],
+        totalSteps: 0,
+        exitCode: 1,
+        error: `Code tracing temporarily unavailable: ${error.message}`,
+        truncated: false,
+      };
+    }
+
+    return {
+      steps: [],
+      totalSteps: 0,
+      exitCode: 1,
+      error: `Failed to trace code: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      truncated: false,
+    };
+  }
 }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUser } from '@/server/auth/api-auth';
 import { getStorage } from '@/server/persistence';
 import * as SessionService from '@/server/services/session-service';
+import { cleanupSandbox } from '@/server/vercel-sandbox';
 
 /**
  * DELETE /api/sessions/:id
@@ -40,6 +41,10 @@ export async function DELETE(
 
     // End the session via service
     await SessionService.endSession(storage, sessionId);
+
+    // Clean up sandbox resources (Vercel Sandbox only, no-op locally)
+    // Do this after endSession to avoid race conditions with in-flight executions
+    await cleanupSandbox(sessionId);
 
     return NextResponse.json({
       success: true,

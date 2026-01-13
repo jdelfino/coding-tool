@@ -39,6 +39,7 @@ import {
   createSessionSandbox,
   getSandbox,
   executeOnVercelSandbox,
+  traceOnVercelSandbox,
   cleanupSandbox,
   hasSandbox,
   SandboxError,
@@ -310,6 +311,144 @@ describe('Vercel Sandbox Executor', () => {
       });
 
       expect(result.success).toBe(false);
+      expect(result.error).toContain('temporarily unavailable');
+    });
+  });
+
+  describe('traceOnVercelSandbox', () => {
+    beforeEach(() => {
+      // Reset sandbox mock
+      mockSandbox.writeFiles.mockResolvedValue(undefined);
+
+      // Mock getSandbox
+      mockSupabaseFrom.mockReturnValue({
+        select: jest.fn().mockReturnValue({
+          eq: jest.fn().mockReturnValue({
+            single: jest.fn().mockResolvedValue({
+              data: { sandbox_id: 'sb_test123' },
+              error: null,
+            }),
+          }),
+        }),
+      });
+    });
+
+    it('traces code successfully', async () => {
+      const traceOutput = JSON.stringify({
+        steps: [{ line: 1, event: 'line', locals: {}, globals: {}, callStack: [], stdout: '' }],
+        totalSteps: 1,
+        exitCode: 0,
+        truncated: false,
+      });
+
+      mockSandbox.runCommand.mockResolvedValueOnce({
+        exitCode: 0,
+        stdout: jest.fn().mockResolvedValue(traceOutput),
+        stderr: jest.fn().mockResolvedValue(''),
+      });
+
+      const result = await traceOnVercelSandbox('session-123', 'x = 1');
+
+      expect(result.exitCode).toBe(0);
+      expect(result.steps.length).toBe(1);
+      expect(mockSandbox.writeFiles).toHaveBeenCalledWith([
+        { path: '/tmp/tracer.py', content: expect.any(Buffer) },
+      ]);
+      expect(mockSandbox.runCommand).toHaveBeenCalledWith({
+        cmd: 'python3',
+        args: ['/tmp/tracer.py', 'x = 1', '', '5000'],
+        cwd: '/vercel/sandbox',
+        signal: expect.any(AbortSignal),
+      });
+    });
+
+    it('passes stdin and maxSteps options', async () => {
+      const traceOutput = JSON.stringify({
+        steps: [],
+        totalSteps: 0,
+        exitCode: 0,
+        truncated: false,
+      });
+
+      mockSandbox.runCommand.mockResolvedValueOnce({
+        exitCode: 0,
+        stdout: jest.fn().mockResolvedValue(traceOutput),
+        stderr: jest.fn().mockResolvedValue(''),
+      });
+
+      await traceOnVercelSandbox('session-123', 'x = input()', {
+        stdin: 'test input',
+        maxSteps: 100,
+      });
+
+      expect(mockSandbox.runCommand).toHaveBeenCalledWith({
+        cmd: 'python3',
+        args: ['/tmp/tracer.py', 'x = input()', 'test input', '100'],
+        cwd: '/vercel/sandbox',
+        signal: expect.any(AbortSignal),
+      });
+    });
+
+    it('returns error trace when code has errors', async () => {
+      const traceOutput = JSON.stringify({
+        steps: [],
+        totalSteps: 0,
+        exitCode: 1,
+        error: 'NameError: name x is not defined',
+        truncated: false,
+      });
+
+      mockSandbox.runCommand.mockResolvedValueOnce({
+        exitCode: 1,
+        stdout: jest.fn().mockResolvedValue(traceOutput),
+        stderr: jest.fn().mockResolvedValue(''),
+      });
+
+      const result = await traceOnVercelSandbox('session-123', 'print(x)');
+
+      expect(result.exitCode).toBe(1);
+      expect(result.error).toContain('NameError');
+    });
+
+    it('handles invalid JSON output', async () => {
+      mockSandbox.runCommand.mockResolvedValueOnce({
+        exitCode: 0,
+        stdout: jest.fn().mockResolvedValue('not json'),
+        stderr: jest.fn().mockResolvedValue('Some warning'),
+      });
+
+      const result = await traceOnVercelSandbox('session-123', 'x = 1');
+
+      expect(result.exitCode).toBe(1);
+      expect(result.error).toContain('warning');
+    });
+
+    it('handles AbortError from timeout', async () => {
+      const abortError = new Error('Aborted');
+      abortError.name = 'AbortError';
+      mockSandbox.runCommand.mockRejectedValueOnce(abortError);
+
+      const result = await traceOnVercelSandbox('session-123', 'import time; time.sleep(100)');
+
+      expect(result.exitCode).toBe(1);
+      expect(result.error).toContain('timed out');
+    });
+
+    it('handles sandbox unavailable error', async () => {
+      mockSupabaseFrom.mockReturnValueOnce({
+        select: jest.fn().mockReturnValue({
+          eq: jest.fn().mockReturnValue({
+            single: jest.fn().mockResolvedValue({
+              data: null,
+              error: { message: 'Not found' },
+            }),
+          }),
+        }),
+      });
+
+      const result = await traceOnVercelSandbox('session-123', 'x = 1');
+
+      expect(result.exitCode).toBe(1);
       expect(result.error).toContain('temporarily unavailable');
     });
   });

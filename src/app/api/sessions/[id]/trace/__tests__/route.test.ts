@@ -114,10 +114,14 @@ describe('POST /api/sessions/[id]/trace', () => {
 
     expect(response.status).toBe(200);
     expect(data).toEqual(mockTrace);
-    expect(mockTraceExecution).toHaveBeenCalledWith('print("Hello")', {
-      stdin: '',
-      maxSteps: undefined,
-    });
+    expect(mockTraceExecution).toHaveBeenCalledWith(
+      'print("Hello")',
+      {
+        stdin: '',
+        maxSteps: undefined,
+      },
+      'session-1'
+    );
   });
 
   it('should pass stdin and maxSteps to trace execution', async () => {
@@ -138,10 +142,14 @@ describe('POST /api/sessions/[id]/trace', () => {
     const response = await POST(request, { params });
 
     expect(response.status).toBe(200);
-    expect(mockTraceExecution).toHaveBeenCalledWith('print(input())', {
-      stdin: 'test input',
-      maxSteps: 100,
-    });
+    expect(mockTraceExecution).toHaveBeenCalledWith(
+      'print(input())',
+      {
+        stdin: 'test input',
+        maxSteps: 100,
+      },
+      'session-1'
+    );
   });
 
   it('should return 401 when not authenticated', async () => {

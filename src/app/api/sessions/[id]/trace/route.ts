@@ -72,7 +72,7 @@ export async function POST(
       maxSteps: maxSteps,
     };
 
-    const trace = await traceExecution(code, traceOptions);
+    const trace = await traceExecution(code, traceOptions, sessionId);
 
     return NextResponse.json(trace);
   } catch (error: unknown) {

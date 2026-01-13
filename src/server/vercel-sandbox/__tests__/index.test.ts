@@ -9,6 +9,7 @@ import {
   isVercelEnvironment,
   createSandboxForSession,
   executeInSandbox,
+  traceInSandbox,
   cleanupSandbox,
 } from '../index';
 
@@ -20,12 +21,19 @@ const mockExecuteOnVercelSandbox = jest.fn().mockResolvedValue({
   error: '',
   executionTime: 100,
 });
+const mockTraceOnVercelSandbox = jest.fn().mockResolvedValue({
+  steps: [{ line: 1, event: 'line', locals: {}, globals: {}, callStack: [], stdout: '' }],
+  totalSteps: 1,
+  exitCode: 0,
+  truncated: false,
+});
 const mockCleanupSandbox = jest.fn().mockResolvedValue(undefined);
 const mockHasSandbox = jest.fn().mockResolvedValue(true);
 
 jest.mock('../vercel-executor', () => ({
   createSessionSandbox: (...args: unknown[]) => mockCreateSessionSandbox(...args),
   executeOnVercelSandbox: (...args: unknown[]) => mockExecuteOnVercelSandbox(...args),
+  traceOnVercelSandbox: (...args: unknown[]) => mockTraceOnVercelSandbox(...args),
   cleanupSandbox: (...args: unknown[]) => mockCleanupSandbox(...args),
   hasSandbox: (...args: unknown[]) => mockHasSandbox(...args),
   SandboxError: class SandboxError extends Error {},
@@ -155,6 +163,66 @@ describe('Sandbox Abstraction Layer', () => {
       const result = await executeInSandbox('session-123', submission);
 
       expect(result!.success).toBe(false);
+      expect(result!.error).toContain('temporarily unavailable');
+    });
+  });
+
+  describe('traceInSandbox', () => {
+    const code = 'print("hello")';
+    const options = { stdin: '', maxSteps: 100 };
+
+    it('returns null for local development (not on Vercel)', async () => {
+      delete process.env.VERCEL;
+
+      const result = await traceInSandbox('session-123', code, options);
+
+      expect(result).toBeNull();
+      expect(mockTraceOnVercelSandbox).not.toHaveBeenCalled();
+    });
+
+    it('returns error when on Vercel but sandbox not enabled', async () => {
+      process.env.VERCEL = '1';
+      delete process.env.VERCEL_SANDBOX_ENABLED;
+
+      const result = await traceInSandbox('session-123', code, options);
+
+      expect(result).not.toBeNull();
+      expect(result!.exitCode).toBe(1);
+      expect(result!.error).toContain('not yet available');
+      expect(mockTraceOnVercelSandbox).not.toHaveBeenCalled();
+    });
+
+    it('traces on Vercel Sandbox when enabled', async () => {
+      process.env.VERCEL = '1';
+      process.env.VERCEL_SANDBOX_ENABLED = '1';
+
+      const result = await traceInSandbox('session-123', code, options);
+
+      expect(result!.exitCode).toBe(0);
+      expect(result!.steps.length).toBe(1);
+      expect(mockTraceOnVercelSandbox).toHaveBeenCalledWith('session-123', code, options);
+    });
+
+    it('creates sandbox if missing when enabled', async () => {
+      process.env.VERCEL = '1';
+      process.env.VERCEL_SANDBOX_ENABLED = '1';
+      mockHasSandbox.mockResolvedValueOnce(false);
+
+      await traceInSandbox('session-123', code, options);
+
+      expect(mockCreateSessionSandbox).toHaveBeenCalledWith('session-123');
+      expect(mockTraceOnVercelSandbox).toHaveBeenCalled();
+    });
+
+    it('returns error if sandbox creation fails', async () => {
+      process.env.VERCEL = '1';
+      process.env.VERCEL_SANDBOX_ENABLED = '1';
+      mockHasSandbox.mockResolvedValueOnce(false);
+      mockCreateSessionSandbox.mockRejectedValueOnce(new Error('Failed'));
+
+      const result = await traceInSandbox('session-123', code, options);
+
+      expect(result!.exitCode).toBe(1);
       expect(result!.error).toContain('temporarily unavailable');
     });
   });

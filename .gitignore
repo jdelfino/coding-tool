@@ -8,6 +8,7 @@ dist
 .env.test.local
 .env.production.local
 .env.test.remote
+.env.prod
 .DS_Store
 coverage
 tsconfig.tsbuildinfo
