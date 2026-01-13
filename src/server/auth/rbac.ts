@@ -42,11 +42,10 @@ export class RBACService implements IRBACService {
     }
 
     // Students can only access sessions they're in
-    // For now, we'll return true for students since we don't have session persistence yet
-    // TODO: Once session persistence is implemented, check if user is in the session
+    // SECURITY: Fail closed - deny access when session repository is not configured
     if (!this.sessionRepository) {
-      console.warn('[RBAC] Session repository not configured, allowing student access');
-      return true;
+      console.warn('[RBAC] Session repository not configured, denying student access');
+      return false;
     }
 
     try {

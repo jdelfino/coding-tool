@@ -304,17 +304,17 @@ describe('RBACService', () => {
     });
 
     describe('Session Repository Integration', () => {
-      it('should allow student access when repository is not configured', async () => {
+      it('should deny student access when repository is not configured (fail closed)', async () => {
         const rbacWithoutRepo = new RBACService();
         const student = createUser('student', 'student-1');
 
-        // Should log warning and return true
+        // Should log warning and return false (secure by default)
         const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation();
         const canAccess = await rbacWithoutRepo.canAccessSession(student, 'any-session');
 
-        expect(canAccess).toBe(true);
+        expect(canAccess).toBe(false);
         expect(consoleWarnSpy).toHaveBeenCalledWith(
-          '[RBAC] Session repository not configured, allowing student access'
+          '[RBAC] Session repository not configured, denying student access'
         );
 
         consoleWarnSpy.mockRestore();
