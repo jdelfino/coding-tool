@@ -7,7 +7,8 @@
  * - In CI on merges to main with secrets configured
  *
  * Prerequisites:
- * - VERCEL_TOKEN or VERCEL_OIDC_TOKEN environment variable set
+ * - VERCEL_TOKEN, VERCEL_TEAM_ID, and VERCEL_PROJECT_ID environment variables
+ * - Or: VERCEL_OIDC_TOKEN (when running on Vercel)
  * - For local testing: `npx vercel link && npx vercel env pull`
  *
  * Run with: npm run test:integration:sandbox
@@ -16,9 +17,20 @@
 import { Sandbox } from '@vercel/sandbox';
 
 // Check for credentials - skip entire suite if missing
-const hasCredentials = Boolean(
-  process.env.VERCEL_OIDC_TOKEN || process.env.VERCEL_TOKEN
+const hasOidcToken = Boolean(process.env.VERCEL_OIDC_TOKEN);
+const hasApiToken = Boolean(
+  process.env.VERCEL_TOKEN &&
+  process.env.VERCEL_TEAM_ID &&
+  process.env.VERCEL_PROJECT_ID
 );
+const hasCredentials = hasOidcToken || hasApiToken;
+
+// Build credentials object for API token auth (used in CI)
+const credentials = hasApiToken ? {
+  token: process.env.VERCEL_TOKEN!,
+  teamId: process.env.VERCEL_TEAM_ID!,
+  projectId: process.env.VERCEL_PROJECT_ID!,
+} : undefined;
 
 // Use conditional describe to skip when no credentials
 const describeWithCredentials = hasCredentials ? describe : describe.skip;
@@ -46,6 +58,7 @@ describeWithCredentials('Vercel Sandbox Integration', () => {
     sandbox = await Sandbox.create({
       runtime: 'python3.13',
       timeout: 60_000, // 1 minute timeout for test
+      ...credentials,
     });
 
     expect(sandbox).toBeDefined();
@@ -122,6 +135,7 @@ print(f"Sum: {x + y}")
       sandbox = await Sandbox.create({
         runtime: 'python3.13',
         timeout: 60_000,
+        ...credentials,
       });
     }
 
@@ -150,6 +164,7 @@ print(f"Sum: {x + y}")
 // Log skip reason if credentials are missing
 if (!hasCredentials) {
   console.log(
-    'Skipping Vercel Sandbox integration tests: VERCEL_TOKEN or VERCEL_OIDC_TOKEN not set'
+    'Skipping Vercel Sandbox integration tests: credentials not set. ' +
+    'Need either VERCEL_OIDC_TOKEN or (VERCEL_TOKEN + VERCEL_TEAM_ID + VERCEL_PROJECT_ID)'
   );
 }
