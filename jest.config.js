@@ -14,6 +14,11 @@ module.exports = {
     '^@/(.*)$': '<rootDir>/src/$1',
     '^uuid$': '<rootDir>/src/server/__tests__/test-utils/uuid-mock.ts',
   },
+  // Exclude integration tests from default runs
+  testPathIgnorePatterns: [
+    '/node_modules/',
+    '\\.integration\\.test\\.(ts|tsx)$',
+  ],
   // Use jsdom for React component tests
   projects: [
     {
@@ -23,6 +28,10 @@ module.exports = {
       testMatch: [
         '<rootDir>/src/server/**/__tests__/**/*.test.ts',
         '<rootDir>/src/app/api/**/__tests__/**/*.test.ts',
+      ],
+      testPathIgnorePatterns: [
+        '/node_modules/',
+        '\\.integration\\.test\\.(ts|tsx)$',
       ],
       roots: ['<rootDir>/src'],
       setupFilesAfterEnv: ['<rootDir>/src/setupTests.ts'],
@@ -48,6 +57,10 @@ module.exports = {
         '<rootDir>/src/app/**/__tests__/**/*.test.tsx',
         '<rootDir>/src/hooks/**/__tests__/**/*.test.ts',
         '<rootDir>/src/components/**/__tests__/**/*.test.tsx',
+      ],
+      testPathIgnorePatterns: [
+        '/node_modules/',
+        '\\.integration\\.test\\.(ts|tsx)$',
       ],
       roots: ['<rootDir>/src'],
       setupFilesAfterEnv: ['<rootDir>/src/setupTests.ts'],
