@@ -310,25 +310,28 @@ export type Database = {
           },
         ]
       }
-      session_sandboxes: {
+      session_backend_state: {
         Row: {
           created_at: string
-          sandbox_id: string
+          backend_type: string
+          state_id: string
           session_id: string
         }
         Insert: {
           created_at?: string
-          sandbox_id: string
+          backend_type?: string
+          state_id: string
           session_id: string
         }
         Update: {
           created_at?: string
-          sandbox_id?: string
+          backend_type?: string
+          state_id?: string
           session_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "session_sandboxes_session_id_fkey"
+            foreignKeyName: "session_backend_state_session_id_fkey"
             columns: ["session_id"]
             isOneToOne: true
             referencedRelation: "sessions"
