@@ -55,6 +55,92 @@ for resolving larger issues in follow-on work.
 
 **If you cannot check ALL boxes above, DO NOT COMMIT. Period.**
 
+# 🚨🚨🚨 CRITICAL: EPIC WORKFLOW (BRANCHES + PRs) 🚨🚨🚨
+
+**⛔️ EPICS MUST USE BRANCHES, WORKTREES, AND PRs ⛔️**
+
+## When This Applies
+
+- **Epics** (`-t epic`) - ALWAYS use branch workflow
+- **Tasks/bugs/features** - Use normal workflow (commit to main) unless prompt specifies otherwise
+
+## The Epic Workflow
+
+Epics are multi-commit bodies of work that MUST follow this workflow:
+
+### 1. Create Branch and Worktree
+
+```bash
+# Create feature branch
+git branch feature/<epic-name>
+
+# Create worktree for isolated development
+git worktree add ../project-<epic-name> feature/<epic-name>
+cd ../project-<epic-name>
+```
+
+### 2. Develop in the Worktree
+
+- Make commits to the feature branch
+- Follow all normal testing/compilation requirements
+- Push regularly to remote
+
+### 3. Open PR When Work Seems Complete
+
+```bash
+git push -u origin feature/<epic-name>
+gh pr create --title "feat: <Epic title>" --body "<description>"
+```
+
+### 4. Wait for CI to Pass
+
+- ALL CI checks must pass (unit tests, E2E, sandbox tests)
+- If CI fails, fix and push again
+- Do NOT proceed until all checks are green
+
+### 5. Prompt User Before Merging
+
+**MANDATORY**: After CI passes, ASK the user before merging:
+
+> "All CI checks pass. Ready to merge PR #X with squash? (This will merge N commits into main)"
+
+Do NOT merge without explicit user approval.
+
+### 6. Merge and Cleanup
+
+After user approval:
+```bash
+gh pr merge <number> --squash
+git worktree remove ../project-<epic-name>
+git branch -d feature/<epic-name>
+```
+
+### 7. Epic is Complete
+
+Only after the PR is merged to main is the epic considered complete.
+
+## Epic Completion Checklist
+
+⚠️ MANDATORY: An epic is NOT complete until ALL of these are true:
+
+- [ ] 🚨 **BRANCH CREATED** - Work is on a feature branch, not main
+- [ ] 🚨 **PR OPENED** - Changes are in a pull request
+- [ ] 🚨 **CI PASSING** - All automated checks are green
+- [ ] 🚨 **USER APPROVED** - User explicitly approved the merge
+- [ ] 🚨 **PR MERGED** - Changes are merged to main
+- [ ] ✅ Worktree cleaned up
+- [ ] ✅ Feature branch deleted
+
+**If you cannot check ALL boxes above, the epic is NOT complete. Period.**
+
+## Common Violations
+
+❌ "I committed to main" ← Epics MUST use branches
+❌ "PR is open, I'm done" ← Must wait for CI and user approval
+❌ "CI passed, merging now" ← Must ask user first
+❌ "User said merge" but CI failing ← Fix CI first
+❌ Leaving orphaned worktrees/branches ← Clean up after merge
+
 ## Issue Tracking with bd (beads)
 
 **IMPORTANT**: This project uses **bd (beads)** for ALL issue tracking. Do NOT use markdown TODOs, task lists, or other tracking methods.
