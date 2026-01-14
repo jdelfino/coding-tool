@@ -7,3 +7,21 @@
 
 export * from './types';
 export * from './interfaces';
+
+// Services
+export { InvitationService } from './invitation-service';
+export { CapacityService } from './capacity-service';
+export {
+  StudentRegistrationService,
+  StudentRegistrationError,
+  type ValidateSectionCodeResult,
+  type RegisterStudentResult,
+} from './student-registration-service';
+
+// Instance factories
+export {
+  getInvitationRepository,
+  getCapacityService,
+  getInvitationService,
+  getStudentRegistrationService,
+} from './instance';
