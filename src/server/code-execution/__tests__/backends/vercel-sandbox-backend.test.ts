@@ -397,7 +397,7 @@ describe('VercelSandboxBackend', () => {
 
       await backend.trace('input()', {
         sessionId: 'session-123',
-        stdin: 'test input',
+        executionSettings: { stdin: 'test input' },
         maxSteps: 100,
       });
 

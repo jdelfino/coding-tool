@@ -18,6 +18,7 @@ import {
   CodeSubmission,
   ExecutionResult,
   ExecutionTrace,
+  TraceOptions,
 } from './interfaces';
 import { getBackendRegistry } from './registry';
 import { SupabaseBackendStateRepository } from './supabase-state-repository';
@@ -63,16 +64,14 @@ export class ExecutorService {
    * Trace code execution step-by-step
    *
    * @param code - Python code to trace
-   * @param options - Trace options (stdin, maxSteps)
-   * @param sessionId - Optional session ID for backend assignment lookup
+   * @param options - Trace options (executionSettings, maxSteps, sessionId)
    * @returns Execution trace or error
    */
   async traceExecution(
     code: string,
-    options: { stdin?: string; maxSteps?: number } = {},
-    sessionId?: string
+    options?: TraceOptions
   ): Promise<ExecutionTrace> {
-    const backend = await this.getBackendForSession(sessionId);
+    const backend = await this.getBackendForSession(options?.sessionId);
     if (!backend?.capabilities.trace || !backend.trace) {
       return {
         steps: [],
@@ -83,7 +82,7 @@ export class ExecutorService {
       };
     }
 
-    return backend.trace(code, { ...options, sessionId });
+    return backend.trace(code, options);
   }
 
   /**

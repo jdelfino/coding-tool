@@ -121,7 +121,7 @@ describe('POST /api/sessions/[id]/trace', () => {
     expect(mockTraceExecution).toHaveBeenCalledWith(
       'print("Hello")',
       {
-        stdin: '',
+        executionSettings: { stdin: '' },
         maxSteps: undefined,
         sessionId: 'session-1',
       }
@@ -149,7 +149,7 @@ describe('POST /api/sessions/[id]/trace', () => {
     expect(mockTraceExecution).toHaveBeenCalledWith(
       'print(input())',
       {
-        stdin: 'test input',
+        executionSettings: { stdin: 'test input' },
         maxSteps: 100,
         sessionId: 'session-1',
       }

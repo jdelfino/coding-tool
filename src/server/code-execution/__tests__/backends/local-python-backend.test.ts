@@ -222,7 +222,7 @@ describe('LocalPythonBackend', () => {
 
     it('should handle stdin in tracing', async () => {
       const result = await backend.trace('name = input()\nprint(f"Hi {name}")', {
-        stdin: 'Alice',
+        executionSettings: { stdin: 'Alice' },
       });
 
       expect(result.exitCode).toBe(0);

@@ -80,17 +80,17 @@ describe('code-execution interfaces', () => {
   describe('TraceOptions', () => {
     it('can be empty', () => {
       const options: TraceOptions = {};
-      expect(options.stdin).toBeUndefined();
+      expect(options.executionSettings).toBeUndefined();
     });
 
     it('can include all fields', () => {
       const options: TraceOptions = {
-        stdin: 'test input',
+        executionSettings: { stdin: 'test input' },
         maxSteps: 1000,
         sessionId: 'session-456',
       };
 
-      expect(options.stdin).toBe('test input');
+      expect(options.executionSettings?.stdin).toBe('test input');
       expect(options.maxSteps).toBe(1000);
     });
   });

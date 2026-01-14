@@ -371,7 +371,8 @@ export class VercelSandboxBackend implements ISessionScopedBackend {
   async trace(code: string, options?: TraceOptions): Promise<ExecutionTrace> {
     const startTime = Date.now();
     const sessionId = options?.sessionId;
-    const { stdin = '', maxSteps = DEFAULT_MAX_STEPS } = options ?? {};
+    const stdin = options?.executionSettings?.stdin ?? '';
+    const maxSteps = options?.maxSteps ?? DEFAULT_MAX_STEPS;
 
     if (!sessionId) {
       return {

@@ -68,7 +68,7 @@ export async function POST(
 
     // Execute code with tracing
     const traceOptions: TraceOptions = {
-      stdin: stdin || '',
+      executionSettings: { stdin: stdin || '' },
       maxSteps: maxSteps,
       sessionId,
     };

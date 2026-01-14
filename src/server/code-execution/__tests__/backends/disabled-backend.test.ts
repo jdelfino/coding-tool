@@ -76,7 +76,7 @@ describe('DisabledBackend', () => {
     });
 
     it('should return error trace regardless of options', async () => {
-      const result = await backend.trace('x = 1', { stdin: 'test', maxSteps: 100 });
+      const result = await backend.trace('x = 1', { executionSettings: { stdin: 'test' }, maxSteps: 100 });
 
       expect(result.error).toBe('Code tracing is not available in this environment.');
       expect(result.steps).toEqual([]);

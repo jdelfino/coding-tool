@@ -11,7 +11,7 @@
  * - State repository abstracts backend-specific persistence
  */
 
-import { CodeSubmission, ExecutionResult, ExecutionTrace } from '../types';
+import { CodeSubmission, ExecutionResult, ExecutionTrace, ExecutionSettings } from '../types';
 
 /**
  * Capabilities that backends may support
@@ -61,8 +61,8 @@ export interface ExecuteOptions {
  * Options for code tracing
  */
 export interface TraceOptions {
-  /** Standard input for the traced program */
-  stdin?: string;
+  /** Execution settings (stdin, files, randomSeed) */
+  executionSettings?: ExecutionSettings;
   /** Maximum number of trace steps */
   maxSteps?: number;
   /** Session ID for session-scoped backends */
@@ -208,4 +208,4 @@ export interface IBackendStateRepository {
 }
 
 // Re-export types from ../types for convenience
-export type { CodeSubmission, ExecutionResult, ExecutionTrace };
+export type { CodeSubmission, ExecutionResult, ExecutionTrace, ExecutionSettings };

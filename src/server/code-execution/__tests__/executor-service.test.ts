@@ -288,14 +288,16 @@ describe('ExecutorService', () => {
       });
       registry.register(createMockRegistration(mockBackend));
 
-      const result = await service.traceExecution('x = 1', { stdin: 'input', maxSteps: 100 });
+      const result = await service.traceExecution('x = 1', {
+        executionSettings: { stdin: 'input' },
+        maxSteps: 100,
+      });
 
       expect(result.exitCode).toBe(0);
       expect(result.totalSteps).toBe(1);
       expect(mockBackend.trace).toHaveBeenCalledWith('x = 1', {
-        stdin: 'input',
+        executionSettings: { stdin: 'input' },
         maxSteps: 100,
-        sessionId: undefined,
       });
     });
 
@@ -306,7 +308,7 @@ describe('ExecutorService', () => {
       registry.register(createMockRegistration(mockBackend));
       mockStateRepository.getAssignedBackend.mockResolvedValue('trace-backend');
 
-      await service.traceExecution('x = 1', {}, 'session-123');
+      await service.traceExecution('x = 1', { sessionId: 'session-123' });
 
       expect(mockBackend.trace).toHaveBeenCalledWith('x = 1', {
         sessionId: 'session-123',

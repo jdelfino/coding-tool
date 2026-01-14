@@ -215,7 +215,8 @@ export class LocalPythonBackend implements ICodeExecutionBackend {
   }
 
   async trace(code: string, options?: TraceOptions): Promise<ExecutionTrace> {
-    const { stdin = '', maxSteps = DEFAULT_MAX_STEPS } = options ?? {};
+    const stdin = options?.executionSettings?.stdin ?? '';
+    const maxSteps = options?.maxSteps ?? DEFAULT_MAX_STEPS;
 
     // Write tracer script to temp location
     const tracerDir = path.dirname(TRACER_PATH);
