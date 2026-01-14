@@ -1,6 +1,9 @@
 import { WebSocket } from 'ws';
 import { Problem, ExecutionSettings } from './types/problem';
 
+// Re-export ExecutionSettings for convenience
+export type { ExecutionSettings } from './types/problem';
+
 /**
  * Structured type that holds code and execution parameters
  */

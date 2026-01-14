@@ -1,5 +1,5 @@
 /**
- * Integration tests for Vercel Sandbox Executor
+ * Integration tests for Vercel Sandbox Backend
  *
  * These tests run against the actual Vercel Sandbox API and require credentials.
  * They are excluded from the default test run and only executed:

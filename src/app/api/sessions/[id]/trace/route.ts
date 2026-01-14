@@ -6,7 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUser } from '@/server/auth/api-auth';
 import { getStorage } from '@/server/persistence';
-import { traceExecution, TraceOptions } from '@/server/code-tracer';
+import { getExecutorService, TraceOptions } from '@/server/code-execution';
 
 interface TraceCodeBody {
   code: string;
@@ -68,11 +68,12 @@ export async function POST(
 
     // Execute code with tracing
     const traceOptions: TraceOptions = {
-      stdin: stdin || '',
+      executionSettings: { stdin: stdin || '' },
       maxSteps: maxSteps,
+      sessionId,
     };
 
-    const trace = await traceExecution(code, traceOptions, sessionId);
+    const trace = await getExecutorService().traceExecution(code, traceOptions);
 
     return NextResponse.json(trace);
   } catch (error: unknown) {

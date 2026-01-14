@@ -1,0 +1,35 @@
+name: Sandbox Integration Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  sandbox:
+    name: Vercel Sandbox Tests
+    runs-on: ubuntu-latest
+    # Secrets are only available for same-repo PRs, not forks
+    if: github.event.pull_request.head.repo.full_name == github.repository || github.event_name == 'push'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Sandbox Integration Tests
+        run: npm run test:integration:sandbox
+        env:
+          VERCEL: '1'
+          VERCEL_SANDBOX_ENABLED: 'true'
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_TEAM_ID: ${{ secrets.VERCEL_TEAM_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}

@@ -5,7 +5,7 @@
 import { NextRequest } from 'next/server';
 import { POST } from '../route';
 import { getAuthenticatedUser } from '@/server/auth/api-auth';
-import { executeCodeSafe } from '@/server/code-executor';
+import { getExecutorService } from '@/server/code-execution';
 import { Session } from '@/server/types';
 import { Problem, ExecutionSettings } from '@/server/types/problem';
 
@@ -17,14 +17,16 @@ jest.mock('@/server/persistence', () => ({
 jest.mock('@/server/services/session-service', () => ({
   getStudentData: jest.fn(),
 }));
-jest.mock('@/server/code-executor');
+jest.mock('@/server/code-execution');
 
 import { getStorage } from '@/server/persistence';
 import * as SessionService from '@/server/services/session-service';
 
 const mockGetAuthenticatedUser = getAuthenticatedUser as jest.MockedFunction<typeof getAuthenticatedUser>;
 const mockGetStorage = getStorage as jest.MockedFunction<typeof getStorage>;
-const mockExecuteCodeSafe = executeCodeSafe as jest.MockedFunction<typeof executeCodeSafe>;
+const mockExecuteCode = jest.fn();
+const mockGetExecutorService = getExecutorService as jest.MockedFunction<typeof getExecutorService>;
+mockGetExecutorService.mockReturnValue({ executeCode: mockExecuteCode } as any);
 
 describe('POST /api/sessions/[id]/execute', () => {
   const mockUser = {
@@ -72,6 +74,8 @@ describe('POST /api/sessions/[id]/execute', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    // Re-setup mocks after clear
+    mockGetExecutorService.mockReturnValue({ executeCode: mockExecuteCode } as any);
     mockStorage = {
       sessions: {
         getSession: jest.fn(),
@@ -95,7 +99,7 @@ describe('POST /api/sessions/[id]/execute', () => {
       executionTime: 100,
     };
 
-    mockExecuteCodeSafe.mockResolvedValue(mockResult);
+    mockExecuteCode.mockResolvedValue(mockResult);
 
     const request = new NextRequest('http://localhost:3000/api/sessions/session-1/execute', {
       method: 'POST',
@@ -111,7 +115,7 @@ describe('POST /api/sessions/[id]/execute', () => {
 
     expect(response.status).toBe(200);
     expect(data).toEqual(mockResult);
-    expect(mockExecuteCodeSafe).toHaveBeenCalledWith(
+    expect(mockExecuteCode).toHaveBeenCalledWith(
       {
         code: 'print("Hello")',
         executionSettings: {
@@ -145,7 +149,7 @@ describe('POST /api/sessions/[id]/execute', () => {
       executionTime: 100,
     };
 
-    mockExecuteCodeSafe.mockResolvedValue(mockResult);
+    mockExecuteCode.mockResolvedValue(mockResult);
 
     const request = new NextRequest('http://localhost:3000/api/sessions/session-1/execute', {
       method: 'POST',
@@ -159,7 +163,7 @@ describe('POST /api/sessions/[id]/execute', () => {
     const response = await POST(request, { params });
 
     expect(response.status).toBe(200);
-    expect(mockExecuteCodeSafe).toHaveBeenCalledWith(
+    expect(mockExecuteCode).toHaveBeenCalledWith(
       {
         code: 'print("Hello")',
         executionSettings: studentSettings,
@@ -195,7 +199,7 @@ describe('POST /api/sessions/[id]/execute', () => {
       executionTime: 100,
     };
 
-    mockExecuteCodeSafe.mockResolvedValue(mockResult);
+    mockExecuteCode.mockResolvedValue(mockResult);
 
     const request = new NextRequest('http://localhost:3000/api/sessions/session-1/execute', {
       method: 'POST',
@@ -210,7 +214,7 @@ describe('POST /api/sessions/[id]/execute', () => {
     const response = await POST(request, { params });
 
     expect(response.status).toBe(200);
-    expect(mockExecuteCodeSafe).toHaveBeenCalledWith(
+    expect(mockExecuteCode).toHaveBeenCalledWith(
       {
         code: 'print("Hello")',
         executionSettings: payloadSettings,
@@ -316,7 +320,7 @@ describe('POST /api/sessions/[id]/execute', () => {
 
     expect(response.status).toBe(400);
     expect(data.error).toBe('Session is closed. Code execution is no longer available.');
-    expect(mockExecuteCodeSafe).not.toHaveBeenCalled();
+    expect(mockExecuteCode).not.toHaveBeenCalled();
   });
 
   it('should return 500 on execution error', async () => {
@@ -327,7 +331,7 @@ describe('POST /api/sessions/[id]/execute', () => {
       executionSettings: undefined,
     });
 
-    mockExecuteCodeSafe.mockRejectedValue(new Error('Execution failed'));
+    mockExecuteCode.mockRejectedValue(new Error('Execution failed'));
 
     const request = new NextRequest('http://localhost:3000/api/sessions/session-1/execute', {
       method: 'POST',
@@ -375,7 +379,7 @@ describe('POST /api/sessions/[id]/execute', () => {
 
       expect(response.status).toBe(403);
       expect(data.error).toBe('Access denied. You are not a participant in this session.');
-      expect(mockExecuteCodeSafe).not.toHaveBeenCalled();
+      expect(mockExecuteCode).not.toHaveBeenCalled();
     });
 
     it('should allow execution when user is the session creator (instructor)', async () => {
@@ -405,7 +409,7 @@ describe('POST /api/sessions/[id]/execute', () => {
         error: '',
         executionTime: 100,
       };
-      mockExecuteCodeSafe.mockResolvedValue(mockResult);
+      mockExecuteCode.mockResolvedValue(mockResult);
 
       const request = new NextRequest('http://localhost:3000/api/sessions/session-1/execute', {
         method: 'POST',
@@ -419,7 +423,7 @@ describe('POST /api/sessions/[id]/execute', () => {
       const response = await POST(request, { params });
 
       expect(response.status).toBe(200);
-      expect(mockExecuteCodeSafe).toHaveBeenCalled();
+      expect(mockExecuteCode).toHaveBeenCalled();
     });
 
     it('should allow student participant to execute their own code', async () => {
@@ -449,7 +453,7 @@ describe('POST /api/sessions/[id]/execute', () => {
         error: '',
         executionTime: 100,
       };
-      mockExecuteCodeSafe.mockResolvedValue(mockResult);
+      mockExecuteCode.mockResolvedValue(mockResult);
 
       const request = new NextRequest('http://localhost:3000/api/sessions/session-1/execute', {
         method: 'POST',
@@ -463,7 +467,7 @@ describe('POST /api/sessions/[id]/execute', () => {
       const response = await POST(request, { params });
 
       expect(response.status).toBe(200);
-      expect(mockExecuteCodeSafe).toHaveBeenCalled();
+      expect(mockExecuteCode).toHaveBeenCalled();
     });
   });
 
@@ -498,7 +502,7 @@ describe('POST /api/sessions/[id]/execute', () => {
 
       expect(response.status).toBe(403);
       expect(data.error).toBe('Forbidden: You can only execute your own code');
-      expect(mockExecuteCodeSafe).not.toHaveBeenCalled();
+      expect(mockExecuteCode).not.toHaveBeenCalled();
     });
 
     it('should allow student to execute their own code', async () => {
@@ -526,7 +530,7 @@ describe('POST /api/sessions/[id]/execute', () => {
         error: '',
         executionTime: 100,
       };
-      mockExecuteCodeSafe.mockResolvedValue(mockResult);
+      mockExecuteCode.mockResolvedValue(mockResult);
 
       const request = new NextRequest('http://localhost:3000/api/sessions/session-1/execute', {
         method: 'POST',
@@ -540,7 +544,7 @@ describe('POST /api/sessions/[id]/execute', () => {
       const response = await POST(request, { params });
 
       expect(response.status).toBe(200);
-      expect(mockExecuteCodeSafe).toHaveBeenCalled();
+      expect(mockExecuteCode).toHaveBeenCalled();
     });
 
     it('should allow instructor to execute code for any student', async () => {
@@ -568,7 +572,7 @@ describe('POST /api/sessions/[id]/execute', () => {
         error: '',
         executionTime: 100,
       };
-      mockExecuteCodeSafe.mockResolvedValue(mockResult);
+      mockExecuteCode.mockResolvedValue(mockResult);
 
       const request = new NextRequest('http://localhost:3000/api/sessions/session-1/execute', {
         method: 'POST',
@@ -582,7 +586,7 @@ describe('POST /api/sessions/[id]/execute', () => {
       const response = await POST(request, { params });
 
       expect(response.status).toBe(200);
-      expect(mockExecuteCodeSafe).toHaveBeenCalled();
+      expect(mockExecuteCode).toHaveBeenCalled();
     });
   });
 });
