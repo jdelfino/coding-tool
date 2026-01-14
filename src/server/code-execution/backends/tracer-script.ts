@@ -192,5 +192,5 @@ if __name__ == '__main__':
     main()
 `;
 
-/** Path where tracer script is written for execution */
+/** Path where tracer script is written in Vercel Sandbox */
 export const TRACER_PATH = '/tmp/tracer.py';

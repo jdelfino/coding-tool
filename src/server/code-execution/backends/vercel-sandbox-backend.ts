@@ -31,7 +31,7 @@ import {
 } from '../interfaces';
 import { sanitizeFilename } from '../utils';
 import { logSandboxEvent } from '../logger';
-import { TRACER_SCRIPT, TRACER_PATH } from '../../vercel-sandbox/tracer-script';
+import { TRACER_SCRIPT, TRACER_PATH } from './tracer-script';
 
 // Session sandbox timeout: 45 minutes (Hobby plan max)
 const SESSION_TIMEOUT_MS = 45 * 60 * 1000;

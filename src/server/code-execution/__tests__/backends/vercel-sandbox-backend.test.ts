@@ -24,7 +24,7 @@ jest.mock('../../logger', () => ({
 }));
 
 // Mock tracer script
-jest.mock('../../../vercel-sandbox/tracer-script', () => ({
+jest.mock('../../backends/tracer-script', () => ({
   TRACER_SCRIPT: '# mock tracer script',
   TRACER_PATH: '/tmp/tracer.py',
 }));
