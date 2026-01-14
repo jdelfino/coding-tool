@@ -6,7 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUser } from '@/server/auth/api-auth';
 import { getStorage } from '@/server/persistence';
-import { executeCodeSafe } from '@/server/code-executor';
+import { getExecutorService } from '@/server/code-execution';
 import { ExecutionSettings } from '@/server/types/problem';
 import * as SessionService from '@/server/services/session-service';
 
@@ -93,8 +93,8 @@ export async function POST(
       session.problem?.executionSettings ||
       {};
 
-    // Execute code with sessionId for Vercel Sandbox integration
-    const result = await executeCodeSafe(
+    // Execute code with sessionId for backend lookup
+    const result = await getExecutorService().executeCode(
       {
         code,
         executionSettings: effectiveSettings,

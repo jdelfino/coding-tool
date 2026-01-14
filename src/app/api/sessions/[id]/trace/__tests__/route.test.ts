@@ -5,7 +5,7 @@
 import { NextRequest } from 'next/server';
 import { POST } from '../route';
 import { getAuthenticatedUser } from '@/server/auth/api-auth';
-import { traceExecution } from '@/server/code-tracer';
+import { getExecutorService } from '@/server/code-execution';
 import { Session, ExecutionTrace } from '@/server/types';
 import { Problem } from '@/server/types/problem';
 
@@ -14,13 +14,15 @@ jest.mock('@/server/auth/api-auth');
 jest.mock('@/server/persistence', () => ({
   getStorage: jest.fn(),
 }));
-jest.mock('@/server/code-tracer');
+jest.mock('@/server/code-execution');
 
 import { getStorage } from '@/server/persistence';
 
 const mockGetAuthenticatedUser = getAuthenticatedUser as jest.MockedFunction<typeof getAuthenticatedUser>;
 const mockGetStorage = getStorage as jest.MockedFunction<typeof getStorage>;
-const mockTraceExecution = traceExecution as jest.MockedFunction<typeof traceExecution>;
+const mockTraceExecution = jest.fn();
+const mockGetExecutorService = getExecutorService as jest.MockedFunction<typeof getExecutorService>;
+mockGetExecutorService.mockReturnValue({ traceExecution: mockTraceExecution } as any);
 
 describe('POST /api/sessions/[id]/trace', () => {
   const mockUser = {
@@ -88,6 +90,8 @@ describe('POST /api/sessions/[id]/trace', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    // Re-setup mocks after clear
+    mockGetExecutorService.mockReturnValue({ traceExecution: mockTraceExecution } as any);
     mockStorage = {
       sessions: {
         getSession: jest.fn(),
@@ -119,8 +123,8 @@ describe('POST /api/sessions/[id]/trace', () => {
       {
         stdin: '',
         maxSteps: undefined,
-      },
-      'session-1'
+        sessionId: 'session-1',
+      }
     );
   });
 
@@ -147,8 +151,8 @@ describe('POST /api/sessions/[id]/trace', () => {
       {
         stdin: 'test input',
         maxSteps: 100,
-      },
-      'session-1'
+        sessionId: 'session-1',
+      }
     );
   });
 

@@ -4,18 +4,16 @@ import { getStorage } from '@/server/persistence';
 import * as SessionService from '@/server/services/session-service';
 import type { User } from '@/server/auth/types';
 import { RBACService } from '@/server/auth/rbac';
+import { getExecutorService } from '@/server/code-execution';
 
 jest.mock('@/server/persistence');
 jest.mock('@/server/services/session-service');
 
-// Mock vercel-sandbox module
-const mockCreateSandboxForSession = jest.fn().mockResolvedValue('sb_test123');
-const mockShouldUseVercelSandbox = jest.fn().mockReturnValue(false);
-
-jest.mock('@/server/vercel-sandbox', () => ({
-  createSandboxForSession: (...args: unknown[]) => mockCreateSandboxForSession(...args),
-  shouldUseVercelSandbox: () => mockShouldUseVercelSandbox(),
-}));
+// Mock code-execution module
+const mockPrepareForSession = jest.fn().mockResolvedValue(undefined);
+jest.mock('@/server/code-execution');
+const mockGetExecutorService = getExecutorService as jest.MockedFunction<typeof getExecutorService>;
+mockGetExecutorService.mockReturnValue({ prepareForSession: mockPrepareForSession } as any);
 
 jest.mock('@/server/auth/api-helpers', () => ({
   requireAuth: jest.fn(),
@@ -81,6 +79,8 @@ describe('POST /api/sessions', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    // Re-setup mocks after clear
+    mockGetExecutorService.mockReturnValue({ prepareForSession: mockPrepareForSession } as any);
 
     mockStorage = {
       sessions: {
@@ -268,14 +268,12 @@ describe('POST /api/sessions', () => {
     expect(data.error).toContain('must be an instructor');
   });
 
-  describe('Vercel Sandbox integration', () => {
+  describe('Backend preparation', () => {
     beforeEach(() => {
-      mockCreateSandboxForSession.mockClear();
-      mockShouldUseVercelSandbox.mockClear();
+      mockPrepareForSession.mockClear();
     });
 
-    it('creates sandbox when shouldUseVercelSandbox returns true', async () => {
-      mockShouldUseVercelSandbox.mockReturnValue(true);
+    it('prepares backend for session after creation', async () => {
       (requireAuth as jest.Mock).mockResolvedValue(createAuthContext(mockUser));
       (SessionService.createSession as jest.Mock).mockResolvedValue(mockSession);
 
@@ -288,29 +286,11 @@ describe('POST /api/sessions', () => {
       const response = await POST(request);
 
       expect(response.status).toBe(201);
-      expect(mockCreateSandboxForSession).toHaveBeenCalledWith('session-1');
+      expect(mockPrepareForSession).toHaveBeenCalledWith('session-1');
     });
 
-    it('does not create sandbox when shouldUseVercelSandbox returns false', async () => {
-      mockShouldUseVercelSandbox.mockReturnValue(false);
-      (requireAuth as jest.Mock).mockResolvedValue(createAuthContext(mockUser));
-      (SessionService.createSession as jest.Mock).mockResolvedValue(mockSession);
-
-      const request = new NextRequest('http://localhost/api/sessions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sectionId: 'section-1' }),
-      });
-
-      const response = await POST(request);
-
-      expect(response.status).toBe(201);
-      expect(mockCreateSandboxForSession).not.toHaveBeenCalled();
-    });
-
-    it('succeeds even if sandbox creation fails', async () => {
-      mockShouldUseVercelSandbox.mockReturnValue(true);
-      mockCreateSandboxForSession.mockRejectedValue(new Error('Sandbox API error'));
+    it('succeeds even if backend preparation fails', async () => {
+      mockPrepareForSession.mockRejectedValue(new Error('Backend preparation error'));
       (requireAuth as jest.Mock).mockResolvedValue(createAuthContext(mockUser));
       (SessionService.createSession as jest.Mock).mockResolvedValue(mockSession);
 
@@ -328,7 +308,7 @@ describe('POST /api/sessions', () => {
       expect(response.status).toBe(201);
       expect(data.success).toBe(true);
       expect(consoleSpy).toHaveBeenCalledWith(
-        'Failed to create sandbox for session:',
+        'Failed to prepare backend for session:',
         expect.any(Error)
       );
 

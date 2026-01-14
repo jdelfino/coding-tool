@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth, getNamespaceContext } from '@/server/auth/api-helpers';
 import { getStorage } from '@/server/persistence';
 import * as SessionService from '@/server/services/session-service';
-import { createSandboxForSession, shouldUseVercelSandbox } from '@/server/vercel-sandbox';
+import { getExecutorService } from '@/server/code-execution';
 
 /**
  * GET /api/sessions
@@ -150,14 +150,12 @@ export async function POST(request: NextRequest) {
       ? await SessionService.createSessionWithProblem(storage, user.id, sectionId, namespaceId, problemId)
       : await SessionService.createSession(storage, user.id, sectionId, namespaceId);
 
-    // Create sandbox for the session on Vercel
-    if (shouldUseVercelSandbox()) {
-      try {
-        await createSandboxForSession(newSession.id);
-      } catch (error) {
-        console.error('Failed to create sandbox for session:', error);
-        // Continue without sandbox - execution will show appropriate error
-      }
+    // Prepare backend for the session (creates sandbox on Vercel, no-op locally)
+    try {
+      await getExecutorService().prepareForSession(newSession.id);
+    } catch (error) {
+      console.error('Failed to prepare backend for session:', error);
+      // Continue without prepared backend - execution will show appropriate error
     }
 
     return NextResponse.json({

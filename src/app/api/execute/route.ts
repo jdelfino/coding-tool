@@ -20,7 +20,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { executeCode } from '@/server/code-executor';
+import { getExecutorService } from '@/server/code-execution';
 import { getAuthProvider } from '@/server/auth';
 
 export async function POST(request: NextRequest) {
@@ -47,8 +47,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Execute code
-    const result = await executeCode(
+    // Execute code (no sessionId - standalone execution uses default backend)
+    const result = await getExecutorService().executeCode(
       {
         code,
         executionSettings: {

@@ -5,15 +5,18 @@
  */
 
 import { POST } from '../route';
-import { executeCode } from '@/server/code-executor';
+import { getExecutorService } from '@/server/code-execution';
 import { getAuthProvider } from '@/server/auth';
 import { NextRequest } from 'next/server';
 
 // Mock dependencies
-jest.mock('@/server/code-executor');
+jest.mock('@/server/code-execution');
 jest.mock('@/server/auth');
 
-const mockExecuteCode = executeCode as jest.MockedFunction<typeof executeCode>;
+const mockExecuteCode = jest.fn();
+const mockGetExecutorService = getExecutorService as jest.MockedFunction<typeof getExecutorService>;
+mockGetExecutorService.mockReturnValue({ executeCode: mockExecuteCode } as any);
+
 const mockGetAuthProvider = getAuthProvider as jest.MockedFunction<typeof getAuthProvider>;
 
 // Helper to create authenticated mock auth provider
@@ -28,6 +31,8 @@ const createMockAuthProvider = (authenticated: boolean) => ({
 describe('POST /api/execute', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    // Re-setup mocks after clear
+    mockGetExecutorService.mockReturnValue({ executeCode: mockExecuteCode } as any);
     // Default to unauthenticated
     mockGetAuthProvider.mockResolvedValue(createMockAuthProvider(false) as any);
   });
