@@ -136,14 +136,13 @@ function createMockSessionScopedBackend(
  */
 function createMockRegistration(
   backend: ICodeExecutionBackend,
-  options: { priority?: number; isAvailable?: boolean } = {}
+  options: { isAvailable?: boolean } = {}
 ): BackendRegistration {
-  const { priority = 50, isAvailable = true } = options;
+  const { isAvailable = true } = options;
 
   return {
     type: backend.backendType,
     factory: () => backend,
-    priority,
     isAvailable: () => isAvailable,
     capabilities: backend.capabilities,
   };
@@ -328,7 +327,7 @@ describe('ExecutorService', () => {
 
     it('should assign backend and call warmup for session-scoped backends', async () => {
       const mockBackend = createMockSessionScopedBackend('vercel-sandbox');
-      registry.register(createMockRegistration(mockBackend, { priority: 100 }));
+      registry.register(createMockRegistration(mockBackend));
 
       // Simulate Vercel environment with sandbox enabled
       process.env.VERCEL = '1';
@@ -361,7 +360,7 @@ describe('ExecutorService', () => {
 
     it('should assign disabled backend on Vercel without sandbox', async () => {
       const mockBackend = createMockBackend('disabled');
-      registry.register(createMockRegistration(mockBackend, { priority: 0 }));
+      registry.register(createMockRegistration(mockBackend));
 
       process.env.VERCEL = '1';
       delete process.env.VERCEL_SANDBOX_ENABLED;
@@ -424,17 +423,18 @@ describe('ExecutorService', () => {
 
   describe('backend selection fallback', () => {
     it('should use registry.select() when no sessionId provided', async () => {
-      const highPriorityBackend = createMockBackend('high-priority');
-      const lowPriorityBackend = createMockBackend('low-priority');
+      // Register backends - vercel-sandbox comes first in selection order
+      const vercelBackend = createMockBackend('vercel-sandbox');
+      const localBackend = createMockBackend('local-python');
 
-      registry.register(createMockRegistration(highPriorityBackend, { priority: 100 }));
-      registry.register(createMockRegistration(lowPriorityBackend, { priority: 10 }));
+      registry.register(createMockRegistration(vercelBackend));
+      registry.register(createMockRegistration(localBackend));
 
       await service.executeCode({ code: 'x = 1' });
 
-      // Should use high priority backend
-      expect(highPriorityBackend.execute).toHaveBeenCalled();
-      expect(lowPriorityBackend.execute).not.toHaveBeenCalled();
+      // Should use vercel-sandbox (first in selection order)
+      expect(vercelBackend.execute).toHaveBeenCalled();
+      expect(localBackend.execute).not.toHaveBeenCalled();
     });
 
     it('should fall back to registry.select() when assigned backend not found', async () => {

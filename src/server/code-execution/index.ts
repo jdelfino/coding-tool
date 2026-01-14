@@ -9,10 +9,10 @@
  *   import { getExecutorService } from '@/server/code-execution';
  *   const result = await getExecutorService().executeCode({ code: 'print("hello")' });
  *
- * Backends are registered on module load with the following priorities:
- *   - vercel-sandbox: 100 (highest - production on Vercel)
- *   - local-python: 50 (development)
- *   - disabled: 0 (fallback)
+ * Backend selection order (first available wins):
+ *   1. vercel-sandbox - production on Vercel
+ *   2. local-python - local development
+ *   3. disabled - fallback when no execution available
  */
 
 import { getBackendRegistry } from './registry';
@@ -26,11 +26,10 @@ const registry = getBackendRegistry();
 
 // Only register if not already registered (prevents double-registration on hot reload)
 if (registry.list().length === 0) {
-  // Vercel Sandbox - highest priority, production backend
+  // Vercel Sandbox - production backend
   registry.register({
     type: 'vercel-sandbox',
     factory: () => new VercelSandboxBackend(new SupabaseBackendStateRepository()),
-    priority: 100,
     isAvailable: () =>
       process.env.VERCEL === '1' && process.env.VERCEL_SANDBOX_ENABLED === '1',
     capabilities: {
@@ -44,11 +43,10 @@ if (registry.list().length === 0) {
     },
   });
 
-  // Local Python - medium priority, development backend
+  // Local Python - development backend
   registry.register({
     type: 'local-python',
     factory: () => new LocalPythonBackend(),
-    priority: 50,
     isAvailable: () => !process.env.VERCEL,
     capabilities: {
       execute: true,
@@ -61,11 +59,10 @@ if (registry.list().length === 0) {
     },
   });
 
-  // Disabled - lowest priority, fallback when no execution available
+  // Disabled - fallback when no execution available
   registry.register({
     type: 'disabled',
     factory: () => new DisabledBackend(),
-    priority: 0,
     isAvailable: () => true, // Always available as fallback
     capabilities: {
       execute: false,

@@ -7,7 +7,6 @@
 import {
   BackendRegistry,
   BackendRegistration,
-  BackendSelector,
   getBackendRegistry,
 } from '../registry';
 import {
@@ -59,16 +58,11 @@ function createMockBackend(
 function createMockRegistration(
   type: string,
   options: {
-    priority?: number;
     isAvailable?: boolean;
     capabilities?: Partial<BackendCapabilities>;
   } = {}
 ): BackendRegistration {
-  const {
-    priority = 0,
-    isAvailable = true,
-    capabilities = {},
-  } = options;
+  const { isAvailable = true, capabilities = {} } = options;
 
   const fullCapabilities: BackendCapabilities = {
     execute: true,
@@ -84,7 +78,6 @@ function createMockRegistration(
   return {
     type,
     factory: () => createMockBackend(type, capabilities),
-    priority,
     isAvailable: () => isAvailable,
     capabilities: fullCapabilities,
   };
@@ -176,7 +169,6 @@ describe('BackendRegistry', () => {
           callCount++;
           return createMockBackend('counted-backend');
         },
-        priority: 0,
         isAvailable: () => true,
         capabilities: {
           execute: true,
@@ -200,74 +192,106 @@ describe('BackendRegistry', () => {
   });
 
   describe('select', () => {
-    beforeEach(() => {
-      // Register multiple backends with different priorities and capabilities
-      registry.register(
-        createMockRegistration('low-priority', {
-          priority: 10,
-          capabilities: { trace: false },
-        })
-      );
-      registry.register(
-        createMockRegistration('high-priority', {
-          priority: 100,
-          capabilities: { trace: true, attachedFiles: true },
-        })
-      );
-      registry.register(
-        createMockRegistration('medium-priority', {
-          priority: 50,
-          capabilities: { trace: true },
-        })
-      );
-    });
+    describe('explicit selection order', () => {
+      it('selects vercel-sandbox first when available', () => {
+        registry.register(createMockRegistration('local-python'));
+        registry.register(createMockRegistration('vercel-sandbox'));
+        registry.register(createMockRegistration('disabled'));
 
-    describe('with no criteria', () => {
-      it('returns highest-priority available backend', () => {
         const backend = registry.select();
-        expect(backend).not.toBeNull();
-        expect(backend?.backendType).toBe('high-priority');
+        expect(backend?.backendType).toBe('vercel-sandbox');
+      });
+
+      it('selects local-python when vercel-sandbox unavailable', () => {
+        registry.register(
+          createMockRegistration('vercel-sandbox', { isAvailable: false })
+        );
+        registry.register(createMockRegistration('local-python'));
+        registry.register(createMockRegistration('disabled'));
+
+        const backend = registry.select();
+        expect(backend?.backendType).toBe('local-python');
+      });
+
+      it('selects disabled when others unavailable', () => {
+        registry.register(
+          createMockRegistration('vercel-sandbox', { isAvailable: false })
+        );
+        registry.register(
+          createMockRegistration('local-python', { isAvailable: false })
+        );
+        registry.register(createMockRegistration('disabled'));
+
+        const backend = registry.select();
+        expect(backend?.backendType).toBe('disabled');
+      });
+
+      it('falls back to unknown backends if none in selection order available', () => {
+        registry.register(createMockRegistration('custom-backend'));
+
+        const backend = registry.select();
+        expect(backend?.backendType).toBe('custom-backend');
       });
     });
 
     describe('with preferred backend', () => {
-      it('returns preferred backend if available', () => {
-        const backend = registry.select({ preferred: 'low-priority' });
-        expect(backend?.backendType).toBe('low-priority');
+      beforeEach(() => {
+        registry.register(createMockRegistration('vercel-sandbox'));
+        registry.register(createMockRegistration('local-python'));
+        registry.register(createMockRegistration('disabled'));
       });
 
-      it('falls back to priority selection if preferred unavailable', () => {
+      it('returns preferred backend if available', () => {
+        const backend = registry.select({ preferred: 'local-python' });
+        expect(backend?.backendType).toBe('local-python');
+      });
+
+      it('falls back to selection order if preferred unavailable', () => {
         registry.register(
-          createMockRegistration('unavailable-preferred', {
-            priority: 200,
-            isAvailable: false,
-          })
+          createMockRegistration('unavailable-preferred', { isAvailable: false })
         );
 
         const backend = registry.select({ preferred: 'unavailable-preferred' });
-        expect(backend?.backendType).toBe('high-priority');
+        expect(backend?.backendType).toBe('vercel-sandbox');
       });
 
-      it('falls back to priority selection if preferred not registered', () => {
+      it('falls back to selection order if preferred not registered', () => {
         const backend = registry.select({ preferred: 'nonexistent' });
-        expect(backend?.backendType).toBe('high-priority');
+        expect(backend?.backendType).toBe('vercel-sandbox');
       });
     });
 
     describe('with required capabilities', () => {
+      beforeEach(() => {
+        registry.register(
+          createMockRegistration('vercel-sandbox', {
+            capabilities: { trace: true, attachedFiles: true },
+          })
+        );
+        registry.register(
+          createMockRegistration('local-python', {
+            capabilities: { trace: true },
+          })
+        );
+        registry.register(
+          createMockRegistration('disabled', {
+            capabilities: { execute: false },
+          })
+        );
+      });
+
       it('filters backends by capabilities', () => {
         const backend = registry.select({
           requiredCapabilities: { trace: true, attachedFiles: true },
         });
-        expect(backend?.backendType).toBe('high-priority');
+        expect(backend?.backendType).toBe('vercel-sandbox');
       });
 
-      it('returns highest-priority backend matching capabilities', () => {
+      it('selects first matching backend in selection order', () => {
         const backend = registry.select({
           requiredCapabilities: { trace: true },
         });
-        // high-priority has trace:true and priority 100
-        expect(backend?.backendType).toBe('high-priority');
+        expect(backend?.backendType).toBe('vercel-sandbox');
       });
 
       it('returns null if no backend matches capabilities', () => {
@@ -278,17 +302,20 @@ describe('BackendRegistry', () => {
       });
 
       it('preferred backend must also match capabilities', () => {
-        // low-priority doesn't have trace capability
         const backend = registry.select({
-          preferred: 'low-priority',
+          preferred: 'disabled',
           requiredCapabilities: { trace: true },
         });
-        // Falls back to highest priority with trace
-        expect(backend?.backendType).toBe('high-priority');
+        // disabled doesn't have trace, falls back to selection order
+        expect(backend?.backendType).toBe('vercel-sandbox');
       });
     });
 
     describe('with environment and sessionId', () => {
+      beforeEach(() => {
+        registry.register(createMockRegistration('vercel-sandbox'));
+      });
+
       it('accepts environment hint', () => {
         const backend = registry.select({ environment: 'production' });
         expect(backend).not.toBeNull();
@@ -321,8 +348,9 @@ describe('BackendRegistry', () => {
       });
 
       it('handles empty criteria object', () => {
+        registry.register(createMockRegistration('vercel-sandbox'));
         const backend = registry.select({});
-        expect(backend?.backendType).toBe('high-priority');
+        expect(backend?.backendType).toBe('vercel-sandbox');
       });
     });
   });
@@ -341,15 +369,18 @@ describe('BackendRegistry', () => {
       expect(backends).toHaveLength(2);
     });
 
-    it('returns backends sorted by priority (descending)', () => {
-      registry.register(createMockRegistration('low', { priority: 10 }));
-      registry.register(createMockRegistration('high', { priority: 100 }));
-      registry.register(createMockRegistration('medium', { priority: 50 }));
+    it('returns backends in selection order first', () => {
+      registry.register(createMockRegistration('custom-backend'));
+      registry.register(createMockRegistration('disabled'));
+      registry.register(createMockRegistration('vercel-sandbox'));
+      registry.register(createMockRegistration('local-python'));
 
       const backends = registry.list();
-      expect(backends[0].type).toBe('high');
-      expect(backends[1].type).toBe('medium');
-      expect(backends[2].type).toBe('low');
+      // Selection order: vercel-sandbox, local-python, disabled, then others
+      expect(backends[0].type).toBe('vercel-sandbox');
+      expect(backends[1].type).toBe('local-python');
+      expect(backends[2].type).toBe('disabled');
+      expect(backends[3].type).toBe('custom-backend');
     });
 
     it('includes unavailable backends', () => {
@@ -399,53 +430,22 @@ describe('BackendRegistry', () => {
     });
   });
 
-  describe('priority-based selection', () => {
-    it('selects highest priority when multiple match', () => {
-      registry.register(createMockRegistration('priority-5', { priority: 5 }));
-      registry.register(createMockRegistration('priority-10', { priority: 10 }));
-      registry.register(createMockRegistration('priority-1', { priority: 1 }));
+  describe('availability filtering', () => {
+    it('skips unavailable backends', () => {
+      registry.register(
+        createMockRegistration('vercel-sandbox', { isAvailable: false })
+      );
+      registry.register(createMockRegistration('local-python'));
 
       const backend = registry.select();
-      expect(backend?.backendType).toBe('priority-10');
-    });
-
-    it('handles equal priorities deterministically', () => {
-      // Note: with equal priorities, selection depends on iteration order
-      // This test verifies the behavior is consistent
-      registry.register(createMockRegistration('same-a', { priority: 50 }));
-      registry.register(createMockRegistration('same-b', { priority: 50 }));
-
-      const backend1 = registry.select();
-      const backend2 = registry.select();
-
-      // Both calls should return the same type
-      expect(backend1?.backendType).toBe(backend2?.backendType);
-    });
-
-    it('skips unavailable backends regardless of priority', () => {
-      registry.register(
-        createMockRegistration('unavailable-high', {
-          priority: 1000,
-          isAvailable: false,
-        })
-      );
-      registry.register(
-        createMockRegistration('available-low', {
-          priority: 1,
-          isAvailable: true,
-        })
-      );
-
-      const backend = registry.select();
-      expect(backend?.backendType).toBe('available-low');
+      expect(backend?.backendType).toBe('local-python');
     });
   });
 
   describe('capability filtering', () => {
     beforeEach(() => {
       registry.register(
-        createMockRegistration('basic', {
-          priority: 100,
+        createMockRegistration('vercel-sandbox', {
           capabilities: {
             execute: true,
             trace: false,
@@ -458,8 +458,7 @@ describe('BackendRegistry', () => {
         })
       );
       registry.register(
-        createMockRegistration('full', {
-          priority: 50,
+        createMockRegistration('local-python', {
           capabilities: {
             execute: true,
             trace: true,
@@ -477,14 +476,14 @@ describe('BackendRegistry', () => {
       const backend = registry.select({
         requiredCapabilities: { trace: true },
       });
-      expect(backend?.backendType).toBe('full');
+      expect(backend?.backendType).toBe('local-python');
     });
 
     it('filters by multiple capabilities', () => {
       const backend = registry.select({
         requiredCapabilities: { trace: true, attachedFiles: true, stdin: true },
       });
-      expect(backend?.backendType).toBe('full');
+      expect(backend?.backendType).toBe('local-python');
     });
 
     it('ignores false capability requirements', () => {
@@ -492,16 +491,16 @@ describe('BackendRegistry', () => {
       const backend = registry.select({
         requiredCapabilities: { trace: false },
       });
-      // Should return highest priority (basic)
-      expect(backend?.backendType).toBe('basic');
+      // Should return first in selection order (vercel-sandbox)
+      expect(backend?.backendType).toBe('vercel-sandbox');
     });
 
-    it('returns higher priority when both match', () => {
-      // Both have execute: true, so higher priority wins
+    it('returns first in selection order when both match', () => {
+      // Both have execute: true, so first in selection order wins
       const backend = registry.select({
         requiredCapabilities: { execute: true },
       });
-      expect(backend?.backendType).toBe('basic');
+      expect(backend?.backendType).toBe('vercel-sandbox');
     });
   });
 });

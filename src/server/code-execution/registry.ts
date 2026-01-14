@@ -3,7 +3,7 @@
  *
  * Provides a centralized registry for code execution backends with:
  * - Factory-based instantiation
- * - Priority-based selection
+ * - Explicit selection order (Vercel > LocalPython > Disabled)
  * - Capability filtering
  * - Singleton access pattern
  */
@@ -18,8 +18,6 @@ export interface BackendRegistration {
   type: string;
   /** Factory function to create backend instances */
   factory: () => ICodeExecutionBackend;
-  /** Priority for selection (higher = preferred) */
-  priority: number;
   /** Check if backend is currently available */
   isAvailable: () => boolean;
   /** Backend capabilities */
@@ -41,13 +39,22 @@ export interface BackendSelector {
 }
 
 /**
+ * Explicit selection order for backends when no preference specified.
+ * Production backend first, then development, then fallback.
+ */
+const BACKEND_SELECTION_ORDER = [
+  'vercel-sandbox',
+  'local-python',
+  'disabled',
+];
+
+/**
  * Centralized registry for code execution backends
  *
  * Implements the singleton pattern for global access.
- * Backends register with a type, factory, priority, and capabilities.
  * Selection follows these rules:
  * 1. If preferred type specified and available, use it
- * 2. Otherwise, find highest-priority available backend matching capabilities
+ * 2. Otherwise, use first available backend in BACKEND_SELECTION_ORDER
  */
 export class BackendRegistry {
   private static instance: BackendRegistry;
@@ -102,7 +109,7 @@ export class BackendRegistry {
    *
    * Selection logic:
    * 1. If preferred type specified and available, use it
-   * 2. Otherwise, find highest-priority available backend matching capability requirements
+   * 2. Otherwise, use first available backend in BACKEND_SELECTION_ORDER
    *
    * @param criteria - Selection criteria
    * @returns Backend instance or null if no suitable backend found
@@ -116,27 +123,24 @@ export class BackendRegistry {
       }
     }
 
-    // Find highest-priority available backend matching capabilities
-    const candidates = Array.from(this.backends.entries())
-      .filter(([type, reg]) => {
-        // Must be available
-        if (!reg.isAvailable()) {
-          return false;
-        }
-        // Must match required capabilities
-        if (!this.matchesCapabilities(type, criteria?.requiredCapabilities)) {
-          return false;
-        }
-        return true;
-      })
-      .sort((a, b) => b[1].priority - a[1].priority); // Sort by priority descending
-
-    if (candidates.length === 0) {
-      return null;
+    // Use explicit selection order
+    for (const type of BACKEND_SELECTION_ORDER) {
+      const registration = this.backends.get(type);
+      if (!registration) continue;
+      if (!registration.isAvailable()) continue;
+      if (!this.matchesCapabilities(type, criteria?.requiredCapabilities)) continue;
+      return registration.factory();
     }
 
-    // Return highest priority match
-    return candidates[0][1].factory();
+    // Fall back to any available backend not in the selection order
+    for (const [type, registration] of this.backends.entries()) {
+      if (BACKEND_SELECTION_ORDER.includes(type)) continue;
+      if (!registration.isAvailable()) continue;
+      if (!this.matchesCapabilities(type, criteria?.requiredCapabilities)) continue;
+      return registration.factory();
+    }
+
+    return null;
   }
 
   /**
@@ -168,10 +172,26 @@ export class BackendRegistry {
   /**
    * List all registered backends
    *
-   * @returns Array of all registrations (sorted by priority descending)
+   * @returns Array of all registrations (in selection order, then others)
    */
   list(): BackendRegistration[] {
-    return Array.from(this.backends.values()).sort((a, b) => b.priority - a.priority);
+    const ordered: BackendRegistration[] = [];
+    const others: BackendRegistration[] = [];
+
+    for (const reg of this.backends.values()) {
+      if (BACKEND_SELECTION_ORDER.includes(reg.type)) {
+        ordered.push(reg);
+      } else {
+        others.push(reg);
+      }
+    }
+
+    // Sort ordered by their position in BACKEND_SELECTION_ORDER
+    ordered.sort((a, b) =>
+      BACKEND_SELECTION_ORDER.indexOf(a.type) - BACKEND_SELECTION_ORDER.indexOf(b.type)
+    );
+
+    return [...ordered, ...others];
   }
 
   /**
