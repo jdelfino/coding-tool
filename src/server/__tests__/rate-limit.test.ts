@@ -288,6 +288,7 @@ describe('rate-limit', () => {
   describe('production mode', () => {
     it('throws error if Redis is not configured in production', async () => {
       setEnv('NODE_ENV', 'production');
+      setEnv('CI', undefined); // Ensure CI is not set (CI allows skipping rate limit)
       // No Redis env vars set
 
       await expect(async () => {
@@ -299,6 +300,14 @@ describe('rate-limit', () => {
       setEnv('NODE_ENV', 'production');
       setEnv('UPSTASH_REDIS_REST_URL', 'https://test.upstash.io');
       setEnv('UPSTASH_REDIS_REST_TOKEN', 'test-token');
+
+      await expect(import('../rate-limit')).resolves.toBeDefined();
+    });
+
+    it('does not throw in production CI without Redis (for E2E tests)', async () => {
+      setEnv('NODE_ENV', 'production');
+      setEnv('CI', 'true');
+      // No Redis env vars set
 
       await expect(import('../rate-limit')).resolves.toBeDefined();
     });
