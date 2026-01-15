@@ -2,9 +2,17 @@ import {
   sanitizeError,
   sanitizeFilename,
   validateAttachedFiles,
+  validateCodeSize,
+  validateStdinSize,
+  validateMaxSteps,
+  truncateOutput,
   DEFAULT_TIMEOUT,
   MAX_FILE_SIZE,
   MAX_FILES,
+  CODE_MAX_BYTES,
+  STDIN_MAX_BYTES,
+  OUTPUT_MAX_BYTES,
+  TRACE_MAX_STEPS,
 } from '../utils';
 
 describe('code-execution utils', () => {
@@ -154,6 +162,132 @@ describe('code-execution utils', () => {
       const tooManyEmojis = '\u{1F600}'.repeat(2561); // One more emoji = over limit
       const overFiles = [{ name: 'emoji.txt', content: tooManyEmojis }];
       expect(() => validateAttachedFiles(overFiles)).toThrow(/exceeds size limit/);
+    });
+  });
+
+  describe('input size limit constants', () => {
+    it('should export CODE_MAX_BYTES as 100KB', () => {
+      expect(CODE_MAX_BYTES).toBe(100 * 1024);
+    });
+
+    it('should export STDIN_MAX_BYTES as 1MB', () => {
+      expect(STDIN_MAX_BYTES).toBe(1024 * 1024);
+    });
+
+    it('should export OUTPUT_MAX_BYTES as 1MB', () => {
+      expect(OUTPUT_MAX_BYTES).toBe(1024 * 1024);
+    });
+
+    it('should export TRACE_MAX_STEPS as 50000', () => {
+      expect(TRACE_MAX_STEPS).toBe(50_000);
+    });
+  });
+
+  describe('validateCodeSize', () => {
+    it('should accept code under the limit', () => {
+      const code = 'print("hello")';
+      expect(() => validateCodeSize(code)).not.toThrow();
+    });
+
+    it('should accept code at exactly the limit', () => {
+      const code = 'x'.repeat(CODE_MAX_BYTES);
+      expect(() => validateCodeSize(code)).not.toThrow();
+    });
+
+    it('should throw for code over the limit', () => {
+      const code = 'x'.repeat(CODE_MAX_BYTES + 1);
+      expect(() => validateCodeSize(code)).toThrow(/exceeds maximum size of 100 KB/);
+    });
+
+    it('should correctly calculate multi-byte character sizes', () => {
+      // Each emoji is 4 bytes in UTF-8
+      const emojiCount = Math.floor(CODE_MAX_BYTES / 4);
+      const exactEmojis = '\u{1F600}'.repeat(emojiCount);
+      expect(() => validateCodeSize(exactEmojis)).not.toThrow();
+
+      const tooManyEmojis = '\u{1F600}'.repeat(emojiCount + 1);
+      expect(() => validateCodeSize(tooManyEmojis)).toThrow(/exceeds maximum size/);
+    });
+  });
+
+  describe('validateStdinSize', () => {
+    it('should accept stdin under the limit', () => {
+      const stdin = 'test input';
+      expect(() => validateStdinSize(stdin)).not.toThrow();
+    });
+
+    it('should accept undefined stdin', () => {
+      expect(() => validateStdinSize(undefined)).not.toThrow();
+    });
+
+    it('should accept empty string stdin', () => {
+      expect(() => validateStdinSize('')).not.toThrow();
+    });
+
+    it('should accept stdin at exactly the limit', () => {
+      const stdin = 'x'.repeat(STDIN_MAX_BYTES);
+      expect(() => validateStdinSize(stdin)).not.toThrow();
+    });
+
+    it('should throw for stdin over the limit', () => {
+      const stdin = 'x'.repeat(STDIN_MAX_BYTES + 1);
+      expect(() => validateStdinSize(stdin)).toThrow(/exceeds maximum size of 1024 KB/);
+    });
+  });
+
+  describe('validateMaxSteps', () => {
+    it('should return TRACE_MAX_STEPS for undefined', () => {
+      expect(validateMaxSteps(undefined)).toBe(TRACE_MAX_STEPS);
+    });
+
+    it('should return input value if under limit', () => {
+      expect(validateMaxSteps(1000)).toBe(1000);
+      expect(validateMaxSteps(10000)).toBe(10000);
+    });
+
+    it('should return input value if at exactly the limit', () => {
+      expect(validateMaxSteps(TRACE_MAX_STEPS)).toBe(TRACE_MAX_STEPS);
+    });
+
+    it('should cap value if over limit', () => {
+      expect(validateMaxSteps(100000)).toBe(TRACE_MAX_STEPS);
+      expect(validateMaxSteps(999999)).toBe(TRACE_MAX_STEPS);
+    });
+
+    it('should handle zero', () => {
+      expect(validateMaxSteps(0)).toBe(0);
+    });
+  });
+
+  describe('truncateOutput', () => {
+    it('should return unchanged output if under limit', () => {
+      const output = 'Hello, World!';
+      expect(truncateOutput(output)).toBe(output);
+    });
+
+    it('should return unchanged output at exactly the limit', () => {
+      const output = 'x'.repeat(OUTPUT_MAX_BYTES);
+      expect(truncateOutput(output)).toBe(output);
+    });
+
+    it('should truncate and add marker if over limit', () => {
+      const output = 'x'.repeat(OUTPUT_MAX_BYTES + 10000);
+      const result = truncateOutput(output);
+      expect(result).toContain('... [output truncated]');
+      expect(Buffer.byteLength(result, 'utf-8')).toBeLessThanOrEqual(OUTPUT_MAX_BYTES + 100);
+    });
+
+    it('should handle multi-byte characters safely', () => {
+      // Create output with multi-byte characters at the truncation boundary
+      const unicodeOutput = '\u{1F600}'.repeat(OUTPUT_MAX_BYTES / 4 + 1000);
+      const result = truncateOutput(unicodeOutput);
+      // Should not throw and should be valid UTF-8
+      expect(() => Buffer.from(result, 'utf-8')).not.toThrow();
+      expect(result).toContain('... [output truncated]');
+    });
+
+    it('should handle empty string', () => {
+      expect(truncateOutput('')).toBe('');
     });
   });
 });

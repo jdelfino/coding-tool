@@ -6,6 +6,7 @@ import { NextRequest } from 'next/server';
 import { POST } from '../route';
 import { getAuthenticatedUser } from '@/server/auth/api-auth';
 import { getExecutorService } from '@/server/code-execution';
+import { TRACE_MAX_STEPS } from '@/server/code-execution/utils';
 import { Session, ExecutionTrace } from '@/server/types';
 import { Problem } from '@/server/types/problem';
 
@@ -122,7 +123,7 @@ describe('POST /api/sessions/[id]/trace', () => {
       'print("Hello")',
       {
         executionSettings: { stdin: '' },
-        maxSteps: undefined,
+        maxSteps: TRACE_MAX_STEPS,
         sessionId: 'session-1',
       }
     );

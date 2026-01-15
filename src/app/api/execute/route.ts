@@ -22,6 +22,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getExecutorService } from '@/server/code-execution';
 import { getAuthProvider } from '@/server/auth';
+import { validateCodeSize, validateStdinSize } from '@/server/code-execution/utils';
 
 export async function POST(request: NextRequest) {
   try {
@@ -43,6 +44,17 @@ export async function POST(request: NextRequest) {
     if (!code || typeof code !== 'string') {
       return NextResponse.json(
         { error: 'Code is required and must be a string' },
+        { status: 400 }
+      );
+    }
+
+    // Validate input sizes
+    try {
+      validateCodeSize(code);
+      validateStdinSize(stdin);
+    } catch (e) {
+      return NextResponse.json(
+        { error: (e as Error).message },
         { status: 400 }
       );
     }

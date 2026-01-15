@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUser } from '@/server/auth/api-auth';
 import { getStorage } from '@/server/persistence';
 import { getExecutorService } from '@/server/code-execution';
+import { validateCodeSize, validateStdinSize } from '@/server/code-execution/utils';
 import { ExecutionSettings } from '@/server/types/problem';
 import * as SessionService from '@/server/services/session-service';
 
@@ -42,6 +43,17 @@ export async function POST(
     if (!code || typeof code !== 'string') {
       return NextResponse.json(
         { error: 'Code is required' },
+        { status: 400 }
+      );
+    }
+
+    // Validate input sizes
+    try {
+      validateCodeSize(code);
+      validateStdinSize(payloadSettings?.stdin);
+    } catch (e) {
+      return NextResponse.json(
+        { error: (e as Error).message },
         { status: 400 }
       );
     }

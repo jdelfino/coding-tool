@@ -27,6 +27,7 @@ import {
   DEFAULT_TIMEOUT,
   validateAttachedFiles,
   sanitizeFilename,
+  truncateOutput,
 } from '../utils';
 import { TRACER_SCRIPT, TRACER_PATH } from './tracer-script';
 
@@ -170,7 +171,7 @@ export class LocalPythonBackend implements ICodeExecutionBackend {
         if (timedOut) {
           resolve({
             success: false,
-            output: stdout,
+            output: truncateOutput(stdout),
             error: `Execution timed out after ${timeout}ms`,
             executionTime,
             stdin,
@@ -182,8 +183,8 @@ export class LocalPythonBackend implements ICodeExecutionBackend {
 
         resolve({
           success,
-          output: stdout,
-          error: stderr,
+          output: truncateOutput(stdout),
+          error: truncateOutput(stderr),
           executionTime,
           stdin, // Include stdin in the result
         });
@@ -205,7 +206,7 @@ export class LocalPythonBackend implements ICodeExecutionBackend {
 
         resolve({
           success: false,
-          output: stdout,
+          output: truncateOutput(stdout),
           error: `Failed to execute code: ${error.message}`,
           executionTime,
           stdin,

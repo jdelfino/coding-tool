@@ -29,7 +29,7 @@ import {
   ExecutionResult,
   ExecutionTrace,
 } from '../interfaces';
-import { sanitizeFilename } from '../utils';
+import { sanitizeFilename, truncateOutput } from '../utils';
 import { logSandboxEvent } from '../logger';
 import { TRACER_SCRIPT, TRACER_PATH } from './tracer-script';
 
@@ -291,8 +291,8 @@ export class VercelSandboxBackend implements ISessionScopedBackend {
 
         return {
           success,
-          output: stdout,
-          error: stderr,
+          output: truncateOutput(stdout),
+          error: truncateOutput(stderr),
           executionTime,
           stdin,
         };

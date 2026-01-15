@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUser } from '@/server/auth/api-auth';
 import { getStorage } from '@/server/persistence';
 import { getExecutorService, TraceOptions } from '@/server/code-execution';
+import { validateCodeSize, validateStdinSize, validateMaxSteps } from '@/server/code-execution/utils';
 
 interface TraceCodeBody {
   code: string;
@@ -36,6 +37,20 @@ export async function POST(
         { status: 400 }
       );
     }
+
+    // Validate input sizes
+    try {
+      validateCodeSize(code);
+      validateStdinSize(stdin);
+    } catch (e) {
+      return NextResponse.json(
+        { error: (e as Error).message },
+        { status: 400 }
+      );
+    }
+
+    // Cap maxSteps to prevent resource exhaustion
+    const cappedMaxSteps = validateMaxSteps(maxSteps);
 
     // Get session from storage to verify it exists
     const storage = await getStorage();
@@ -69,7 +84,7 @@ export async function POST(
     // Execute code with tracing
     const traceOptions: TraceOptions = {
       executionSettings: { stdin: stdin || '' },
-      maxSteps: maxSteps,
+      maxSteps: cappedMaxSteps,
       sessionId,
     };
 
