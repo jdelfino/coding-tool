@@ -19,12 +19,11 @@ import { loginAsSystemAdmin } from './fixtures/auth-helpers';
 import { getSupabaseAdmin, createTestClass, createTestSection } from './helpers/test-data';
 import { waitForEmail, extractInviteLink, clearMailbox } from './helpers/inbucket-client';
 
-// Skip E2E tests if Supabase is not configured OR if invitation UI is not implemented yet
-// TODO: These tests require the invitation management UI pages to be implemented:
-// - /system page needs invitation creation form for namespace-admin invitations
-// - /namespace/invitations page needs to exist for instructor invitations
-// See issue coding-tool-tu6 for tracking
-const skipInvitationTests = true; // Set to false when UI is ready
+// Skip E2E tests if Supabase is not configured
+// UI implementation is complete (coding-tool-tu6):
+// - /system page has invitation creation form for namespace-admin invitations
+// - /namespace/invitations page exists for instructor invitations
+const skipInvitationTests = false;
 const describeE2E = (hasSupabaseCredentials() && !skipInvitationTests) ? test.describe : test.describe.skip;
 
 describeE2E('Invitation Flows', () => {
@@ -61,14 +60,14 @@ describeE2E('Invitation Flows', () => {
       await page.click('button:has-text("Create Invitation")');
 
       // Fill out the invitation form
-      await expect(page.locator('input[type="email"]')).toBeVisible({ timeout: 5000 });
-      await page.fill('input[type="email"]', inviteeEmail);
+      await expect(page.locator('#invite-email')).toBeVisible({ timeout: 5000 });
+      await page.fill('#invite-email', inviteeEmail);
 
-      // Select namespace from dropdown
-      await page.selectOption('select:near(:text("Namespace"))', namespaceId);
+      // Select namespace from dropdown (use specific form ID, not filter dropdown)
+      await page.selectOption('#invite-namespace', namespaceId);
 
       // Select namespace-admin role
-      await page.selectOption('select:near(:text("Role"))', 'namespace-admin');
+      await page.selectOption('#invite-role', 'namespace-admin');
 
       // Record time before sending (for email filtering)
       const beforeSend = new Date();
