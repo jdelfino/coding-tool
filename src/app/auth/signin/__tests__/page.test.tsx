@@ -41,12 +41,12 @@ describe('SignInPage', () => {
       expect(screen.getByRole('button', { name: /sign in/i })).toBeInTheDocument();
     });
 
-    it('renders link to registration page', () => {
+    it('renders link to student registration page', () => {
       render(<SignInPage />);
 
-      const registerLink = screen.getByText(/create one here/i);
-      expect(registerLink).toBeInTheDocument();
-      expect(registerLink.closest('a')).toHaveAttribute('href', '/auth/register');
+      const studentLink = screen.getByText(/join as a student/i);
+      expect(studentLink).toBeInTheDocument();
+      expect(studentLink.closest('a')).toHaveAttribute('href', '/register/student');
     });
 
     it('has correct input types and autocomplete attributes', () => {

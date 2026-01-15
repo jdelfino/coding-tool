@@ -1,11 +1,15 @@
 /**
  * POST /api/auth/register
  * Register a new user account.
+ *
+ * IMPORTANT: Open registration is DISABLED.
+ * - Students must use /api/auth/register-student with a section join code
+ * - Instructors and namespace-admins must use invitation links
+ * - Only the initial system-admin can be created here via SYSTEM_ADMIN_EMAIL
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getAuthProvider, getNamespaceRepository } from '@/server/auth';
-import { UserRole } from '@/server/auth/types';
+import { getAuthProvider } from '@/server/auth';
 import { rateLimit } from '@/server/rate-limit';
 
 export async function POST(request: NextRequest) {
@@ -15,7 +19,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { email, password, username, namespaceId } = body;
+    const { email, password, username } = body;
 
     // Validation
     if (!email || !password || !username) {
@@ -25,48 +29,36 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Determine role based on SYSTEM_ADMIN_EMAIL
-    let role: UserRole = 'student'; // Default role
-    let finalNamespaceId = namespaceId;
-
-    if (email === process.env.SYSTEM_ADMIN_EMAIL) {
-      role = 'system-admin';
-      finalNamespaceId = null;
-    } else if (!namespaceId) {
-      // Non-admin users must provide namespace
+    // Only allow system-admin bootstrap via SYSTEM_ADMIN_EMAIL
+    if (email !== process.env.SYSTEM_ADMIN_EMAIL) {
       return NextResponse.json(
-        { error: 'Namespace ID required for non-admin users' },
-        { status: 400 }
+        {
+          error: 'Open registration is disabled',
+          message: 'Please use a section join code to register as a student, or check your email for an invitation link.',
+        },
+        { status: 403 }
       );
-    } else {
-      // Validate namespace exists
-      const namespaceRepo = await getNamespaceRepository();
-      const namespace = await namespaceRepo.getNamespace(namespaceId);
-      if (!namespace) {
-        return NextResponse.json(
-          { error: 'Invalid namespace ID' },
-          { status: 400 }
-        );
-      }
     }
 
+    // System-admin bootstrap
     const authProvider = await getAuthProvider();
     const user = await authProvider.signUp(
       email,
       password,
       username,
-      role,
-      finalNamespaceId
+      'system-admin',
+      null
     );
 
     // Auto sign-in after registration
     await authProvider.authenticateWithPassword(email, password);
 
     return NextResponse.json({ user }, { status: 201 });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : '';
     console.error('[API] Registration error:', error);
 
-    if (error.message?.includes('already exists') || error.message?.includes('duplicate')) {
+    if (errorMessage.includes('already exists') || errorMessage.includes('duplicate')) {
       return NextResponse.json(
         { error: 'User with this email already exists' },
         { status: 409 }

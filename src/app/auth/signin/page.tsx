@@ -149,12 +149,12 @@ export default function SignInPage() {
         <div className="mt-6 pt-6 border-t border-gray-200">
           <div className="text-center">
             <p className="text-sm text-gray-600">
-              Don't have an account?{' '}
+              Have a section code?{' '}
               <Link
-                href="/auth/register"
+                href="/register/student"
                 className="font-medium text-indigo-600 hover:text-indigo-500 transition-colors"
               >
-                Create one here
+                Join as a student
               </Link>
             </p>
           </div>
