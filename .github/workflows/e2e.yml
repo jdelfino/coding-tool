@@ -37,6 +37,7 @@ jobs:
 
       - name: Install Supabase CLI
         run: |
+          cd /tmp
           curl -sSL https://github.com/supabase/cli/releases/latest/download/supabase_linux_amd64.tar.gz | tar xz
           mv supabase /usr/local/bin/
 
