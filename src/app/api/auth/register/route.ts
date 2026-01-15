@@ -65,6 +65,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Pass through auth validation errors (password too weak/short, etc.)
+    if (errorMessage.toLowerCase().includes('password')) {
+      return NextResponse.json(
+        { error: errorMessage },
+        { status: 400 }
+      );
+    }
+
     return NextResponse.json(
       { error: 'Registration failed' },
       { status: 500 }

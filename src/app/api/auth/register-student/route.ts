@@ -249,6 +249,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Pass through password validation errors from Supabase (e.g., pwned password check)
+    if (error.message?.toLowerCase().includes('password')) {
+      return NextResponse.json(
+        {
+          error: error.message,
+          code: 'WEAK_PASSWORD',
+        },
+        { status: 400 }
+      );
+    }
+
     return NextResponse.json(
       { error: 'Registration failed' },
       { status: 500 }

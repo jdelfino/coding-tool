@@ -204,5 +204,51 @@ describe('POST /api/auth/register', () => {
       expect(response.status).toBe(500);
       expect(data.error).toBe('Registration failed');
     });
+
+    it('returns 400 with descriptive message for password validation errors', async () => {
+      const mockAuthProvider = {
+        signUp: jest.fn().mockRejectedValue(new Error('Password should be at least 8 characters')),
+      };
+
+      mockGetAuthProvider.mockResolvedValue(mockAuthProvider as any);
+
+      const request = new NextRequest('http://localhost:3000/api/auth/register', {
+        method: 'POST',
+        body: JSON.stringify({
+          email: 'admin@example.com',
+          password: 'short',
+          username: 'admin',
+        }),
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(400);
+      expect(data.error).toBe('Password should be at least 8 characters');
+    });
+
+    it('returns 400 with descriptive message for weak password errors', async () => {
+      const mockAuthProvider = {
+        signUp: jest.fn().mockRejectedValue(new Error('Password is too weak')),
+      };
+
+      mockGetAuthProvider.mockResolvedValue(mockAuthProvider as any);
+
+      const request = new NextRequest('http://localhost:3000/api/auth/register', {
+        method: 'POST',
+        body: JSON.stringify({
+          email: 'admin@example.com',
+          password: '12345678',
+          username: 'admin',
+        }),
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(400);
+      expect(data.error).toBe('Password is too weak');
+    });
   });
 });

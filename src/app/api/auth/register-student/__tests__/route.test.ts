@@ -402,5 +402,22 @@ describe('/api/auth/register-student', () => {
       const data = await response.json();
       expect(data.error).toBe('Registration failed');
     });
+
+    it('returns 400 with descriptive message for Supabase password validation errors', async () => {
+      mockStudentRegistrationService.registerStudent.mockRejectedValue(
+        new Error('Password has been found in a data breach')
+      );
+
+      const request = new NextRequest('http://localhost/api/auth/register-student', {
+        method: 'POST',
+        body: JSON.stringify(validBody),
+      });
+      const response = await POST(request);
+
+      expect(response.status).toBe(400);
+      const data = await response.json();
+      expect(data.error).toBe('Password has been found in a data breach');
+      expect(data.code).toBe('WEAK_PASSWORD');
+    });
   });
 });
