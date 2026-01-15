@@ -216,6 +216,8 @@ export class LocalPythonBackend implements ICodeExecutionBackend {
 
   async trace(code: string, options?: TraceOptions): Promise<ExecutionTrace> {
     const stdin = options?.executionSettings?.stdin ?? '';
+    const randomSeed = options?.executionSettings?.randomSeed;
+    const attachedFiles = options?.executionSettings?.attachedFiles;
     const maxSteps = options?.maxSteps ?? DEFAULT_MAX_STEPS;
 
     // Write tracer script to temp location
@@ -225,21 +227,82 @@ export class LocalPythonBackend implements ICodeExecutionBackend {
     }
     fs.writeFileSync(TRACER_PATH, TRACER_SCRIPT, 'utf-8');
 
+    // Inject random seed if provided
+    let executionCode = code;
+    if (randomSeed !== undefined) {
+      const seedInjection = `import random\nrandom.seed(${randomSeed})\n`;
+      executionCode = seedInjection + code;
+    }
+
+    // Create temporary directory for attached files
+    let tempDir: string | null = null;
+    if (attachedFiles && attachedFiles.length > 0) {
+      tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'coding-tool-trace-'));
+
+      try {
+        validateAttachedFiles(attachedFiles);
+        for (const file of attachedFiles) {
+          const sanitizedName = sanitizeFilename(file.name);
+          const filePath = path.join(tempDir, sanitizedName);
+          fs.writeFileSync(filePath, file.content, 'utf-8');
+        }
+      } catch (error: unknown) {
+        // Clean up temp directory on error
+        if (tempDir) {
+          try {
+            fs.rmSync(tempDir, { recursive: true, force: true });
+          } catch (cleanupError) {
+            console.error('Failed to cleanup temp directory:', cleanupError);
+          }
+        }
+
+        const errorMessage =
+          error instanceof Error ? error.message : 'Unknown error';
+        return {
+          steps: [],
+          totalSteps: 0,
+          exitCode: 1,
+          error: `File attachment error: ${errorMessage}`,
+          truncated: false,
+        };
+      }
+    }
+
     return new Promise((resolve, reject) => {
+      // Build spawn options
+      const spawnOptions: {
+        cwd?: string;
+      } = {};
+
+      if (tempDir) {
+        spawnOptions.cwd = tempDir;
+      }
+
       // Spawn Python process with tracer script
-      const pythonProcess = spawn('python3', [
-        TRACER_PATH,
-        code,
-        stdin,
-        maxSteps.toString(),
-      ]);
+      const pythonProcess = spawn(
+        'python3',
+        [TRACER_PATH, executionCode, stdin, maxSteps.toString()],
+        spawnOptions
+      );
 
       let outputData = '';
       let errorData = '';
 
+      // Helper to clean up temp directory
+      const cleanupTempDir = () => {
+        if (tempDir) {
+          try {
+            fs.rmSync(tempDir, { recursive: true, force: true });
+          } catch (cleanupError) {
+            console.error('Failed to cleanup temp directory:', cleanupError);
+          }
+        }
+      };
+
       // Set timeout
       const timeout = setTimeout(() => {
         pythonProcess.kill();
+        cleanupTempDir();
         reject(new Error('Trace execution timeout exceeded'));
       }, TRACE_TIMEOUT);
 
@@ -253,6 +316,7 @@ export class LocalPythonBackend implements ICodeExecutionBackend {
 
       pythonProcess.on('close', (exitCode) => {
         clearTimeout(timeout);
+        cleanupTempDir();
 
         if (exitCode !== 0 && exitCode !== null) {
           // Non-zero exit but might still have valid trace data
@@ -277,6 +341,7 @@ export class LocalPythonBackend implements ICodeExecutionBackend {
 
       pythonProcess.on('error', (error) => {
         clearTimeout(timeout);
+        cleanupTempDir();
         reject(error);
       });
     });

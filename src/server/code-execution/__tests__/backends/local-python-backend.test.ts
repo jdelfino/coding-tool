@@ -258,6 +258,69 @@ describe('LocalPythonBackend', () => {
       );
       expect(stepInFunction).toBeDefined();
     });
+
+    it('should inject random seed when provided', async () => {
+      // Run twice with same seed, should get same random values
+      const code = 'import random\nx = random.randint(1, 1000)\nprint(x)';
+      const result1 = await backend.trace(code, {
+        executionSettings: { randomSeed: 42 },
+      });
+      const result2 = await backend.trace(code, {
+        executionSettings: { randomSeed: 42 },
+      });
+
+      expect(result1.exitCode).toBe(0);
+      expect(result2.exitCode).toBe(0);
+
+      // Find steps with x defined and compare values
+      const step1WithX = result1.steps.find(
+        (step) => step.locals['x'] !== undefined
+      );
+      const step2WithX = result2.steps.find(
+        (step) => step.locals['x'] !== undefined
+      );
+
+      expect(step1WithX).toBeDefined();
+      expect(step2WithX).toBeDefined();
+      expect(step1WithX!.locals['x']).toBe(step2WithX!.locals['x']);
+    });
+
+    it('should handle attached files in tracing', async () => {
+      const result = await backend.trace(
+        'with open("data.txt") as f:\n    content = f.read().strip()\nprint(content)',
+        {
+          executionSettings: {
+            attachedFiles: [{ name: 'data.txt', content: 'Hello from file!' }],
+          },
+        }
+      );
+
+      expect(result.exitCode).toBe(0);
+      // Find step where content is defined
+      const stepWithContent = result.steps.find(
+        (step) => step.locals['content'] !== undefined
+      );
+      expect(stepWithContent).toBeDefined();
+      expect(stepWithContent!.locals['content']).toBe('Hello from file!');
+    });
+
+    it('should return error for too many attached files', async () => {
+      const result = await backend.trace('print("test")', {
+        executionSettings: {
+          attachedFiles: [
+            { name: 'file1.txt', content: 'content1' },
+            { name: 'file2.txt', content: 'content2' },
+            { name: 'file3.txt', content: 'content3' },
+            { name: 'file4.txt', content: 'content4' },
+            { name: 'file5.txt', content: 'content5' },
+            { name: 'file6.txt', content: 'content6' }, // Too many
+          ],
+        },
+      });
+
+      expect(result.exitCode).toBe(1);
+      expect(result.error).toContain('Too many files');
+    });
   });
 
   describe('getStatus()', () => {

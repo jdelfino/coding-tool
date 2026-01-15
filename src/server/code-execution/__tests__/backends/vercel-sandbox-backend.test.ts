@@ -423,6 +423,112 @@ describe('VercelSandboxBackend', () => {
       expect(result.exitCode).toBe(1);
       expect(result.error).toBe('Failed to parse trace output');
     });
+
+    it('should inject random seed when provided', async () => {
+      const mockSandbox = createMockSandbox('test-sandbox');
+      const traceOutput = JSON.stringify({
+        steps: [],
+        totalSteps: 0,
+        exitCode: 0,
+        error: null,
+        truncated: false,
+      });
+      mockSandbox.runCommand.mockResolvedValue({
+        exitCode: 0,
+        stdout: jest.fn().mockResolvedValue(traceOutput),
+        stderr: jest.fn().mockResolvedValue(''),
+      });
+      mockStateRepository.getState.mockResolvedValue({ sandboxId: 'test-sandbox' });
+      mockSandboxGet.mockResolvedValue(mockSandbox);
+
+      await backend.trace('import random\nprint(random.random())', {
+        sessionId: 'session-123',
+        executionSettings: { randomSeed: 42 },
+      });
+
+      // Verify the code passed to tracer includes seed injection
+      expect(mockSandbox.runCommand).toHaveBeenCalledWith(
+        expect.objectContaining({
+          args: expect.arrayContaining([
+            expect.stringContaining('import random\nrandom.seed(42)'),
+          ]),
+        })
+      );
+    });
+
+    it('should handle attached files in tracing', async () => {
+      const mockSandbox = createMockSandbox('test-sandbox');
+      const traceOutput = JSON.stringify({
+        steps: [],
+        totalSteps: 0,
+        exitCode: 0,
+        error: null,
+        truncated: false,
+      });
+      mockSandbox.runCommand.mockResolvedValue({
+        exitCode: 0,
+        stdout: jest.fn().mockResolvedValue(traceOutput),
+        stderr: jest.fn().mockResolvedValue(''),
+      });
+      mockStateRepository.getState.mockResolvedValue({ sandboxId: 'test-sandbox' });
+      mockSandboxGet.mockResolvedValue(mockSandbox);
+
+      await backend.trace('print(open("data.txt").read())', {
+        sessionId: 'session-123',
+        executionSettings: {
+          attachedFiles: [{ name: 'data.txt', content: 'test data' }],
+        },
+      });
+
+      // Verify attached file is written to sandbox
+      expect(mockSandbox.writeFiles).toHaveBeenCalledWith(
+        expect.arrayContaining([
+          expect.objectContaining({ path: 'data.txt' }),
+        ])
+      );
+    });
+
+    it('should handle both randomSeed and attachedFiles together', async () => {
+      const mockSandbox = createMockSandbox('test-sandbox');
+      const traceOutput = JSON.stringify({
+        steps: [],
+        totalSteps: 0,
+        exitCode: 0,
+        error: null,
+        truncated: false,
+      });
+      mockSandbox.runCommand.mockResolvedValue({
+        exitCode: 0,
+        stdout: jest.fn().mockResolvedValue(traceOutput),
+        stderr: jest.fn().mockResolvedValue(''),
+      });
+      mockStateRepository.getState.mockResolvedValue({ sandboxId: 'test-sandbox' });
+      mockSandboxGet.mockResolvedValue(mockSandbox);
+
+      await backend.trace('import random\nprint(open("data.txt").read())', {
+        sessionId: 'session-123',
+        executionSettings: {
+          randomSeed: 42,
+          attachedFiles: [{ name: 'data.txt', content: 'test data' }],
+        },
+      });
+
+      // Verify code has seed injection
+      expect(mockSandbox.runCommand).toHaveBeenCalledWith(
+        expect.objectContaining({
+          args: expect.arrayContaining([
+            expect.stringContaining('import random\nrandom.seed(42)'),
+          ]),
+        })
+      );
+
+      // Verify attached file is written
+      expect(mockSandbox.writeFiles).toHaveBeenCalledWith(
+        expect.arrayContaining([
+          expect.objectContaining({ path: 'data.txt' }),
+        ])
+      );
+    });
   });
 
   describe('getStatus()', () => {

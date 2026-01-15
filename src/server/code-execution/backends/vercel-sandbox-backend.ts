@@ -372,6 +372,8 @@ export class VercelSandboxBackend implements ISessionScopedBackend {
     const startTime = Date.now();
     const sessionId = options?.sessionId;
     const stdin = options?.executionSettings?.stdin ?? '';
+    const randomSeed = options?.executionSettings?.randomSeed;
+    const attachedFiles = options?.executionSettings?.attachedFiles;
     const maxSteps = options?.maxSteps ?? DEFAULT_MAX_STEPS;
 
     if (!sessionId) {
@@ -387,10 +389,25 @@ export class VercelSandboxBackend implements ISessionScopedBackend {
     try {
       const sandbox = await this.getSandbox(sessionId);
 
-      // Write tracer script to sandbox
+      // Inject random seed if provided
+      let executionCode = code;
+      if (randomSeed !== undefined) {
+        const seedInjection = `import random\nrandom.seed(${randomSeed})\n`;
+        executionCode = seedInjection + code;
+      }
+
+      // Write tracer script and attached files to sandbox
       const filesToWrite: Array<{ path: string; content: Buffer }> = [
         { path: TRACER_PATH, content: Buffer.from(TRACER_SCRIPT) },
       ];
+
+      // Add attached files
+      if (attachedFiles && attachedFiles.length > 0) {
+        for (const file of attachedFiles) {
+          const sanitizedName = sanitizeFilename(file.name);
+          filesToWrite.push({ path: sanitizedName, content: Buffer.from(file.content) });
+        }
+      }
 
       await sandbox.writeFiles(filesToWrite);
 
@@ -401,7 +418,7 @@ export class VercelSandboxBackend implements ISessionScopedBackend {
       try {
         const result = await sandbox.runCommand({
           cmd: 'python3',
-          args: [TRACER_PATH, code, stdin, maxSteps.toString()],
+          args: [TRACER_PATH, executionCode, stdin, maxSteps.toString()],
           cwd: SANDBOX_CWD,
           signal: controller.signal,
         });
