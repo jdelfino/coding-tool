@@ -43,6 +43,13 @@ jest.mock('@/hooks/useResponsiveLayout', () => ({
     toggle: jest.fn(),
     setCollapsed: jest.fn(),
   })),
+  useMobileViewport: jest.fn(() => ({
+    isMobile: false,
+    isTablet: false,
+    isVerySmall: false,
+    isDesktop: true,
+    width: 1200,
+  })),
 }));
 
 describe('CodeEditor Responsive Layout', () => {
@@ -52,8 +59,15 @@ describe('CodeEditor Responsive Layout', () => {
 
   describe('Desktop Layout (>= 1024px)', () => {
     beforeEach(() => {
-      const { useResponsiveLayout } = require('@/hooks/useResponsiveLayout');
+      const { useResponsiveLayout, useMobileViewport } = require('@/hooks/useResponsiveLayout');
       useResponsiveLayout.mockReturnValue(true); // Desktop
+      useMobileViewport.mockReturnValue({
+        isMobile: false,
+        isTablet: false,
+        isVerySmall: false,
+        isDesktop: true,
+        width: 1200,
+      });
     });
 
     it('should render execution settings in sidebar on desktop', () => {
@@ -98,8 +112,15 @@ describe('CodeEditor Responsive Layout', () => {
 
   describe('Mobile Layout (< 1024px)', () => {
     beforeEach(() => {
-      const { useResponsiveLayout } = require('@/hooks/useResponsiveLayout');
+      const { useResponsiveLayout, useMobileViewport } = require('@/hooks/useResponsiveLayout');
       useResponsiveLayout.mockReturnValue(false); // Mobile
+      useMobileViewport.mockReturnValue({
+        isMobile: true,
+        isTablet: false,
+        isVerySmall: false,
+        isDesktop: false,
+        width: 600,
+      });
     });
 
     it('should render mobile action bar with toggleable settings on mobile', () => {
@@ -175,6 +196,140 @@ describe('CodeEditor Responsive Layout', () => {
       expect(screen.queryByTestId('execution-settings')).not.toBeInTheDocument();
       expect(screen.queryByText('Test Problem')).not.toBeInTheDocument();
     });
+
+    it('should render Show Code and Show Output toggle buttons on mobile', () => {
+      render(
+        <CodeEditor
+          code="print('hello')"
+          onChange={jest.fn()}
+        />
+      );
+
+      // Should have Code/Output toggle buttons
+      expect(screen.getByTestId('mobile-show-code')).toBeInTheDocument();
+      expect(screen.getByTestId('mobile-show-output')).toBeInTheDocument();
+    });
+
+    it('should show code view by default on mobile', () => {
+      render(
+        <CodeEditor
+          code="print('hello')"
+          onChange={jest.fn()}
+        />
+      );
+
+      // Code button should be active (green)
+      const codeButton = screen.getByTestId('mobile-show-code');
+      expect(codeButton).toHaveClass('bg-green-600');
+
+      // Output button should not be active
+      const outputButton = screen.getByTestId('mobile-show-output');
+      expect(outputButton).not.toHaveClass('bg-green-600');
+    });
+
+    it('should not render resize handle on mobile', () => {
+      const { container } = render(
+        <CodeEditor
+          code="print('hello')"
+          onChange={jest.fn()}
+        />
+      );
+
+      // The resize handle should not be present on mobile
+      const resizeHandle = container.querySelector('.cursor-row-resize');
+      expect(resizeHandle).not.toBeInTheDocument();
+    });
+  });
+
+  describe('Mobile View Toggle', () => {
+    beforeEach(() => {
+      const { useResponsiveLayout, useMobileViewport } = require('@/hooks/useResponsiveLayout');
+      useResponsiveLayout.mockReturnValue(false); // Mobile
+      useMobileViewport.mockReturnValue({
+        isMobile: true,
+        isTablet: false,
+        isVerySmall: false,
+        isDesktop: false,
+        width: 600,
+      });
+    });
+
+    it('should toggle between code and output views on mobile', async () => {
+      const { fireEvent } = await import('@testing-library/react');
+
+      render(
+        <CodeEditor
+          code="print('hello')"
+          onChange={jest.fn()}
+          executionResult={{
+            success: true,
+            output: 'Hello World',
+            error: '',
+            executionTime: 100,
+          }}
+        />
+      );
+
+      // Initially showing code view
+      const codeButton = screen.getByTestId('mobile-show-code');
+      const outputButton = screen.getByTestId('mobile-show-output');
+
+      expect(codeButton).toHaveClass('bg-green-600');
+      expect(outputButton).not.toHaveClass('bg-green-600');
+
+      // Click on Output button
+      fireEvent.click(outputButton);
+
+      // Now output should be active
+      expect(outputButton).toHaveClass('bg-green-600');
+      expect(codeButton).not.toHaveClass('bg-green-600');
+
+      // Click back on Code button
+      fireEvent.click(codeButton);
+
+      // Code should be active again
+      expect(codeButton).toHaveClass('bg-green-600');
+      expect(outputButton).not.toHaveClass('bg-green-600');
+    });
+  });
+
+  describe('Very Small Viewport (< 480px)', () => {
+    beforeEach(() => {
+      const { useResponsiveLayout, useMobileViewport } = require('@/hooks/useResponsiveLayout');
+      useResponsiveLayout.mockReturnValue(false); // Not desktop
+      useMobileViewport.mockReturnValue({
+        isMobile: true,
+        isTablet: false,
+        isVerySmall: true,
+        isDesktop: false,
+        width: 375,
+      });
+    });
+
+    it('should render code editor on very small screens', () => {
+      render(
+        <CodeEditor
+          code="print('hello')"
+          onChange={jest.fn()}
+        />
+      );
+
+      // Should still render the editor
+      expect(screen.getByTestId('monaco-editor')).toBeInTheDocument();
+    });
+
+    it('should render mobile action bar on very small screens', () => {
+      render(
+        <CodeEditor
+          code="print('hello')"
+          onChange={jest.fn()}
+        />
+      );
+
+      // Should have mobile toggle buttons
+      expect(screen.getByTestId('mobile-show-code')).toBeInTheDocument();
+      expect(screen.getByTestId('mobile-show-output')).toBeInTheDocument();
+    });
   });
 
   describe('Responsive Execution Results', () => {
@@ -186,8 +341,15 @@ describe('CodeEditor Responsive Layout', () => {
     };
 
     it('should render execution results below editor on desktop', () => {
-      const { useResponsiveLayout } = require('@/hooks/useResponsiveLayout');
+      const { useResponsiveLayout, useMobileViewport } = require('@/hooks/useResponsiveLayout');
       useResponsiveLayout.mockReturnValue(true);
+      useMobileViewport.mockReturnValue({
+        isMobile: false,
+        isTablet: false,
+        isVerySmall: false,
+        isDesktop: true,
+        width: 1200,
+      });
 
       render(
         <CodeEditor
@@ -201,9 +363,17 @@ describe('CodeEditor Responsive Layout', () => {
       expect(screen.getByText('Test output')).toBeInTheDocument();
     });
 
-    it('should render execution results below editor on mobile', () => {
-      const { useResponsiveLayout } = require('@/hooks/useResponsiveLayout');
+    it('should render execution results when output view is selected on mobile', async () => {
+      const { fireEvent } = await import('@testing-library/react');
+      const { useResponsiveLayout, useMobileViewport } = require('@/hooks/useResponsiveLayout');
       useResponsiveLayout.mockReturnValue(false);
+      useMobileViewport.mockReturnValue({
+        isMobile: true,
+        isTablet: false,
+        isVerySmall: false,
+        isDesktop: false,
+        width: 600,
+      });
 
       render(
         <CodeEditor
@@ -212,6 +382,10 @@ describe('CodeEditor Responsive Layout', () => {
           executionResult={executionResult}
         />
       );
+
+      // Switch to output view
+      const outputButton = screen.getByTestId('mobile-show-output');
+      fireEvent.click(outputButton);
 
       expect(screen.getByText('✓ Success')).toBeInTheDocument();
       expect(screen.getByText('Test output')).toBeInTheDocument();
@@ -220,8 +394,15 @@ describe('CodeEditor Responsive Layout', () => {
 
   describe('Sidebar Collapse State', () => {
     it('should render collapsed sidebar when isCollapsed is true', () => {
-      const { useResponsiveLayout, useSidebarSection } = require('@/hooks/useResponsiveLayout');
+      const { useResponsiveLayout, useSidebarSection, useMobileViewport } = require('@/hooks/useResponsiveLayout');
       useResponsiveLayout.mockReturnValue(true);
+      useMobileViewport.mockReturnValue({
+        isMobile: false,
+        isTablet: false,
+        isVerySmall: false,
+        isDesktop: true,
+        width: 1200,
+      });
       useSidebarSection.mockReturnValue({
         isCollapsed: true,
         toggle: jest.fn(),
@@ -242,8 +423,15 @@ describe('CodeEditor Responsive Layout', () => {
     });
 
     it('should render expanded sidebar when isCollapsed is false', () => {
-      const { useResponsiveLayout, useSidebarSection } = require('@/hooks/useResponsiveLayout');
+      const { useResponsiveLayout, useSidebarSection, useMobileViewport } = require('@/hooks/useResponsiveLayout');
       useResponsiveLayout.mockReturnValue(true);
+      useMobileViewport.mockReturnValue({
+        isMobile: false,
+        isTablet: false,
+        isVerySmall: false,
+        isDesktop: true,
+        width: 1200,
+      });
       useSidebarSection.mockReturnValue({
         isCollapsed: false,
         toggle: jest.fn(),
@@ -267,8 +455,15 @@ describe('CodeEditor Responsive Layout', () => {
 
   describe('Read-only Mode', () => {
     it('should support responsive layout in read-only mode', () => {
-      const { useResponsiveLayout, useSidebarSection } = require('@/hooks/useResponsiveLayout');
+      const { useResponsiveLayout, useSidebarSection, useMobileViewport } = require('@/hooks/useResponsiveLayout');
       useResponsiveLayout.mockReturnValue(true);
+      useMobileViewport.mockReturnValue({
+        isMobile: false,
+        isTablet: false,
+        isVerySmall: false,
+        isDesktop: true,
+        width: 1200,
+      });
       useSidebarSection.mockReturnValue({
         isCollapsed: false,
         toggle: jest.fn(),
@@ -286,6 +481,36 @@ describe('CodeEditor Responsive Layout', () => {
       // Should still render sidebar button in read-only mode
       const sidebarButton = screen.getByRole('button', { name: /execution settings/i });
       expect(sidebarButton).toBeInTheDocument();
+    });
+  });
+
+  describe('Resize Handle Desktop Only', () => {
+    it('should render resize handle on desktop', () => {
+      const { useResponsiveLayout, useSidebarSection, useMobileViewport } = require('@/hooks/useResponsiveLayout');
+      useResponsiveLayout.mockReturnValue(true);
+      useMobileViewport.mockReturnValue({
+        isMobile: false,
+        isTablet: false,
+        isVerySmall: false,
+        isDesktop: true,
+        width: 1200,
+      });
+      useSidebarSection.mockReturnValue({
+        isCollapsed: false,
+        toggle: jest.fn(),
+        setCollapsed: jest.fn(),
+      });
+
+      const { container } = render(
+        <CodeEditor
+          code="print('hello')"
+          onChange={jest.fn()}
+        />
+      );
+
+      // The resize handle should be present on desktop
+      const resizeHandle = container.querySelector('.cursor-row-resize');
+      expect(resizeHandle).toBeInTheDocument();
     });
   });
 });

@@ -15,7 +15,14 @@ jest.mock('@/hooks/useResponsiveLayout', () => ({
     isCollapsed: true,
     toggle: jest.fn(),
     setCollapsed: jest.fn()
-  })
+  }),
+  useMobileViewport: () => ({
+    isMobile: false,
+    isTablet: false,
+    isVerySmall: false,
+    isDesktop: true,
+    width: 1200,
+  }),
 }));
 
 describe('CodeEditor - Debugger Output Display', () => {
