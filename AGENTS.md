@@ -1,145 +1,18 @@
 # Agent Instructions
 
-!!! Critical top-level context:
 You are an experienced software engineer, building well-structured, well-maintained
 software. You should not create or tolerate significant duplication, architectural
-mess, or poor code organization. Clean small messes up immediately, and file tickets 
+mess, or poor code organization. Clean small messes up immediately, and file tickets
 for resolving larger issues in follow-on work.
 
-# 🚨🚨🚨 CRITICAL: TEST-FIRST DEVELOPMENT 🚨🚨🚨
+## Workflows
 
-**⛔️ BEFORE EVERY COMMIT: Did you ADD NEW TESTS for your NEW CODE? ⛔️**
+Use the appropriate workflow for your task type:
 
-## The One Rule
+- **Epics** (multi-commit, branch-based): `/epic <id>`
+- **Tasks/bugs/features** (single commit to current branch): `/task <id>`
 
-**CHANGED CODE = NEW TESTS. No commits without new tests for changed code.**
-
-## Pre-Commit Questions
-
-1. **Did I change production code?** → Must add tests
-2. **Do existing tests pass?** → NOT ENOUGH. Did you add NEW tests?
-3. **Did I add NEW tests for EVERY file I changed?** → If NO, STOP
-4. **Do ALL tests pass (including new ones)?** → Run `npm test`
-5. **Any TypeScript errors?** → Run `npx tsc --noEmit`
-
-**"All existing tests pass" ≠ "I added tests for my changes"**
-
-## Common Violations
-
-❌ "Tests already pass" ← Did you ADD tests for YOUR changes?
-❌ "It's a small change" ← Still needs tests
-❌ "Bug fix only" ← Needs regression test
-❌ "I updated existing tests" ← Did you ADD new tests too?
-❌ "Frontend change" ← Needs component tests
-❌ "Changed 3 files, added tests for 1" ← Need tests for ALL 3
-
-## Workflow
-
-1. Change production file → Write test FIRST
-2. Run tests (they fail)
-3. Implement fix
-4. Run tests (they pass)
-5. Commit BOTH production + test files together
-
-## Commit Checklist
-
-⚠️ MANDATORY: Before every commit, verify:
-
-- [ ] 🚨 **TESTS WRITTEN** - Unit tests exist for ALL new/modified code (CHECK THIS FIRST)
-- [ ] 🚨 **TESTS COVER ALL CHANGES** - If you modified N files, you have tests for N files
-- [ ] ✅ All tests passing (`npm test`). Commits should never be made with failing tests.
-- [ ] ✅ No TypeScript errors (`npx tsc --noEmit`). Commits should never be made with TypeScript errors.
-- [ ] ✅ Test coverage adequate (run `npm test -- --coverage` to verify)
-- [ ] ✅ No type assertions (`as any`, `as unknown`) remain in production code. Use proper interfaces instead.
-- [ ] ✅ No optional chaining on required properties (`user?.role` when role is always present).
-
-**If you cannot check ALL boxes above, DO NOT COMMIT. Period.**
-
-# 🚨🚨🚨 CRITICAL: EPIC WORKFLOW (BRANCHES + PRs) 🚨🚨🚨
-
-**⛔️ EPICS MUST USE BRANCHES, WORKTREES, AND PRs ⛔️**
-
-## When This Applies
-
-- **Epics** (`-t epic`) - ALWAYS use branch workflow
-- **Tasks/bugs/features** - Use normal workflow (commit to main) unless prompt specifies otherwise
-
-## The Epic Workflow
-
-Epics are multi-commit bodies of work that MUST follow this workflow:
-
-### 1. Create Branch and Worktree
-
-```bash
-# Create feature branch
-git branch feature/<epic-name>
-
-# Create worktree for isolated development
-git worktree add ../project-<epic-name> feature/<epic-name>
-cd ../project-<epic-name>
-```
-
-### 2. Develop in the Worktree
-
-- Make commits to the feature branch
-- Follow all normal testing/compilation requirements
-- Push regularly to remote
-
-### 3. Open PR When Work Seems Complete
-
-```bash
-git push -u origin feature/<epic-name>
-gh pr create --title "feat: <Epic title>" --body "<description>"
-```
-
-### 4. Wait for CI to Pass
-
-- ALL CI checks must pass (unit tests, E2E, sandbox tests)
-- If CI fails, fix and push again
-- Do NOT proceed until all checks are green
-
-### 5. Prompt User Before Merging
-
-**MANDATORY**: After CI passes, ASK the user before merging:
-
-> "All CI checks pass. Ready to merge PR #X with squash? (This will merge N commits into main)"
-
-Do NOT merge without explicit user approval.
-
-### 6. Merge and Cleanup
-
-After user approval:
-```bash
-gh pr merge <number> --squash
-git worktree remove ../project-<epic-name>
-git branch -d feature/<epic-name>
-```
-
-### 7. Epic is Complete
-
-Only after the PR is merged to main is the epic considered complete.
-
-## Epic Completion Checklist
-
-⚠️ MANDATORY: An epic is NOT complete until ALL of these are true:
-
-- [ ] 🚨 **BRANCH CREATED** - Work is on a feature branch, not main
-- [ ] 🚨 **PR OPENED** - Changes are in a pull request
-- [ ] 🚨 **CI PASSING** - All automated checks are green
-- [ ] 🚨 **USER APPROVED** - User explicitly approved the merge
-- [ ] 🚨 **PR MERGED** - Changes are merged to main
-- [ ] ✅ Worktree cleaned up
-- [ ] ✅ Feature branch deleted
-
-**If you cannot check ALL boxes above, the epic is NOT complete. Period.**
-
-## Common Violations
-
-❌ "I committed to main" ← Epics MUST use branches
-❌ "PR is open, I'm done" ← Must wait for CI and user approval
-❌ "CI passed, merging now" ← Must ask user first
-❌ "User said merge" but CI failing ← Fix CI first
-❌ Leaving orphaned worktrees/branches ← Clean up after merge
+These commands load detailed workflow instructions including test requirements, commit checklists, and quality gates.
 
 ## Issue Tracking with bd (beads)
 
@@ -211,7 +84,7 @@ Issues must be fully self-contained - readable without any external context (pla
 - **Summary**: What and why in 1-2 sentences
 - **Files to modify**: Exact paths (with line numbers if relevant)
 - **Implementation steps**: Numbered, specific actions
-- **Example**: Show before → after transformation when applicable
+- **Example**: Show before -> after transformation when applicable
 
 **Optional but helpful:**
 - Edge cases or gotchas to watch for
@@ -231,7 +104,7 @@ Add timeout parameter to fetchUser() in src/api/users.ts
 2. Pass to underlying fetch() call
 3. Update tests in src/api/users.test.ts
 
-Example: fetchUser(id) → fetchUser(id, { timeout: 3000 })
+Example: fetchUser(id) -> fetchUser(id, { timeout: 3000 })
 Depends on: bd-abc123 (fetch wrapper refactor)
 ```
 
@@ -241,8 +114,8 @@ Depends on: bd-abc123 (fetch wrapper refactor)
 
 **TRAP**: Temporal words ("Phase 1", "before", "first") invert your thinking!
 ```
-WRONG: "Phase 1 before Phase 2" → bd dep add phase1 phase2
-RIGHT: "Phase 2 needs Phase 1" → bd dep add phase2 phase1
+WRONG: "Phase 1 before Phase 2" -> bd dep add phase1 phase2
+RIGHT: "Phase 2 needs Phase 1" -> bd dep add phase2 phase1
 ```
 **Verify**: `bd blocked` - tasks blocked by prerequisites, not dependents.
 
@@ -268,19 +141,6 @@ AI assistants often create planning and design documents during development:
 - Keep the repository root clean and focused on permanent project files
 - Only access `history/` when explicitly asked to review past planning
 
-**Example .gitignore entry (optional):**
-```
-# AI planning documents (ephemeral)
-history/
-```
-
-**Benefits:**
-- ✅ Clean repository root
-- ✅ Clear separation between ephemeral and permanent documentation
-- ✅ Easy to exclude from version control if desired
-- ✅ Preserves planning history for archeological research
-- ✅ Reduces noise when browsing the project
-
 ### CLI Help
 
 Run `bd <command> --help` to see all available flags for any command.
@@ -288,40 +148,13 @@ For example: `bd create --help` shows `--parent`, `--deps`, `--assignee`, etc.
 
 ### Important Rules
 
-- ✅ Use bd for ALL task tracking
-- ✅ Always use `--json` flag for programmatic use
-- ✅ Link discovered work with `discovered-from` dependencies
-- ✅ Check `bd ready` before asking "what should I work on?"
-- ✅ Store AI planning docs in `history/` directory
-- ✅ Run `bd <cmd> --help` to discover available flags
-- ❌ Do NOT create markdown TODO lists
-- ❌ Do NOT use external issue trackers
-- ❌ Do NOT duplicate tracking systems
-- ❌ Do NOT clutter repo root with planning documents
-
-## Landing the Plane (Session Completion)
-
-**When ending a work session**, you MUST complete ALL steps below. Work is NOT complete until `git push` succeeds.
-
-**MANDATORY WORKFLOW:**
-
-1. **File issues for remaining work** - Create issues for anything that needs follow-up
-2. **Run quality gates** (if code changed) - Tests, linters, builds
-3. **Update issue status** - Close finished work, update in-progress items
-4. **PUSH TO REMOTE** - This is MANDATORY:
-   ```bash
-   git pull --rebase
-   bd sync
-   git push
-   git status  # MUST show "up to date with origin"
-   ```
-5. **Clean up** - Clear stashes, prune remote branches
-6. **Verify** - All changes committed AND pushed
-7. **Hand off** - Provide context for next session
-
-**CRITICAL RULES:**
-- Work is NOT complete until `git push` succeeds
-- NEVER stop before pushing - that leaves work stranded locally
-- NEVER say "ready to push when you are" - YOU must push
-- If push fails, resolve and retry until it succeeds
-
+- Use bd for ALL task tracking
+- Always use `--json` flag for programmatic use
+- Link discovered work with `discovered-from` dependencies
+- Check `bd ready` before asking "what should I work on?"
+- Store AI planning docs in `history/` directory
+- Run `bd <cmd> --help` to discover available flags
+- Do NOT create markdown TODO lists
+- Do NOT use external issue trackers
+- Do NOT duplicate tracking systems
+- Do NOT clutter repo root with planning documents
