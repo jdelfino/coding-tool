@@ -1105,10 +1105,26 @@ export default function CodeEditor({
                 )}
               </div>
             ) : (
-              <div className="p-4 bg-gray-900 h-full flex items-center justify-center">
-                <p className="text-gray-400 text-sm italic">
-                  Program output will appear here after you run your code
-                </p>
+              <div className="p-4 bg-gray-900 h-full flex flex-col items-center justify-center">
+                {!problem ? (
+                  <>
+                    <p className="text-gray-400 text-sm italic mb-2">
+                      Waiting for instructor to load a problem...
+                    </p>
+                    <p className="text-gray-500 text-xs">
+                      You can start writing code while you wait.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-gray-400 text-sm italic mb-2">
+                      No output yet.
+                    </p>
+                    <p className="text-gray-500 text-xs">
+                      Click "Run Code" to execute your program and see the results here.
+                    </p>
+                  </>
+                )}
               </div>
             )}
           </div>

@@ -557,6 +557,7 @@ function InstructorPage() {
                     onSelectStudent={handleSelectStudent}
                     onShowOnPublicView={handleShowOnPublicView}
                     onViewHistory={handleViewRevisions}
+                    joinCode={joinCode || undefined}
                   />
 
                   {selectedStudentId && (

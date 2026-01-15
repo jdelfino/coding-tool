@@ -12,12 +12,14 @@ interface ExecutionResult {
 
 interface OutputPanelProps {
   result: ExecutionResult | null;
+  isConnected?: boolean;
+  isRunning?: boolean;
 }
 
-export default function OutputPanel({ result }: OutputPanelProps) {
+export default function OutputPanel({ result, isConnected = true, isRunning = false }: OutputPanelProps) {
   if (!result) {
     return (
-      <div style={{ 
+      <div style={{
         padding: '1rem',
         backgroundColor: '#f8f9fa',
         border: '1px solid #dee2e6',
@@ -26,9 +28,29 @@ export default function OutputPanel({ result }: OutputPanelProps) {
         minHeight: '150px'
       }}>
         <h4 style={{ marginTop: 0 }}>Output</h4>
-        <p style={{ color: '#666', fontStyle: 'italic' }}>
-          Run your code to see the output here.
-        </p>
+        {isRunning ? (
+          <p style={{ color: '#666', fontStyle: 'italic' }}>
+            Executing your code...
+          </p>
+        ) : !isConnected ? (
+          <div>
+            <p style={{ color: '#dc3545', margin: '0 0 0.5rem 0' }}>
+              Not connected to the session.
+            </p>
+            <p style={{ color: '#666', fontSize: '0.9rem', margin: 0 }}>
+              Please wait for the connection to be established before running code.
+            </p>
+          </div>
+        ) : (
+          <div>
+            <p style={{ color: '#666', fontStyle: 'italic', margin: '0 0 0.5rem 0' }}>
+              No output yet.
+            </p>
+            <p style={{ color: '#888', fontSize: '0.9rem', margin: 0 }}>
+              Click the "Run Code" button to execute your code and see the output here.
+            </p>
+          </div>
+        )}
       </div>
     );
   }

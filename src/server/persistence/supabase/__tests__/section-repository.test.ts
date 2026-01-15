@@ -545,7 +545,8 @@ describe('SupabaseSectionRepository', () => {
 
       const newJoinCode = await repository.regenerateJoinCode('section-123');
 
-      expect(newJoinCode).toMatch(/^[A-Z]{3}-[0-9]{3}-[A-Z]{3}$/);
+      // Join code is now 6 characters without dashes
+      expect(newJoinCode).toMatch(/^[A-Z0-9]{6}$/);
     });
 
     it('should throw error if update fails', async () => {
