@@ -2,9 +2,10 @@ import { Ratelimit } from '@upstash/ratelimit';
 import { Redis } from '@upstash/redis';
 
 const isProduction = process.env.NODE_ENV === 'production';
+const isCI = !!process.env.CI;
 
-// Validate rate limiting is configured in production
-if (isProduction && !process.env.UPSTASH_REDIS_REST_URL) {
+// Validate rate limiting is configured in production (but allow CI without it for E2E tests)
+if (isProduction && !isCI && !process.env.UPSTASH_REDIS_REST_URL) {
   throw new Error(
     'FATAL: Rate limiting is required in production but UPSTASH_REDIS_REST_URL is not set. ' +
     'Configure Upstash Redis or set NODE_ENV to development.'
@@ -19,9 +20,9 @@ const redis = process.env.UPSTASH_REDIS_REST_URL
     })
   : null;
 
-// Log warning in dev mode without Redis
-if (!isProduction && !redis) {
-  console.warn('[rate-limit] Redis not configured - rate limiting disabled in development');
+// Log warning in dev/CI mode without Redis
+if ((!isProduction || isCI) && !redis) {
+  console.warn('[rate-limit] Redis not configured - rate limiting disabled in development/CI');
 }
 
 // Rate limit categories by risk/cost
@@ -94,9 +95,9 @@ export async function checkRateLimit(
 ): Promise<RateLimitResult> {
   const limiter = RateLimiters[category];
   if (!limiter) {
-    // In dev without Redis - allow request but log warning
-    if (!isProduction) {
-      console.warn(`[rate-limit] Skipping rate limit for ${category} - Redis not configured (dev mode)`);
+    // In dev/CI without Redis - allow request but log warning
+    if (!isProduction || isCI) {
+      console.warn(`[rate-limit] Skipping rate limit for ${category} - Redis not configured (dev/CI mode)`);
       return { success: true, limited: false };
     }
     // Should never reach here in prod due to startup check
