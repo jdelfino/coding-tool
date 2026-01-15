@@ -141,9 +141,12 @@ describeE2E('Student Registration via Join Code', () => {
       // Wait for page to load
       await expect(page.locator('h2:has-text("Join Your Section")')).toBeVisible({ timeout: 10000 });
 
-      // Verify the join code is pre-filled (with dashes added)
+      // Verify the join code is pre-filled (formatted as XXX-XXX)
       const codeInput = page.locator('input#joinCode');
-      await expect(codeInput).toHaveValue(section.joinCode);
+      const expectedFormattedCode = section.joinCode.length === 6
+        ? `${section.joinCode.slice(0, 3)}-${section.joinCode.slice(3)}`
+        : section.joinCode;
+      await expect(codeInput).toHaveValue(expectedFormattedCode);
       console.log(`Join code pre-filled: ${section.joinCode}`);
 
       // Click Continue to validate pre-filled code
