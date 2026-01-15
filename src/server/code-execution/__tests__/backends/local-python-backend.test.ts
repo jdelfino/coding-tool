@@ -105,6 +105,64 @@ describe('LocalPythonBackend', () => {
       expect(result.error).toContain('timed out');
     }, 10000);
 
+    describe('stdin-blocked detection', () => {
+      it('should detect when program waits for input but none provided', async () => {
+        const submission: CodeSubmission = {
+          code: 'name = input("Enter name: ")',
+          // No stdin provided
+        };
+
+        const result = await backend.execute(submission);
+
+        expect(result.success).toBe(false);
+        expect(result.error).toContain('waiting for input');
+        expect(result.error).toContain('no more input was provided');
+      }, 10000);
+
+      it('should detect when program needs more input than provided (insufficient stdin)', async () => {
+        const submission: CodeSubmission = {
+          code: 'name = input("Name: ")\nage = input("Age: ")\nprint(f"{name} is {age}")',
+          executionSettings: {
+            stdin: 'Alice\n', // Only provides first input, missing second
+          },
+        };
+
+        const result = await backend.execute(submission);
+
+        expect(result.success).toBe(false);
+        expect(result.error).toContain('waiting for input');
+        expect(result.error).toContain('no more input was provided');
+      }, 10000);
+
+      it('should still work correctly when sufficient input is provided', async () => {
+        const submission: CodeSubmission = {
+          code: 'name = input("Name: ")\nage = input("Age: ")\nprint(f"{name} is {age}")',
+          executionSettings: {
+            stdin: 'Alice\n25\n', // Provides both inputs
+          },
+        };
+
+        const result = await backend.execute(submission);
+
+        expect(result.success).toBe(true);
+        expect(result.output).toContain('Alice is 25');
+      });
+
+      it('should not trigger stdin-blocked for code that produces output before blocking', async () => {
+        const submission: CodeSubmission = {
+          code: 'print("Hello")\nimport time\ntime.sleep(5)',
+        };
+
+        // This code produces output first, so it shouldn't trigger the stdin-blocked error
+        // It should trigger a normal timeout instead
+        const result = await backend.execute(submission, { timeout: 200 });
+
+        expect(result.success).toBe(false);
+        expect(result.error).toContain('timed out');
+        expect(result.error).not.toContain('waiting for input');
+      }, 10000);
+    });
+
     it('should inject random seed when provided', async () => {
       const submission: CodeSubmission = {
         code: 'import random\nprint(random.randint(1, 1000))',

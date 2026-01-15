@@ -125,11 +125,12 @@ export class LocalPythonBackend implements ICodeExecutionBackend {
         spawnOptions
       );
 
-      // Pipe stdin to the process if provided
+      // Pipe stdin to the process if provided, then always close stdin
+      // This ensures input() gets EOF immediately if no more input is available
       if (stdin !== undefined && stdin !== null) {
         pythonProcess.stdin.write(stdin);
-        pythonProcess.stdin.end();
       }
+      pythonProcess.stdin.end();
 
       // Set up timeout handler
       const timeoutId = setTimeout(() => {
@@ -181,10 +182,17 @@ export class LocalPythonBackend implements ICodeExecutionBackend {
 
         const success = exitCode === 0 && stderr.length === 0;
 
+        // Check for EOF errors which indicate the program was waiting for more input
+        let errorOutput = truncateOutput(stderr);
+        if (stderr.includes('EOFError') && stderr.includes('reading a line')) {
+          errorOutput = 'Program appears to be waiting for input, but no more input was provided. ' +
+            'Make sure your code has all the input it needs, or check for extra input() calls.';
+        }
+
         resolve({
           success,
           output: truncateOutput(stdout),
-          error: truncateOutput(stderr),
+          error: errorOutput,
           executionTime,
           stdin, // Include stdin in the result
         });
