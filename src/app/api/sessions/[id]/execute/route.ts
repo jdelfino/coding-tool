@@ -10,6 +10,7 @@ import { getExecutorService } from '@/server/code-execution';
 import { validateCodeSize, validateStdinSize } from '@/server/code-execution/utils';
 import { ExecutionSettings } from '@/server/types/problem';
 import * as SessionService from '@/server/services/session-service';
+import { rateLimit } from '@/server/rate-limit';
 
 interface ExecuteCodeBody {
   studentId: string;
@@ -24,6 +25,10 @@ export async function POST(
   try {
     // Authenticate user
     const user = await getAuthenticatedUser(request);
+
+    // Rate limit by user ID (resource intensive operation)
+    const limited = await rateLimit('execute', request, user.id);
+    if (limited) return limited;
 
     // Get session ID from params
     const { id: sessionId } = await params;

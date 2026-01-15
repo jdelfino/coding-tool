@@ -5,6 +5,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthProvider } from '@/server/auth';
 import { getSectionRepository } from '@/server/classes';
+import { rateLimit } from '@/server/rate-limit';
 
 export async function POST(
   request: NextRequest,
@@ -23,6 +24,10 @@ export async function POST(
         { status: 401 }
       );
     }
+
+    // Rate limit by user ID (write operation)
+    const limited = await rateLimit('write', request, session.user.id);
+    if (limited) return limited;
 
     const sectionRepo = await getSectionRepository();
     const section = await sectionRepo.getSection(id);

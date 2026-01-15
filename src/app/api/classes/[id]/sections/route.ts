@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getClassRepository, getSectionRepository, getMembershipRepository } from '@/server/classes';
 import { requireAuth, requirePermission, getNamespaceContext } from '@/server/auth/api-helpers';
+import { rateLimit } from '@/server/rate-limit';
 
 export async function GET(
   request: NextRequest,
@@ -93,6 +94,10 @@ export async function POST(
     }
 
     const { user } = auth;
+
+    // Rate limit by user ID (write operation)
+    const limited = await rateLimit('write', request, user.id);
+    if (limited) return limited;
     const namespaceId = getNamespaceContext(request, user);
 
     const classRepo = await getClassRepository();

@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getStorage } from '@/server/persistence';
 import { requireAuth, getNamespaceContext } from '@/server/auth/api-helpers';
+import { rateLimit } from '@/server/rate-limit';
 import type { ProblemInput } from '@/server/types/problem';
 
 /**
@@ -72,6 +73,10 @@ export async function POST(request: NextRequest) {
     }
 
     const { user } = auth;
+
+    // Rate limit by user ID (write operation)
+    const limited = await rateLimit('write', request, user.id);
+    if (limited) return limited;
 
     // Only instructors and admins can create problems
     if (user.role !== 'instructor' && user.role !== 'namespace-admin' && user.role !== 'system-admin') {

@@ -5,8 +5,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/server/auth/api-helpers';
 import { getSectionRepository, getMembershipRepository } from '@/server/classes';
+import { rateLimit } from '@/server/rate-limit';
 
 export async function POST(request: NextRequest) {
+  // Rate limit by IP to prevent join code brute force attacks
+  const limited = await rateLimit('join', request);
+  if (limited) return limited;
+
   try {
     const auth = await requireAuth(request);
     if (auth instanceof NextResponse) {

@@ -5,8 +5,13 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthProvider } from '@/server/auth';
+import { rateLimit } from '@/server/rate-limit';
 
 export async function POST(request: NextRequest) {
+  // Rate limit by IP to prevent brute force attacks
+  const limited = await rateLimit('auth', request);
+  if (limited) return limited;
+
   try {
     const body = await request.json();
     const { email, password } = body;

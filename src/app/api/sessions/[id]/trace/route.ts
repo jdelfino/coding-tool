@@ -8,6 +8,7 @@ import { getAuthenticatedUser } from '@/server/auth/api-auth';
 import { getStorage } from '@/server/persistence';
 import { getExecutorService, TraceOptions } from '@/server/code-execution';
 import { validateCodeSize, validateStdinSize, validateMaxSteps } from '@/server/code-execution/utils';
+import { rateLimit } from '@/server/rate-limit';
 
 interface TraceCodeBody {
   code: string;
@@ -22,6 +23,10 @@ export async function POST(
   try {
     // Authenticate user
     const user = await getAuthenticatedUser(request);
+
+    // Rate limit by user ID (very resource intensive operation)
+    const limited = await rateLimit('trace', request, user.id);
+    if (limited) return limited;
 
     // Get session ID from params
     const { id: sessionId } = await params;

@@ -3,6 +3,7 @@ import { getAuthenticatedUser } from '@/server/auth/api-auth';
 import { getStorage } from '@/server/persistence';
 import * as SessionService from '@/server/services/session-service';
 import { getExecutorService } from '@/server/code-execution';
+import { rateLimit } from '@/server/rate-limit';
 
 /**
  * DELETE /api/sessions/:id
@@ -19,6 +20,10 @@ export async function DELETE(
 
     // Authenticate user
     const user = await getAuthenticatedUser(request);
+
+    // Rate limit by user ID (write operation)
+    const limited = await rateLimit('write', request, user.id);
+    if (limited) return limited;
 
     // Get the session to verify it exists and check ownership
     const storage = await getStorage();

@@ -9,6 +9,7 @@ import { getStorage } from '@/server/persistence';
 import { getRevisionBuffer } from '@/server/revision-buffer';
 import * as SessionService from '@/server/services/session-service';
 import { ExecutionSettings } from '@/server/types/problem';
+import { rateLimit } from '@/server/rate-limit';
 
 interface SaveCodeBody {
   studentId: string;
@@ -23,6 +24,10 @@ export async function POST(
   try {
     // Authenticate user
     const user = await getAuthenticatedUser(request);
+
+    // Rate limit by user ID (write operation - allow higher limit for frequent saves)
+    const limited = await rateLimit('write', request, user.id);
+    if (limited) return limited;
 
     // Get session ID from params
     const { id: sessionId } = await params;

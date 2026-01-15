@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getClassRepository } from '@/server/classes';
 import { requirePermission, requireAuth, getNamespaceContext } from '@/server/auth/api-helpers';
+import { rateLimit } from '@/server/rate-limit';
 
 export async function GET(request: NextRequest) {
   try {
@@ -38,6 +39,10 @@ export async function POST(request: NextRequest) {
     if (auth instanceof NextResponse) {
       return auth; // Return 401/403 error response
     }
+
+    // Rate limit by user ID (write operation)
+    const limited = await rateLimit('write', request, auth.user.id);
+    if (limited) return limited;
 
     const body = await request.json();
     const { name, description } = body;

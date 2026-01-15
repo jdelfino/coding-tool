@@ -23,6 +23,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getExecutorService } from '@/server/code-execution';
 import { getAuthProvider } from '@/server/auth';
 import { validateCodeSize, validateStdinSize } from '@/server/code-execution/utils';
+import { rateLimit } from '@/server/rate-limit';
 
 export async function POST(request: NextRequest) {
   try {
@@ -35,6 +36,10 @@ export async function POST(request: NextRequest) {
         { status: 401 }
       );
     }
+
+    // Rate limit by user ID (resource intensive operation)
+    const limited = await rateLimit('execute', request, session.user.id);
+    if (limited) return limited;
 
     // Parse request body
     const body = await request.json();

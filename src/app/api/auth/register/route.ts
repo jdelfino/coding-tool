@@ -6,8 +6,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthProvider, getNamespaceRepository } from '@/server/auth';
 import { UserRole } from '@/server/auth/types';
+import { rateLimit } from '@/server/rate-limit';
 
 export async function POST(request: NextRequest) {
+  // Rate limit by IP to prevent abuse
+  const limited = await rateLimit('auth', request);
+  if (limited) return limited;
+
   try {
     const body = await request.json();
     const { email, password, username, namespaceId } = body;

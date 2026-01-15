@@ -8,6 +8,7 @@ import { getAuthProvider } from '@/server/auth';
 import { getStorage } from '@/server/persistence';
 import { Problem } from '@/server/types/problem';
 import * as SessionService from '@/server/services/session-service';
+import { rateLimit } from '@/server/rate-limit';
 
 type Params = {
   params: Promise<{
@@ -48,6 +49,10 @@ export async function POST(
         { status: 401 }
       );
     }
+
+    // Rate limit by user ID (write operation)
+    const limited = await rateLimit('write', request, authSession.user.id);
+    if (limited) return limited;
 
     // Verify user is an instructor
     if (authSession.user.role !== 'instructor' && authSession.user.role !== 'namespace-admin') {

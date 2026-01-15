@@ -8,6 +8,7 @@ import { getAuthProvider } from '@/server/auth';
 import { getSectionRepository, getMembershipRepository } from '@/server/classes';
 import { getUserRepository } from '@/server/auth';
 import { requireAuth } from '@/server/auth/api-helpers';
+import { rateLimit } from '@/server/rate-limit';
 
 export async function POST(
   request: NextRequest,
@@ -21,6 +22,10 @@ export async function POST(
     if (auth instanceof NextResponse) {
       return auth; // Return 401 error response
     }
+
+    // Rate limit by user ID (write operation)
+    const limited = await rateLimit('write', request, auth.user.id);
+    if (limited) return limited;
 
     const sectionRepo = await getSectionRepository();
     const section = await sectionRepo.getSection(id);

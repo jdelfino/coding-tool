@@ -3,6 +3,7 @@ import { requireAuth, getNamespaceContext } from '@/server/auth/api-helpers';
 import { getStorage } from '@/server/persistence';
 import * as SessionService from '@/server/services/session-service';
 import { getExecutorService } from '@/server/code-execution';
+import { rateLimit } from '@/server/rate-limit';
 
 /**
  * GET /api/sessions
@@ -96,6 +97,11 @@ export async function POST(request: NextRequest) {
     }
 
     const { user } = auth;
+
+    // Rate limit by user ID (write operation)
+    const limited = await rateLimit('write', request, user.id);
+    if (limited) return limited;
+
     const namespaceId = getNamespaceContext(request, user);
 
     // Only instructors can create sessions

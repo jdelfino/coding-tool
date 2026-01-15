@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUser } from '@/server/auth/api-auth';
 import { getStorage } from '@/server/persistence';
 import * as SessionService from '@/server/services/session-service';
+import { rateLimit } from '@/server/rate-limit';
 
 interface JoinSessionBody {
   studentId?: string;
@@ -17,6 +18,10 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // Rate limit by IP to prevent join abuse
+  const limited = await rateLimit('join', request);
+  if (limited) return limited;
+
   try {
     // Authenticate user
     const user = await getAuthenticatedUser(request);

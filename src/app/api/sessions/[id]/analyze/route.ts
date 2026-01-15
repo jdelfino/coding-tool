@@ -8,6 +8,7 @@ import { getAuthenticatedUser, checkPermission } from '@/server/auth/api-auth';
 import { getStorage } from '@/server/persistence';
 import { getGeminiService } from '@/server/services/gemini-analysis-service';
 import { AnalysisInput } from '@/server/types/analysis';
+import { rateLimit } from '@/server/rate-limit';
 
 export async function POST(
   request: NextRequest,
@@ -16,6 +17,10 @@ export async function POST(
   try {
     // Authenticate user
     const user = await getAuthenticatedUser(request);
+
+    // Rate limit by user ID (external API cost)
+    const limited = await rateLimit('analyze', request, user.id);
+    if (limited) return limited;
 
     // Check permission to view all student data
     if (!checkPermission(user, 'data.viewAll')) {

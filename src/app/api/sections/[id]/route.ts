@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth, getNamespaceContext } from '@/server/auth/api-helpers';
 import { getSectionRepository, getMembershipRepository } from '@/server/classes';
+import { rateLimit } from '@/server/rate-limit';
 
 export async function GET(
   request: NextRequest,
@@ -60,6 +61,11 @@ export async function PUT(
     }
 
     const { user } = auth;
+
+    // Rate limit by user ID (write operation)
+    const limited = await rateLimit('write', request, user.id);
+    if (limited) return limited;
+
     const namespaceId = getNamespaceContext(request, user);
 
     const sectionRepo = await getSectionRepository();
@@ -110,6 +116,11 @@ export async function DELETE(
     }
 
     const { user } = auth;
+
+    // Rate limit by user ID (write operation)
+    const limited = await rateLimit('write', request, user.id);
+    if (limited) return limited;
+
     const namespaceId = getNamespaceContext(request, user);
     const { id } = await context.params;
 

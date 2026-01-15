@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUser, checkPermission } from '@/server/auth/api-auth';
 import { getStorage } from '@/server/persistence';
 import * as SessionService from '@/server/services/session-service';
+import { rateLimit } from '@/server/rate-limit';
 
 interface FeatureStudentBody {
   studentId?: string;
@@ -19,6 +20,10 @@ export async function POST(
   try {
     // Authenticate user
     const user = await getAuthenticatedUser(request);
+
+    // Rate limit by user ID (write operation)
+    const limited = await rateLimit('write', request, user.id);
+    if (limited) return limited;
 
     // Check permission to feature students (requires session.viewAll)
     if (!checkPermission(user, 'session.viewAll')) {
