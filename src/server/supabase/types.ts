@@ -72,6 +72,56 @@ export type Database = {
           },
         ]
       }
+      invitations: {
+        Row: {
+          consumed_at: string | null
+          consumed_by: string | null
+          created_at: string
+          created_by: string
+          email: string
+          expires_at: string
+          id: string
+          namespace_id: string
+          revoked_at: string | null
+          supabase_user_id: string | null
+          target_role: string
+        }
+        Insert: {
+          consumed_at?: string | null
+          consumed_by?: string | null
+          created_at?: string
+          created_by: string
+          email: string
+          expires_at: string
+          id?: string
+          namespace_id: string
+          revoked_at?: string | null
+          supabase_user_id?: string | null
+          target_role: string
+        }
+        Update: {
+          consumed_at?: string | null
+          consumed_by?: string | null
+          created_at?: string
+          created_by?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          namespace_id?: string
+          revoked_at?: string | null
+          supabase_user_id?: string | null
+          target_role?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invitations_namespace_id_fkey"
+            columns: ["namespace_id"]
+            isOneToOne: false
+            referencedRelation: "namespaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       namespaces: {
         Row: {
           active: boolean
@@ -79,6 +129,8 @@ export type Database = {
           created_by: string | null
           display_name: string
           id: string
+          max_instructors: number | null
+          max_students: number | null
           updated_at: string
         }
         Insert: {
@@ -87,6 +139,8 @@ export type Database = {
           created_by?: string | null
           display_name: string
           id: string
+          max_instructors?: number | null
+          max_students?: number | null
           updated_at?: string
         }
         Update: {
@@ -95,6 +149,8 @@ export type Database = {
           created_by?: string | null
           display_name?: string
           id?: string
+          max_instructors?: number | null
+          max_students?: number | null
           updated_at?: string
         }
         Relationships: []

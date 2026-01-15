@@ -107,6 +107,7 @@ export type ProblemRow = Tables['problems']['Row'];
 export type SessionRow = Tables['sessions']['Row'];
 export type SessionStudentRow = Tables['session_students']['Row'];
 export type RevisionRow = Tables['revisions']['Row'];
+export type InvitationRow = Tables['invitations']['Row'];
 
 // Table insert types
 export type NamespaceInsert = Tables['namespaces']['Insert'];
@@ -118,6 +119,7 @@ export type ProblemInsert = Tables['problems']['Insert'];
 export type SessionInsert = Tables['sessions']['Insert'];
 export type SessionStudentInsert = Tables['session_students']['Insert'];
 export type RevisionInsert = Tables['revisions']['Insert'];
+export type InvitationInsert = Tables['invitations']['Insert'];
 
 // Table update types
 export type NamespaceUpdate = Tables['namespaces']['Update'];
@@ -129,3 +131,4 @@ export type ProblemUpdate = Tables['problems']['Update'];
 export type SessionUpdate = Tables['sessions']['Update'];
 export type SessionStudentUpdate = Tables['session_students']['Update'];
 export type RevisionUpdate = Tables['revisions']['Update'];
+export type InvitationUpdate = Tables['invitations']['Update'];
