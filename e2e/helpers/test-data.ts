@@ -77,13 +77,15 @@ export async function createTestClass(
 }
 
 /**
- * Generate a random join code in XXX-XXX-XXX format
+ * Generate a random join code in 6-character format (stored without dashes)
+ *
+ * The join code service normalizes and validates codes to be exactly 6 alphanumeric chars.
+ * Display formatting (XXX-XXX) is handled by formatJoinCodeForDisplay().
  */
 function generateJoinCode(): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Avoid ambiguous chars
   let code = '';
-  for (let i = 0; i < 9; i++) {
-    if (i > 0 && i % 3 === 0) code += '-';
+  for (let i = 0; i < 6; i++) {
     code += chars[Math.floor(Math.random() * chars.length)];
   }
   return code;
