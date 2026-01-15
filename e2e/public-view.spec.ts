@@ -26,9 +26,13 @@ describeE2E('Public View Feature', () => {
     const namespaceId = generateTestNamespaceId();
     await createTestNamespace(namespaceId);
 
+    // Declare contexts/pages outside try block so they're accessible in finally
+    let instructorContext: Awaited<ReturnType<typeof browser.newContext>> | undefined;
+    let publicViewPage: Awaited<ReturnType<typeof browser.newPage>> | undefined;
+
     try {
       // ===== INSTRUCTOR SETUP =====
-      const instructorContext = await browser.newContext();
+      instructorContext = await browser.newContext();
       const instructorPage = await instructorContext.newPage();
       await loginAsInstructor(instructorPage, `instructor-${namespaceId}`, namespaceId);
       await instructorPage.goto('/instructor');
@@ -83,7 +87,7 @@ describeE2E('Public View Feature', () => {
       });
 
       // ===== OPEN PUBLIC VIEW =====
-      const [publicViewPage] = await Promise.all([
+      [publicViewPage] = await Promise.all([
         instructorPage.context().waitForEvent('page'),
         instructorPage.locator('button:has-text("Open Public View")').click()
       ]);
@@ -189,11 +193,15 @@ describeE2E('Public View Feature', () => {
       await expect(publicViewPage.locator('.monaco-editor')).toBeVisible({ timeout: 5000 });
 
       console.log('Public view updated with featured code!');
-
-      // Cleanup
-      await publicViewPage.close();
-      await instructorContext.close();
     } finally {
+      // Close pages first to stop polling before cleaning up database
+      try {
+        // These may throw if pages are already closed
+        await publicViewPage?.close();
+      } catch { /* ignore */ }
+      try {
+        await instructorContext?.close();
+      } catch { /* ignore */ }
       await cleanupNamespace(namespaceId);
     }
   });
