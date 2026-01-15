@@ -405,6 +405,8 @@ function StudentPage() {
       {sessionEnded && (
         <SessionEndedNotification
           onLeaveToDashboard={handleLeaveSession}
+          code={code}
+          codeSaved={true}
         />
       )}
 
@@ -412,7 +414,7 @@ function StudentPage() {
         <CodeEditor
           code={code}
           onChange={setCode}
-          onRun={handleRunCode}
+          onRun={sessionEnded ? undefined : handleRunCode}
           isRunning={isRunning}
           exampleInput={sessionExecutionSettings.stdin}
           randomSeed={studentExecutionSettings?.randomSeed !== undefined ? studentExecutionSettings.randomSeed : sessionExecutionSettings.randomSeed}
@@ -421,9 +423,11 @@ function StudentPage() {
           onAttachedFilesChange={(files) => setStudentExecutionSettings(prev => ({ ...prev, attachedFiles: files }))}
           executionResult={executionResult}
           problem={problem}
-          onLoadStarterCode={handleLoadStarterCode}
+          onLoadStarterCode={sessionEnded ? undefined : handleLoadStarterCode}
           externalEditorRef={editorRef}
           debugger={debuggerHook}
+          readOnly={sessionEnded}
+          showRunButton={!sessionEnded}
         />
       </EditorContainer>
     </main>
