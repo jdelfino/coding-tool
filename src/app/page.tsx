@@ -399,6 +399,45 @@ export default function Home() {
             </p>
           </div>
         </div>
+
+        {/* Terms Notice */}
+        <p
+          style={{
+            margin: '0 1.5rem 1rem',
+            fontSize: '0.75rem',
+            color: '#9ca3af',
+            textAlign: 'center',
+            lineHeight: '1.5',
+          }}
+        >
+          By joining a section, you agree to our{' '}
+          <Link href="/terms" style={{ color: '#667eea', textDecoration: 'none' }}>
+            Terms of Service
+          </Link>{' '}
+          and{' '}
+          <Link href="/privacy" style={{ color: '#667eea', textDecoration: 'none' }}>
+            Privacy Policy
+          </Link>
+          .
+        </p>
+
+        {/* Footer Links */}
+        <div
+          style={{
+            padding: '1rem 1.5rem',
+            borderTop: '1px solid #e5e7eb',
+            display: 'flex',
+            justifyContent: 'center',
+            gap: '1.5rem',
+          }}
+        >
+          <Link href="/terms" style={{ fontSize: '0.75rem', color: '#6b7280', textDecoration: 'none' }}>
+            Terms
+          </Link>
+          <Link href="/privacy" style={{ fontSize: '0.75rem', color: '#6b7280', textDecoration: 'none' }}>
+            Privacy
+          </Link>
+        </div>
       </div>
     </main>
   );

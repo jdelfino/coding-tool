@@ -159,6 +159,16 @@ export default function SignInPage() {
             </p>
           </div>
         </div>
+
+        {/* Footer Links */}
+        <div className="mt-6 pt-4 border-t border-gray-100 flex justify-center gap-6 text-xs text-gray-500">
+          <Link href="/terms" className="hover:text-indigo-600 transition-colors">
+            Terms
+          </Link>
+          <Link href="/privacy" className="hover:text-indigo-600 transition-colors">
+            Privacy
+          </Link>
+        </div>
       </div>
     </div>
   );
