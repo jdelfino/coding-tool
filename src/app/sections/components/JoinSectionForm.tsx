@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { ErrorAlert } from '@/components/ErrorAlert';
 
 interface JoinSectionFormProps {
   onSubmit: (joinCode: string) => Promise<void>;
@@ -46,9 +47,10 @@ export default function JoinSectionForm({ onSubmit }: JoinSectionFormProps) {
         </div>
 
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-            {error}
-          </div>
+          <ErrorAlert
+            error={error}
+            onDismiss={() => setError(null)}
+          />
         )}
 
         {success && (

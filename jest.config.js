@@ -28,6 +28,7 @@ module.exports = {
       testMatch: [
         '<rootDir>/src/server/**/__tests__/**/*.test.ts',
         '<rootDir>/src/app/api/**/__tests__/**/*.test.ts',
+        '<rootDir>/src/lib/**/__tests__/**/*.test.ts',
       ],
       testPathIgnorePatterns: [
         '/node_modules/',

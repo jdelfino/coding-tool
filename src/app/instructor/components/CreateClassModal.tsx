@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { ErrorAlert } from '@/components/ErrorAlert';
 
 interface CreateClassModalProps {
   onClose: () => void;
@@ -119,9 +120,10 @@ export default function CreateClassModal({ onClose, onSuccess }: CreateClassModa
             </div>
 
             {error && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-red-700 text-sm">
-                {error}
-              </div>
+              <ErrorAlert
+                error={error}
+                onDismiss={() => setError(null)}
+              />
             )}
           </div>
 

@@ -55,14 +55,15 @@ const errorPatterns: Array<{
     userMessage: 'Connection error. Please check your internet and try again.',
     isRetryable: true,
   },
-  // Timeout errors
+  // Timeout errors (but not HTTP 504 which is a server error)
   {
     patterns: [
-      /timeout/i,
+      /^timeout$/i,
       /timed out/i,
       /etimedout/i,
       /request.*timeout/i,
       /operation.*timeout/i,
+      /connection.*timeout/i,
     ],
     category: 'timeout',
     userMessage: 'Request timed out. Please try again.',
