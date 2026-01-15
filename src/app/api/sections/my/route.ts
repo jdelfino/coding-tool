@@ -5,6 +5,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth, getNamespaceContext } from '@/server/auth/api-helpers';
 import { getMembershipRepository } from '@/server/classes';
+import { rateLimit } from '@/server/rate-limit';
 
 export async function GET(request: NextRequest) {
   try {
@@ -14,6 +15,11 @@ export async function GET(request: NextRequest) {
     }
 
     const { user } = auth;
+
+    // Rate limit by user ID (read operation)
+    const limited = await rateLimit('read', request, user.id);
+    if (limited) return limited;
+
     const namespaceId = getNamespaceContext(request, user);
 
     // Get all sections for this user with class info

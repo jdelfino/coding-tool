@@ -7,12 +7,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUser, checkPermission } from '@/server/auth/api-auth';
 import { getStorage } from '@/server/persistence';
+import { rateLimit } from '@/server/rate-limit';
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Rate limit by IP (public-state route)
+    const limited = await rateLimit('read', request);
+    if (limited) return limited;
+
     // Require authentication - instructors only
     const user = await getAuthenticatedUser(request);
     if (!checkPermission(user, 'session.viewAll')) {
