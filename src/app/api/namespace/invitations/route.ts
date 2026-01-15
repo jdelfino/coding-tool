@@ -10,7 +10,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requirePermission, getNamespaceContext } from '@/server/auth/api-helpers';
 import { getInvitationService, getInvitationRepository } from '@/server/invitations';
-import { InvitationError } from '@/server/invitations/types';
+import { InvitationError, getInvitationStatus } from '@/server/invitations/types';
 
 /**
  * Validates email format
@@ -66,9 +66,10 @@ export async function GET(request: NextRequest) {
       email,
     });
 
-    // Serialize dates for JSON response
+    // Serialize dates and compute status for JSON response
     const serializedInvitations = invitations.map(inv => ({
       ...inv,
+      status: getInvitationStatus(inv),
       createdAt: inv.createdAt.toISOString(),
       expiresAt: inv.expiresAt.toISOString(),
       consumedAt: inv.consumedAt?.toISOString(),

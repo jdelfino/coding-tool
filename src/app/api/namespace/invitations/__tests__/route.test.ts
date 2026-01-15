@@ -23,6 +23,12 @@ jest.mock('@/server/invitations/types', () => ({
       this.name = 'InvitationError';
     }
   },
+  getInvitationStatus: jest.fn((invitation: { consumedAt?: Date; revokedAt?: Date; expiresAt: Date }) => {
+    if (invitation.consumedAt) return 'consumed';
+    if (invitation.revokedAt) return 'revoked';
+    if (new Date(invitation.expiresAt) < new Date()) return 'expired';
+    return 'pending';
+  }),
 }));
 
 import { requirePermission, getNamespaceContext } from '@/server/auth/api-helpers';

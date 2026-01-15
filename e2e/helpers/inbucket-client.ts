@@ -1,13 +1,13 @@
 /**
- * Inbucket Email Client for E2E Testing
+ * Mailpit Email Client for E2E Testing
  *
- * Inbucket is the email testing service that Supabase local development uses.
+ * Mailpit is the email testing service that Supabase local development uses.
  * It provides a REST API to retrieve emails sent during testing.
  *
- * Default URL: http://localhost:54324 (Supabase's Inbucket instance)
+ * Default URL: http://localhost:54324 (Supabase's Mailpit instance)
  */
 
-const INBUCKET_URL = process.env.INBUCKET_URL || 'http://localhost:54324';
+const MAILPIT_URL = process.env.MAILPIT_URL || process.env.INBUCKET_URL || 'http://localhost:54324';
 
 export interface InbucketEmail {
   id: string;
@@ -21,29 +21,58 @@ export interface InbucketEmail {
   };
 }
 
-interface InbucketListItem {
-  id: string;
-  from: string;
-  to: string[];
-  subject: string;
-  date: string;
-  size: number;
+interface MailpitAddress {
+  Name: string;
+  Address: string;
+}
+
+interface MailpitListItem {
+  ID: string;
+  From: MailpitAddress;
+  To: MailpitAddress[];
+  Subject: string;
+  Created: string;
+  Size: number;
+}
+
+interface MailpitMessage {
+  ID: string;
+  From: MailpitAddress;
+  To: MailpitAddress[];
+  Subject: string;
+  Date: string;
+  Text: string;
+  HTML: string;
+}
+
+interface MailpitListResponse {
+  total: number;
+  messages: MailpitListItem[];
 }
 
 /**
- * Get the mailbox name from an email address
- * Inbucket uses the local part of the email (before @) as the mailbox name
+ * Convert Mailpit message to our standard format
  */
-function getMailboxName(email: string): string {
-  return email.split('@')[0];
+function convertMailpitMessage(msg: MailpitMessage): InbucketEmail {
+  return {
+    id: msg.ID,
+    from: msg.From.Address,
+    to: msg.To.map(t => t.Address),
+    subject: msg.Subject,
+    date: msg.Date,
+    body: {
+      text: msg.Text,
+      html: msg.HTML,
+    },
+  };
 }
 
 /**
- * List all emails in a mailbox
+ * List all emails for a recipient
+ * Mailpit stores all emails in a single inbox, so we filter by recipient
  */
-export async function listEmails(email: string): Promise<InbucketListItem[]> {
-  const mailbox = getMailboxName(email);
-  const response = await fetch(`${INBUCKET_URL}/api/v1/mailbox/${mailbox}`);
+export async function listEmails(email: string): Promise<{ id: string; from: string; to: string[]; subject: string; date: string; size: number }[]> {
+  const response = await fetch(`${MAILPIT_URL}/api/v1/messages`);
 
   if (!response.ok) {
     if (response.status === 404) {
@@ -52,21 +81,35 @@ export async function listEmails(email: string): Promise<InbucketListItem[]> {
     throw new Error(`Failed to list emails: ${response.status} ${response.statusText}`);
   }
 
-  return response.json();
+  const data: MailpitListResponse = await response.json();
+
+  // Filter by recipient email
+  const filtered = data.messages.filter(m =>
+    m.To.some(t => t.Address.toLowerCase() === email.toLowerCase())
+  );
+
+  return filtered.map(m => ({
+    id: m.ID,
+    from: m.From.Address,
+    to: m.To.map(t => t.Address),
+    subject: m.Subject,
+    date: m.Created,
+    size: m.Size,
+  }));
 }
 
 /**
  * Get a specific email by ID
  */
 export async function getEmail(email: string, messageId: string): Promise<InbucketEmail> {
-  const mailbox = getMailboxName(email);
-  const response = await fetch(`${INBUCKET_URL}/api/v1/mailbox/${mailbox}/${messageId}`);
+  const response = await fetch(`${MAILPIT_URL}/api/v1/message/${messageId}`);
 
   if (!response.ok) {
     throw new Error(`Failed to get email: ${response.status} ${response.statusText}`);
   }
 
-  return response.json();
+  const msg: MailpitMessage = await response.json();
+  return convertMailpitMessage(msg);
 }
 
 /**
@@ -152,12 +195,12 @@ export function extractInviteLink(emailContent: InbucketEmail): string | null {
   const content = emailContent.body.html || emailContent.body.text;
 
   // Look for Supabase confirmation/invite URLs
-  // Pattern matches URLs with token_hash parameter (used by Supabase)
+  // Pattern matches URLs with token parameter (used by Supabase)
   const urlPatterns = [
+    // Verification URL with token (Supabase format)
+    /https?:\/\/[^\s"<>]+\/auth\/v1\/verify\?token=[^\s"<>&]+[^\s"<>]*/gi,
     // Magic link with token_hash
     /https?:\/\/[^\s"<>]+token_hash=[^\s"<>&]+/gi,
-    // Confirmation URL pattern
-    /https?:\/\/[^\s"<>]+\/auth\/v1\/verify[^\s"<>]*/gi,
     // Generic invite URL pattern
     /https?:\/\/[^\s"<>]+\/invite\/accept[^\s"<>]*/gi,
     // Fallback: any URL with type=invite
@@ -179,26 +222,27 @@ export function extractInviteLink(emailContent: InbucketEmail): string | null {
 }
 
 /**
- * Clear all emails in a mailbox
+ * Clear all emails in a mailbox (delete all emails for a recipient)
+ * Mailpit doesn't support per-mailbox deletion, so we delete matching emails individually
  */
 export async function clearMailbox(email: string): Promise<void> {
-  const mailbox = getMailboxName(email);
-  const response = await fetch(`${INBUCKET_URL}/api/v1/mailbox/${mailbox}`, {
-    method: 'DELETE',
-  });
+  const messages = await listEmails(email);
 
-  if (!response.ok && response.status !== 404) {
-    throw new Error(`Failed to clear mailbox: ${response.status} ${response.statusText}`);
+  for (const msg of messages) {
+    await deleteEmail(email, msg.id);
   }
 }
 
 /**
  * Delete a specific email
  */
-export async function deleteEmail(email: string, messageId: string): Promise<void> {
-  const mailbox = getMailboxName(email);
-  const response = await fetch(`${INBUCKET_URL}/api/v1/mailbox/${mailbox}/${messageId}`, {
+export async function deleteEmail(_email: string, messageId: string): Promise<void> {
+  const response = await fetch(`${MAILPIT_URL}/api/v1/messages`, {
     method: 'DELETE',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ ids: [messageId] }),
   });
 
   if (!response.ok && response.status !== 404) {
