@@ -110,13 +110,18 @@ export class StudentRegistrationService {
    * @returns Validation result with section and namespace info
    */
   async validateSectionCode(code: string): Promise<ValidateSectionCodeResult> {
-    // Normalize the code: trim whitespace and convert to uppercase
-    const normalizedCode = code.trim().toUpperCase();
+    // Normalize the code: trim whitespace, uppercase, and format as XXX-XXX-XXX
+    const cleaned = code.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
 
     // Check for empty code
-    if (!normalizedCode) {
+    if (!cleaned) {
       return { valid: false, error: 'INVALID_CODE' };
     }
+
+    // Format as XXX-XXX-XXX (the database stores codes with dashes)
+    const normalizedCode = cleaned.length === 9
+      ? `${cleaned.slice(0, 3)}-${cleaned.slice(3, 6)}-${cleaned.slice(6, 9)}`
+      : cleaned; // If not exactly 9 chars, try as-is (may have dashes already)
 
     // Look up the section by join code
     const section = await this.sectionRepository.getSectionByJoinCode(normalizedCode);

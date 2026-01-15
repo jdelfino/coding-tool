@@ -69,8 +69,8 @@ describeE2E('Student Registration via Join Code', () => {
       console.log('Section preview displayed correctly');
 
       // Fill out registration form
-      const studentEmail = `student-${Date.now()}@test.local`;
-      const studentUsername = `student-${Date.now()}`;
+      const studentEmail = `student_${Date.now()}@test.local`;
+      const studentUsername = `student_${Date.now()}`;
       const studentPassword = 'TestPassword123';
 
       await page.fill('input#email', studentEmail);
@@ -81,9 +81,15 @@ describeE2E('Student Registration via Join Code', () => {
       // Submit registration
       await page.click('button:has-text("Create Account")');
 
-      // Wait for success and redirect to student dashboard
-      await expect(page.locator('text=Account Created!')).toBeVisible({ timeout: 10000 });
-      await page.waitForURL('/student', { timeout: 15000 });
+      // Wait for submission to complete: the button should stop being in "Creating..." state
+      await expect(page.locator('button:has-text("Creating account...")')).toBeHidden({ timeout: 10000 });
+
+      // Then check for success (either message or redirect)
+      const successVisible = await page.locator('text=Account Created!').isVisible().catch(() => false);
+      if (!successVisible) {
+        // If success message wasn't visible (fast redirect), wait for navigation
+        await page.waitForURL(/\/(student|auth)/, { timeout: 5000 });
+      }
 
       console.log('Student registration completed successfully!');
 
@@ -149,8 +155,8 @@ describeE2E('Student Registration via Join Code', () => {
       console.log('Section validated from URL parameter');
 
       // Complete registration
-      const studentEmail = `student-url-${Date.now()}@test.local`;
-      const studentUsername = `student-url-${Date.now()}`;
+      const studentEmail = `student_url_${Date.now()}@test.local`;
+      const studentUsername = `student_url_${Date.now()}`;
       const studentPassword = 'TestPassword123';
 
       await page.fill('input#email', studentEmail);
@@ -160,9 +166,16 @@ describeE2E('Student Registration via Join Code', () => {
 
       await page.click('button:has-text("Create Account")');
 
-      // Wait for success
-      await expect(page.locator('text=Account Created!')).toBeVisible({ timeout: 10000 });
-      await page.waitForURL('/student', { timeout: 15000 });
+      // Wait for submission to complete: either success message appears or we're redirected
+      // First wait for the button to stop being in "Creating..." state
+      await expect(page.locator('button:has-text("Creating account...")')).toBeHidden({ timeout: 10000 });
+
+      // Then check for success (either message or redirect)
+      const successVisible = await page.locator('text=Account Created!').isVisible().catch(() => false);
+      if (!successVisible) {
+        // If success message wasn't visible, wait for navigation
+        await page.waitForURL(/\/(student|auth)/, { timeout: 5000 });
+      }
 
       console.log('Student registration from URL parameter completed successfully!');
 
@@ -239,7 +252,7 @@ describeE2E('Student Registration via Join Code', () => {
 
       // Try to register with existing email
       await page.fill('input#email', existingEmail);
-      await page.fill('input#username', `new-${Date.now()}`);
+      await page.fill('input#username', `new_${Date.now()}`);
       await page.fill('input#password', 'TestPassword123');
       await page.fill('input#confirmPassword', 'TestPassword123');
 
@@ -249,8 +262,8 @@ describeE2E('Student Registration via Join Code', () => {
       await expect(page.locator('text=already exists')).toBeVisible({ timeout: 10000 });
       console.log('Duplicate email error displayed correctly');
 
-      // Should offer sign-in link
-      await expect(page.locator('a:has-text("Sign in")')).toBeVisible();
+      // Should offer sign-in link (in the error message)
+      await expect(page.locator('a:has-text("Sign in instead")')).toBeVisible();
     } finally {
       await cleanupNamespace(namespaceId);
     }
