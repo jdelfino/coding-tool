@@ -56,7 +56,8 @@ describeE2E('Public View Feature', () => {
       // Get join code from section card
       const sectionCard = instructorPage.locator('button:has-text("Test Section")').first();
       const cardText = await sectionCard.textContent() || '';
-      const joinCodeMatch = cardText.match(/[A-Z0-9]{3}-[A-Z0-9]{3}-[A-Z0-9]{3}|[A-Z0-9]{6}/);
+      // Match XXX-XXX (new format), XXX-XXX-XXX (old), or XXXXXX
+      const joinCodeMatch = cardText.match(/[A-Z0-9]{3}-[A-Z0-9]{3}(?:-[A-Z0-9]{3})?|[A-Z0-9]{6}/);
       if (!joinCodeMatch) {
         throw new Error(`Could not find join code: "${cardText}"`);
       }

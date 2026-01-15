@@ -73,8 +73,8 @@ describeE2E('Critical User Paths', () => {
       // The join code could be 6 chars (ABC123) or formatted with dashes (XXX-XXX-XXX)
       const sectionCard = instructorPage.locator('button:has-text("Test Section")').first();
       const cardText = await sectionCard.textContent() || '';
-      // Extract what looks like a join code: either XXX-XXX-XXX or XXXXXX format
-      const joinCodeMatch = cardText.match(/[A-Z0-9]{3}-[A-Z0-9]{3}-[A-Z0-9]{3}|[A-Z0-9]{6}/);
+      // Extract what looks like a join code: XXX-XXX (new format), XXX-XXX-XXX (old), or XXXXXX
+      const joinCodeMatch = cardText.match(/[A-Z0-9]{3}-[A-Z0-9]{3}(?:-[A-Z0-9]{3})?|[A-Z0-9]{6}/);
       if (!joinCodeMatch) {
         throw new Error(`Could not find join code in section card: "${cardText}"`);
       }
