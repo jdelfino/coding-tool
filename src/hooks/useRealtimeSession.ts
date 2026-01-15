@@ -100,6 +100,11 @@ export function useRealtimeSession({
     connectionError,
     lastMessage,
     onlineUsers,
+    reconnectAttempt,
+    maxReconnectAttempts,
+    connectionStartTime,
+    isReconnecting,
+    reconnect,
   } = useRealtime({
     sessionId,
     userId,
@@ -382,11 +387,16 @@ export function useRealtimeSession({
     connectionStatus,
     connectionError,
     onlineUsers,
+    reconnectAttempt,
+    maxReconnectAttempts,
+    connectionStartTime,
+    isReconnecting,
 
     // Actions
     updateCode,
     executeCode,
     featureStudent,
     joinSession,
+    reconnect,
   };
 }

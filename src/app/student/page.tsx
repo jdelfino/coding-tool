@@ -8,9 +8,11 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useSessionHistory } from '@/hooks/useSessionHistory';
 import { Problem, ExecutionSettings } from '@/server/types/problem';
 import { useDebugger } from '@/hooks/useDebugger';
+import { ErrorAlert } from '@/components/ErrorAlert';
 import CodeEditor from './components/CodeEditor';
 import { EditorContainer } from './components/EditorContainer';
 import SessionEndedNotification from './components/SessionEndedNotification';
+import { ConnectionStatus } from '@/components/ConnectionStatus';
 
 function StudentPage() {
   const { user, signOut } = useAuth();
@@ -46,6 +48,11 @@ function StudentPage() {
     isConnected,
     connectionStatus,
     connectionError,
+    reconnectAttempt,
+    maxReconnectAttempts,
+    connectionStartTime,
+    isReconnecting,
+    reconnect,
     updateCode: realtimeUpdateCode,
     executeCode: realtimeExecuteCode,
     joinSession,
@@ -223,12 +230,15 @@ function StudentPage() {
   // Show loading state while connecting
   if (!isConnected || loading) {
     return (
-      <main style={{ padding: '2rem', textAlign: 'center' }}>
-        <h1>Live Coding Classroom</h1>
-        <p>{loading ? 'Loading session...' : 'Connecting...'}</p>
+      <main className="p-8 text-center">
+        <h1 className="text-2xl font-bold mb-4">Live Coding Classroom</h1>
+        <p className="text-gray-600">{loading ? 'Loading session...' : 'Connecting...'}</p>
         {(realtimeError || error) && (
-          <div style={{ marginTop: '1rem', color: '#e00', padding: '1rem', background: '#fee', borderRadius: '4px' }}>
-            <strong>Error:</strong> {realtimeError || error}
+          <div className="mt-4 max-w-md mx-auto">
+            <ErrorAlert
+              error={realtimeError || error || 'An error occurred'}
+              onDismiss={() => setError(null)}
+            />
           </div>
         )}
       </main>
@@ -238,10 +248,10 @@ function StudentPage() {
   // No sessionId in URL - show error message
   if (!sessionIdFromUrl) {
     return (
-      <main style={{ padding: '2rem', textAlign: 'center' }}>
-        <h1>No Session</h1>
-        <p>Please navigate to a session from your sections page.</p>
-        <a href="/sections" style={{ color: '#0070f3', textDecoration: 'underline' }}>
+      <main className="p-8 text-center">
+        <h1 className="text-2xl font-bold mb-4">No Session</h1>
+        <p className="text-gray-600 mb-4">Please navigate to a session from your sections page.</p>
+        <a href="/sections" className="text-blue-600 hover:text-blue-700 underline">
           Go to My Sections
         </a>
       </main>
@@ -251,12 +261,15 @@ function StudentPage() {
   // Waiting to join or joining in progress
   if (!joined) {
     return (
-      <main style={{ padding: '2rem', textAlign: 'center' }}>
-        <h1>Live Coding Classroom</h1>
-        <p>{isJoining ? 'Joining session...' : 'Loading...'}</p>
+      <main className="p-8 text-center">
+        <h1 className="text-2xl font-bold mb-4">Live Coding Classroom</h1>
+        <p className="text-gray-600">{isJoining ? 'Joining session...' : 'Loading...'}</p>
         {error && (
-          <div style={{ marginTop: '1rem', color: '#e00', padding: '1rem', background: '#fee', borderRadius: '4px' }}>
-            <strong>Error:</strong> {error}
+          <div className="mt-4 max-w-md mx-auto">
+            <ErrorAlert
+              error={error}
+              onDismiss={() => setError(null)}
+            />
           </div>
         )}
       </main>
@@ -286,18 +299,16 @@ function StudentPage() {
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
           <h1 style={{ margin: 0 }}>Live Coding Session</h1>
-          <div style={{
-            padding: '0.5rem 1rem',
-            backgroundColor: connectionStatus === 'connected' ? '#d4edda' :
-                            connectionStatus === 'connecting' ? '#fff3cd' : '#f8d7da',
-            borderRadius: '4px',
-            fontSize: '0.9rem'
-          }}>
-            {connectionStatus === 'connected' && '● Connected'}
-            {connectionStatus === 'connecting' && '○ Reconnecting...'}
-            {connectionStatus === 'disconnected' && '○ Disconnected'}
-            {connectionStatus === 'failed' && '✕ Connection Lost'}
-          </div>
+          <ConnectionStatus
+            status={connectionStatus}
+            error={connectionError}
+            onReconnect={reconnect}
+            isReconnecting={isReconnecting}
+            reconnectAttempt={reconnectAttempt}
+            maxReconnectAttempts={maxReconnectAttempts}
+            connectionStartTime={connectionStartTime ?? undefined}
+            variant="badge"
+          />
         </div>
         <div style={{
           display: 'flex',
@@ -357,48 +368,20 @@ function StudentPage() {
 
       {/* Connection Error */}
       {connectionError && (
-        <div style={{
-          marginBottom: '1rem',
-          padding: '0.75rem',
-          backgroundColor: '#fff3cd',
-          color: '#856404',
-          borderRadius: '4px',
-          border: '1px solid #ffeaa7',
-          flexShrink: 0
-        }}>
-          ⚠ {connectionError}
-        </div>
+        <ErrorAlert
+          error={connectionError}
+          variant="warning"
+          className="mb-4 flex-shrink-0"
+        />
       )}
 
       {/* Application Error */}
       {error && (
-        <div style={{
-          marginBottom: '1rem',
-          padding: '0.75rem',
-          backgroundColor: '#f8d7da',
-          color: '#721c24',
-          borderRadius: '4px',
-          border: '1px solid #f5c6cb',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexShrink: 0
-        }}>
-          <span>{error}</span>
-          <button
-            onClick={() => setError(null)}
-            style={{
-              padding: '0.25rem 0.5rem',
-              backgroundColor: 'transparent',
-              border: '1px solid #721c24',
-              borderRadius: '3px',
-              cursor: 'pointer',
-              color: '#721c24'
-            }}
-          >
-            ✕
-          </button>
-        </div>
+        <ErrorAlert
+          error={error}
+          onDismiss={() => setError(null)}
+          className="mb-4 flex-shrink-0"
+        />
       )}
 
       {/* Session Ended Notification */}
