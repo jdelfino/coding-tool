@@ -43,6 +43,23 @@ jest.mock('../ExecutionSettings', () => {
   };
 });
 
+// Mock useResponsiveLayout
+jest.mock('@/hooks/useResponsiveLayout', () => ({
+  useResponsiveLayout: () => true, // Desktop layout
+  useSidebarSection: () => ({
+    isCollapsed: true,
+    toggle: jest.fn(),
+    setCollapsed: jest.fn(),
+  }),
+  useMobileViewport: () => ({
+    isMobile: false,
+    isTablet: false,
+    isVerySmall: false,
+    isDesktop: true,
+    width: 1200,
+  }),
+}));
+
 describe('CodeEditor Undo/Redo Functionality', () => {
   beforeEach(() => {
     jest.clearAllMocks();

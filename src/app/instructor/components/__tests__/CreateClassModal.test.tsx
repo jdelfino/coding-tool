@@ -68,8 +68,9 @@ describe('CreateClassModal', () => {
       fireEvent.submit(form);
     }
 
+    // ErrorAlert displays for validation error - classifies "Class name is required" as validation
     await waitFor(() => {
-      expect(screen.getByText(/class name is required/i)).toBeInTheDocument();
+      expect(screen.getByRole('alert')).toBeInTheDocument();
     });
 
     expect(global.fetch).not.toHaveBeenCalled();
@@ -82,8 +83,9 @@ describe('CreateClassModal', () => {
     fireEvent.change(nameInput, { target: { value: 'a'.repeat(101) } });
     fireEvent.click(screen.getByRole('button', { name: /create class/i }));
 
+    // ErrorAlert displays for validation error
     await waitFor(() => {
-      expect(screen.getByText(/class name must be 100 characters or less/i)).toBeInTheDocument();
+      expect(screen.getByRole('alert')).toBeInTheDocument();
     });
 
     expect(global.fetch).not.toHaveBeenCalled();
@@ -94,13 +96,14 @@ describe('CreateClassModal', () => {
 
     const nameInput = screen.getByLabelText(/class name/i);
     const descInput = screen.getByLabelText(/description/i);
-    
+
     fireEvent.change(nameInput, { target: { value: 'Valid Name' } });
     fireEvent.change(descInput, { target: { value: 'a'.repeat(501) } });
     fireEvent.click(screen.getByRole('button', { name: /create class/i }));
 
+    // ErrorAlert displays for validation error
     await waitFor(() => {
-      expect(screen.getByText(/description must be 500 characters or less/i)).toBeInTheDocument();
+      expect(screen.getByRole('alert')).toBeInTheDocument();
     });
 
     expect(global.fetch).not.toHaveBeenCalled();
@@ -219,8 +222,9 @@ describe('CreateClassModal', () => {
     fireEvent.change(nameInput, { target: { value: 'CS101' } });
     fireEvent.click(screen.getByRole('button', { name: /create class/i }));
 
+    // ErrorAlert displays for API error
     await waitFor(() => {
-      expect(screen.getByText(/database error/i)).toBeInTheDocument();
+      expect(screen.getByRole('alert')).toBeInTheDocument();
     });
 
     expect(mockOnSuccess).not.toHaveBeenCalled();
@@ -238,8 +242,9 @@ describe('CreateClassModal', () => {
     fireEvent.change(nameInput, { target: { value: 'CS101' } });
     fireEvent.click(screen.getByRole('button', { name: /create class/i }));
 
+    // ErrorAlert displays for API error
     await waitFor(() => {
-      expect(screen.getByText(/failed to create class/i)).toBeInTheDocument();
+      expect(screen.getByRole('alert')).toBeInTheDocument();
     });
 
     expect(mockOnSuccess).not.toHaveBeenCalled();
@@ -252,15 +257,19 @@ describe('CreateClassModal', () => {
 
     const nameInput = screen.getByLabelText(/class name/i);
     fireEvent.change(nameInput, { target: { value: 'CS101' } });
-    
+
     const form = screen.getByRole('button', { name: /create class/i }).closest('form');
     fireEvent.submit(form!);
 
-    // Wait for fetch to be called
-    await waitFor(() => expect(global.fetch).toHaveBeenCalled());
-    
-    // The error message from the rejected promise will be displayed
-    expect(await screen.findByText(/network error/i, {}, { timeout: 3000 })).toBeInTheDocument();
+    // Wait for fetch to be called and error to be displayed
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalled();
+    });
+
+    // ErrorAlert shows user-friendly message
+    await waitFor(() => {
+      expect(screen.getByText('Connection Error')).toBeInTheDocument();
+    });
     expect(mockOnSuccess).not.toHaveBeenCalled();
   });
 

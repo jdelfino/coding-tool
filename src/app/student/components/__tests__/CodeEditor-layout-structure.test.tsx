@@ -49,6 +49,13 @@ jest.mock('@/hooks/useResponsiveLayout', () => ({
     toggle: jest.fn(),
     setCollapsed: jest.fn(),
   })),
+  useMobileViewport: jest.fn(() => ({
+    isMobile: false,
+    isTablet: false,
+    isVerySmall: false,
+    isDesktop: true,
+    width: 1200,
+  })),
 }));
 
 describe('CodeEditor Layout Structure', () => {

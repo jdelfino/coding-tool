@@ -13,14 +13,44 @@ interface StudentListProps {
   onSelectStudent: (studentId: string) => void;
   onShowOnPublicView?: (studentId: string) => void;
   onViewHistory?: (studentId: string, studentName: string) => void;
+  joinCode?: string;
+  isLoading?: boolean;
 }
 
-export default function StudentList({ students, onSelectStudent, onShowOnPublicView, onViewHistory }: StudentListProps) {
+export default function StudentList({ students, onSelectStudent, onShowOnPublicView, onViewHistory, joinCode, isLoading = false }: StudentListProps) {
   return (
     <div style={{ padding: '1rem', border: '1px solid #ccc', marginBottom: '1rem' }}>
       <h3>Connected Students ({students.length})</h3>
-      {students.length === 0 ? (
-        <p style={{ color: '#666' }}>No students connected yet.</p>
+      {isLoading ? (
+        <div style={{ color: '#666', padding: '1rem 0' }}>
+          <p style={{ margin: 0 }}>Loading students...</p>
+        </div>
+      ) : students.length === 0 ? (
+        <div style={{ backgroundColor: '#f8f9fa', padding: '1rem', borderRadius: '4px', marginTop: '0.5rem' }}>
+          <p style={{ color: '#666', margin: '0 0 0.5rem 0' }}>
+            Waiting for students to join the session.
+          </p>
+          {joinCode && (
+            <p style={{ color: '#444', margin: 0 }}>
+              Share this join code with your students:{' '}
+              <span style={{
+                fontFamily: 'monospace',
+                fontWeight: 'bold',
+                backgroundColor: '#e9ecef',
+                padding: '0.25rem 0.5rem',
+                borderRadius: '4px',
+                color: '#0070f3'
+              }}>
+                {joinCode}
+              </span>
+            </p>
+          )}
+          {!joinCode && (
+            <p style={{ color: '#888', fontSize: '0.9rem', margin: 0 }}>
+              Students can join using the session join code displayed in the session controls.
+            </p>
+          )}
+        </div>
       ) : (
         <div>
           {students.map((student) => (

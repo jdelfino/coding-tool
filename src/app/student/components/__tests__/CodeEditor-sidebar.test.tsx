@@ -31,6 +31,22 @@ jest.mock('@monaco-editor/react', () => {
   };
 });
 
+// Mock useResponsiveLayout - use actual useSidebarSection to test localStorage persistence
+jest.mock('@/hooks/useResponsiveLayout', () => {
+  const actual = jest.requireActual('@/hooks/useResponsiveLayout');
+  return {
+    ...actual,
+    useResponsiveLayout: () => true, // Desktop layout
+    useMobileViewport: () => ({
+      isMobile: false,
+      isTablet: false,
+      isVerySmall: false,
+      isDesktop: true,
+      width: 1200,
+    }),
+  };
+});
+
 describe('CodeEditor - Problem Sidebar', () => {
   beforeEach(() => {
     // Clear localStorage before each test

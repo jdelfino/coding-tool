@@ -5,6 +5,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/server/auth/api-helpers';
 import { getSectionRepository, getMembershipRepository } from '@/server/classes';
+import { normalizeJoinCode } from '@/server/classes/join-code-service';
 import { rateLimit } from '@/server/rate-limit';
 
 export async function POST(request: NextRequest) {
@@ -30,9 +31,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Normalize the join code (removes dashes, trims, uppercases)
+    const normalizedCode = normalizeJoinCode(joinCode);
+    if (!normalizedCode) {
+      return NextResponse.json(
+        { error: 'Invalid join code format' },
+        { status: 400 }
+      );
+    }
+
     // Find section by join code (join codes are globally unique)
     const sectionRepo = await getSectionRepository();
-    const section = await sectionRepo.getSectionByJoinCode(joinCode.toUpperCase().trim());
+    const section = await sectionRepo.getSectionByJoinCode(normalizedCode);
 
     if (!section) {
       return NextResponse.json(

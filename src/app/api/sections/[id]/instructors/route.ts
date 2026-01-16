@@ -4,11 +4,58 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getAuthProvider } from '@/server/auth';
 import { getSectionRepository, getMembershipRepository } from '@/server/classes';
 import { getUserRepository } from '@/server/auth';
 import { requireAuth } from '@/server/auth/api-helpers';
 import { rateLimit } from '@/server/rate-limit';
+
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+
+    // Check authentication
+    const auth = await requireAuth(request);
+    if (auth instanceof NextResponse) {
+      return auth; // Return 401 error response
+    }
+
+    // Rate limit by user ID (read operation)
+    const limited = await rateLimit('read', request, auth.user.id);
+    if (limited) return limited;
+
+    const sectionRepo = await getSectionRepository();
+    const section = await sectionRepo.getSection(id);
+
+    if (!section) {
+      return NextResponse.json(
+        { error: 'Section not found' },
+        { status: 404 }
+      );
+    }
+
+    // Get instructor details
+    const userRepo = await getUserRepository();
+    const instructors = await Promise.all(
+      section.instructorIds.map(async (instructorId) => {
+        const user = await userRepo.getUser(instructorId);
+        return user ? { id: user.id, name: user.displayName || user.username, email: user.email } : null;
+      })
+    );
+
+    return NextResponse.json({
+      instructors: instructors.filter(Boolean)
+    });
+  } catch (error) {
+    console.error('[API] Get instructors error:', error);
+    return NextResponse.json(
+      { error: 'Failed to get instructors' },
+      { status: 500 }
+    );
+  }
+}
 
 export async function POST(
   request: NextRequest,

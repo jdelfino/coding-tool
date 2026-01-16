@@ -600,6 +600,29 @@ function StudentRegistrationContent() {
             </p>
           </div>
         </div>
+
+        {/* Terms Notice */}
+        <p className="mt-4 text-xs text-gray-500 text-center">
+          By creating an account, you agree to our{' '}
+          <Link href="/terms" className="text-indigo-600 hover:text-indigo-500">
+            Terms of Service
+          </Link>{' '}
+          and{' '}
+          <Link href="/privacy" className="text-indigo-600 hover:text-indigo-500">
+            Privacy Policy
+          </Link>
+          .
+        </p>
+
+        {/* Footer Links */}
+        <div className="mt-4 pt-4 border-t border-gray-100 flex justify-center gap-6 text-xs text-gray-500">
+          <Link href="/terms" className="hover:text-indigo-600 transition-colors">
+            Terms
+          </Link>
+          <Link href="/privacy" className="hover:text-indigo-600 transition-colors">
+            Privacy
+          </Link>
+        </div>
       </div>
     </div>
   );

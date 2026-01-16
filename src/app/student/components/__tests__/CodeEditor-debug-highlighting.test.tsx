@@ -21,6 +21,23 @@ jest.mock('@monaco-editor/react', () => {
   };
 });
 
+// Mock useResponsiveLayout
+jest.mock('@/hooks/useResponsiveLayout', () => ({
+  useResponsiveLayout: () => true, // Desktop layout
+  useSidebarSection: () => ({
+    isCollapsed: true,
+    toggle: jest.fn(),
+    setCollapsed: jest.fn(),
+  }),
+  useMobileViewport: () => ({
+    isMobile: false,
+    isTablet: false,
+    isVerySmall: false,
+    isDesktop: true,
+    width: 1200,
+  }),
+}));
+
 describe('CodeEditor - Debug Line Highlighting', () => {
   beforeEach(() => {
     mockDeltaDecorations = jest.fn().mockReturnValue(['decoration-id-1']);

@@ -5,7 +5,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import ExecutionSettingsComponent from './ExecutionSettings';
 import { DebuggerSidebar } from './DebuggerSidebar';
 import type { ExecutionSettings } from '@/server/types/problem';
-import { useResponsiveLayout, useSidebarSection } from '@/hooks/useResponsiveLayout';
+import { useResponsiveLayout, useSidebarSection, useMobileViewport } from '@/hooks/useResponsiveLayout';
 import type { Problem } from '@/server/types/problem';
 import type * as Monaco from 'monaco-editor';
 
@@ -74,6 +74,7 @@ export default function CodeEditor({
 
   // Responsive layout detection
   const isDesktop = useResponsiveLayout(1024);
+  const mobileViewport = useMobileViewport();
   const { isCollapsed: isSettingsCollapsed, toggle: toggleSettings, setCollapsed: setSettingsCollapsed } = useSidebarSection('execution-settings', false);
   const { isCollapsed: isProblemCollapsed, toggle: toggleProblem, setCollapsed: setProblemCollapsed } = useSidebarSection('problem-panel', false);
   const { isCollapsed: isDebuggerCollapsed, toggle: toggleDebugger, setCollapsed: setDebuggerCollapsed } = useSidebarSection('debugger-panel', true);
@@ -82,6 +83,9 @@ export default function CodeEditor({
   const [mobileProblemCollapsed, setMobileProblemCollapsed] = useState(true);
   const [mobileSettingsCollapsed, setMobileSettingsCollapsed] = useState(true);
   const [mobileDebuggerCollapsed, setMobileDebuggerCollapsed] = useState(true);
+
+  // Mobile view toggle: 'code' | 'output'
+  const [mobileView, setMobileView] = useState<'code' | 'output'>('code');
 
   // Sidebar resize state
   const [sidebarWidth, setSidebarWidth] = useState(320); // 320px = w-80
@@ -488,47 +492,79 @@ export default function CodeEditor({
       <div className={`flex flex-col flex-1 min-h-0 ${!isDesktop ? 'overflow-y-auto' : ''}`}>
         {/* Mobile: Action Bar */}
         {!isDesktop && (
-          <div className="bg-gray-800 border-b border-gray-700 flex items-center px-2 py-2 gap-2 flex-shrink-0" style={{ position: 'sticky', top: 0, zIndex: 10 }}>
-            {problem && (
+          <div className="bg-gray-800 border-b border-gray-700 flex flex-col flex-shrink-0" style={{ position: 'sticky', top: 0, zIndex: 10 }}>
+            {/* Primary row: Code/Output toggle */}
+            <div className="flex items-center px-2 py-2 gap-2 border-b border-gray-700">
               <button
                 type="button"
-                onClick={() => setMobileProblemCollapsed(!mobileProblemCollapsed)}
+                onClick={() => setMobileView('code')}
+                className={`flex-1 px-3 py-2 rounded text-sm font-medium transition-colors ${
+                  mobileView === 'code'
+                    ? 'bg-green-600 text-white'
+                    : 'bg-gray-700 text-gray-200 hover:bg-gray-600'
+                }`}
+                aria-label="Show Code"
+                data-testid="mobile-show-code"
+              >
+                Show Code
+              </button>
+              <button
+                type="button"
+                onClick={() => setMobileView('output')}
+                className={`flex-1 px-3 py-2 rounded text-sm font-medium transition-colors ${
+                  mobileView === 'output'
+                    ? 'bg-green-600 text-white'
+                    : 'bg-gray-700 text-gray-200 hover:bg-gray-600'
+                }`}
+                aria-label="Show Output"
+                data-testid="mobile-show-output"
+              >
+                Show Output
+              </button>
+            </div>
+            {/* Secondary row: Panel toggles */}
+            <div className="flex items-center px-2 py-2 gap-2">
+              {problem && (
+                <button
+                  type="button"
+                  onClick={() => setMobileProblemCollapsed(!mobileProblemCollapsed)}
+                  className={`px-3 py-2 rounded text-sm font-medium transition-colors ${
+                    !mobileProblemCollapsed
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-700 text-gray-200 hover:bg-gray-600'
+                  }`}
+                  aria-label="Toggle Problem"
+                >
+                  Problem
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => setMobileSettingsCollapsed(!mobileSettingsCollapsed)}
                 className={`px-3 py-2 rounded text-sm font-medium transition-colors ${
-                  !mobileProblemCollapsed
+                  !mobileSettingsCollapsed
                     ? 'bg-blue-600 text-white'
                     : 'bg-gray-700 text-gray-200 hover:bg-gray-600'
                 }`}
-                aria-label="Toggle Problem"
+                aria-label="Toggle Settings"
               >
-                📄 Problem
+                Settings
               </button>
-            )}
-            <button
-              type="button"
-              onClick={() => setMobileSettingsCollapsed(!mobileSettingsCollapsed)}
-              className={`px-3 py-2 rounded text-sm font-medium transition-colors ${
-                !mobileSettingsCollapsed
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-700 text-gray-200 hover:bg-gray-600'
-              }`}
-              aria-label="Toggle Settings"
-            >
-              ⚙️ Settings
-            </button>
-            {debuggerHook && (
-              <button
-                type="button"
-                onClick={() => setMobileDebuggerCollapsed(!mobileDebuggerCollapsed)}
-                className={`px-3 py-2 rounded text-sm font-medium transition-colors ${
-                  !mobileDebuggerCollapsed
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-700 text-gray-200 hover:bg-gray-600'
-                }`}
-                aria-label="Toggle Debugger"
-              >
-                🐛 Debugger
-              </button>
-            )}
+              {debuggerHook && (
+                <button
+                  type="button"
+                  onClick={() => setMobileDebuggerCollapsed(!mobileDebuggerCollapsed)}
+                  className={`px-3 py-2 rounded text-sm font-medium transition-colors ${
+                    !mobileDebuggerCollapsed
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-700 text-gray-200 hover:bg-gray-600'
+                  }`}
+                  aria-label="Toggle Debugger"
+                >
+                  Debugger
+                </button>
+              )}
+            </div>
           </div>
         )}
 
@@ -881,18 +917,21 @@ export default function CodeEditor({
         {/* Main Editor Area */}
         <div className={`flex-1 flex flex-col min-w-0 ${isDesktop ? 'min-h-0' : ''}`} style={!isDesktop ? { minHeight: '400px' } : {}}>
           {/* Code Editor - grows to fill remaining space */}
+          {/* On mobile, show based on mobileView toggle; on desktop, always show */}
           <div
             className="flex-1"
             style={
               !isDesktop
-                ? (debuggerHook?.hasTrace
-                    ? {
-                        minHeight: 'auto',
-                        height: `${Math.min(Math.max((code.split('\n').length + 3) * 21, 150), 400)}px`,
-                        flexGrow: 0,
-                        flexShrink: 0
-                      }
-                    : { minHeight: '300px' }
+                ? (mobileView === 'output'
+                    ? { display: 'none' } // Hide editor when showing output on mobile
+                    : debuggerHook?.hasTrace
+                      ? {
+                          minHeight: 'auto',
+                          height: `${Math.min(Math.max((code.split('\n').length + 3) * 21, 150), 400)}px`,
+                          flexGrow: 0,
+                          flexShrink: 0
+                        }
+                      : { minHeight: '300px' }
                   )
                 : { minHeight: 0 }
             }
@@ -905,9 +944,12 @@ export default function CodeEditor({
               onMount={handleEditorDidMount}
               theme="vs-dark"
               options={{
+                // Disable minimap on all screens for cleaner mobile experience
                 minimap: { enabled: false },
-                fontSize: 14,
-                lineNumbers: 'on',
+                // Increase font size on mobile for better readability (16px minimum for iOS zoom prevention)
+                fontSize: mobileViewport.isMobile ? 16 : 14,
+                // Hide line numbers on very small screens to save space
+                lineNumbers: mobileViewport.isVerySmall ? 'off' : 'on',
                 roundedSelection: false,
                 scrollBeyondLastLine: false,
                 automaticLayout: true,
@@ -915,27 +957,52 @@ export default function CodeEditor({
                 readOnlyMessage: debuggerHook?.hasTrace
                   ? { value: 'Exit debug mode to edit code' }
                   : undefined,
-                glyphMargin: true,
+                // Disable glyph margin on very small screens
+                glyphMargin: !mobileViewport.isVerySmall,
+                // Enable word wrap on mobile for better readability
+                wordWrap: mobileViewport.isMobile || mobileViewport.isTablet ? 'on' : 'off',
+                // Improve touch scrolling
+                scrollbar: {
+                  vertical: 'auto',
+                  horizontal: 'auto',
+                  // Use native scrollbars on mobile for better touch experience
+                  useShadows: !mobileViewport.isMobile,
+                  verticalScrollbarSize: mobileViewport.isMobile ? 12 : 10,
+                  horizontalScrollbarSize: mobileViewport.isMobile ? 12 : 10,
+                },
+                // Disable hover and suggestions on very small screens to improve performance
+                hover: { enabled: !mobileViewport.isVerySmall },
+                quickSuggestions: mobileViewport.isVerySmall ? false : true,
               }}
             />
           </div>
 
-          {/* Execution Results or Debugger - Always Visible - Resizable */}
+          {/* Execution Results or Debugger - Always Visible - Resizable (on desktop) */}
+          {/* On mobile, show based on mobileView toggle; on desktop, always show */}
           <div
             ref={outputResizeRef}
             className="border-t border-gray-700 overflow-y-auto flex-shrink-0 relative"
-            style={{ height: `${outputHeight}px` }}
+            style={
+              !isDesktop
+                ? (mobileView === 'code'
+                    ? { display: 'none' } // Hide output when showing code on mobile
+                    : { flex: 1, minHeight: '200px' } // Fill space when showing output on mobile
+                  )
+                : { height: `${outputHeight}px` }
+            }
           >
-            {/* Resize handle (always show) */}
-            <div
-              onMouseDown={handleOutputMouseDown}
-              className="absolute top-0 left-0 right-0 h-1 cursor-row-resize hover:bg-blue-500 transition-colors z-10"
-              style={{
-                background: isResizingOutput ? '#3b82f6' : 'transparent',
-                marginTop: '-2px'
-              }}
-              title="Drag to resize output"
-            />
+            {/* Resize handle (desktop only - remove on mobile for touch-friendly experience) */}
+            {isDesktop && (
+              <div
+                onMouseDown={handleOutputMouseDown}
+                className="absolute top-0 left-0 right-0 h-1 cursor-row-resize hover:bg-blue-500 transition-colors z-10"
+                style={{
+                  background: isResizingOutput ? '#3b82f6' : 'transparent',
+                  marginTop: '-2px'
+                }}
+                title="Drag to resize output"
+              />
+            )}
 
             {debuggerHook?.hasTrace ? (
               /* Show debugger output when debugging */
@@ -1038,10 +1105,26 @@ export default function CodeEditor({
                 )}
               </div>
             ) : (
-              <div className="p-4 bg-gray-900 h-full flex items-center justify-center">
-                <p className="text-gray-400 text-sm italic">
-                  Program output will appear here after you run your code
-                </p>
+              <div className="p-4 bg-gray-900 h-full flex flex-col items-center justify-center">
+                {!problem ? (
+                  <>
+                    <p className="text-gray-400 text-sm italic mb-2">
+                      Waiting for instructor to load a problem...
+                    </p>
+                    <p className="text-gray-500 text-xs">
+                      You can start writing code while you wait.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-gray-400 text-sm italic mb-2">
+                      No output yet.
+                    </p>
+                    <p className="text-gray-500 text-xs">
+                      Click "Run Code" to execute your program and see the results here.
+                    </p>
+                  </>
+                )}
               </div>
             )}
           </div>

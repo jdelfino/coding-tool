@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUser } from '@/server/auth/api-auth';
 import { getStorage } from '@/server/persistence';
+import { rateLimit } from '@/server/rate-limit';
 
 export async function GET(
   request: NextRequest,
@@ -13,7 +14,11 @@ export async function GET(
 ) {
   try {
     // Authenticate user
-    await getAuthenticatedUser(request);
+    const user = await getAuthenticatedUser(request);
+
+    // Rate limit by user ID (read operation)
+    const limited = await rateLimit('read', request, user.id);
+    if (limited) return limited;
 
     // Get session ID from params
     const { id: sessionId } = await params;

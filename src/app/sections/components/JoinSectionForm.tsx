@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { ErrorAlert } from '@/components/ErrorAlert';
 
 interface JoinSectionFormProps {
   onSubmit: (joinCode: string) => Promise<void>;
@@ -46,9 +47,10 @@ export default function JoinSectionForm({ onSubmit }: JoinSectionFormProps) {
         </div>
 
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-            {error}
-          </div>
+          <ErrorAlert
+            error={error}
+            onDismiss={() => setError(null)}
+          />
         )}
 
         {success && (
@@ -66,11 +68,11 @@ export default function JoinSectionForm({ onSubmit }: JoinSectionFormProps) {
             type="text"
             value={joinCode}
             onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
-            placeholder="e.g., ABC-123-XYZ"
+            placeholder="e.g., ABC-123"
             className="w-full px-4 py-3 text-lg font-mono border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-center tracking-wider"
             disabled={submitting || success}
             required
-            maxLength={15}
+            maxLength={10}
           />
           <p className="mt-2 text-sm text-gray-500">
             Enter the join code from your instructor

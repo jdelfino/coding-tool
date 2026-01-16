@@ -28,6 +28,7 @@ module.exports = {
       testMatch: [
         '<rootDir>/src/server/**/__tests__/**/*.test.ts',
         '<rootDir>/src/app/api/**/__tests__/**/*.test.ts',
+        '<rootDir>/src/lib/**/__tests__/**/*.test.ts',
       ],
       testPathIgnorePatterns: [
         '/node_modules/',
@@ -67,6 +68,7 @@ module.exports = {
       moduleNameMapper: {
         '^@/(.*)$': '<rootDir>/src/$1',
         '^uuid$': '<rootDir>/src/server/__tests__/test-utils/uuid-mock.ts',
+        '^react-markdown$': '<rootDir>/src/__mocks__/react-markdown.tsx',
       },
       transform: {
         '^.+\\.tsx?$': ['ts-jest', {

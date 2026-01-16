@@ -10,7 +10,7 @@ import * as path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { ISectionRepository } from '../interfaces';
 import { Section, SectionFilters, SectionStats } from '../types';
-import { generateJoinCode } from '../join-code-service';
+import { generateJoinCode, normalizeJoinCode } from '../join-code-service';
 
 /**
  * Local file-based implementation of section repository
@@ -163,13 +163,20 @@ export class SectionRepository implements ISectionRepository {
 
   /**
    * Get a section by join code
+   * Normalizes the input code to handle codes with or without dashes
    */
   async getSectionByJoinCode(joinCode: string): Promise<Section | null> {
     await this.initialize();
     // Reload from disk to get latest data from other processes
     await this.reloadFromDisk();
 
-    const sectionId = this.joinCodeIndex.get(joinCode);
+    // Normalize the input code to match stored format
+    const normalizedCode = normalizeJoinCode(joinCode);
+    if (!normalizedCode) {
+      return null;
+    }
+
+    const sectionId = this.joinCodeIndex.get(normalizedCode);
     if (!sectionId) {
       return null;
     }

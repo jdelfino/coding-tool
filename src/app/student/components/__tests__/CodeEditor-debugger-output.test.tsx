@@ -15,7 +15,14 @@ jest.mock('@/hooks/useResponsiveLayout', () => ({
     isCollapsed: true,
     toggle: jest.fn(),
     setCollapsed: jest.fn()
-  })
+  }),
+  useMobileViewport: () => ({
+    isMobile: false,
+    isTablet: false,
+    isVerySmall: false,
+    isDesktop: true,
+    width: 1200,
+  }),
 }));
 
 describe('CodeEditor - Debugger Output Display', () => {
@@ -326,7 +333,7 @@ describe('CodeEditor - Debugger Output Display', () => {
       expect(screen.getByText(/Hello/)).toBeInTheDocument();
     });
 
-    it('shows appropriate message when no output exists', () => {
+    it('shows appropriate message when no output exists and no problem loaded', () => {
       render(
         <CodeEditor
           code="# Empty code"
@@ -334,7 +341,23 @@ describe('CodeEditor - Debugger Output Display', () => {
         />
       );
 
-      expect(screen.getByText('Program output will appear here after you run your code')).toBeInTheDocument();
+      // When no problem is loaded, show "waiting for instructor" message
+      expect(screen.getByText('Waiting for instructor to load a problem...')).toBeInTheDocument();
+      expect(screen.getByText('You can start writing code while you wait.')).toBeInTheDocument();
+    });
+
+    it('shows appropriate message when no output exists but problem is loaded', () => {
+      render(
+        <CodeEditor
+          code="# Empty code"
+          onChange={mockOnChange}
+          problem={{ title: 'Test Problem' }}
+        />
+      );
+
+      // When problem is loaded, show "run code" message
+      expect(screen.getByText('No output yet.')).toBeInTheDocument();
+      expect(screen.getByText('Click "Run Code" to execute your program and see the results here.')).toBeInTheDocument();
     });
   });
 });

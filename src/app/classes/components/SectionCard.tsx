@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import type { Section } from '@/server/classes/types';
+import { formatJoinCodeForDisplay } from '@/server/classes/join-code-service';
 
 interface SectionCardProps {
   section: Section;
@@ -96,7 +97,7 @@ export default function SectionCard({
         {showJoinCode && (
           <div className="flex items-center gap-2">
             <code className="flex-1 bg-gray-100 px-3 py-2 rounded font-mono text-lg">
-              {joinCode}
+              {formatJoinCodeForDisplay(joinCode)}
             </code>
             {onRegenerateCode && (
               <button

@@ -5,11 +5,16 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthProvider } from '@/server/auth';
+import { rateLimit } from '@/server/rate-limit';
 
 export async function GET(request: NextRequest) {
   try {
     const authProvider = await getAuthProvider();
     const session = await authProvider.getSessionFromRequest(request);
+
+    // Rate limit by user ID if authenticated, IP otherwise
+    const limited = await rateLimit('read', request, session?.user?.id);
+    if (limited) return limited;
 
     if (!session) {
       return NextResponse.json(

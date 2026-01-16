@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { Problem } from '@/server/types/problem';
+import MarkdownContent from '@/components/MarkdownContent';
 
 interface ProblemDisplayProps {
   problem: Problem | null;
@@ -33,8 +34,8 @@ export default function ProblemDisplay({ problem, onLoadStarterCode }: ProblemDi
         {hasDescription && (
           <div>
             <h3 className="text-lg font-semibold text-gray-900 mb-2">Description</h3>
-            <div className="text-gray-700 whitespace-pre-wrap bg-gray-50 p-3 rounded border border-gray-200">
-              {problem.description}
+            <div className="bg-gray-50 p-3 rounded border border-gray-200">
+              <MarkdownContent content={problem.description!} />
             </div>
           </div>
         )}

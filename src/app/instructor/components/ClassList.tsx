@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import CreateClassModal from './CreateClassModal';
+import { ErrorAlert } from '@/components/ErrorAlert';
+import { fetchWithRetry } from '@/lib/api-utils';
 
 interface ClassInfo {
   id: string;
@@ -17,9 +19,10 @@ interface ClassListProps {
 export default function ClassList({ onSelectClass }: ClassListProps) {
   const [classes, setClasses] = useState<ClassInfo[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<Error | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<Error | null>(null);
 
   useEffect(() => {
     loadClasses();
@@ -28,16 +31,16 @@ export default function ClassList({ onSelectClass }: ClassListProps) {
   const loadClasses = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/classes');
+      setError(null);
+      const response = await fetchWithRetry('/api/classes', { maxRetries: 2 });
       if (!response.ok) {
         throw new Error('Failed to load classes');
       }
       const data = await response.json();
       setClasses(data.classes || []);
-      setError(null);
     } catch (err) {
       console.error('Error loading classes:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load classes');
+      setError(err instanceof Error ? err : new Error('Failed to load classes'));
     } finally {
       setLoading(false);
     }
@@ -49,9 +52,11 @@ export default function ClassList({ onSelectClass }: ClassListProps) {
     }
 
     setDeletingId(classId);
+    setDeleteError(null);
     try {
-      const response = await fetch(`/api/classes/${classId}`, {
-        method: 'DELETE',
+      const response = await fetchWithRetry(`/api/classes/${classId}`, {
+        fetchOptions: { method: 'DELETE' },
+        maxRetries: 2,
       });
 
       if (!response.ok) {
@@ -63,7 +68,8 @@ export default function ClassList({ onSelectClass }: ClassListProps) {
       await loadClasses();
     } catch (err) {
       console.error('Error deleting class:', err);
-      alert(`Failed to delete class: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      const error = err instanceof Error ? err : new Error('Failed to delete class');
+      setDeleteError(error);
     } finally {
       setDeletingId(null);
     }
@@ -79,16 +85,12 @@ export default function ClassList({ onSelectClass }: ClassListProps) {
 
   if (error) {
     return (
-      <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
-        <p className="font-semibold">Error loading classes</p>
-        <p className="text-sm">{error}</p>
-        <button
-          onClick={loadClasses}
-          className="mt-2 text-sm underline hover:no-underline"
-        >
-          Try again
-        </button>
-      </div>
+      <ErrorAlert
+        error={error}
+        title="Error loading classes"
+        onRetry={loadClasses}
+        isRetrying={loading}
+      />
     );
   }
 
@@ -144,6 +146,14 @@ export default function ClassList({ onSelectClass }: ClassListProps) {
           New Class
         </button>
       </div>
+      {deleteError && (
+        <ErrorAlert
+          error={deleteError}
+          title="Error deleting class"
+          onDismiss={() => setDeleteError(null)}
+          className="mb-6"
+        />
+      )}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {classes.map((classInfo) => (
           <div key={classInfo.id} className="relative group">

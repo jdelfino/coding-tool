@@ -20,6 +20,11 @@ export async function GET(
     }
 
     const { user } = auth;
+
+    // Rate limit by user ID (read operation)
+    const limited = await rateLimit('read', request, user.id);
+    if (limited) return limited;
+
     const namespaceId = getNamespaceContext(request, user);
 
     const sectionRepo = await getSectionRepository();

@@ -4,25 +4,37 @@ import { Redis } from '@upstash/redis';
 const isProduction = process.env.NODE_ENV === 'production';
 const isCI = !!process.env.CI;
 
-// Validate rate limiting is configured in production (but allow CI without it for E2E tests)
-if (isProduction && !isCI && !process.env.UPSTASH_REDIS_REST_URL) {
+// Upstash REST API requires https:// URL (not redis:// or rediss:// protocol URLs)
+const upstashUrl = process.env.UPSTASH_REDIS_REST_URL;
+
+// Fail fast if URL is set but has wrong format - this is always a config error
+if (upstashUrl && !upstashUrl.startsWith('https://')) {
   throw new Error(
-    'FATAL: Rate limiting is required in production but UPSTASH_REDIS_REST_URL is not set. ' +
-    'Configure Upstash Redis or set NODE_ENV to development.'
+    `FATAL: UPSTASH_REDIS_REST_URL must be an https:// URL (Upstash REST API), not a redis:// protocol URL. ` +
+    `Received: "${upstashUrl.substring(0, 30)}...". ` +
+    `Either fix the URL or unset UPSTASH_REDIS_REST_URL to disable rate limiting in dev.`
   );
 }
 
-// Initialize Redis client (null in dev if not configured)
-const redis = process.env.UPSTASH_REDIS_REST_URL
+// Validate rate limiting is configured in production (but allow CI without it for E2E tests)
+if (isProduction && !isCI && !upstashUrl) {
+  throw new Error(
+    'FATAL: Rate limiting is required in production but UPSTASH_REDIS_REST_URL is not set. ' +
+    'Configure Upstash Redis REST URL or set NODE_ENV to development.'
+  );
+}
+
+// Initialize Redis client (null in dev/CI if not configured)
+const redis = upstashUrl
   ? new Redis({
-      url: process.env.UPSTASH_REDIS_REST_URL,
+      url: upstashUrl,
       token: process.env.UPSTASH_REDIS_REST_TOKEN!,
     })
   : null;
 
 // Log warning in dev/CI mode without Redis
 if ((!isProduction || isCI) && !redis) {
-  console.warn('[rate-limit] Redis not configured - rate limiting disabled in development/CI');
+  console.warn('[rate-limit] UPSTASH_REDIS_REST_URL not set - rate limiting disabled in development/CI');
 }
 
 // Rate limit categories by risk/cost

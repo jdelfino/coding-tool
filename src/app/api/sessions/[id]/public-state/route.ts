@@ -7,12 +7,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUser, checkPermission } from '@/server/auth/api-auth';
 import { getStorage } from '@/server/persistence';
+import { rateLimit } from '@/server/rate-limit';
+import { formatJoinCodeForDisplay } from '@/server/classes/join-code-service';
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Rate limit by IP (public-state route)
+    const limited = await rateLimit('read', request);
+    if (limited) return limited;
+
     // Require authentication - instructors only
     const user = await getAuthenticatedUser(request);
     if (!checkPermission(user, 'session.viewAll')) {
@@ -38,9 +44,14 @@ export async function GET(
     const section = await storage.sections?.getSection(session.sectionId, session.namespaceId);
 
     // Return only public-safe data
+    // Format join code for display (XXX-XXX format)
+    const displayJoinCode = section?.joinCode
+      ? formatJoinCodeForDisplay(section.joinCode)
+      : '';
+
     return NextResponse.json({
       sessionId: session.id,
-      joinCode: section?.joinCode || '',
+      joinCode: displayJoinCode,
       problem: session.problem,
       featuredStudentId: session.featuredStudentId || null,
       featuredCode: session.featuredCode || null,

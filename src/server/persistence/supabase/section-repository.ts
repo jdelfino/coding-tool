@@ -8,6 +8,7 @@
 import { Section, SectionFilters, SectionStats } from '../../classes/types';
 import { ISectionRepository } from '../../classes/interfaces';
 import { getSupabaseClient } from '../../supabase/client';
+import { generateJoinCode, normalizeJoinCode } from '../../classes/join-code-service';
 
 /**
  * Maps a database row to a Section domain object
@@ -25,21 +26,6 @@ function mapRowToSection(row: any): Section {
     createdAt: new Date(row.created_at),
     updatedAt: new Date(row.updated_at),
   };
-}
-
-/**
- * Generates a unique join code in the format ABC-123-XYZ
- */
-function generateJoinCode(): string {
-  const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-  const numbers = '0123456789';
-  
-  const randomLetters = (n: number) => 
-    Array.from({ length: n }, () => letters[Math.floor(Math.random() * letters.length)]).join('');
-  const randomNumbers = (n: number) => 
-    Array.from({ length: n }, () => numbers[Math.floor(Math.random() * numbers.length)]).join('');
-  
-  return `${randomLetters(3)}-${randomNumbers(3)}-${randomLetters(3)}`;
 }
 
 /**
@@ -161,12 +147,18 @@ export class SupabaseSectionRepository implements ISectionRepository {
   }
 
   async getSectionByJoinCode(joinCode: string): Promise<Section | null> {
+    // Normalize the input code to match stored format (removes dashes, uppercase)
+    const normalizedCode = normalizeJoinCode(joinCode);
+    if (!normalizedCode) {
+      return null;
+    }
+
     const supabase = getSupabaseClient();
 
     const { data, error } = await supabase
       .from('sections')
       .select('*')
-      .eq('join_code', joinCode)
+      .eq('join_code', normalizedCode)
       .single();
 
     if (error) {

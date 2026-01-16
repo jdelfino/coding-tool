@@ -49,9 +49,11 @@
     "next": "^16.0.10",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
+    "react-markdown": "^10.1.0",
     "uuid": "^13.0.0"
   },
   "devDependencies": {
+    "@babel/preset-env": "^7.28.6",
     "@jest/globals": "^30.2.0",
     "@playwright/test": "^1.57.0",
     "@testing-library/jest-dom": "^6.9.1",
@@ -64,6 +66,7 @@
     "@types/react-dom": "^19.2.3",
     "@types/uuid": "^10.0.0",
     "autoprefixer": "^10.4.23",
+    "babel-jest": "^30.2.0",
     "cross-env": "^10.1.0",
     "dotenv-cli": "^11.0.0",
     "jest": "^30.2.0",

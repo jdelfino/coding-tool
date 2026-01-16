@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAuthProvider } from '@/server/auth';
 import { getStorage } from '@/server/persistence';
 import * as DiffMatchPatch from 'diff-match-patch';
+import { rateLimit } from '@/server/rate-limit';
 
 type Params = {
   params: Promise<{
@@ -53,6 +54,10 @@ export async function GET(
         { status: 403 }
       );
     }
+
+    // Rate limit by user ID (read operation)
+    const limited = await rateLimit('read', request, authSession.user.id);
+    if (limited) return limited;
 
     // Get studentId from query params
     const { searchParams } = new URL(request.url);

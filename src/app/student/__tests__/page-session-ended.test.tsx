@@ -38,10 +38,14 @@ jest.mock('next/navigation', () => ({
     get: (key: string) => key === 'sessionId' ? 'session-123' : null,
   }),
 }));
-// Mock CodeEditor to avoid Monaco complexity
+// Mock CodeEditor to avoid Monaco complexity - capture props for testing
+const mockCodeEditorProps = jest.fn();
 jest.mock('../components/CodeEditor', () => ({
   __esModule: true,
-  default: () => <div data-testid="code-editor">CodeEditor</div>,
+  default: (props: any) => {
+    mockCodeEditorProps(props);
+    return <div data-testid="code-editor">CodeEditor</div>;
+  },
 }));
 // Mock EditorContainer
 jest.mock('../components/EditorContainer', () => ({
@@ -78,6 +82,7 @@ describe('Student Page - Session Ended Detection', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockCodeEditorProps.mockClear();
   });
 
   it('should not show SessionEndedNotification when session is active', async () => {
@@ -130,6 +135,97 @@ describe('Student Page - Session Ended Detection', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Session Ended')).toBeInTheDocument();
+    });
+  });
+
+  it('should make editor read-only when session is completed', async () => {
+    mockUseRealtimeSession.mockReturnValue({
+      ...baseSessionState,
+      session: {
+        ...baseSessionState.session,
+        status: 'completed',
+        endedAt: '2026-01-09T12:00:00Z',
+      },
+    });
+
+    render(<StudentPage />);
+
+    await waitFor(() => {
+      expect(mockCodeEditorProps).toHaveBeenCalled();
+      const lastCall = mockCodeEditorProps.mock.calls[mockCodeEditorProps.mock.calls.length - 1][0];
+      expect(lastCall.readOnly).toBe(true);
+    });
+  });
+
+  it('should hide run button when session is completed', async () => {
+    mockUseRealtimeSession.mockReturnValue({
+      ...baseSessionState,
+      session: {
+        ...baseSessionState.session,
+        status: 'completed',
+        endedAt: '2026-01-09T12:00:00Z',
+      },
+    });
+
+    render(<StudentPage />);
+
+    await waitFor(() => {
+      expect(mockCodeEditorProps).toHaveBeenCalled();
+      const lastCall = mockCodeEditorProps.mock.calls[mockCodeEditorProps.mock.calls.length - 1][0];
+      expect(lastCall.showRunButton).toBe(false);
+    });
+  });
+
+  it('should not allow running code when session is completed', async () => {
+    mockUseRealtimeSession.mockReturnValue({
+      ...baseSessionState,
+      session: {
+        ...baseSessionState.session,
+        status: 'completed',
+        endedAt: '2026-01-09T12:00:00Z',
+      },
+    });
+
+    render(<StudentPage />);
+
+    await waitFor(() => {
+      expect(mockCodeEditorProps).toHaveBeenCalled();
+      const lastCall = mockCodeEditorProps.mock.calls[mockCodeEditorProps.mock.calls.length - 1][0];
+      expect(lastCall.onRun).toBeUndefined();
+    });
+  });
+
+  it('should display code saved message when session ends', async () => {
+    mockUseRealtimeSession.mockReturnValue({
+      ...baseSessionState,
+      session: {
+        ...baseSessionState.session,
+        status: 'completed',
+        endedAt: '2026-01-09T12:00:00Z',
+      },
+    });
+
+    render(<StudentPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Your code has been saved automatically.')).toBeInTheDocument();
+    });
+  });
+
+  it('should display message about not being able to run code', async () => {
+    mockUseRealtimeSession.mockReturnValue({
+      ...baseSessionState,
+      session: {
+        ...baseSessionState.session,
+        status: 'completed',
+        endedAt: '2026-01-09T12:00:00Z',
+      },
+    });
+
+    render(<StudentPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText('You can no longer run code, but you can copy your work below.')).toBeInTheDocument();
     });
   });
 });
