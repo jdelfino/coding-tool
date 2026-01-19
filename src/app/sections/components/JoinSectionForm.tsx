@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ErrorAlert } from '@/components/ErrorAlert';
+import { BackButton } from '@/components/ui/BackButton';
 
 interface JoinSectionFormProps {
   onSubmit: (joinCode: string) => Promise<void>;
@@ -93,13 +94,9 @@ export default function JoinSectionForm({ onSubmit }: JoinSectionFormProps) {
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={() => router.push('/sections')}
-          className="w-full text-center text-blue-600 hover:text-blue-700 text-sm"
-        >
-          ← Back to My Sections
-        </button>
+        <div className="flex justify-center">
+          <BackButton href="/sections" size="sm">Back to My Sections</BackButton>
+        </div>
       </form>
     </div>
   );

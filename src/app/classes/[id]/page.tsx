@@ -7,6 +7,7 @@ import { useClasses } from '@/hooks/useClasses';
 import type { Class, Section } from '@/server/classes/types';
 import SectionCard from '../components/SectionCard';
 import CreateSectionForm from '../components/CreateSectionForm';
+import { BackButton } from '@/components/ui/BackButton';
 
 export default function ClassDetailsPage() {
   const router = useRouter();
@@ -110,16 +111,10 @@ export default function ClassDetailsPage() {
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-8">
-          <button
-            onClick={() => router.push('/classes')}
-            className="text-blue-600 hover:text-blue-700 mb-4 inline-flex items-center"
-          >
-            <svg className="w-5 h-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-            Back to Classes
-          </button>
-          
+          <div className="mb-4">
+            <BackButton href="/classes">Back to Classes</BackButton>
+          </div>
+
           <h1 className="text-3xl font-bold text-gray-900">{classData.name}</h1>
           {classData.description && (
             <p className="mt-2 text-gray-600">{classData.description}</p>

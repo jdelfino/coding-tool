@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import CodeEditor from '@/app/student/components/CodeEditor';
 import { EditorContainer } from '@/app/student/components/EditorContainer';
+import { BackButton } from '@/components/ui/BackButton';
 
 interface SessionDetailsProps {
   sessionId: string;
@@ -105,12 +106,9 @@ export default function SessionDetails({ sessionId, onClose }: SessionDetailsPro
         <div className="text-red-600 text-center">
           <p className="font-semibold">Error loading session</p>
           <p className="text-sm mt-2">{error || 'Session not found'}</p>
-          <button
-            onClick={onClose}
-            className="mt-4 px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
-          >
-            Back to Sessions
-          </button>
+          <div className="mt-4 flex justify-center">
+            <BackButton onClick={onClose}>Back to Sessions</BackButton>
+          </div>
         </div>
       </div>
     );
@@ -153,12 +151,7 @@ export default function SessionDetails({ sessionId, onClose }: SessionDetailsPro
             )}
           </div>
           
-          <button
-            onClick={onClose}
-            className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
-          >
-            ← Back to Sessions
-          </button>
+          <BackButton onClick={onClose}>Back to Sessions</BackButton>
         </div>
       </div>
 

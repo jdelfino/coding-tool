@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import type { Session } from '@/server/types';
+import { BackButton } from '@/components/ui/BackButton';
 
 interface SectionDetail {
   id: string;
@@ -102,12 +103,7 @@ export default function SectionDetailPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center py-12 bg-white rounded-lg shadow">
             <p className="text-red-600 mb-4">{error || 'Section not found'}</p>
-            <button
-              onClick={() => router.push('/sections')}
-              className="text-blue-600 hover:text-blue-700"
-            >
-              ← Back to Sections
-            </button>
+            <BackButton href="/sections">Back to Sections</BackButton>
           </div>
         </div>
       </div>
@@ -119,15 +115,9 @@ export default function SectionDetailPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">
-          <button
-            onClick={() => router.push('/sections')}
-            className="flex items-center text-blue-600 hover:text-blue-700 mb-4"
-          >
-            <svg className="w-5 h-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-            Back to My Sections
-          </button>
+          <div className="mb-4">
+            <BackButton href="/sections">Back to My Sections</BackButton>
+          </div>
 
           <div className="bg-white rounded-lg shadow p-6">
             <div className="flex items-start justify-between">
