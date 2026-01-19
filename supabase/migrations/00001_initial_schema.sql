@@ -1,19 +1,22 @@
 -- Initial schema for coding-tool Supabase integration
 -- Migration: 00001_initial_schema.sql
 -- Created: 2026-01-05
+-- Last consolidated: 2026-01-19
 --
 -- This migration creates:
--- 1. All core tables (9 tables)
+-- 1. All core tables (11 tables)
 -- 2. Indexes for query performance
 -- 3. RLS helper functions
 -- 4. RLS policies for all tables
+-- 5. Realtime configuration
+-- 6. Updated_at triggers
 
 -- ============================================================================
 -- EXTENSIONS
 -- ============================================================================
 
--- Enable required extensions
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
 -- ============================================================================
 -- TABLES
@@ -25,13 +28,17 @@ CREATE TABLE namespaces (
   id TEXT PRIMARY KEY,  -- URL-safe slug (e.g., 'stanford', 'mit')
   display_name TEXT NOT NULL,
   active BOOLEAN NOT NULL DEFAULT true,
+  max_instructors INTEGER,  -- NULL = unlimited
+  max_students INTEGER,     -- NULL = unlimited
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  created_by UUID REFERENCES auth.users(id),
+  created_by UUID REFERENCES auth.users(id) ON DELETE CASCADE,
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 COMMENT ON TABLE namespaces IS 'Multi-tenancy root - each represents an organization';
 COMMENT ON COLUMN namespaces.id IS 'URL-safe slug (kebab-case, e.g., stanford, mit)';
+COMMENT ON COLUMN namespaces.max_instructors IS 'Maximum instructors allowed (NULL = unlimited)';
+COMMENT ON COLUMN namespaces.max_students IS 'Maximum students allowed (NULL = unlimited)';
 
 -- 2. user_profiles - Extends auth.users with application-specific data
 -- Links to Supabase Auth users
@@ -39,7 +46,7 @@ CREATE TABLE user_profiles (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   username TEXT NOT NULL UNIQUE,
   role TEXT NOT NULL CHECK (role IN ('system-admin', 'namespace-admin', 'instructor', 'student')),
-  namespace_id TEXT REFERENCES namespaces(id),  -- NULL for system-admin
+  namespace_id TEXT REFERENCES namespaces(id) ON DELETE CASCADE,  -- NULL for system-admin
   display_name TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   last_login_at TIMESTAMPTZ,
@@ -61,10 +68,10 @@ CREATE INDEX idx_user_profiles_role ON user_profiles(role);
 -- 3. classes - Course definitions
 CREATE TABLE classes (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  namespace_id TEXT NOT NULL REFERENCES namespaces(id),
+  namespace_id TEXT NOT NULL REFERENCES namespaces(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
   description TEXT,
-  created_by UUID NOT NULL REFERENCES auth.users(id),
+  created_by UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -77,7 +84,7 @@ CREATE INDEX idx_classes_created_by ON classes(created_by);
 -- 4. sections - Class offerings with join codes
 CREATE TABLE sections (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  namespace_id TEXT NOT NULL REFERENCES namespaces(id),
+  namespace_id TEXT NOT NULL REFERENCES namespaces(id) ON DELETE CASCADE,
   class_id UUID NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
   semester TEXT,  -- e.g., 'Fall 2025', 'Spring 2026'
@@ -97,9 +104,10 @@ CREATE INDEX idx_sections_join_code ON sections(join_code);
 CREATE INDEX idx_sections_active ON sections(active) WHERE active = true;
 
 -- 5. section_memberships - Student/instructor enrollments
+-- References user_profiles instead of auth.users for proper Supabase joins
 CREATE TABLE section_memberships (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES user_profiles(id) ON DELETE CASCADE,
   section_id UUID NOT NULL REFERENCES sections(id) ON DELETE CASCADE,
   role TEXT NOT NULL CHECK (role IN ('instructor', 'student')),
   joined_at TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -108,6 +116,8 @@ CREATE TABLE section_memberships (
 );
 
 COMMENT ON TABLE section_memberships IS 'User enrollment in sections';
+COMMENT ON CONSTRAINT section_memberships_user_id_fkey ON section_memberships IS
+  'References user_profiles instead of auth.users for proper Supabase joins';
 
 CREATE INDEX idx_memberships_user ON section_memberships(user_id);
 CREATE INDEX idx_memberships_section ON section_memberships(section_id);
@@ -116,13 +126,13 @@ CREATE INDEX idx_memberships_role ON section_memberships(role);
 -- 6. problems - Coding exercises
 CREATE TABLE problems (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  namespace_id TEXT NOT NULL REFERENCES namespaces(id),
+  namespace_id TEXT NOT NULL REFERENCES namespaces(id) ON DELETE CASCADE,
   title TEXT NOT NULL,
   description TEXT,
   starter_code TEXT,
   test_cases JSONB,  -- Array of test case objects (future: separate table)
   execution_settings JSONB,  -- ExecutionSettings: stdin, randomSeed, attachedFiles
-  author_id UUID NOT NULL REFERENCES auth.users(id),
+  author_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   class_id UUID REFERENCES classes(id),  -- Optional: scope to specific class
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -140,13 +150,13 @@ CREATE INDEX idx_problems_title ON problems(title);
 -- 7. sessions - Active/historical coding sessions
 CREATE TABLE sessions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  namespace_id TEXT NOT NULL REFERENCES namespaces(id),
+  namespace_id TEXT NOT NULL REFERENCES namespaces(id) ON DELETE CASCADE,
   section_id UUID NOT NULL REFERENCES sections(id),
   section_name TEXT NOT NULL,  -- Denormalized for display
   problem JSONB NOT NULL,  -- Snapshot of problem at session creation
   featured_student_id TEXT,  -- Student ID currently featured
   featured_code TEXT,  -- Featured student's code
-  creator_id UUID NOT NULL REFERENCES auth.users(id),
+  creator_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   participants UUID[] NOT NULL DEFAULT '{}',  -- Array of user IDs who participated
   status TEXT NOT NULL CHECK (status IN ('active', 'completed')) DEFAULT 'active',
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -188,7 +198,7 @@ CREATE INDEX idx_session_students_user ON session_students(user_id);
 -- 9. revisions - Code history with diff compression
 CREATE TABLE revisions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  namespace_id TEXT NOT NULL REFERENCES namespaces(id),
+  namespace_id TEXT NOT NULL REFERENCES namespaces(id) ON DELETE CASCADE,
   session_id UUID NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
   student_id TEXT NOT NULL,  -- Student identifier
   timestamp TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -212,6 +222,45 @@ CREATE INDEX idx_revisions_namespace ON revisions(namespace_id);
 CREATE INDEX idx_revisions_session ON revisions(session_id);
 CREATE INDEX idx_revisions_student ON revisions(session_id, student_id);
 CREATE INDEX idx_revisions_timestamp ON revisions(timestamp DESC);
+
+-- 10. session_backend_state - Backend state per session for code execution
+CREATE TABLE session_backend_state (
+  session_id UUID PRIMARY KEY REFERENCES sessions(id) ON DELETE CASCADE,
+  backend_type TEXT NOT NULL DEFAULT 'vercel-sandbox',
+  state_id TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+COMMENT ON TABLE session_backend_state IS 'Backend state per session for code execution';
+COMMENT ON COLUMN session_backend_state.backend_type IS 'Backend type: vercel-sandbox, local-python, docker, etc.';
+COMMENT ON COLUMN session_backend_state.state_id IS 'Backend-specific identifier (sandbox ID, container ID, etc.)';
+
+-- 11. invitations - Email invitation metadata
+CREATE TABLE invitations (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  email TEXT NOT NULL,
+  supabase_user_id UUID,  -- Links to auth.users after inviteUserByEmail() called
+  target_role TEXT NOT NULL CHECK (target_role IN ('namespace-admin', 'instructor')),
+  namespace_id TEXT NOT NULL REFERENCES namespaces(id) ON DELETE CASCADE,
+  created_by UUID NOT NULL REFERENCES auth.users(id),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  expires_at TIMESTAMPTZ NOT NULL,  -- Our 7-day tracking (vs Supabase 24h token expiry)
+  consumed_at TIMESTAMPTZ,
+  consumed_by UUID REFERENCES auth.users(id),
+  revoked_at TIMESTAMPTZ
+);
+
+COMMENT ON TABLE invitations IS 'Email invitation metadata - tokens managed by Supabase Auth';
+COMMENT ON COLUMN invitations.supabase_user_id IS 'Supabase auth.users.id after inviteUserByEmail() called';
+COMMENT ON COLUMN invitations.target_role IS 'Role to assign on acceptance: namespace-admin or instructor';
+COMMENT ON COLUMN invitations.expires_at IS 'Our expiry window (7 days), independent of Supabase token (24h)';
+
+CREATE INDEX idx_invitations_email ON invitations(email);
+CREATE INDEX idx_invitations_namespace ON invitations(namespace_id);
+CREATE INDEX idx_invitations_supabase_user ON invitations(supabase_user_id);
+CREATE INDEX idx_invitations_created_by ON invitations(created_by);
+CREATE INDEX idx_invitations_status ON invitations(consumed_at, revoked_at)
+  WHERE consumed_at IS NULL AND revoked_at IS NULL;  -- Pending invitations
 
 -- ============================================================================
 -- RLS HELPER FUNCTIONS
@@ -299,6 +348,8 @@ ALTER TABLE problems ENABLE ROW LEVEL SECURITY;
 ALTER TABLE sessions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE session_students ENABLE ROW LEVEL SECURITY;
 ALTER TABLE revisions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE session_backend_state ENABLE ROW LEVEL SECURITY;
+ALTER TABLE invitations ENABLE ROW LEVEL SECURITY;
 
 -- ============================================================================
 -- RLS POLICIES
@@ -563,6 +614,68 @@ CREATE POLICY "revisions_insert" ON revisions
     OR is_system_admin()
   );
 
+-- -----------------------------------------------------------------------------
+-- session_backend_state policies
+-- -----------------------------------------------------------------------------
+
+-- No policies = deny all for authenticated/anon roles.
+-- All access goes through API with service role which bypasses RLS.
+
+-- -----------------------------------------------------------------------------
+-- invitations policies
+-- -----------------------------------------------------------------------------
+
+-- System admins can see all invitations
+-- Namespace admins can see invitations in their namespace
+CREATE POLICY "invitations_select" ON invitations
+  FOR SELECT USING (
+    is_system_admin()
+    OR (
+      has_role('namespace-admin')
+      AND namespace_id = get_user_namespace_id()
+    )
+  );
+
+-- System admins can create invitations for any namespace/role
+-- Namespace admins can create instructor invitations in their namespace
+CREATE POLICY "invitations_insert" ON invitations
+  FOR INSERT WITH CHECK (
+    is_system_admin()
+    OR (
+      has_role('namespace-admin')
+      AND namespace_id = get_user_namespace_id()
+      AND target_role = 'instructor'  -- Namespace admins can only invite instructors
+    )
+  );
+
+-- System admins can update any invitation
+-- Namespace admins can update invitations in their namespace
+CREATE POLICY "invitations_update" ON invitations
+  FOR UPDATE USING (
+    is_system_admin()
+    OR (
+      has_role('namespace-admin')
+      AND namespace_id = get_user_namespace_id()
+    )
+  );
+
+-- Only system admins can delete invitations
+CREATE POLICY "invitations_delete" ON invitations
+  FOR DELETE USING (is_system_admin());
+
+-- ============================================================================
+-- REALTIME CONFIGURATION
+-- ============================================================================
+
+-- Add tables to the supabase_realtime publication
+ALTER PUBLICATION supabase_realtime ADD TABLE sessions;
+ALTER PUBLICATION supabase_realtime ADD TABLE session_students;
+ALTER PUBLICATION supabase_realtime ADD TABLE revisions;
+
+-- Set REPLICA IDENTITY FULL for tables that need UPDATE events
+ALTER TABLE sessions REPLICA IDENTITY FULL;
+ALTER TABLE session_students REPLICA IDENTITY FULL;
+
 -- ============================================================================
 -- UPDATED_AT TRIGGER FUNCTION
 -- ============================================================================
@@ -591,11 +704,3 @@ CREATE TRIGGER set_updated_at_sections
 CREATE TRIGGER set_updated_at_problems
   BEFORE UPDATE ON problems
   FOR EACH ROW EXECUTE FUNCTION update_updated_at();
-
--- ============================================================================
--- SEED DATA HELPER
--- Note: Actual seed data is in supabase/seed.sql
--- ============================================================================
-
--- This migration creates the schema only. Seed data is loaded separately
--- via supabase/seed.sql when running `supabase db reset`.
