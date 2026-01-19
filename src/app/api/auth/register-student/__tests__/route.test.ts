@@ -21,8 +21,13 @@ jest.mock('@/server/persistence', () => ({
   getStorage: jest.fn(),
 }));
 
+jest.mock('@/server/rate-limit', () => ({
+  rateLimit: jest.fn(),
+}));
+
 import { getStudentRegistrationService } from '@/server/invitations';
 import { getStorage } from '@/server/persistence';
+import { rateLimit } from '@/server/rate-limit';
 
 describe('/api/auth/register-student', () => {
   // Mock data
@@ -75,6 +80,9 @@ describe('/api/auth/register-student', () => {
   beforeEach(() => {
     jest.clearAllMocks();
 
+    // Default: no rate limiting
+    (rateLimit as jest.Mock).mockResolvedValue(null);
+
     // Setup student registration service mock
     mockStudentRegistrationService = {
       validateSectionCode: jest.fn().mockResolvedValue({
@@ -103,6 +111,28 @@ describe('/api/auth/register-student', () => {
   });
 
   describe('GET /api/auth/register-student', () => {
+    it('returns 429 when rate limited', async () => {
+      const rateLimitResponse = new Response(
+        JSON.stringify({ error: 'Too many requests. Please try again later.' }),
+        {
+          status: 429,
+          headers: {
+            'Content-Type': 'application/json',
+            'Retry-After': '60',
+          },
+        }
+      );
+      (rateLimit as jest.Mock).mockResolvedValue(rateLimitResponse);
+
+      const request = new NextRequest('http://localhost/api/auth/register-student?code=ABC-123-XYZ');
+      const response = await GET(request);
+
+      expect(response.status).toBe(429);
+      const data = await response.json();
+      expect(data.error).toBe('Too many requests. Please try again later.');
+      expect(rateLimit).toHaveBeenCalledWith('join', request);
+    });
+
     it('returns 400 if code is missing', async () => {
       const request = new NextRequest('http://localhost/api/auth/register-student');
       const response = await GET(request);
