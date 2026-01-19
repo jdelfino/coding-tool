@@ -6,7 +6,7 @@
 	"workspaceFolder": "/workspaces/coding-tool",
 
 	"mounts": [
-		"source=coding-tool-playwright-cache,target=/home/node/.cache/ms-playwright,type=volume",
+		"source=coding-tool-cache,target=/home/node/.cache,type=volume",
 		"source=coding-tool-npm-cache,target=/home/node/.npm,type=volume"
 	],
 
@@ -20,7 +20,7 @@
 		"ghcr.io/devcontainers-extra/features/supabase-cli:1": {}
 	},
 
-	"postCreateCommand": "curl -fsSL https://raw.githubusercontent.com/steveyegge/beads/main/scripts/install.sh | bash && npm install && npx playwright install-deps chromium && curl -fsSL https://claude.ai/install.sh | bash && ./.devcontainer/install-nsjail.sh && ./.devcontainer/install-1password-cli.sh",
+	"postCreateCommand": "sudo chown -R node:node /home/node/.cache /home/node/.npm && curl -fsSL https://raw.githubusercontent.com/steveyegge/beads/main/scripts/install.sh | bash && npm install && npx playwright install-deps chromium && curl -fsSL https://claude.ai/install.sh | bash && ./.devcontainer/install-nsjail.sh && ./.devcontainer/install-1password-cli.sh",
 	"postStartCommand": "supabase start || true",
 
 	"forwardPorts": [3000, 3001, 54321, 54322, 54323],
