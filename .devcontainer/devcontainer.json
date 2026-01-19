@@ -29,7 +29,7 @@
 	},
 
 	"postCreateCommand": "sudo chown -R node:node /home/node/.cache /home/node/.npm && curl -fsSL https://raw.githubusercontent.com/steveyegge/beads/main/scripts/install.sh | bash && npm install && npx playwright install-deps chromium && curl -fsSL https://claude.ai/install.sh | bash && ./.devcontainer/install-nsjail.sh && ./.devcontainer/install-1password-cli.sh",
-	"postStartCommand": "supabase start || true",
+	"postStartCommand": "sudo chmod 666 /ssh-agent 2>/dev/null || true; supabase start || true",
 
 	"forwardPorts": [3000, 3001, 54321, 54322, 54323],
 	"portsAttributes": {
