@@ -119,8 +119,8 @@ describeE2E('System Admin Core Flows', () => {
     // Verify role changed
     await expect(userCard.locator('text=namespace-admin')).toBeVisible({ timeout: 5000 });
 
-    // Navigate back to system dashboard
-    await page.click('button:has-text("Back to System Admin")');
+    // Navigate back to system dashboard (BackButton renders as a link when using href)
+    await page.click('a:has-text("Back to System Admin")');
     await expect(page).toHaveURL('/system');
 
     // Verify namespace still shows in the list
