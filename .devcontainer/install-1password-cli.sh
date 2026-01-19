@@ -6,11 +6,15 @@ set -e
 
 echo "Installing 1Password CLI..."
 
+# Detect architecture
+ARCH=$(dpkg --print-architecture)
+echo "Detected architecture: $ARCH"
+
 # Add 1Password apt repository
 curl -sS https://downloads.1password.com/linux/keys/1password.asc | \
     sudo gpg --dearmor --output /usr/share/keyrings/1password-archive-keyring.gpg
 
-echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/1password-archive-keyring.gpg] https://downloads.1password.com/linux/debian/amd64 stable main' | \
+echo "deb [arch=${ARCH} signed-by=/usr/share/keyrings/1password-archive-keyring.gpg] https://downloads.1password.com/linux/debian/${ARCH} stable main" | \
     sudo tee /etc/apt/sources.list.d/1password.list
 
 # Install
