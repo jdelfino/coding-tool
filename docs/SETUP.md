@@ -1,6 +1,20 @@
 # Development Setup Guide
 
-## Prerequisites
+## Devcontainer (Recommended)
+
+The easiest way to get started is with the devcontainer:
+
+```bash
+./setup_env.sh
+```
+
+This builds the container, starts Supabase, configures secrets, and copies your credentials. See [DEVCONTAINER.md](./DEVCONTAINER.md) for full details and 1Password integration.
+
+## Manual Setup
+
+If you prefer to run directly on your machine:
+
+### Prerequisites
 
 | Software | Version | Verify |
 |----------|---------|--------|
