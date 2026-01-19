@@ -21,3 +21,6 @@ export type { SpinnerProps, SpinnerSize } from './Spinner';
 
 export { Skeleton, SkeletonText, SkeletonAvatar } from './Skeleton';
 export type { SkeletonProps } from './Skeleton';
+
+export { ConfirmDialog } from './ConfirmDialog';
+export type { ConfirmDialogProps, ConfirmDialogVariant } from './ConfirmDialog';
