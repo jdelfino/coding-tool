@@ -12,24 +12,22 @@ echo ""
 echo "Starting Supabase..."
 OUTPUT=$(supabase start 2>&1) || true
 
-echo "DEBUG: supabase start output:"
-echo "$OUTPUT" | head -30
-
 # Extract keys from supabase start output
-SUPABASE_ANON_KEY=$(echo "$OUTPUT" | grep -E "anon key:" | awk '{print $3}')
-SUPABASE_SERVICE_ROLE_KEY=$(echo "$OUTPUT" | grep -E "service_role key:" | awk '{print $3}')
+# New format uses table with │ separators: │ Publishable │ <key> │
+SUPABASE_ANON_KEY=$(echo "$OUTPUT" | grep -E "Publishable|anon" | sed 's/.*│[^│]*│[[:space:]]*\([^│[:space:]]*\).*/\1/' | head -1)
+SUPABASE_SERVICE_ROLE_KEY=$(echo "$OUTPUT" | grep -E "Secret|service_role" | sed 's/.*│[^│]*│[[:space:]]*\([^│[:space:]]*\).*/\1/' | head -1)
 
 # If keys weren't in output (already running), try supabase status
 if [ -z "$SUPABASE_ANON_KEY" ]; then
     echo "Supabase may already be running, checking status..."
     STATUS_OUTPUT=$(supabase status 2>&1) || true
 
-    echo "DEBUG: supabase status output:"
-    echo "$STATUS_OUTPUT" | head -30
-
-    SUPABASE_ANON_KEY=$(echo "$STATUS_OUTPUT" | grep -E "anon key:" | awk '{print $3}')
-    SUPABASE_SERVICE_ROLE_KEY=$(echo "$STATUS_OUTPUT" | grep -E "service_role key:" | awk '{print $3}')
+    SUPABASE_ANON_KEY=$(echo "$STATUS_OUTPUT" | grep -E "Publishable|anon" | sed 's/.*│[^│]*│[[:space:]]*\([^│[:space:]]*\).*/\1/' | head -1)
+    SUPABASE_SERVICE_ROLE_KEY=$(echo "$STATUS_OUTPUT" | grep -E "Secret|service_role" | sed 's/.*│[^│]*│[[:space:]]*\([^│[:space:]]*\).*/\1/' | head -1)
 fi
+
+echo "DEBUG: extracted anon_key='$SUPABASE_ANON_KEY'"
+echo "DEBUG: extracted service_role_key='$SUPABASE_SERVICE_ROLE_KEY'"
 
 if [ -z "$SUPABASE_ANON_KEY" ] || [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
     echo "ERROR: Could not extract Supabase keys"
