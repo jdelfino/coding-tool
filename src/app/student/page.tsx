@@ -288,7 +288,7 @@ function StudentPage() {
 
   // Active session view
   return (
-    <main style={{ padding: '1rem', width: '100%', height: '100vh', boxSizing: 'border-box', display: 'flex', flexDirection: 'column' }}>
+    <main style={{ padding: '1rem', width: '100%', height: '100vh', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', position: 'relative' }}>
       {/* Header with Sign Out */}
       <div style={{
         display: 'flex',
@@ -384,13 +384,17 @@ function StudentPage() {
         />
       )}
 
-      {/* Session Ended Notification */}
+      {/* Session Ended Notification - rendered as overlay inside EditorContainer */}
       {sessionEnded && (
-        <SessionEndedNotification
-          onLeaveToDashboard={handleLeaveSession}
-          code={code}
-          codeSaved={true}
-        />
+        <div className="absolute inset-0 z-50">
+          <SessionEndedNotification
+            onLeaveToDashboard={handleLeaveSession}
+            code={code}
+            codeSaved={true}
+            onTimeout={handleLeaveSession}
+            countdownSeconds={30}
+          />
+        </div>
       )}
 
       <EditorContainer variant="flex">

@@ -1,7 +1,6 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useCallback } from 'react';
 import { ErrorAlert } from '@/components/ErrorAlert';
 import { BackButton } from '@/components/ui/BackButton';
 
@@ -10,15 +9,19 @@ interface JoinSectionFormProps {
 }
 
 export default function JoinSectionForm({ onSubmit }: JoinSectionFormProps) {
-  const router = useRouter();
   const [joinCode, setJoinCode] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [lastSubmittedCode, setLastSubmittedCode] = useState<string | null>(null);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!joinCode.trim()) {
+  const handleSubmit = useCallback(async (e?: React.FormEvent) => {
+    if (e) {
+      e.preventDefault();
+    }
+
+    const codeToSubmit = joinCode.trim();
+    if (!codeToSubmit) {
       setError('Join code is required');
       return;
     }
@@ -26,18 +29,35 @@ export default function JoinSectionForm({ onSubmit }: JoinSectionFormProps) {
     setSubmitting(true);
     setError(null);
     setSuccess(false);
+    setLastSubmittedCode(codeToSubmit);
 
     try {
-      await onSubmit(joinCode.trim());
+      await onSubmit(codeToSubmit);
       setSuccess(true);
       setJoinCode('');
       // Note: Parent component handles redirect to /sections
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to join section');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to join section';
+      // Provide more specific messages for common errors
+      if (errorMessage.toLowerCase().includes('not found') || errorMessage.toLowerCase().includes('invalid')) {
+        setError('Invalid join code. Please check the code and try again.');
+      } else if (errorMessage.toLowerCase().includes('already')) {
+        setError('You are already a member of this section.');
+      } else {
+        setError(errorMessage);
+      }
     } finally {
       setSubmitting(false);
     }
-  };
+  }, [joinCode, onSubmit]);
+
+  // Retry handler for the ErrorAlert component
+  const handleRetry = useCallback(() => {
+    if (lastSubmittedCode) {
+      setJoinCode(lastSubmittedCode);
+    }
+    handleSubmit();
+  }, [lastSubmittedCode, handleSubmit]);
 
   return (
     <div className="max-w-md mx-auto">
@@ -50,6 +70,8 @@ export default function JoinSectionForm({ onSubmit }: JoinSectionFormProps) {
         {error && (
           <ErrorAlert
             error={error}
+            onRetry={handleRetry}
+            isRetrying={submitting}
             onDismiss={() => setError(null)}
           />
         )}

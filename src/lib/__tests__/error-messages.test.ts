@@ -7,6 +7,8 @@ import {
   getUserFriendlyError,
   isRetryableError,
   getErrorCategory,
+  getRecoveryActions,
+  getHelpText,
   ErrorCategory,
 } from '../error-messages';
 
@@ -90,10 +92,13 @@ describe('error-messages', () => {
         ['Password too short'],
         ['Description too long'],
         ['400 Bad Request'],
-      ])('should classify "%s" as validation error', (message) => {
+        ['Please enter your email'],
+        ['Username is required'],
+      ])('should classify "%s" as validation error with preserved message', (message) => {
         const result = classifyError(new Error(message));
         expect(result.category).toBe('validation');
-        expect(result.userMessage).toBe('Please check your input and try again.');
+        // Validation errors preserve the original message for user-friendly display
+        expect(result.userMessage).toBe(message);
         expect(result.isRetryable).toBe(false);
       });
     });
@@ -178,6 +183,11 @@ describe('error-messages', () => {
       const message = getUserFriendlyError('Connection timeout');
       expect(message).toBe('Request timed out. Please try again.');
     });
+
+    it('should preserve original message for validation errors', () => {
+      const message = getUserFriendlyError(new Error('Please enter a valid email'));
+      expect(message).toBe('Please enter a valid email');
+    });
   });
 
   describe('isRetryableError', () => {
@@ -217,6 +227,56 @@ describe('error-messages', () => {
       expect(getErrorCategory(new Error('Already exists'))).toBe('conflict');
       expect(getErrorCategory(new Error('Server error'))).toBe('server');
       expect(getErrorCategory(new Error('Random'))).toBe('unknown');
+    });
+  });
+
+  describe('getRecoveryActions', () => {
+    it('should return retry action for network errors', () => {
+      const actions = getRecoveryActions(new Error('Network error'));
+      expect(actions).toHaveLength(1);
+      expect(actions[0]).toEqual({ label: 'Try Again', type: 'retry' });
+    });
+
+    it('should return sign-in link for auth errors', () => {
+      const actions = getRecoveryActions(new Error('Unauthorized'));
+      expect(actions).toHaveLength(1);
+      expect(actions[0]).toEqual({
+        label: 'Sign In',
+        type: 'link',
+        href: '/auth/signin',
+      });
+    });
+
+    it('should return empty array for permission errors', () => {
+      const actions = getRecoveryActions(new Error('Forbidden'));
+      expect(actions).toEqual([]);
+    });
+
+    it('should return go home link for not found errors', () => {
+      const actions = getRecoveryActions(new Error('Not found'));
+      expect(actions).toHaveLength(1);
+      expect(actions[0]).toEqual({
+        label: 'Go Home',
+        type: 'link',
+        href: '/',
+      });
+    });
+  });
+
+  describe('getHelpText', () => {
+    it('should return help text for network errors', () => {
+      const helpText = getHelpText(new Error('Network error'));
+      expect(helpText).toBe('Check your internet connection or try refreshing the page.');
+    });
+
+    it('should return help text for server errors', () => {
+      const helpText = getHelpText(new Error('500 Server Error'));
+      expect(helpText).toBe('Wait a few seconds and try again. If the problem persists, contact your instructor.');
+    });
+
+    it('should return help text for permission errors', () => {
+      const helpText = getHelpText(new Error('Forbidden'));
+      expect(helpText).toBe('Contact your instructor or administrator if you need access.');
     });
   });
 });

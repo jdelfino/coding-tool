@@ -1,19 +1,42 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 
 interface SessionEndedNotificationProps {
   onLeaveToDashboard: () => void;
   code?: string;
   codeSaved?: boolean;
+  onTimeout?: () => void;
+  countdownSeconds?: number;
 }
 
 const SessionEndedNotification: React.FC<SessionEndedNotificationProps> = ({
   onLeaveToDashboard,
   code = '',
   codeSaved = true,
+  onTimeout,
+  countdownSeconds = 30,
 }) => {
   const [copySuccess, setCopySuccess] = useState(false);
+  const [countdown, setCountdown] = useState(countdownSeconds);
+
+  // Countdown timer effect
+  useEffect(() => {
+    if (!onTimeout) return;
+
+    const timer = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          onTimeout();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [onTimeout]);
 
   const handleCopyCode = useCallback(async () => {
     if (!code) return;
@@ -42,48 +65,56 @@ const SessionEndedNotification: React.FC<SessionEndedNotificationProps> = ({
   }, [code]);
 
   return (
-    <div className="mb-4" data-testid="session-ended-notification">
-      <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-lg shadow-sm">
-        <div className="flex flex-col gap-3">
+    <div
+      className="absolute inset-0 bg-error-50/95 z-50 flex items-center justify-center"
+      data-testid="session-ended-notification"
+    >
+      <div className="bg-white border-2 border-error-500 p-8 rounded-lg shadow-elevated max-w-lg w-full mx-4">
+        <div className="flex flex-col gap-4">
           {/* Header row with icon and title */}
-          <div className="flex items-start">
+          <div className="flex items-center justify-center gap-3">
             <div className="flex-shrink-0">
-              <svg className="h-5 w-5 text-yellow-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+              <svg className="h-8 w-8 text-error-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clipRule="evenodd" />
               </svg>
             </div>
-            <div className="ml-3 flex-1">
-              <p className="text-sm font-medium text-yellow-800">
-                Session Ended
-              </p>
-            </div>
+            <h2 className="text-xl font-bold text-error-700">
+              Session Ended
+            </h2>
           </div>
 
           {/* Information messages */}
-          <div className="ml-8 space-y-2">
-            <p className="text-sm text-yellow-700">
+          <div className="space-y-2 text-center">
+            <p className="text-base text-error-700">
               The instructor has ended this session.
             </p>
             {codeSaved && (
-              <p className="text-sm text-yellow-700" data-testid="code-saved-message">
+              <p className="text-sm text-error-600" data-testid="code-saved-message">
                 Your code has been saved automatically.
               </p>
             )}
-            <p className="text-sm text-yellow-700">
+            <p className="text-sm text-error-600">
               You can no longer run code, but you can copy your work below.
             </p>
           </div>
 
+          {/* Countdown message */}
+          {onTimeout && (
+            <p className="text-sm text-error-600 text-center font-medium" data-testid="countdown-message">
+              Returning to sections in {countdown} seconds...
+            </p>
+          )}
+
           {/* Action buttons */}
-          <div className="ml-8 flex flex-wrap gap-2">
+          <div className="flex flex-wrap justify-center gap-3 mt-2">
             {code && (
               <button
                 type="button"
                 onClick={handleCopyCode}
-                className={`inline-flex items-center px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                className={`inline-flex items-center px-4 py-2 text-sm font-medium rounded-md transition-colors ${
                   copySuccess
-                    ? 'text-green-800 bg-green-100'
-                    : 'text-yellow-800 bg-yellow-100 hover:bg-yellow-200'
+                    ? 'text-success-700 bg-success-100'
+                    : 'text-error-700 bg-error-100 hover:bg-error-200'
                 }`}
                 data-testid="copy-code-button"
               >
@@ -108,10 +139,10 @@ const SessionEndedNotification: React.FC<SessionEndedNotificationProps> = ({
             <button
               type="button"
               onClick={onLeaveToDashboard}
-              className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-yellow-800 bg-yellow-100 hover:bg-yellow-200 rounded-md transition-colors"
+              className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-error-600 hover:bg-error-700 rounded-md transition-colors"
               data-testid="go-to-dashboard-button"
             >
-              Go to Dashboard
+              Go to Sections Now
             </button>
           </div>
         </div>

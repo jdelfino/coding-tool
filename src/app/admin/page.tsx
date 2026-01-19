@@ -5,10 +5,11 @@
  * Admins have full access, instructors have limited access.
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import NamespaceHeader from '@/components/NamespaceHeader';
+import { ErrorAlert } from '@/components/ErrorAlert';
 import UserList from './components/UserList';
 import AddInstructorForm from './components/AddInstructorForm';
 import type { User, UserRole } from '@/server/auth/types';
@@ -88,11 +89,24 @@ function AdminPage() {
         setStudents(studentsData.users || []);
       }
     } catch (err: any) {
-      setError(err.message || 'Failed to load users');
+      const errorMessage = err.message || 'Failed to load users';
+      // Add more context for common errors
+      if (errorMessage.toLowerCase().includes('network') || errorMessage.toLowerCase().includes('fetch')) {
+        setError('Connection error. Unable to load users. Please check your internet connection.');
+      } else {
+        setError(errorMessage);
+      }
     } finally {
       setIsLoading(false);
     }
   };
+
+  // Retry handler for error recovery
+  const handleRetry = useCallback(() => {
+    setError('');
+    loadUsers();
+    loadStats();
+  }, []);
 
   useEffect(() => {
     loadUsers();
@@ -233,15 +247,14 @@ function AdminPage() {
 
       {/* Error Message */}
       {error && (
-        <div style={{
-          marginBottom: '1rem',
-          padding: '0.75rem',
-          backgroundColor: '#f8d7da',
-          color: '#721c24',
-          borderRadius: '4px',
-          border: '1px solid #f5c6cb'
-        }}>
-          {error}
+        <div style={{ marginBottom: '1rem' }}>
+          <ErrorAlert
+            error={error}
+            onRetry={handleRetry}
+            isRetrying={isLoading}
+            onDismiss={() => setError('')}
+            showHelpText={true}
+          />
         </div>
       )}
 
