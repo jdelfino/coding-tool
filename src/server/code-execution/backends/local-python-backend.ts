@@ -8,7 +8,7 @@
  * It is not suitable for production environments on serverless platforms like Vercel.
  */
 
-import { spawn } from 'child_process';
+import { spawn, SpawnOptionsWithoutStdio } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
@@ -33,6 +33,22 @@ import { TRACER_SCRIPT, TRACER_PATH } from './tracer-script';
 
 const DEFAULT_MAX_STEPS = 5000;
 const TRACE_TIMEOUT = 10000; // 10 seconds
+
+/**
+ * Minimal environment variables for spawned Python processes.
+ * Security: Only expose the bare minimum environment needed for Python to run.
+ * This prevents accidental exposure of secrets (API keys, database URLs, etc.)
+ * to user-submitted code. Matches the approach in sandbox.ts (lines 211-216).
+ *
+ * Note: NODE_ENV is required by Next.js type augmentation but is not sensitive.
+ */
+const MINIMAL_PYTHON_ENV: NodeJS.ProcessEnv = {
+  NODE_ENV: process.env.NODE_ENV ?? 'development',
+  PATH: '/usr/bin:/bin',
+  HOME: '/tmp',
+  PYTHONDONTWRITEBYTECODE: '1',
+  PYTHONUNBUFFERED: '1',
+};
 
 export class LocalPythonBackend implements ICodeExecutionBackend {
   readonly backendType = 'local-python';
@@ -106,12 +122,10 @@ export class LocalPythonBackend implements ICodeExecutionBackend {
       let timedOut = false;
 
       // Spawn Python process with optional working directory
-      const spawnOptions: {
-        env: NodeJS.ProcessEnv;
-        timeout: number;
-        cwd?: string;
-      } = {
-        env: { ...process.env },
+      // Security: Use minimal environment variables to follow principle of least privilege
+      // This prevents exposure of secrets to user-submitted code
+      const spawnOptions: SpawnOptionsWithoutStdio = {
+        env: MINIMAL_PYTHON_ENV,
         timeout,
       };
 
@@ -185,7 +199,8 @@ export class LocalPythonBackend implements ICodeExecutionBackend {
         // Check for EOF errors which indicate the program was waiting for more input
         let errorOutput = truncateOutput(stderr);
         if (stderr.includes('EOFError') && stderr.includes('reading a line')) {
-          errorOutput = 'Program appears to be waiting for input, but no more input was provided. ' +
+          errorOutput =
+            'Program appears to be waiting for input, but no more input was provided. ' +
             'Make sure your code has all the input it needs, or check for extra input() calls.';
         }
 
@@ -279,9 +294,11 @@ export class LocalPythonBackend implements ICodeExecutionBackend {
 
     return new Promise((resolve, reject) => {
       // Build spawn options
-      const spawnOptions: {
-        cwd?: string;
-      } = {};
+      // Security: Use minimal environment variables to follow principle of least privilege
+      // This prevents exposure of secrets to user-submitted code
+      const spawnOptions: SpawnOptionsWithoutStdio = {
+        env: MINIMAL_PYTHON_ENV,
+      };
 
       if (tempDir) {
         spawnOptions.cwd = tempDir;

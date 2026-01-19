@@ -14,6 +14,7 @@ import {
   StudentRegistrationError,
 } from '@/server/invitations';
 import { getStorage } from '@/server/persistence';
+import { rateLimit } from '@/server/rate-limit';
 
 /**
  * GET /api/auth/register-student?code=X
@@ -29,6 +30,10 @@ import { getStorage } from '@/server/persistence';
  * - 400: Invalid or missing code, or section inactive
  */
 export async function GET(request: NextRequest) {
+  // Rate limit by IP to prevent join code brute force attacks
+  const limited = await rateLimit('join', request);
+  if (limited) return limited;
+
   try {
     const code = request.nextUrl.searchParams.get('code');
 

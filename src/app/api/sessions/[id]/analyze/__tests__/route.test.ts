@@ -10,6 +10,7 @@ import { POST } from '../route';
 import { getAuthenticatedUser, checkPermission } from '@/server/auth/api-auth';
 import { getStorage } from '@/server/persistence';
 import { getGeminiService, GeminiAnalysisService } from '@/server/services/gemini-analysis-service';
+import { rateLimit, checkAnalyzeDailyLimits } from '@/server/rate-limit';
 import { Session, Student } from '@/server/types';
 import { Problem } from '@/server/types/problem';
 import { WalkthroughScript } from '@/server/types/analysis';
@@ -17,11 +18,17 @@ import { WalkthroughScript } from '@/server/types/analysis';
 jest.mock('@/server/auth/api-auth');
 jest.mock('@/server/persistence');
 jest.mock('@/server/services/gemini-analysis-service');
+jest.mock('@/server/rate-limit', () => ({
+  rateLimit: jest.fn().mockResolvedValue(null),
+  checkAnalyzeDailyLimits: jest.fn().mockResolvedValue(null),
+}));
 
 const mockGetAuthenticatedUser = getAuthenticatedUser as jest.MockedFunction<typeof getAuthenticatedUser>;
 const mockCheckPermission = checkPermission as jest.MockedFunction<typeof checkPermission>;
 const mockGetStorage = getStorage as jest.MockedFunction<typeof getStorage>;
 const mockGetGeminiService = getGeminiService as jest.MockedFunction<typeof getGeminiService>;
+const mockRateLimit = rateLimit as jest.MockedFunction<typeof rateLimit>;
+const mockCheckAnalyzeDailyLimits = checkAnalyzeDailyLimits as jest.MockedFunction<typeof checkAnalyzeDailyLimits>;
 
 describe('POST /api/sessions/[id]/analyze', () => {
   const mockInstructor = {
@@ -239,6 +246,84 @@ describe('POST /api/sessions/[id]/analyze', () => {
     const response = await POST(request, { params });
 
     expect(response.status).toBe(429);
+  });
+
+  it('returns 429 when per-minute rate limit is exceeded', async () => {
+    mockGetAuthenticatedUser.mockResolvedValue(mockInstructor);
+    const rateLimitResponse = new Response(
+      JSON.stringify({ error: 'Too many requests. Please try again later.' }),
+      { status: 429, headers: { 'Content-Type': 'application/json' } }
+    );
+    mockRateLimit.mockResolvedValue(rateLimitResponse);
+
+    const request = new NextRequest('http://localhost:3000/api/sessions/session-1/analyze', {
+      method: 'POST',
+    });
+    const params = Promise.resolve({ id: 'session-1' });
+
+    const response = await POST(request, { params });
+
+    expect(response.status).toBe(429);
+    // Restore default mock
+    mockRateLimit.mockResolvedValue(null);
+  });
+
+  it('returns 429 when daily user limit is exceeded', async () => {
+    mockGetAuthenticatedUser.mockResolvedValue(mockInstructor);
+    const dailyLimitResponse = new Response(
+      JSON.stringify({ error: 'Daily analysis limit reached (100 per day). Please try again tomorrow.' }),
+      { status: 429, headers: { 'Content-Type': 'application/json' } }
+    );
+    mockCheckAnalyzeDailyLimits.mockResolvedValue(dailyLimitResponse);
+
+    const request = new NextRequest('http://localhost:3000/api/sessions/session-1/analyze', {
+      method: 'POST',
+    });
+    const params = Promise.resolve({ id: 'session-1' });
+
+    const response = await POST(request, { params });
+    const data = await response.json();
+
+    expect(response.status).toBe(429);
+    expect(data.error).toContain('Daily analysis limit reached');
+    // Restore default mock
+    mockCheckAnalyzeDailyLimits.mockResolvedValue(null);
+  });
+
+  it('returns 429 when global daily limit is exceeded', async () => {
+    mockGetAuthenticatedUser.mockResolvedValue(mockInstructor);
+    const globalLimitResponse = new Response(
+      JSON.stringify({ error: 'Global daily analysis limit reached. Please try again tomorrow.' }),
+      { status: 429, headers: { 'Content-Type': 'application/json' } }
+    );
+    mockCheckAnalyzeDailyLimits.mockResolvedValue(globalLimitResponse);
+
+    const request = new NextRequest('http://localhost:3000/api/sessions/session-1/analyze', {
+      method: 'POST',
+    });
+    const params = Promise.resolve({ id: 'session-1' });
+
+    const response = await POST(request, { params });
+    const data = await response.json();
+
+    expect(response.status).toBe(429);
+    expect(data.error).toContain('Global daily analysis limit');
+    // Restore default mock
+    mockCheckAnalyzeDailyLimits.mockResolvedValue(null);
+  });
+
+  it('calls checkAnalyzeDailyLimits with request and user ID', async () => {
+    mockGetAuthenticatedUser.mockResolvedValue(mockInstructor);
+    mockCheckPermission.mockReturnValue(true);
+
+    const request = new NextRequest('http://localhost:3000/api/sessions/session-1/analyze', {
+      method: 'POST',
+    });
+    const params = Promise.resolve({ id: 'session-1' });
+
+    await POST(request, { params });
+
+    expect(mockCheckAnalyzeDailyLimits).toHaveBeenCalledWith(request, 'instructor-1');
   });
 
   it('returns 504 on timeout error', async () => {

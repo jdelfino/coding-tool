@@ -245,6 +245,55 @@ describe('LocalPythonBackend', () => {
       expect(result.output).toBe('2\n');
       expect(result.stdin).toBeUndefined();
     });
+
+    describe('environment variable isolation', () => {
+      it('should not pass parent process environment variables to spawned Python', async () => {
+        // Set a test environment variable in the parent process
+        const originalTestVar = process.env.TEST_SECRET_VAR;
+        process.env.TEST_SECRET_VAR = 'sensitive_secret_value';
+
+        try {
+          const submission: CodeSubmission = {
+            code: 'import os\nprint(os.environ.get("TEST_SECRET_VAR", "not_found"))',
+          };
+
+          const result = await backend.execute(submission);
+
+          expect(result.success).toBe(true);
+          expect(result.output).toBe('not_found\n');
+          expect(result.output).not.toContain('sensitive_secret_value');
+        } finally {
+          // Restore original value
+          if (originalTestVar === undefined) {
+            delete process.env.TEST_SECRET_VAR;
+          } else {
+            process.env.TEST_SECRET_VAR = originalTestVar;
+          }
+        }
+      });
+
+      it('should have minimal environment variables set (PATH, HOME, PYTHON vars)', async () => {
+        const submission: CodeSubmission = {
+          code: 'import os\nimport json\nprint(json.dumps(dict(os.environ)))',
+        };
+
+        const result = await backend.execute(submission);
+
+        expect(result.success).toBe(true);
+        const envVars = JSON.parse(result.output.trim());
+
+        // Should have exactly these minimal environment variables
+        expect(envVars.PATH).toBe('/usr/bin:/bin');
+        expect(envVars.HOME).toBe('/tmp');
+        expect(envVars.PYTHONDONTWRITEBYTECODE).toBe('1');
+        expect(envVars.PYTHONUNBUFFERED).toBe('1');
+
+        // Should NOT have common sensitive environment variables
+        expect(envVars.DATABASE_URL).toBeUndefined();
+        expect(envVars.SUPABASE_SECRET_KEY).toBeUndefined();
+        expect(envVars.AWS_SECRET_ACCESS_KEY).toBeUndefined();
+      });
+    });
   });
 
   describe('trace()', () => {
@@ -378,6 +427,53 @@ describe('LocalPythonBackend', () => {
 
       expect(result.exitCode).toBe(1);
       expect(result.error).toContain('Too many files');
+    });
+
+    describe('environment variable isolation', () => {
+      it('should not pass parent process environment variables to traced Python', async () => {
+        // Set a test environment variable in the parent process
+        const originalTestVar = process.env.TEST_SECRET_VAR;
+        process.env.TEST_SECRET_VAR = 'sensitive_secret_value';
+
+        try {
+          const result = await backend.trace(
+            'import os\nresult = os.environ.get("TEST_SECRET_VAR", "not_found")\nprint(result)'
+          );
+
+          expect(result.exitCode).toBe(0);
+          // Find step with stdout that includes our output
+          const stepWithOutput = result.steps.find((step) =>
+            step.stdout.includes('not_found')
+          );
+          expect(stepWithOutput).toBeDefined();
+
+          // Ensure it doesn't contain the secret
+          const hasSecret = result.steps.some((step) =>
+            step.stdout.includes('sensitive_secret_value')
+          );
+          expect(hasSecret).toBe(false);
+        } finally {
+          // Restore original value
+          if (originalTestVar === undefined) {
+            delete process.env.TEST_SECRET_VAR;
+          } else {
+            process.env.TEST_SECRET_VAR = originalTestVar;
+          }
+        }
+      });
+
+      it('should have minimal environment variables set for traced code', async () => {
+        const result = await backend.trace(
+          'import os\nhome = os.environ.get("HOME", "missing")\nprint(home)'
+        );
+
+        expect(result.exitCode).toBe(0);
+        // Find step with stdout containing /tmp (the expected HOME value)
+        const stepWithOutput = result.steps.find((step) =>
+          step.stdout.includes('/tmp')
+        );
+        expect(stepWithOutput).toBeDefined();
+      });
     });
   });
 

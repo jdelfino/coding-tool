@@ -67,11 +67,32 @@ export const RateLimiters = {
     prefix: 'rl:trace',
   }) : null,
 
-  // Analyze route - User-based, external API cost
+  // Analyze route - User-based, external API cost (per-minute)
   analyze: redis ? new Ratelimit({
     redis,
     limiter: Ratelimit.slidingWindow(5, '1 m'),
     prefix: 'rl:analyze',
+  }) : null,
+
+  // Analyze route - Daily per-user limit (Gemini free tier protection)
+  analyzeDaily: redis ? new Ratelimit({
+    redis,
+    limiter: Ratelimit.fixedWindow(100, '1 d'),
+    prefix: 'rl:analyze-daily',
+  }) : null,
+
+  // Analyze route - Global daily limit (Gemini free tier: 1000 RPD, cap at 750)
+  analyzeGlobal: redis ? new Ratelimit({
+    redis,
+    limiter: Ratelimit.fixedWindow(750, '1 d'),
+    prefix: 'rl:analyze-global',
+  }) : null,
+
+  // Session creation - User-based, hourly limit to prevent resource exhaustion
+  sessionCreate: redis ? new Ratelimit({
+    redis,
+    limiter: Ratelimit.slidingWindow(10, '1 h'),
+    prefix: 'rl:session-create',
   }) : null,
 
   // Write operations - User-based, create/update/delete
@@ -186,4 +207,68 @@ export async function rateLimit(
  */
 export function isRateLimitingEnabled(): boolean {
   return redis !== null;
+}
+
+/**
+ * Rate limit result with a custom message
+ */
+export interface DailyLimitResult {
+  limited: boolean;
+  message?: string;
+  remaining?: number;
+  reset?: number;
+}
+
+/**
+ * Check daily limits for analyze endpoint (per-user and global)
+ * Returns the first limit that is exceeded, or null if all pass
+ */
+export async function checkAnalyzeDailyLimits(
+  request: Request,
+  userId: string
+): Promise<Response | null> {
+  // Check global daily limit first (single key for all users)
+  const globalResult = await checkRateLimit('analyzeGlobal', 'global');
+  if (globalResult.limited) {
+    return rateLimitResponseWithMessage(
+      globalResult,
+      'Global daily analysis limit reached. Please try again tomorrow.'
+    );
+  }
+
+  // Check per-user daily limit
+  const userKey = getRateLimitKey(request, userId);
+  const userResult = await checkRateLimit('analyzeDaily', userKey);
+  if (userResult.limited) {
+    return rateLimitResponseWithMessage(
+      userResult,
+      'Daily analysis limit reached (100 per day). Please try again tomorrow.'
+    );
+  }
+
+  return null;
+}
+
+/**
+ * Create a 429 Too Many Requests response with a custom message
+ */
+export function rateLimitResponseWithMessage(
+  result: RateLimitResult,
+  message: string
+): Response {
+  const retryAfter = result.reset
+    ? Math.ceil((result.reset - Date.now()) / 1000)
+    : 86400; // Default to 24 hours for daily limits
+
+  return new Response(
+    JSON.stringify({ error: message }),
+    {
+      status: 429,
+      headers: {
+        'Content-Type': 'application/json',
+        'X-RateLimit-Remaining': String(result.remaining ?? 0),
+        'Retry-After': String(Math.max(1, retryAfter)),
+      },
+    }
+  );
 }
