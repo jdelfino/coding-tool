@@ -4,12 +4,20 @@
 
 	"workspaceMount": "source=${localWorkspaceFolderBasename}-workspace,target=/workspaces/coding-tool,type=volume",
 	"workspaceFolder": "/workspaces/coding-tool",
+
+	"mounts": [
+		"source=coding-tool-playwright-cache,target=/home/node/.cache/ms-playwright,type=volume",
+		"source=coding-tool-npm-cache,target=/home/node/.npm,type=volume"
+	],
+
 	"features": {
 		"ghcr.io/devcontainers/features/python:1": {
 			"installTools": true,
 			"version": "3.11"
 		},
-		"ghcr.io/devcontainers/features/docker-in-docker:2": {},
+		"ghcr.io/devcontainers/features/docker-in-docker:2": {
+			"dockerDaemonStorageVolume": "coding-tool-docker-cache"
+		},
 		"ghcr.io/devcontainers/features/github-cli:1": {},
 		"ghcr.io/devcontainers-extra/features/supabase-cli:1": {}
 	},
