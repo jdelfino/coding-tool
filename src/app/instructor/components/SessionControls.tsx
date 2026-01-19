@@ -1,11 +1,13 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 
 interface SessionControlsProps {
   sessionId: string;
   sectionName?: string;
   joinCode?: string;
+  connectedStudentCount?: number;
   onEndSession: () => void;
   onLeaveSession: () => void;
   onLoadProblem?: () => void;
@@ -15,10 +17,13 @@ export default function SessionControls({
   sessionId,
   sectionName,
   joinCode,
+  connectedStudentCount = 0,
   onEndSession,
   onLeaveSession,
   onLoadProblem
 }: SessionControlsProps) {
+  const [showEndSessionConfirm, setShowEndSessionConfirm] = useState(false);
+
   const handleOpenPublicView = () => {
     const publicViewUrl = `/instructor/public?sessionId=${sessionId}`;
     window.open(publicViewUrl, '_blank', 'width=1200,height=800');
@@ -65,13 +70,31 @@ export default function SessionControls({
             Leave Session
           </button>
           <button
-            onClick={onEndSession}
+            onClick={() => setShowEndSessionConfirm(true)}
             className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
           >
             End Session
           </button>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={showEndSessionConfirm}
+        title="End Session"
+        message={
+          connectedStudentCount > 0
+            ? `${connectedStudentCount} student${connectedStudentCount === 1 ? ' is' : 's are'} currently connected. Ending this session will disconnect all students. This action cannot be undone.`
+            : 'Are you sure you want to end this session? This action cannot be undone.'
+        }
+        confirmLabel="End Session"
+        cancelLabel="Cancel"
+        variant="danger"
+        onConfirm={() => {
+          setShowEndSessionConfirm(false);
+          onEndSession();
+        }}
+        onCancel={() => setShowEndSessionConfirm(false)}
+      />
     </div>
   );
 }

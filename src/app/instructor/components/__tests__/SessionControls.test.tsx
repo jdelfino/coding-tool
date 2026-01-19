@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import SessionControls from '../SessionControls';
 
 describe('SessionControls', () => {
@@ -50,16 +50,6 @@ describe('SessionControls', () => {
     expect(mockOnEndSession).not.toHaveBeenCalled();
   });
 
-  it('should call onEndSession when End Session button is clicked', () => {
-    render(<SessionControls {...defaultProps} />);
-
-    const endButton = screen.getByRole('button', { name: /End Session/ });
-    fireEvent.click(endButton);
-
-    expect(mockOnEndSession).toHaveBeenCalledTimes(1);
-    expect(mockOnLeaveSession).not.toHaveBeenCalled();
-  });
-
   it('should render both action buttons', () => {
     render(<SessionControls {...defaultProps} />);
 
@@ -76,5 +66,121 @@ describe('SessionControls', () => {
     fireEvent.click(leaveButton);
 
     expect(mockOnLeaveSession).toHaveBeenCalledTimes(3);
+  });
+
+  describe('End Session confirmation dialog', () => {
+    it('should show confirmation dialog when End Session button is clicked', () => {
+      render(<SessionControls {...defaultProps} />);
+
+      // Click End Session button
+      const endButton = screen.getByRole('button', { name: /End Session/ });
+      fireEvent.click(endButton);
+
+      // Confirmation dialog should appear
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'End Session' })).toBeInTheDocument();
+    });
+
+    it('should not call onEndSession immediately when End Session button is clicked', () => {
+      render(<SessionControls {...defaultProps} />);
+
+      const endButton = screen.getByRole('button', { name: /End Session/ });
+      fireEvent.click(endButton);
+
+      // onEndSession should NOT be called yet
+      expect(mockOnEndSession).not.toHaveBeenCalled();
+    });
+
+    it('should call onEndSession when confirmation dialog is confirmed', () => {
+      render(<SessionControls {...defaultProps} />);
+
+      // Click End Session to open dialog
+      const endButton = screen.getByRole('button', { name: /End Session/ });
+      fireEvent.click(endButton);
+
+      // There are now two "End Session" buttons - get the dialog's confirm button using data attribute
+      const confirmButton = document.querySelector('[data-confirm-button]') as HTMLElement;
+      fireEvent.click(confirmButton);
+
+      expect(mockOnEndSession).toHaveBeenCalledTimes(1);
+    });
+
+    it('should close dialog when cancel is clicked', () => {
+      render(<SessionControls {...defaultProps} />);
+
+      // Click End Session to open dialog
+      const endButton = screen.getByRole('button', { name: /End Session/ });
+      fireEvent.click(endButton);
+
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
+
+      // Click cancel button
+      const cancelButton = screen.getByRole('button', { name: 'Cancel' });
+      fireEvent.click(cancelButton);
+
+      // Dialog should be closed
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      expect(mockOnEndSession).not.toHaveBeenCalled();
+    });
+
+    it('should show message about connected students when count is provided', () => {
+      render(<SessionControls {...defaultProps} connectedStudentCount={5} />);
+
+      // Click End Session to open dialog
+      const endButton = screen.getByRole('button', { name: /End Session/ });
+      fireEvent.click(endButton);
+
+      expect(screen.getByText(/5 students are currently connected/)).toBeInTheDocument();
+    });
+
+    it('should show singular message for one connected student', () => {
+      render(<SessionControls {...defaultProps} connectedStudentCount={1} />);
+
+      // Click End Session to open dialog
+      const endButton = screen.getByRole('button', { name: /End Session/ });
+      fireEvent.click(endButton);
+
+      expect(screen.getByText(/1 student is currently connected/)).toBeInTheDocument();
+    });
+
+    it('should show generic message when no students are connected', () => {
+      render(<SessionControls {...defaultProps} connectedStudentCount={0} />);
+
+      // Click End Session to open dialog
+      const endButton = screen.getByRole('button', { name: /End Session/ });
+      fireEvent.click(endButton);
+
+      expect(screen.getByText(/Are you sure you want to end this session\?/)).toBeInTheDocument();
+    });
+
+    it('should close dialog on Escape key press', () => {
+      render(<SessionControls {...defaultProps} />);
+
+      // Click End Session to open dialog
+      const endButton = screen.getByRole('button', { name: /End Session/ });
+      fireEvent.click(endButton);
+
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
+
+      // Press Escape
+      fireEvent.keyDown(document, { key: 'Escape' });
+
+      // Dialog should be closed
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      expect(mockOnEndSession).not.toHaveBeenCalled();
+    });
+
+    it('should use danger variant for the confirm button', () => {
+      render(<SessionControls {...defaultProps} />);
+
+      // Click End Session to open dialog
+      const endButton = screen.getByRole('button', { name: /End Session/ });
+      fireEvent.click(endButton);
+
+      // The confirm button in the dialog should have danger styling
+      const dialogButtons = screen.getAllByRole('button', { name: /End Session/ });
+      const confirmButton = dialogButtons[1]; // Dialog's confirm button
+      expect(confirmButton).toHaveClass('bg-red-600');
+    });
   });
 });

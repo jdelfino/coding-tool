@@ -310,32 +310,30 @@ function InstructorPage() {
       return;
     }
 
-    if (confirm('Are you sure you want to end this session? Students will be disconnected.')) {
-      // Determine navigation target based on where we came from
-      const targetView = viewMode === 'sessions' ? 'sessions' : (classContext ? 'sections' : 'classes');
+    // Determine navigation target based on where we came from
+    const targetView = viewMode === 'sessions' ? 'sessions' : (classContext ? 'sections' : 'classes');
 
-      try {
-        await apiEndSession(sessionId);
+    try {
+      await apiEndSession(sessionId);
 
-        // Clear sessionId from URL and set the correct view parameter
-        router.replace(`/instructor?view=${targetView}`);
+      // Clear sessionId from URL and set the correct view parameter
+      router.replace(`/instructor?view=${targetView}`);
 
-        // Clear ALL session-related state immediately
-        setSessionId(null);
-        setJoinCode(null);
-        setSelectedStudentId(null);
-        setSelectedStudentCode('');
-        setExecutionResult(null);
-        setRevisionViewerState(null);
-        setSessionProblem(null);
-        setSessionExecutionSettings({});
-        setSessionContext(null);
+      // Clear ALL session-related state immediately
+      setSessionId(null);
+      setJoinCode(null);
+      setSelectedStudentId(null);
+      setSelectedStudentCode('');
+      setExecutionResult(null);
+      setRevisionViewerState(null);
+      setSessionProblem(null);
+      setSessionExecutionSettings({});
+      setSessionContext(null);
 
-        // Navigate based on context
-        setViewMode(targetView);
-      } catch (err: any) {
-        setError(err.message || 'Failed to end session');
-      }
+      // Navigate based on context
+      setViewMode(targetView);
+    } catch (err: any) {
+      setError(err.message || 'Failed to end session');
     }
   };
 
@@ -555,6 +553,7 @@ function InstructorPage() {
             sessionId={sessionId}
             sectionName={sessionContext?.sectionName}
             joinCode={joinCode || undefined}
+            connectedStudentCount={students.length}
             onEndSession={handleEndSession}
             onLeaveSession={handleLeaveSession}
             onLoadProblem={handleOpenProblemLoader}
