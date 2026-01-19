@@ -10,7 +10,7 @@ echo ""
 
 # Start Supabase and capture credentials
 echo "Starting Supabase..."
-OUTPUT=$(npx supabase start 2>&1) || true
+OUTPUT=$(supabase start 2>&1) || true
 
 # Extract keys from supabase start output
 SUPABASE_ANON_KEY=$(echo "$OUTPUT" | grep -E "anon key:" | awk '{print $3}')
@@ -19,7 +19,7 @@ SUPABASE_SERVICE_ROLE_KEY=$(echo "$OUTPUT" | grep -E "service_role key:" | awk '
 # If keys weren't in output (already running), try supabase status
 if [ -z "$SUPABASE_ANON_KEY" ]; then
     echo "Supabase may already be running, checking status..."
-    STATUS_OUTPUT=$(npx supabase status 2>&1) || true
+    STATUS_OUTPUT=$(supabase status 2>&1) || true
     SUPABASE_ANON_KEY=$(echo "$STATUS_OUTPUT" | grep -E "anon key:" | awk '{print $3}')
     SUPABASE_SERVICE_ROLE_KEY=$(echo "$STATUS_OUTPUT" | grep -E "service_role key:" | awk '{print $3}')
 fi
