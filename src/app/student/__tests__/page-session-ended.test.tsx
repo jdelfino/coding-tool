@@ -228,4 +228,42 @@ describe('Student Page - Session Ended Detection', () => {
       expect(screen.getByText('You can no longer run code, but you can copy your work below.')).toBeInTheDocument();
     });
   });
+
+  it('should display countdown message with auto-redirect when session ends', async () => {
+    mockUseRealtimeSession.mockReturnValue({
+      ...baseSessionState,
+      session: {
+        ...baseSessionState.session,
+        status: 'completed',
+        endedAt: '2026-01-09T12:00:00Z',
+      },
+    });
+
+    render(<StudentPage />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('countdown-message')).toBeInTheDocument();
+      expect(screen.getByText('Returning to sections in 30 seconds...')).toBeInTheDocument();
+    });
+  });
+
+  it('should render session-ended notification as an overlay', async () => {
+    mockUseRealtimeSession.mockReturnValue({
+      ...baseSessionState,
+      session: {
+        ...baseSessionState.session,
+        status: 'completed',
+        endedAt: '2026-01-09T12:00:00Z',
+      },
+    });
+
+    render(<StudentPage />);
+
+    await waitFor(() => {
+      const notification = screen.getByTestId('session-ended-notification');
+      expect(notification).toBeInTheDocument();
+      // Check it has overlay styling (z-50 class)
+      expect(notification.className).toContain('z-50');
+    });
+  });
 });

@@ -71,8 +71,8 @@ describe('SessionEndedNotification', () => {
     });
   });
 
-  describe('Go to Dashboard button', () => {
-    it('renders the Go to Dashboard button', () => {
+  describe('Go to Sections button', () => {
+    it('renders the Go to Sections Now button', () => {
       render(
         <SessionEndedNotification
           onLeaveToDashboard={mockOnLeaveToDashboard}
@@ -80,7 +80,7 @@ describe('SessionEndedNotification', () => {
       );
 
       expect(screen.getByTestId('go-to-dashboard-button')).toBeInTheDocument();
-      expect(screen.getByText('Go to Dashboard')).toBeInTheDocument();
+      expect(screen.getByText('Go to Sections Now')).toBeInTheDocument();
     });
 
     it('calls onLeaveToDashboard when button is clicked', () => {
@@ -200,6 +200,122 @@ describe('SessionEndedNotification', () => {
     });
   });
 
+  describe('countdown and auto-redirect', () => {
+    it('does not show countdown when onTimeout is not provided', () => {
+      render(
+        <SessionEndedNotification
+          onLeaveToDashboard={mockOnLeaveToDashboard}
+        />
+      );
+
+      expect(screen.queryByTestId('countdown-message')).not.toBeInTheDocument();
+    });
+
+    it('shows countdown message when onTimeout is provided', () => {
+      const mockOnTimeout = jest.fn();
+      render(
+        <SessionEndedNotification
+          onLeaveToDashboard={mockOnLeaveToDashboard}
+          onTimeout={mockOnTimeout}
+          countdownSeconds={30}
+        />
+      );
+
+      expect(screen.getByTestId('countdown-message')).toBeInTheDocument();
+      expect(screen.getByText('Returning to sections in 30 seconds...')).toBeInTheDocument();
+    });
+
+    it('counts down every second', async () => {
+      jest.useFakeTimers();
+      const mockOnTimeout = jest.fn();
+
+      render(
+        <SessionEndedNotification
+          onLeaveToDashboard={mockOnLeaveToDashboard}
+          onTimeout={mockOnTimeout}
+          countdownSeconds={5}
+        />
+      );
+
+      expect(screen.getByText('Returning to sections in 5 seconds...')).toBeInTheDocument();
+
+      act(() => {
+        jest.advanceTimersByTime(1000);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('Returning to sections in 4 seconds...')).toBeInTheDocument();
+      });
+
+      act(() => {
+        jest.advanceTimersByTime(1000);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('Returning to sections in 3 seconds...')).toBeInTheDocument();
+      });
+    });
+
+    it('calls onTimeout when countdown reaches zero', async () => {
+      jest.useFakeTimers();
+      const mockOnTimeout = jest.fn();
+
+      render(
+        <SessionEndedNotification
+          onLeaveToDashboard={mockOnLeaveToDashboard}
+          onTimeout={mockOnTimeout}
+          countdownSeconds={3}
+        />
+      );
+
+      expect(mockOnTimeout).not.toHaveBeenCalled();
+
+      // Advance through the countdown
+      act(() => {
+        jest.advanceTimersByTime(3000);
+      });
+
+      await waitFor(() => {
+        expect(mockOnTimeout).toHaveBeenCalledTimes(1);
+      });
+    });
+
+    it('uses default countdown of 30 seconds when not specified', () => {
+      const mockOnTimeout = jest.fn();
+      render(
+        <SessionEndedNotification
+          onLeaveToDashboard={mockOnLeaveToDashboard}
+          onTimeout={mockOnTimeout}
+        />
+      );
+
+      expect(screen.getByText('Returning to sections in 30 seconds...')).toBeInTheDocument();
+    });
+
+    it('clears interval on unmount', () => {
+      jest.useFakeTimers();
+      const mockOnTimeout = jest.fn();
+
+      const { unmount } = render(
+        <SessionEndedNotification
+          onLeaveToDashboard={mockOnLeaveToDashboard}
+          onTimeout={mockOnTimeout}
+          countdownSeconds={10}
+        />
+      );
+
+      unmount();
+
+      // Advance time after unmount
+      act(() => {
+        jest.advanceTimersByTime(15000);
+      });
+
+      // onTimeout should not have been called since component was unmounted
+      expect(mockOnTimeout).not.toHaveBeenCalled();
+    });
+  });
+
   describe('styling and accessibility', () => {
     it('has appropriate aria attributes', () => {
       render(
@@ -223,7 +339,39 @@ describe('SessionEndedNotification', () => {
       );
 
       const buttons = screen.getAllByRole('button');
-      expect(buttons.length).toBe(2); // Copy Code and Go to Dashboard
+      expect(buttons.length).toBe(2); // Copy Code and Go to Sections Now
+    });
+
+    it('renders as an overlay with error styling', () => {
+      render(
+        <SessionEndedNotification
+          onLeaveToDashboard={mockOnLeaveToDashboard}
+        />
+      );
+
+      const notification = screen.getByTestId('session-ended-notification');
+      // Check for overlay positioning classes
+      expect(notification.className).toContain('absolute');
+      expect(notification.className).toContain('inset-0');
+      expect(notification.className).toContain('z-50');
+      // Check for error background styling
+      expect(notification.className).toContain('bg-error-50');
+    });
+
+    it('uses error color scheme for text and buttons', () => {
+      render(
+        <SessionEndedNotification
+          onLeaveToDashboard={mockOnLeaveToDashboard}
+        />
+      );
+
+      // Check the title has error styling
+      const title = screen.getByText('Session Ended');
+      expect(title.className).toContain('text-error-700');
+
+      // Check the button has error styling
+      const button = screen.getByTestId('go-to-dashboard-button');
+      expect(button.className).toContain('bg-error-600');
     });
   });
 });
