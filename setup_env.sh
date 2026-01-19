@@ -145,12 +145,20 @@ print_step "Validating host credentials for mounting..."
 MISSING_CREDS=()
 
 # SSH agent (for git push/pull)
-if [ -z "$SSH_AUTH_SOCK" ] || [ ! -S "$SSH_AUTH_SOCK" ]; then
-    print_warning "SSH agent not running"
-    echo "  Run: eval \$(ssh-agent) && ssh-add"
-    MISSING_CREDS+=("ssh-agent")
+# Docker Desktop for Mac provides SSH agent at /run/host-services/ssh-auth.sock
+# Linux uses the host's SSH_AUTH_SOCK directly
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    export DOCKER_SSH_AUTH_SOCK="/run/host-services/ssh-auth.sock"
 else
-    print_success "SSH agent: $SSH_AUTH_SOCK"
+    export DOCKER_SSH_AUTH_SOCK="${SSH_AUTH_SOCK:-/tmp/ssh-agent.sock}"
+fi
+
+if ssh-add -l &>/dev/null; then
+    print_success "SSH keys loaded in agent"
+else
+    print_warning "No SSH keys in agent"
+    echo "  Run: ssh-add"
+    MISSING_CREDS+=("ssh-keys")
 fi
 
 # Git global config
@@ -359,7 +367,7 @@ fi
 # Add any missing credentials from earlier validation
 for cred in "${MISSING_CREDS[@]}"; do
     case $cred in
-        ssh-agent) NEEDS_MANUAL+=("Start SSH agent: eval \$(ssh-agent) && ssh-add") ;;
+        ssh-keys) NEEDS_MANUAL+=("Add SSH keys: ssh-add") ;;
         gitconfig) NEEDS_MANUAL+=("Configure git: git config --global user.name/email") ;;
         gh) NEEDS_MANUAL+=("Authenticate GitHub CLI: gh auth login") ;;
         claude) NEEDS_MANUAL+=("Authenticate Claude: claude auth") ;;
