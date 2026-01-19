@@ -5,9 +5,11 @@ import * as SessionService from '@/server/services/session-service';
 import type { User } from '@/server/auth/types';
 import { RBACService } from '@/server/auth/rbac';
 import { getExecutorService } from '@/server/code-execution';
+import { rateLimit } from '@/server/rate-limit';
 
 jest.mock('@/server/persistence');
 jest.mock('@/server/services/session-service');
+jest.mock('@/server/rate-limit');
 
 // Mock code-execution module
 const mockPrepareForSession = jest.fn().mockResolvedValue(undefined);
@@ -81,6 +83,8 @@ describe('POST /api/sessions', () => {
     jest.clearAllMocks();
     // Re-setup mocks after clear
     mockGetExecutorService.mockReturnValue({ prepareForSession: mockPrepareForSession } as any);
+    // Default: rate limit passes (returns null)
+    (rateLimit as jest.Mock).mockResolvedValue(null);
 
     mockStorage = {
       sessions: {
@@ -315,6 +319,47 @@ describe('POST /api/sessions', () => {
       consoleSpy.mockRestore();
     });
   });
+
+  describe('Rate limiting', () => {
+    it('uses sessionCreate rate limiter with user ID', async () => {
+      (requireAuth as jest.Mock).mockResolvedValue(createAuthContext(mockUser));
+      (SessionService.createSession as jest.Mock).mockResolvedValue(mockSession);
+
+      const request = new NextRequest('http://localhost/api/sessions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sectionId: 'section-1' }),
+      });
+
+      await POST(request);
+
+      expect(rateLimit).toHaveBeenCalledWith('sessionCreate', request, 'user-1');
+    });
+
+    it('returns 429 when rate limited', async () => {
+      (requireAuth as jest.Mock).mockResolvedValue(createAuthContext(mockUser));
+      // Mock rate limit returning a 429 response
+      const rateLimitResponse = new Response(
+        JSON.stringify({ error: 'Too many requests. Please try again later.' }),
+        { status: 429, headers: { 'Content-Type': 'application/json' } }
+      );
+      (rateLimit as jest.Mock).mockResolvedValue(rateLimitResponse);
+
+      const request = new NextRequest('http://localhost/api/sessions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sectionId: 'section-1' }),
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(429);
+      expect(data.error).toBe('Too many requests. Please try again later.');
+      // Should not attempt to create session
+      expect(SessionService.createSession).not.toHaveBeenCalled();
+    });
+  });
 });
 
 describe('GET /api/sessions', () => {
@@ -364,6 +409,8 @@ describe('GET /api/sessions', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    // Default: rate limit passes (returns null)
+    (rateLimit as jest.Mock).mockResolvedValue(null);
 
     mockStorage = {
       sessions: {

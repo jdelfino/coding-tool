@@ -88,6 +88,13 @@ export const RateLimiters = {
     prefix: 'rl:analyze-global',
   }) : null,
 
+  // Session creation - User-based, hourly limit to prevent resource exhaustion
+  sessionCreate: redis ? new Ratelimit({
+    redis,
+    limiter: Ratelimit.slidingWindow(10, '1 h'),
+    prefix: 'rl:session-create',
+  }) : null,
+
   // Write operations - User-based, create/update/delete
   write: redis ? new Ratelimit({
     redis,

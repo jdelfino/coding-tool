@@ -270,6 +270,7 @@ describe('rate-limit', () => {
       expect(RateLimiters.analyze).not.toBeNull();
       expect(RateLimiters.analyzeDaily).not.toBeNull();
       expect(RateLimiters.analyzeGlobal).not.toBeNull();
+      expect(RateLimiters.sessionCreate).not.toBeNull();
       expect(RateLimiters.write).not.toBeNull();
       expect(RateLimiters.read).not.toBeNull();
     });
@@ -284,6 +285,7 @@ describe('rate-limit', () => {
       expect(RateLimiters.analyze).toBeNull();
       expect(RateLimiters.analyzeDaily).toBeNull();
       expect(RateLimiters.analyzeGlobal).toBeNull();
+      expect(RateLimiters.sessionCreate).toBeNull();
       expect(RateLimiters.write).toBeNull();
       expect(RateLimiters.read).toBeNull();
     });
