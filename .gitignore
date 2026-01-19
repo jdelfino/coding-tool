@@ -25,3 +25,4 @@ history/
 test-data/
 .vercel
 .env*.local
+.env.1password.local
