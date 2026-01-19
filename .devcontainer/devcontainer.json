@@ -13,9 +13,14 @@
 
 	"postCreateCommand": "curl -fsSL https://raw.githubusercontent.com/steveyegge/beads/main/scripts/install.sh | bash && npm install && npx playwright install-deps chromium && curl -fsSL https://claude.ai/install.sh | bash && ./.devcontainer/install-nsjail.sh",
 
-	// Forward Supabase ports
-	"forwardPorts": [54321, 54322, 54323],
+	"forwardPorts": [3000, 3001, 54321, 54322, 54323],
 	"portsAttributes": {
+		"3000": {
+			"label": "Next.js Dev Server"
+		},
+		"3001": {
+			"label": "Express Backend"
+		},
 		"54321": {
 			"label": "Supabase API"
 		},
