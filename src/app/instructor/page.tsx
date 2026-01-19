@@ -24,6 +24,7 @@ import SessionDetails from './components/SessionDetails';
 import { Problem, ExecutionSettings } from '@/server/types/problem';
 import SessionProblemEditor from './components/SessionProblemEditor';
 import WalkthroughPanel from './components/WalkthroughPanel';
+import { Breadcrumb, BreadcrumbItem } from '@/components/ui/Breadcrumb';
 
 interface Student {
   id: string;
@@ -134,6 +135,60 @@ function InstructorPage() {
     })),
     [realtimeStudents]
   );
+
+  // Build breadcrumb items based on current view and context
+  const breadcrumbItems = useMemo((): BreadcrumbItem[] => {
+    const items: BreadcrumbItem[] = [];
+
+    // Handle problem creator view (no breadcrumbs)
+    if (viewMode === 'problems' && problemSubView === 'creator') {
+      return [];
+    }
+
+    // Add Classes as root for class-based navigation
+    if (viewMode === 'classes' || viewMode === 'sections' || viewMode === 'session') {
+      if (viewMode === 'classes') {
+        items.push({ label: 'Classes' });
+      } else {
+        items.push({ label: 'Classes', href: '/instructor?view=classes' });
+      }
+    }
+
+    // Add Problems as root for problem library navigation
+    if (viewMode === 'problems') {
+      items.push({ label: 'Problems' });
+    }
+
+    // Add Sessions as root for sessions navigation
+    if (viewMode === 'sessions' || viewMode === 'details') {
+      if (viewMode === 'sessions') {
+        items.push({ label: 'Sessions' });
+      } else {
+        items.push({ label: 'Sessions', href: '/instructor?view=sessions' });
+      }
+    }
+
+    // Add class name if we have class context
+    if (classContext && (viewMode === 'sections' || viewMode === 'session')) {
+      if (viewMode === 'sections') {
+        items.push({ label: classContext.className });
+      } else {
+        items.push({ label: classContext.className, href: '/instructor?view=sections' });
+      }
+    }
+
+    // Add section name for active session
+    if (sessionContext && viewMode === 'session') {
+      items.push({ label: sessionContext.sectionName });
+    }
+
+    // Add Session Details for details view
+    if (viewMode === 'details') {
+      items.push({ label: 'Session Details' });
+    }
+
+    return items;
+  }, [viewMode, classContext, sessionContext, problemSubView]);
 
   // Update URL when viewMode changes to preserve on refresh
   useEffect(() => {
@@ -675,6 +730,15 @@ function InstructorPage() {
               onNavigate={handleNavigate}
               activeSessionId={sessionId}
               onReturnToSession={() => setViewMode('session')}
+            />
+          )}
+
+          {/* Breadcrumb navigation */}
+          {breadcrumbItems.length > 0 && (
+            <Breadcrumb
+              items={breadcrumbItems}
+              separator="/"
+              className="mb-4 px-1"
             />
           )}
 
