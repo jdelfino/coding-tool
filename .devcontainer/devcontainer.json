@@ -7,8 +7,16 @@
 
 	"mounts": [
 		"source=coding-tool-cache,target=/home/node/.cache,type=volume",
-		"source=coding-tool-npm-cache,target=/home/node/.npm,type=volume"
+		"source=coding-tool-npm-cache,target=/home/node/.npm,type=volume",
+		"source=${localEnv:SSH_AUTH_SOCK},target=/ssh-agent,type=bind",
+		"source=${localEnv:HOME}/.gitconfig,target=/home/node/.gitconfig,type=bind,readonly",
+		"source=${localEnv:HOME}/.config/gh,target=/home/node/.config/gh,type=bind,readonly",
+		"source=${localEnv:HOME}/.claude.json,target=/home/node/.claude.json,type=bind,readonly"
 	],
+
+	"containerEnv": {
+		"SSH_AUTH_SOCK": "/ssh-agent"
+	},
 
 	"features": {
 		"ghcr.io/devcontainers/features/python:1": {

@@ -138,29 +138,19 @@ fi
 echo ""
 
 # =============================================================================
-# Detect host credentials to copy
+# Validate host credentials (will be mounted into container)
 # =============================================================================
-print_step "Detecting host credentials to copy..."
+print_step "Validating host credentials for mounting..."
 
-CREDS_TO_COPY=()
+MISSING_CREDS=()
 
-# GitHub CLI credentials
-GH_CONFIG_DIR="${HOME}/.config/gh"
-if [ -d "$GH_CONFIG_DIR" ] && [ -f "$GH_CONFIG_DIR/hosts.yml" ]; then
-    print_success "GitHub CLI credentials found"
-    CREDS_TO_COPY+=("gh")
+# SSH agent (for git push/pull)
+if [ -z "$SSH_AUTH_SOCK" ] || [ ! -S "$SSH_AUTH_SOCK" ]; then
+    print_warning "SSH agent not running"
+    echo "  Run: eval \$(ssh-agent) && ssh-add"
+    MISSING_CREDS+=("ssh-agent")
 else
-    print_warning "GitHub CLI not authenticated (optional)"
-fi
-
-# Claude Code credentials (stored at ~/.claude.json, not inside ~/.claude/)
-CLAUDE_CREDS="${HOME}/.claude.json"
-if [ -f "$CLAUDE_CREDS" ]; then
-    print_success "Claude Code credentials found"
-    CREDS_TO_COPY+=("claude")
-else
-    print_warning "Claude Code not authenticated"
-    echo "  You'll need to run 'claude auth' in the container"
+    print_success "SSH agent: $SSH_AUTH_SOCK"
 fi
 
 # Git global config
@@ -169,9 +159,32 @@ if [ -f "$GIT_CONFIG" ] && git config --global user.email &> /dev/null; then
     GIT_NAME=$(git config --global user.name)
     GIT_EMAIL=$(git config --global user.email)
     print_success "Git identity: $GIT_NAME <$GIT_EMAIL>"
-    CREDS_TO_COPY+=("git")
 else
-    print_warning "Git global identity not configured"
+    print_warning "Git config not found: ~/.gitconfig"
+    MISSING_CREDS+=("gitconfig")
+fi
+
+# GitHub CLI credentials
+GH_CONFIG_DIR="${HOME}/.config/gh"
+if [ -d "$GH_CONFIG_DIR" ] && [ -f "$GH_CONFIG_DIR/hosts.yml" ]; then
+    print_success "GitHub CLI credentials found"
+else
+    print_warning "GitHub CLI not authenticated: ~/.config/gh"
+    MISSING_CREDS+=("gh")
+fi
+
+# Claude Code credentials
+CLAUDE_CREDS="${HOME}/.claude.json"
+if [ -f "$CLAUDE_CREDS" ]; then
+    print_success "Claude Code credentials found"
+else
+    print_warning "Claude Code not authenticated: ~/.claude.json"
+    MISSING_CREDS+=("claude")
+fi
+
+if [ ${#MISSING_CREDS[@]} -gt 0 ]; then
+    echo ""
+    print_warning "Some credentials are missing. Container may have limited functionality."
 fi
 
 echo ""
@@ -310,42 +323,7 @@ fi
 print_success "Devcontainer started"
 echo ""
 
-# =============================================================================
-# Copy credentials into container
-# =============================================================================
-if [ ${#CREDS_TO_COPY[@]} -gt 0 ]; then
-    print_step "Copying credentials into container..."
-
-    # Get container ID
-    CONTAINER_ID=$(docker ps --filter "label=devcontainer.local_folder=$INSTANCE_DIR" --format "{{.ID}}" | head -1)
-
-    if [ -z "$CONTAINER_ID" ]; then
-        print_warning "Could not find running container, skipping credential copy"
-    else
-        # Copy GitHub CLI config
-        if [[ " ${CREDS_TO_COPY[@]} " =~ " gh " ]]; then
-            docker exec -u node "$CONTAINER_ID" mkdir -p /home/node/.config/gh
-            docker cp "$GH_CONFIG_DIR/hosts.yml" "$CONTAINER_ID:/home/node/.config/gh/hosts.yml"
-            docker exec "$CONTAINER_ID" chown -R node:node /home/node/.config/gh
-            print_success "GitHub CLI credentials copied"
-        fi
-
-        # Copy Claude Code credentials
-        if [[ " ${CREDS_TO_COPY[@]} " =~ " claude " ]]; then
-            docker cp "$CLAUDE_CREDS" "$CONTAINER_ID:/home/node/.claude.json"
-            docker exec "$CONTAINER_ID" chown node:node /home/node/.claude.json
-            print_success "Claude Code credentials copied"
-        fi
-
-        # Copy Git config
-        if [[ " ${CREDS_TO_COPY[@]} " =~ " git " ]]; then
-            docker cp "$GIT_CONFIG" "$CONTAINER_ID:/home/node/.gitconfig"
-            docker exec "$CONTAINER_ID" chown node:node /home/node/.gitconfig
-            print_success "Git config copied"
-        fi
-    fi
-    echo ""
-fi
+# Credentials are mounted via devcontainer.json, no copy needed
 
 # =============================================================================
 # Run secrets setup inside container
@@ -374,21 +352,23 @@ print_step "Post-setup checklist..."
 # Check what still needs manual setup
 NEEDS_MANUAL=()
 
-if [[ ! " ${CREDS_TO_COPY[@]} " =~ " claude " ]]; then
-    NEEDS_MANUAL+=("Claude Code: run 'claude auth' in container")
-fi
-
-if [[ ! " ${CREDS_TO_COPY[@]} " =~ " git " ]]; then
-    NEEDS_MANUAL+=("Git identity: run 'git config --global user.name/email' in container")
-fi
-
 if [ "$OP_CONFIGURED" = false ]; then
     NEEDS_MANUAL+=("Edit .env.local with SYSTEM_ADMIN_EMAIL and GEMINI_API_KEY")
 fi
 
+# Add any missing credentials from earlier validation
+for cred in "${MISSING_CREDS[@]}"; do
+    case $cred in
+        ssh-agent) NEEDS_MANUAL+=("Start SSH agent: eval \$(ssh-agent) && ssh-add") ;;
+        gitconfig) NEEDS_MANUAL+=("Configure git: git config --global user.name/email") ;;
+        gh) NEEDS_MANUAL+=("Authenticate GitHub CLI: gh auth login") ;;
+        claude) NEEDS_MANUAL+=("Authenticate Claude: claude auth") ;;
+    esac
+done
+
 if [ ${#NEEDS_MANUAL[@]} -gt 0 ]; then
     echo ""
-    print_warning "Manual setup required:"
+    print_warning "Manual setup required on host:"
     for item in "${NEEDS_MANUAL[@]}"; do
         echo "  • $item"
     done
