@@ -60,7 +60,37 @@ DO NOT push - the coordinator will handle that.
 - Each commit must pass quality gates (tests, tsc)
 - Push regularly: `git push -u origin feature/<epic-name>`
 
-## 4. Open PR When Work Seems Complete
+## 4. Review Sub-Agent Work
+
+**You are accountable for ALL sub-agent work quality.** Sub-agents make mistakes. Before opening a PR, you MUST verify their work meets standards.
+
+### Review Checklist (for each completed task)
+
+- [ ] **Read the code changes** - Actually read what was written, don't trust blindly
+- [ ] **Tests exist and are meaningful** - Not just "test passes", but tests that would catch regressions
+- [ ] **Tests pass** - Run `npm test` in the worktree
+- [ ] **No TypeScript errors** - Run `npx tsc --noEmit`
+- [ ] **No obvious issues** - Security holes, logic errors, missing edge cases
+- [ ] **Follows project patterns** - Consistent with existing codebase style
+
+### When to Review
+
+Review incrementally as tasks complete. Don't wait until all tasks are done:
+
+1. When a sub-agent reports completion, review their commit immediately
+2. If issues found, fix them before moving on (or spawn another agent to fix)
+3. Track which tasks have been reviewed
+
+### If Issues Are Found
+
+Fix problems before opening PR:
+- Minor issues: Edit directly and amend/create new commit
+- Major issues: Spawn a sub-agent with clear fix instructions
+- Blocking issues: May need to revert and redo the task
+
+**DO NOT open a PR until all sub-agent work has been reviewed and verified.**
+
+## 5. Open PR When Work Is Complete And Reviewed
 
 ```bash
 git push -u origin feature/<epic-name>
@@ -79,7 +109,7 @@ EOF
 )"
 ```
 
-## 5. Wait for CI
+## 6. Wait for CI
 
 - ALL CI checks must pass (unit tests, E2E, sandbox tests)
 - If CI fails, fix issues and push again
@@ -90,7 +120,7 @@ Check CI status:
 gh pr checks <pr-number>
 ```
 
-## 6. Get User Approval Before Merging
+## 7. Get User Approval Before Merging
 
 **MANDATORY**: After CI passes, ASK the user:
 
@@ -98,7 +128,7 @@ gh pr checks <pr-number>
 
 Do NOT merge without explicit user approval.
 
-## 7. Merge and Cleanup
+## 8. Merge and Cleanup
 
 After user approval:
 ```bash
@@ -114,7 +144,7 @@ git branch -d feature/<epic-name>
 git pull origin main
 ```
 
-## 8. Close the Epic
+## 9. Close the Epic
 
 ```bash
 bd close <epic-id> --reason "Merged in PR #<number>"
@@ -127,6 +157,7 @@ bd close <epic-id> --reason "Merged in PR #<number>"
 An epic is NOT complete until ALL of these are true:
 
 - [ ] Work is on a feature branch, not main
+- [ ] **All sub-agent work has been reviewed by coordinator**
 - [ ] PR is opened
 - [ ] All CI checks are green
 - [ ] User explicitly approved the merge
@@ -138,6 +169,8 @@ An epic is NOT complete until ALL of these are true:
 ## Common Violations
 
 - "I committed to main" - Epics MUST use branches
+- "Sub-agent said it's done, moving on" - You MUST review their work first
+- "Tests pass so the code is good" - Read the actual code, verify test quality
 - "PR is open, I'm done" - Must wait for CI and user approval
 - "CI passed, merging now" - Must ask user first
 - "User said merge" but CI failing - Fix CI first
