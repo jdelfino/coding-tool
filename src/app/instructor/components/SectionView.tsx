@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import CreateSectionModal from './CreateSectionModal';
 import { formatJoinCodeForDisplay } from '@/server/classes/join-code-service';
+import { BackButton } from '@/components/ui/BackButton';
 
 interface SectionInfo {
   id: string;
@@ -142,15 +143,9 @@ export default function SectionView({
   if (error) {
     return (
       <div>
-        <button
-          onClick={onBack}
-          className="mb-4 flex items-center text-blue-600 hover:text-blue-700 font-semibold"
-        >
-          <svg className="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
-          Back to Classes
-        </button>
+        <div className="mb-4">
+          <BackButton onClick={onBack}>Back to Classes</BackButton>
+        </div>
         <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
           <p className="font-semibold">Error loading sections</p>
           <p className="text-sm">{error}</p>
@@ -162,15 +157,9 @@ export default function SectionView({
   if (!selectedSection) {
     return (
       <div>
-        <button
-          onClick={onBack}
-          className="mb-6 flex items-center text-blue-600 hover:text-blue-700 font-semibold transition-colors"
-        >
-          <svg className="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
-          Back to Classes
-        </button>
+        <div className="mb-6">
+          <BackButton onClick={onBack}>Back to Classes</BackButton>
+        </div>
 
         <div className="flex items-center justify-between mb-6">
           <div>
@@ -310,15 +299,9 @@ export default function SectionView({
   // Section selected - show sessions
   return (
     <div>
-      <button
-        onClick={() => setSelectedSection(null)}
-        className="mb-6 flex items-center text-blue-600 hover:text-blue-700 font-semibold transition-colors"
-      >
-        <svg className="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-        </svg>
-        Back to {className}
-      </button>
+      <div className="mb-6">
+        <BackButton onClick={() => setSelectedSection(null)}>Back to {className}</BackButton>
+      </div>
 
       <div className="mb-6">
         <h2 className="text-2xl font-bold text-gray-900 mb-1">{selectedSection.name}</h2>

@@ -6,6 +6,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { useNamespaces } from '@/hooks/useNamespaces';
 import { User } from '@/server/auth/types';
 import { Namespace } from '@/server/auth/types';
+import { BackButton } from '@/components/ui/BackButton';
 
 /**
  * Namespace User Management Page
@@ -129,20 +130,9 @@ export default function NamespaceUsersPage() {
     <main style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
       {/* Header */}
       <div style={{ marginBottom: '2rem' }}>
-        <button
-          onClick={() => router.push('/system')}
-          style={{
-            padding: '0.5rem 1rem',
-            background: 'white',
-            color: '#0070f3',
-            border: '1px solid #0070f3',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            marginBottom: '1rem'
-          }}
-        >
-          ← Back to System Admin
-        </button>
+        <div style={{ marginBottom: '1rem' }}>
+          <BackButton href="/system">Back to System Admin</BackButton>
+        </div>
 
         <h1 style={{ marginBottom: '0.5rem' }}>
           {namespace?.displayName || namespaceId}
