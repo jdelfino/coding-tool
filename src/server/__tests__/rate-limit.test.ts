@@ -268,6 +268,8 @@ describe('rate-limit', () => {
       expect(RateLimiters.execute).not.toBeNull();
       expect(RateLimiters.trace).not.toBeNull();
       expect(RateLimiters.analyze).not.toBeNull();
+      expect(RateLimiters.analyzeDaily).not.toBeNull();
+      expect(RateLimiters.analyzeGlobal).not.toBeNull();
       expect(RateLimiters.write).not.toBeNull();
       expect(RateLimiters.read).not.toBeNull();
     });
@@ -280,8 +282,63 @@ describe('rate-limit', () => {
       expect(RateLimiters.execute).toBeNull();
       expect(RateLimiters.trace).toBeNull();
       expect(RateLimiters.analyze).toBeNull();
+      expect(RateLimiters.analyzeDaily).toBeNull();
+      expect(RateLimiters.analyzeGlobal).toBeNull();
       expect(RateLimiters.write).toBeNull();
       expect(RateLimiters.read).toBeNull();
+    });
+  });
+
+  describe('rateLimitResponseWithMessage', () => {
+    it('returns 429 status with custom message', async () => {
+      const { rateLimitResponseWithMessage } = await import('../rate-limit');
+      const response = rateLimitResponseWithMessage(
+        { success: false, limited: true, remaining: 0 },
+        'Custom daily limit message'
+      );
+
+      expect(response.status).toBe(429);
+      const body = await response.json();
+      expect(body.error).toBe('Custom daily limit message');
+    });
+
+    it('defaults Retry-After to 24 hours when reset is missing', async () => {
+      const { rateLimitResponseWithMessage } = await import('../rate-limit');
+      const response = rateLimitResponseWithMessage(
+        { success: false, limited: true },
+        'Daily limit reached'
+      );
+
+      expect(response.headers.get('Retry-After')).toBe('86400');
+    });
+
+    it('calculates Retry-After from reset time', async () => {
+      const { rateLimitResponseWithMessage } = await import('../rate-limit');
+      const resetTime = Date.now() + 3600000; // 1 hour from now
+      const response = rateLimitResponseWithMessage(
+        { success: false, limited: true, remaining: 0, reset: resetTime },
+        'Daily limit reached'
+      );
+
+      const retryAfter = parseInt(response.headers.get('Retry-After')!);
+      // Should be approximately 3600 seconds (1 hour)
+      expect(retryAfter).toBeGreaterThan(3500);
+      expect(retryAfter).toBeLessThanOrEqual(3600);
+    });
+  });
+
+  describe('checkAnalyzeDailyLimits', () => {
+    it('returns null when not rate limited (dev mode)', async () => {
+      jest.spyOn(console, 'warn').mockImplementation();
+      const { checkAnalyzeDailyLimits } = await import('../rate-limit');
+
+      const request = new Request('https://example.com', {
+        headers: { 'x-forwarded-for': '192.168.1.1' },
+      });
+
+      const result = await checkAnalyzeDailyLimits(request, 'user-123');
+
+      expect(result).toBeNull();
     });
   });
 
@@ -410,5 +467,111 @@ describe('rate-limit with Redis configured', () => {
     const result = await rateLimit('auth', request);
 
     expect(result).toBeNull();
+  });
+
+  describe('checkAnalyzeDailyLimits', () => {
+    it('returns null when both limits pass', async () => {
+      const { Ratelimit } = jest.requireMock('@upstash/ratelimit');
+      const mockLimit = jest.fn().mockResolvedValue({
+        success: true,
+        remaining: 50,
+        reset: Date.now() + 86400000,
+      });
+      Ratelimit.mockImplementation(() => ({
+        limit: mockLimit,
+      }));
+
+      const { checkAnalyzeDailyLimits } = await import('../rate-limit');
+
+      const request = new Request('https://example.com', {
+        headers: { 'x-forwarded-for': '192.168.1.1' },
+      });
+
+      const result = await checkAnalyzeDailyLimits(request, 'user-123');
+
+      expect(result).toBeNull();
+    });
+
+    it('returns 429 with global message when global limit exceeded', async () => {
+      const { Ratelimit } = jest.requireMock('@upstash/ratelimit');
+      const mockLimit = jest.fn().mockResolvedValue({
+        success: false,
+        remaining: 0,
+        reset: Date.now() + 86400000,
+      });
+      Ratelimit.mockImplementation(() => ({
+        limit: mockLimit,
+      }));
+
+      const { checkAnalyzeDailyLimits } = await import('../rate-limit');
+
+      const request = new Request('https://example.com', {
+        headers: { 'x-forwarded-for': '192.168.1.1' },
+      });
+
+      const result = await checkAnalyzeDailyLimits(request, 'user-123');
+
+      expect(result).not.toBeNull();
+      expect(result!.status).toBe(429);
+      const body = await result!.json();
+      expect(body.error).toBe('Global daily analysis limit reached. Please try again tomorrow.');
+    });
+
+    it('returns 429 with user message when per-user limit exceeded', async () => {
+      const { Ratelimit } = jest.requireMock('@upstash/ratelimit');
+      // First call (global) succeeds, second call (user) fails
+      const mockLimit = jest.fn()
+        .mockResolvedValueOnce({
+          success: true,
+          remaining: 100,
+          reset: Date.now() + 86400000,
+        })
+        .mockResolvedValueOnce({
+          success: false,
+          remaining: 0,
+          reset: Date.now() + 86400000,
+        });
+      Ratelimit.mockImplementation(() => ({
+        limit: mockLimit,
+      }));
+
+      const { checkAnalyzeDailyLimits } = await import('../rate-limit');
+
+      const request = new Request('https://example.com', {
+        headers: { 'x-forwarded-for': '192.168.1.1' },
+      });
+
+      const result = await checkAnalyzeDailyLimits(request, 'user-123');
+
+      expect(result).not.toBeNull();
+      expect(result!.status).toBe(429);
+      const body = await result!.json();
+      expect(body.error).toBe('Daily analysis limit reached (100 per day). Please try again tomorrow.');
+    });
+
+    it('checks global limit before user limit', async () => {
+      const { Ratelimit } = jest.requireMock('@upstash/ratelimit');
+      const mockLimit = jest.fn().mockResolvedValue({
+        success: true,
+        remaining: 50,
+        reset: Date.now() + 86400000,
+      });
+      Ratelimit.mockImplementation(() => ({
+        limit: mockLimit,
+      }));
+
+      const { checkAnalyzeDailyLimits } = await import('../rate-limit');
+
+      const request = new Request('https://example.com', {
+        headers: { 'x-forwarded-for': '192.168.1.1' },
+      });
+
+      await checkAnalyzeDailyLimits(request, 'user-123');
+
+      // Should be called twice: first with 'global' key, then with user key
+      expect(mockLimit).toHaveBeenCalledTimes(2);
+      expect(mockLimit).toHaveBeenNthCalledWith(1, 'global');
+      expect(mockLimit).toHaveBeenNthCalledWith(2, 'user:user-123');
+    });
   });
 });
