@@ -6,10 +6,11 @@
  */
 
 import React from 'react';
-import { useState, FormEvent } from 'react';
+import { useState, useCallback, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
+import { ErrorAlert } from '@/components/ErrorAlert';
 
 export default function SignInPage() {
   const [email, setEmail] = useState('');
@@ -19,8 +20,10 @@ export default function SignInPage() {
   const router = useRouter();
   const { signIn } = useAuth();
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = useCallback(async (e?: FormEvent) => {
+    if (e) {
+      e.preventDefault();
+    }
     setError('');
 
     // Validation
@@ -49,18 +52,24 @@ export default function SignInPage() {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Sign in failed';
 
-      // Map common error messages to user-friendly versions
+      // Map common error messages to user-friendly versions with recovery hints
       if (errorMessage.includes('Invalid') || errorMessage.includes('credentials')) {
-        setError('Invalid email or password');
+        setError('Invalid email or password. Please check your credentials and try again.');
       } else if (errorMessage.includes('not found')) {
-        setError('No account found with this email');
+        setError('No account found with this email. Check the email address or register as a new student.');
+      } else if (errorMessage.toLowerCase().includes('network') || errorMessage.toLowerCase().includes('fetch')) {
+        setError('Connection error. Please check your internet connection and try again.');
       } else {
         setError(errorMessage);
       }
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [email, password, signIn, router]);
+
+  const handleRetry = useCallback(() => {
+    handleSubmit();
+  }, [handleSubmit]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
@@ -119,14 +128,13 @@ export default function SignInPage() {
           </div>
 
           {error && (
-            <div className="rounded-lg bg-red-50 border border-red-200 p-4 animate-shake">
-              <div className="flex items-center">
-                <svg className="w-5 h-5 text-red-400 mr-3" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                </svg>
-                <h3 className="text-sm font-medium text-red-800">{error}</h3>
-              </div>
-            </div>
+            <ErrorAlert
+              error={error}
+              onRetry={handleRetry}
+              isRetrying={isLoading}
+              onDismiss={() => setError('')}
+              showHelpText={true}
+            />
           )}
 
           <div>

@@ -1,7 +1,8 @@
 'use client';
 
 import React from 'react';
-import { classifyError, ErrorCategory } from '@/lib/error-messages';
+import Link from 'next/link';
+import { classifyError, ErrorCategory, RecoveryAction } from '@/lib/error-messages';
 
 /**
  * Props for ErrorAlert component
@@ -19,6 +20,10 @@ export interface ErrorAlertProps {
   isRetrying?: boolean;
   /** Whether to show the technical error message (default: false in production) */
   showTechnical?: boolean;
+  /** Whether to show recovery actions (default: true) */
+  showRecoveryActions?: boolean;
+  /** Whether to show help text (default: true) */
+  showHelpText?: boolean;
   /** Additional CSS classes */
   className?: string;
   /** Variant for styling (default: 'error') */
@@ -70,7 +75,9 @@ const variantStyles = {
  * Features:
  * - Automatic error classification for user-friendly messages
  * - Optional retry button for retryable errors
+ * - Recovery action links (e.g., "Sign In", "Go Home")
  * - Optional dismiss button
+ * - Help text explaining what went wrong
  * - Multiple style variants (error, warning, info)
  * - Accessible with proper ARIA attributes
  *
@@ -90,6 +97,8 @@ export function ErrorAlert({
   onDismiss,
   isRetrying = false,
   showTechnical = false,
+  showRecoveryActions = true,
+  showHelpText = true,
   className = '',
   variant = 'error',
 }: ErrorAlertProps) {
@@ -97,8 +106,15 @@ export function ErrorAlert({
   const displayTitle = title || categoryTitles[classified.category];
   const styles = variantStyles[variant];
 
-  // Determine if we should show the retry button
+  // Determine if we should show the retry button (from onRetry prop or recovery actions)
   const showRetryButton = onRetry && classified.isRetryable;
+
+  // Get link-type recovery actions to show
+  const linkActions = showRecoveryActions
+    ? classified.recoveryActions.filter((action): action is RecoveryAction & { href: string } =>
+        action.type === 'link' && !!action.href
+      )
+    : [];
 
   return (
     <div
@@ -127,10 +143,29 @@ export function ErrorAlert({
             <p className={`font-semibold ${styles.title}`}>{displayTitle}</p>
           </div>
           <p className="mt-1 text-sm">{classified.userMessage}</p>
+          {showHelpText && classified.helpText && (
+            <p className="mt-1 text-xs opacity-75">
+              {classified.helpText}
+            </p>
+          )}
           {showTechnical && classified.technicalMessage !== classified.userMessage && (
             <p className="mt-1 text-xs opacity-75 font-mono">
               Technical: {classified.technicalMessage}
             </p>
+          )}
+          {/* Recovery action links */}
+          {linkActions.length > 0 && (
+            <div className="mt-2 flex gap-2">
+              {linkActions.map((action, index) => (
+                <Link
+                  key={index}
+                  href={action.href}
+                  className={`text-sm font-medium underline hover:no-underline ${styles.title}`}
+                >
+                  {action.label}
+                </Link>
+              ))}
+            </div>
           )}
         </div>
 

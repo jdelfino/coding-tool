@@ -69,9 +69,12 @@ describe('SignInPage', () => {
       const submitButton = screen.getByRole('button', { name: /sign in/i });
       fireEvent.click(submitButton);
 
+      // The validation error is displayed via ErrorAlert component
       await waitFor(() => {
-        expect(screen.getByText(/please enter your email address/i)).toBeInTheDocument();
+        expect(screen.getByRole('alert')).toBeInTheDocument();
       });
+      // The specific message "please enter your email address" should be part of the alert
+      expect(screen.getByRole('alert').textContent).toMatch(/please enter your email address/i);
 
       expect(mockSignIn).not.toHaveBeenCalled();
     });
@@ -85,9 +88,11 @@ describe('SignInPage', () => {
       fireEvent.change(emailInput, { target: { value: 'invalid-email' } });
       fireEvent.submit(form);
 
+      // The validation error is displayed via ErrorAlert component
       await waitFor(() => {
-        expect(screen.getByText(/please enter a valid email address/i)).toBeInTheDocument();
+        expect(screen.getByRole('alert')).toBeInTheDocument();
       });
+      expect(screen.getByRole('alert').textContent).toMatch(/please enter a valid email address/i);
 
       expect(mockSignIn).not.toHaveBeenCalled();
     });
@@ -101,9 +106,11 @@ describe('SignInPage', () => {
       fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
       fireEvent.click(submitButton);
 
+      // The validation error is displayed via ErrorAlert component
       await waitFor(() => {
-        expect(screen.getByText(/please enter your password/i)).toBeInTheDocument();
+        expect(screen.getByRole('alert')).toBeInTheDocument();
       });
+      expect(screen.getByRole('alert').textContent).toMatch(/please enter your password/i);
 
       expect(mockSignIn).not.toHaveBeenCalled();
     });
@@ -213,8 +220,10 @@ describe('SignInPage', () => {
       fireEvent.click(submitButton);
 
       await waitFor(() => {
-        expect(screen.getByText(/invalid email or password/i)).toBeInTheDocument();
+        expect(screen.getByRole('alert')).toBeInTheDocument();
       });
+      // Check for the user-friendly message inside the ErrorAlert
+      expect(screen.getByRole('alert').textContent).toMatch(/invalid email or password/i);
     });
 
     it('maps "not found" errors to user-friendly message', async () => {
@@ -231,8 +240,9 @@ describe('SignInPage', () => {
       fireEvent.click(submitButton);
 
       await waitFor(() => {
-        expect(screen.getByText(/no account found with this email/i)).toBeInTheDocument();
+        expect(screen.getByRole('alert')).toBeInTheDocument();
       });
+      expect(screen.getByRole('alert').textContent).toMatch(/no account found with this email/i);
     });
 
     it('clears error message on new submission attempt', async () => {
@@ -250,7 +260,7 @@ describe('SignInPage', () => {
       fireEvent.click(submitButton);
 
       await waitFor(() => {
-        expect(screen.getByText(/invalid email or password/i)).toBeInTheDocument();
+        expect(screen.getByRole('alert')).toBeInTheDocument();
       });
 
       // Clear error
@@ -261,7 +271,7 @@ describe('SignInPage', () => {
       fireEvent.click(submitButton);
 
       await waitFor(() => {
-        expect(screen.queryByText(/invalid email or password/i)).not.toBeInTheDocument();
+        expect(screen.queryByRole('alert')).not.toBeInTheDocument();
       });
     });
 
@@ -278,8 +288,56 @@ describe('SignInPage', () => {
       fireEvent.change(passwordInput, { target: { value: 'password123' } });
       fireEvent.click(submitButton);
 
+      // When signIn rejects with a non-Error, it falls back to "Sign in failed"
+      // which is then classified by ErrorAlert's classifyError, resulting in user-friendly message
       await waitFor(() => {
-        expect(screen.getByText(/sign in failed/i)).toBeInTheDocument();
+        // The error message is displayed via ErrorAlert which shows user-friendly messages
+        expect(screen.getByRole('alert')).toBeInTheDocument();
+      });
+    });
+
+    it('shows retry button for retryable errors', async () => {
+      mockSignIn.mockRejectedValue(new Error('Network error'));
+
+      render(<SignInPage />);
+
+      const emailInput = screen.getByLabelText(/email address/i);
+      const passwordInput = screen.getByLabelText(/^password$/i);
+      const submitButton = screen.getByRole('button', { name: /sign in/i });
+
+      fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
+      fireEvent.change(passwordInput, { target: { value: 'password123' } });
+      fireEvent.click(submitButton);
+
+      await waitFor(() => {
+        expect(screen.getByRole('alert')).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /try again/i })).toBeInTheDocument();
+      });
+    });
+
+    it('allows dismissing error alerts', async () => {
+      mockSignIn.mockRejectedValue(new Error('Invalid credentials'));
+
+      render(<SignInPage />);
+
+      const emailInput = screen.getByLabelText(/email address/i);
+      const passwordInput = screen.getByLabelText(/^password$/i);
+      const submitButton = screen.getByRole('button', { name: /sign in/i });
+
+      fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
+      fireEvent.change(passwordInput, { target: { value: 'wrongpassword' } });
+      fireEvent.click(submitButton);
+
+      await waitFor(() => {
+        expect(screen.getByRole('alert')).toBeInTheDocument();
+      });
+
+      // Dismiss the error
+      const dismissButton = screen.getByRole('button', { name: /dismiss/i });
+      fireEvent.click(dismissButton);
+
+      await waitFor(() => {
+        expect(screen.queryByRole('alert')).not.toBeInTheDocument();
       });
     });
   });
