@@ -82,9 +82,12 @@ To enable automatic secret injection:
 
 In 1Password:
 1. Create a vault named `coding-tool-dev`
-2. Create an item named `secrets` with these fields:
-   - `system-admin-email` - Your admin email for the app
-   - `gemini-api-key` - API key from [Google AI Studio](https://aistudio.google.com/app/apikey) (optional)
+2. Create a new item:
+   - Type: **Secure Note**
+   - Name: `secrets`
+3. Add custom fields (click "add more" or the + button):
+   - Field name: `system-admin-email` → Value: your admin email for the app
+   - Field name: `gemini-api-key` → Value: API key from [Google AI Studio](https://aistudio.google.com/app/apikey) (optional)
 
 ### 2. Create a Service Account
 
