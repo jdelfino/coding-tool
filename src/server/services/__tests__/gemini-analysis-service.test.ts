@@ -290,6 +290,47 @@ describe('GeminiAnalysisService', () => {
         expect(result.summary.commonPatterns).toContain('Most students forgot error handling');
       });
 
+      it('passes API key in x-goog-api-key header, not in URL', async () => {
+        const mockResponse = {
+          candidates: [
+            {
+              content: {
+                parts: [
+                  {
+                    text: JSON.stringify({
+                      entries: [],
+                      commonPatterns: [],
+                    }),
+                  },
+                ],
+              },
+            },
+          ],
+        };
+
+        mockFetch.mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve(mockResponse),
+        });
+
+        const input: AnalysisInput = {
+          ...baseInput,
+          submissions: [{ studentId: 'student-1', code: 'print("Long enough code here")' }],
+        };
+
+        await service.analyzeSubmissions(input);
+
+        expect(mockFetch).toHaveBeenCalledTimes(1);
+        const [url, options] = mockFetch.mock.calls[0];
+
+        // URL should NOT contain the API key
+        expect(url).not.toContain('key=');
+        expect(url).not.toContain('test-api-key');
+
+        // API key should be in the x-goog-api-key header
+        expect(options.headers).toHaveProperty('x-goog-api-key', 'test-api-key');
+      });
+
       it('throws error when not configured', async () => {
         const unconfiguredService = new GeminiAnalysisService('');
 

@@ -340,7 +340,7 @@ export class GeminiAnalysisService {
    * Call Gemini API with the given prompt
    */
   private async callGeminiAPI(prompt: string): Promise<string> {
-    const url = `${GEMINI_API_URL}/${GEMINI_MODEL}:generateContent?key=${this.apiKey}`;
+    const url = `${GEMINI_API_URL}/${GEMINI_MODEL}:generateContent`;
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
@@ -350,6 +350,7 @@ export class GeminiAnalysisService {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'x-goog-api-key': this.apiKey,
         },
         body: JSON.stringify({
           contents: [
