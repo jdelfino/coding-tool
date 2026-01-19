@@ -373,16 +373,14 @@ export class GeminiAnalysisService {
         console.error(`[Gemini] API error ${response.status}:`, errorBody);
 
         if (response.status === 429) {
-          // Log full error for debugging rate limits
-          console.error('[Gemini] Rate limit details:', errorBody);
-          throw new Error(`Rate limit exceeded. Please wait a moment and try again. Details: ${errorBody}`);
+          throw new Error('Rate limit exceeded. Please try again later.');
         }
 
         if (response.status === 401 || response.status === 403) {
           throw new Error('Invalid Gemini API key. Please check your configuration.');
         }
 
-        throw new Error(`Gemini API error (${response.status}): ${errorBody}`);
+        throw new Error(`Gemini API error (${response.status}). Please try again later.`);
       }
 
       const data = await response.json();

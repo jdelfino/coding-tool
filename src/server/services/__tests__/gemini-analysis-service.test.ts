@@ -339,11 +339,14 @@ describe('GeminiAnalysisService', () => {
         );
       });
 
-      it('handles rate limit error', async () => {
+      it('handles rate limit error with sanitized message (no error body leaked)', async () => {
+        const sensitiveErrorBody = '{"error": {"message": "API key abc123xyz leaked in error"}}';
+        const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
         mockFetch.mockResolvedValueOnce({
           ok: false,
           status: 429,
-          text: () => Promise.resolve('Rate limited'),
+          text: () => Promise.resolve(sensitiveErrorBody),
         });
 
         const input: AnalysisInput = {
@@ -351,7 +354,54 @@ describe('GeminiAnalysisService', () => {
           submissions: [{ studentId: 's1', code: 'print("Long enough code here")' }],
         };
 
-        await expect(service.analyzeSubmissions(input)).rejects.toThrow('Rate limit exceeded');
+        await expect(service.analyzeSubmissions(input)).rejects.toThrow(
+          'Rate limit exceeded. Please try again later.'
+        );
+
+        // Verify the error was thrown WITHOUT the sensitive error body
+        try {
+          await service.analyzeSubmissions(input);
+        } catch (error) {
+          // This won't run because we already rejected above, but just in case
+        }
+
+        // Verify server-side logging still contains the full error for debugging
+        expect(consoleErrorSpy).toHaveBeenCalledWith(
+          '[Gemini] API error 429:',
+          sensitiveErrorBody
+        );
+
+        consoleErrorSpy.mockRestore();
+      });
+
+      it('rate limit error message does not contain error body', async () => {
+        const sensitiveData = 'secret-api-response-data-should-not-be-exposed';
+        jest.spyOn(console, 'error').mockImplementation(() => {});
+
+        mockFetch.mockResolvedValueOnce({
+          ok: false,
+          status: 429,
+          text: () => Promise.resolve(sensitiveData),
+        });
+
+        const input: AnalysisInput = {
+          ...baseInput,
+          submissions: [{ studentId: 's1', code: 'print("Long enough code here")' }],
+        };
+
+        try {
+          await service.analyzeSubmissions(input);
+          fail('Expected error to be thrown');
+        } catch (error) {
+          expect(error).toBeInstanceOf(Error);
+          const errorMessage = (error as Error).message;
+          // The error message should NOT contain the sensitive data
+          expect(errorMessage).not.toContain(sensitiveData);
+          // It should have a generic message
+          expect(errorMessage).toBe('Rate limit exceeded. Please try again later.');
+        }
+
+        jest.restoreAllMocks();
       });
 
       it('handles invalid API key error', async () => {
@@ -381,6 +431,44 @@ describe('GeminiAnalysisService', () => {
         };
 
         await expect(service.analyzeSubmissions(input)).rejects.toThrow('No response generated');
+      });
+
+      it('handles generic API error with sanitized message (no error body leaked)', async () => {
+        const sensitiveErrorBody = '{"internal_error": "database connection to secret-host.internal failed"}';
+        const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+        mockFetch.mockResolvedValueOnce({
+          ok: false,
+          status: 500,
+          text: () => Promise.resolve(sensitiveErrorBody),
+        });
+
+        const input: AnalysisInput = {
+          ...baseInput,
+          submissions: [{ studentId: 's1', code: 'print("Long enough code here")' }],
+        };
+
+        try {
+          await service.analyzeSubmissions(input);
+          fail('Expected error to be thrown');
+        } catch (error) {
+          expect(error).toBeInstanceOf(Error);
+          const errorMessage = (error as Error).message;
+          // The error message should NOT contain the sensitive error body
+          expect(errorMessage).not.toContain(sensitiveErrorBody);
+          expect(errorMessage).not.toContain('secret-host');
+          expect(errorMessage).not.toContain('database');
+          // It should have a generic message with only the status code
+          expect(errorMessage).toBe('Gemini API error (500). Please try again later.');
+        }
+
+        // Verify server-side logging still contains the full error for debugging
+        expect(consoleErrorSpy).toHaveBeenCalledWith(
+          '[Gemini] API error 500:',
+          sensitiveErrorBody
+        );
+
+        consoleErrorSpy.mockRestore();
       });
     });
   });
