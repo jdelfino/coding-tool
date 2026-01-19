@@ -4,144 +4,77 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Real-time web-based coding classroom tool. Instructors create sessions with join codes, students write Python code in browsers, instructor monitors all code in real-time via WebSocket. Code executes server-side with captured output.
+See [README.md](README.md) for full project description, tech stack, architecture, and setup instructions.
 
-**Stack:** Next.js 15+ (React 19), TypeScript, Express.js 5, WebSockets, Monaco Editor
+**Quick context:** Real-time coding classroom tool. Next.js + Supabase (PostgreSQL, Auth, Realtime). Python execution via Vercel Sandbox (prod) or nsjail (dev).
 
-**Architecture:** Dual-server (Next.js dev on :3000, Express backend on :3001). Express handles WebSocket, Python execution, persistence, auth. Next.js proxies API calls via `next.config.js` rewrites.
+## Key Files for Navigation
 
-## Common Commands
+- `src/hooks/useRealtime.ts` - Supabase Realtime subscriptions
+- `src/hooks/useRealtimeSession.ts` - Session-specific realtime logic
+- `src/server/persistence/` - Supabase repositories (all data access)
+- `src/server/auth/rbac.ts` - Permission matrix and RBAC logic
+- `src/server/services/` - Business logic layer
 
-### Development
+## Commands
+
 ```bash
-npm run dev          # Start dev server with hot reload (watches server changes)
-npm run build        # Build Next.js frontend for production
-npm start            # Start production server
-npm run prod         # Build + start production (npm run build && npm start)
-```
+# Development
+npm run dev              # Start dev server
+npm run seed-data        # Reset DB with seed data (runs supabase db reset)
 
-### Testing
-```bash
-npm test             # Run all Jest tests (server + client projects)
-npm run test:watch   # Run tests in watch mode for development
-npm run test:coverage # Generate coverage report (outputs to coverage/)
-npx tsc --noEmit     # Type check without emitting files
+# Testing
+npm test                 # Run all Jest tests
+npm test -- path/to/test # Single file
+npm test -- -t "pattern" # Pattern matching
+npm run test:watch       # Watch mode for TDD
+npm run test:e2e         # Playwright E2E tests (requires Supabase running)
 
-# Run single test file
-npm test -- path/to/test.test.ts
-
-# Run tests matching pattern
-npm test -- -t "test name pattern"
-
-# E2E tests (Playwright) - require Supabase
-npm run test:e2e           # Run all e2e tests
-npm run test:e2e:headed    # Run with browser visible
-npm run test:e2e:ui        # Interactive UI mode
-npm run test:e2e:debug     # Debug mode
+# Quality
+npm run lint             # ESLint
+npx tsc --noEmit         # Type check
 ```
 
 ### Running E2E Tests Locally
 
-E2E tests require a running Supabase instance. To run them:
-
-1. **Start local Supabase:**
-   ```bash
-   npx supabase start
-   ```
-
-2. **Load environment variables:**
-   The `.env.local` file contains the local Supabase credentials. Before running E2E tests, source them:
-   ```bash
-   source .env.local
-   ```
-
-3. **Install Playwright browsers (first time only):**
-   ```bash
-   npx playwright install chromium
-   ```
-
-4. **Run the tests:**
-   ```bash
-   npm run test:e2e
-   ```
-
-**Note:** E2E tests will be skipped automatically if `SUPABASE_SECRET_KEY` is not set. This allows CI to skip E2E tests when Supabase isn't available.
-
-### Linting
 ```bash
-npm run lint         # Run ESLint
+npx supabase start           # 1. Start local Supabase
+source .env.local            # 2. Load environment variables
+npx playwright install chromium  # 3. First time only
+npm run test:e2e             # 4. Run tests
 ```
 
-### Data Management
-```bash
-npm run seed-data    # Reset database and populate with seed data (runs supabase db reset)
-```
+E2E tests skip automatically if `SUPABASE_SECRET_KEY` is not set.
 
-## Key Architecture Concepts
+## Testing Rules
 
-**Repository Pattern:** All data access through interfaces in `src/server/persistence/interfaces.ts`. Current impl: Supabase (PostgreSQL). All repos return `Promise<T>`, throw `PersistenceError` on errors, return `null` for not-found.
-
-**RBAC:** Roles = `system-admin`, `namespace-admin`, `instructor`, `student`. API routes use `requireAuth(permission)` middleware. WebSocket uses `hasPermission(connection, permission)`. Frontend uses `usePermissions()` hook.
-
-**Multi-Tenancy:** `Namespace` → `Section` → `Session` hierarchy. Namespace IDs must be kebab-case. Sessions repository is REQUIRED (catastrophic failure if missing). Cross-namespace references are blocked.
-
-**Code Execution:** `src/server/code-executor.ts` spawns Python subprocess with 10s timeout. Python 3.8+ required, stdlib only, single file per student.
-
-**Key Files:** `src/server/websocket-handler.ts` (message routing), `src/server/session-manager.ts` (session state), `src/server/revision-buffer.ts` (diff storage saves 70% space).
-
-## Testing Strategy
-
-**CRITICAL RULE:** All production code changes MUST include new tests. See AGENTS.md.
+**All production code changes MUST include tests.** See AGENTS.md for workflow details.
 
 ### Test Organization
 
 Jest projects (see `jest.config.js`):
-1. **server** project: Node environment
-   - Tests: `src/server/**/__tests__/**/*.test.ts`
-   - API tests: `src/app/api/**/__tests__/**/*.test.ts`
-2. **client** project: jsdom environment
-   - Component tests: `src/app/**/__tests__/**/*.test.tsx`
-   - Hook tests: `src/hooks/**/__tests__/**/*.test.ts`
+- **server**: `src/server/**/__tests__/**/*.test.ts`, `src/app/api/**/__tests__/**/*.test.ts`
+- **client**: `src/app/**/__tests__/**/*.test.tsx`, `src/hooks/**/__tests__/**/*.test.ts`
 
 ### Test Utilities
 
-**Server Tests:**
-- `src/server/__tests__/test-utils/` - Mocks and helpers
-- `uuid-mock.ts` - Predictable UUID generation
-- Mock repositories for isolated testing
-
-**API Tests:**
-- `src/app/api/__tests__/test-helpers.ts` - Auth mocking utilities
-- `createMockAuth()` - Mock authenticated requests
-- Repository mocks available
-
-**Key Pattern:** Use repository mocks to isolate business logic from persistence.
-
-### Running Focused Tests
-
-```bash
-# Single file
-npm test -- src/server/code-executor.test.ts
-
-# Pattern matching
-npm test -- -t "executeCode"
-
-# Watch mode for TDD
-npm run test:watch -- src/server/websocket-handler.test.ts
-```
+- `src/server/__tests__/test-utils/` - Server mocks and helpers
+- `src/app/api/__tests__/test-helpers.ts` - `createMockAuth()` and API test utilities
+- Use repository mocks to isolate business logic from persistence
 
 ## Development Guidelines
 
-**Type Safety:** Strict TypeScript enabled. Path alias `@/*` → `src/*`. Avoid `as any`. Run `npx tsc --noEmit` before commits.
+**Type Safety:** Strict TypeScript. Path alias `@/*` → `src/*`. Avoid `as any`. Run `npx tsc --noEmit` before commits.
 
 **Dates:** Repositories auto-convert Date ↔ ISO strings. In-memory uses `Date` objects, persistence uses strings.
 
-**Permissions:** Every privileged operation needs permission check (API: `requireAuth(permission)`, WebSocket: `hasPermission(connection, permission)`).
+**Permissions:** Use `getAuthContext()` in API routes for auth + RBAC checks.
+
+**Repository Pattern:** All data access through `src/server/persistence/interfaces.ts`. Repos return `Promise<T>`, throw `PersistenceError` on errors, return `null` for not-found.
 
 **Don't use optional chaining on required fields.** Trust the type system - if `user.role` is required, use `user.role` not `user?.role`.
 
 ## Additional Resources
 
-- **README.md** - User guide and full architecture
-- **AGENTS.md** - AI workflows, test-first development, beads workflow
-- **DESIGN_NOTES.md** - Design vision and roadmap
+- **[README.md](README.md)** - Project overview, setup, architecture
+- **[AGENTS.md](AGENTS.md)** - AI workflows, test-first development, beads issue tracking

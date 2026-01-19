@@ -105,15 +105,15 @@ await sessionRepo.shutdown();
 ✅ Define all interfaces and types
 ✅ Document expected behavior
 
-### Phase 2: Local Implementation (TODO - coding-tool-uvn.2)
-- Implement file-based storage for local development
-- JSON files in `data/` directory
-- In-memory caching for performance
+### Phase 2: Supabase Implementation (COMPLETE)
+- Supabase PostgreSQL for all storage
+- Local development uses local Supabase via `npx supabase start`
+- Production uses hosted Supabase project
 
-### Phase 3: Integration (TODO - coding-tool-uvn.3)
-- Migrate session-manager.ts to use repositories
-- Update websocket-handler.ts
-- Remove direct storage logic from business code
+### Phase 3: Integration (COMPLETE)
+- API routes use Supabase repositories
+- Realtime handled via Supabase Realtime (useRealtime hook)
+- Clean separation of persistence from business logic
 
 ### Phase 4: Remote Backend (FUTURE)
 - Implement REST API client as alternative backend
@@ -134,11 +134,12 @@ Using `Partial<T>` allows selective updates without requiring the entire object.
 ### Why separate metadata?
 `StorageMetadata` is kept separate (with `_metadata` prefix) to avoid polluting domain objects and to make it easy to strip before sending to clients.
 
-## Next Steps
+## Current Status
 
-1. Implement `LocalSessionRepository` extending `ISessionRepository`
-2. Implement `LocalProblemRepository` extending `IProblemRepository`
-3. Implement `LocalRevisionRepository` extending `IRevisionRepository`
-4. Create factory function for repository instantiation
-5. Migrate existing in-memory storage in `session-manager.ts`
-6. Add comprehensive tests
+The persistence layer is fully implemented with Supabase:
+
+- `SupabaseSessionRepository` - Session CRUD operations
+- `SupabaseProblemRepository` - Problem library management
+- `SupabaseRevisionRepository` - Code revision history
+- All repositories available via factory functions in `src/server/persistence/`
+- Comprehensive test coverage in `__tests__/` directories

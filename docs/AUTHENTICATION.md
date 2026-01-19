@@ -129,7 +129,7 @@ const { data } = await supabase.auth.admin.createUser({
 - User signed out elsewhere
 - Browser cleared cookies
 
-**WebSocket auth failing:**
-- Check JWT cookies are sent in WebSocket handshake
-- Verify WebSocket server parses sb-access-token cookie
-- Check token is valid and not expired
+**Realtime connection failing:**
+- Check Supabase project has Realtime enabled
+- Verify NEXT_PUBLIC_SUPABASE_URL is correct
+- Check browser console for connection errors
