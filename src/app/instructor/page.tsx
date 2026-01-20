@@ -14,7 +14,6 @@ import SessionControls from './components/SessionControls';
 import StudentList from './components/StudentList';
 import CodeEditor from '@/app/student/components/CodeEditor';
 import { EditorContainer } from '@/app/student/components/EditorContainer';
-import OutputPanel from '@/app/student/components/OutputPanel';
 import RevisionViewer from './components/RevisionViewer';
 import InstructorNav from './components/InstructorNav';
 import ProblemLibrary from './components/ProblemLibrary';
@@ -633,13 +632,9 @@ function InstructorPage() {
                           attachedFiles={students.find(s => s.id === selectedStudentId)?.executionSettings?.attachedFiles}
                           readOnly
                           problem={sessionProblem}
+                          executionResult={executionResult}
                         />
                       </EditorContainer>
-                      {executionResult && (
-                        <div style={{ marginTop: '1rem' }}>
-                          <OutputPanel result={executionResult} />
-                        </div>
-                      )}
                     </div>
                   )}
                 </div>
