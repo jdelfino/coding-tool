@@ -1,14 +1,19 @@
 #!/bin/bash
 # setup-secrets.sh - Start Supabase and create .env.local
 # Runs via postStartCommand (every container start)
-set -e
+set -euo pipefail
 
 cd /workspaces/coding-tool
 
-echo "Starting Supabase..."
-supabase start 2>&1 || true
+if [ -z "${OP_VAULT:-}" ]; then
+    echo "ERROR: OP_VAULT not set"
+    exit 1
+fi
 
-eval "$(supabase status -o env 2>/dev/null | grep -E '^(ANON_KEY|SERVICE_ROLE_KEY)=')"
+echo "Starting Supabase..."
+supabase start
+
+eval "$(supabase status -o env | grep -E '^(ANON_KEY|SERVICE_ROLE_KEY)=')"
 
 if [ -z "$ANON_KEY" ] || [ -z "$SERVICE_ROLE_KEY" ]; then
     echo "ERROR: Could not extract Supabase keys"
@@ -19,6 +24,10 @@ export SUPABASE_ANON_KEY="$ANON_KEY"
 export SUPABASE_SERVICE_ROLE_KEY="$SERVICE_ROLE_KEY"
 
 echo "Creating .env.local..."
-op inject -i .env.1password -o .env.local
+if ! op inject -i .env.1password -o .env.local; then
+    echo "ERROR: op inject failed"
+    echo "Fix: Create a Secure Note named 'secrets' with fields 'system-admin-email' and 'gemini-api-key'"
+    exit 1
+fi
 
 echo "Done"
