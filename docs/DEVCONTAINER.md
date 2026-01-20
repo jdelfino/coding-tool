@@ -6,8 +6,8 @@
 brew install loft-sh/tap/devpod
 
 devpod up . \
-  --env OP_SERVICE_ACCOUNT_TOKEN="$OP_SERVICE_ACCOUNT_TOKEN" \
-  --env OP_VAULT="my-vault"
+  --workspace-env OP_SERVICE_ACCOUNT_TOKEN="$OP_SERVICE_ACCOUNT_TOKEN" \
+  --workspace-env OP_VAULT="my-vault"
 ```
 
 ## Prerequisites
@@ -42,8 +42,8 @@ Claude Code: Run `claude` and authenticate interactively on first use.
 ## Multiple Workspaces
 
 ```bash
-devpod up . --env OP_SERVICE_ACCOUNT_TOKEN="..." --env OP_VAULT="..." --id agent1
-devpod up . --env OP_SERVICE_ACCOUNT_TOKEN="..." --env OP_VAULT="..." --id agent2
+devpod up . --workspace-env OP_SERVICE_ACCOUNT_TOKEN="..." --workspace-env OP_VAULT="..." --id agent1
+devpod up . --workspace-env OP_SERVICE_ACCOUNT_TOKEN="..." --workspace-env OP_VAULT="..." --id agent2
 
 devpod ssh agent1
 ```
