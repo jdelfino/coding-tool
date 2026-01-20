@@ -2,6 +2,8 @@
 	"name": "Production Ops",
 	"image": "mcr.microsoft.com/devcontainers/javascript-node:1-22-bookworm",
 
+	"workspaceFolder": "/workspaces/coding-tool",
+
 	"runArgs": ["--network=host"],
 
 	"features": {
