@@ -78,25 +78,6 @@ echo "Setting up GitHub CLI..."
 gh auth login --git-protocol ssh --hostname github.com <<< ""
 echo "GitHub CLI authenticated (via SSH)"
 
-# Claude Code
-echo "Setting up Claude..."
-CLAUDE_CREDS=$(op read "op://${OP_VAULT}/claude-credentials/credentials" 2>/dev/null || echo "")
-
-if [ -n "$CLAUDE_CREDS" ]; then
-    echo "$CLAUDE_CREDS" > ~/.claude.json
-    chmod 600 ~/.claude.json
-    echo "Claude credentials configured"
-else
-    CLAUDE_API_KEY=$(op read "op://${OP_VAULT}/claude-api-key/credential" 2>/dev/null || echo "")
-    if [ -z "$CLAUDE_API_KEY" ]; then
-        echo "ERROR: claude-credentials or claude-api-key item not found"
-        exit 1
-    fi
-    echo "{\"claudeApiKey\": \"$CLAUDE_API_KEY\"}" > ~/.claude.json
-    chmod 600 ~/.claude.json
-    echo "Claude API key configured"
-fi
-
 # npm
 echo "Installing dependencies..."
 npm install

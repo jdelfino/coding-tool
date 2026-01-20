@@ -29,7 +29,6 @@ devpod up . \
 |------|------|--------|
 | SSH key | SSH Key | (auto) |
 | `git-config` | Secure Note | `name`, `email` |
-| `claude-credentials` | Secure Note | `credentials` |
 | `secrets` | Secure Note | `system-admin-email`, `gemini-api-key` |
 
 SSH key lookup order:
@@ -37,7 +36,7 @@ SSH key lookup order:
 2. Any SSH Key item in vault
 3. Item named `ssh-key` with field `private key`
 
-Alternative for Claude: item `claude-api-key` with field `credential`
+Claude Code: Run `claude` and authenticate interactively on first use.
 
 ## Creating Service Account
 
