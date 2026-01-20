@@ -24,7 +24,8 @@ export SUPABASE_ANON_KEY="$ANON_KEY"
 export SUPABASE_SERVICE_ROLE_KEY="$SERVICE_ROLE_KEY"
 
 echo "Creating .env.local..."
-if ! op inject -i .env.1password -o .env.local; then
+# envsubst expands shell variables, op inject handles op:// references
+if ! envsubst < .env.1password | op inject -o .env.local; then
     echo "ERROR: op inject failed"
     echo "Fix: Create a Secure Note named 'secrets' with fields 'system-admin-email' and 'gemini-api-key'"
     exit 1
