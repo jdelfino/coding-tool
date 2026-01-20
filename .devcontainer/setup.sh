@@ -41,7 +41,7 @@ if [ "$SSH_ITEM" = "null" ] || [ -z "$SSH_ITEM" ]; then
     exit 1
 fi
 
-if ! op item get "$SSH_ITEM" --fields "private key" --reveal > ~/.ssh/id_ed25519; then
+if ! op item get "$SSH_ITEM" --vault "$OP_VAULT" --fields "private key" --reveal > ~/.ssh/id_ed25519; then
     echo "ERROR: Could not read SSH private key"
     exit 1
 fi
