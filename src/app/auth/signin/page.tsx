@@ -3,10 +3,11 @@
 /**
  * Sign-in page.
  * Email/password authentication with Supabase.
+ * Includes MFA verification for system-admin users.
  */
 
 import React from 'react';
-import { useState, useCallback, FormEvent } from 'react';
+import { useState, useCallback, useEffect, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
@@ -17,8 +18,26 @@ export default function SignInPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [mfaCode, setMfaCode] = useState('');
+  const [mfaSent, setMfaSent] = useState(false);
   const router = useRouter();
-  const { signIn } = useAuth();
+  const { signIn, isAuthenticated, mfaPending, pendingEmail, sendMfaCode, verifyMfaCode, cancelMfa } = useAuth();
+
+  // Auto-send OTP when mfaPending becomes true
+  useEffect(() => {
+    if (mfaPending && !mfaSent) {
+      sendMfaCode()
+        .then(() => setMfaSent(true))
+        .catch((err) => setError(err instanceof Error ? err.message : 'Failed to send verification code'));
+    }
+  }, [mfaPending, mfaSent, sendMfaCode]);
+
+  // Redirect when authenticated (after successful sign-in without MFA)
+  useEffect(() => {
+    if (isAuthenticated && !mfaPending) {
+      router.push('/');
+    }
+  }, [isAuthenticated, mfaPending, router]);
 
   const handleSubmit = useCallback(async (e?: FormEvent) => {
     if (e) {
@@ -47,8 +66,10 @@ export default function SignInPage() {
     try {
       await signIn(email.trim(), password);
 
-      // Redirect based on role will be handled by the protected routes
-      router.push('/');
+      // If MFA is required, the component will re-render with MFA form
+      // mfaPending will be set by AuthContext, so don't redirect here
+      // Only redirect if sign-in completed without MFA
+      // (The useEffect watching mfaPending will handle the MFA flow)
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Sign in failed';
 
