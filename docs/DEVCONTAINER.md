@@ -39,23 +39,6 @@ Claude Code: Run `claude` and authenticate interactively on first use.
 2. Create account with read-only access to your vault
 3. Set token: `export OP_SERVICE_ACCOUNT_TOKEN="..."`
 
-## Prebuilds
-
-Speed up container creation by caching npm packages, Playwright browsers, and tools.
-
-```bash
-# Build and push prebuild image
-devpod build . --repository jdelfino/coding-tool-devcontainer
-
-# Use prebuild when creating workspace
-devpod up . \
-  --prebuild-repository jdelfino/coding-tool-devcontainer \
-  --workspace-env OP_SERVICE_ACCOUNT_TOKEN="$OP_SERVICE_ACCOUNT_TOKEN" \
-  --workspace-env OP_VAULT="my-vault"
-```
-
-Prebuilds cache the Docker image (base + features). Credentials are configured at runtime via `postCreateCommand`.
-
 ## Multiple Workspaces
 
 ```bash
