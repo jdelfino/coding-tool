@@ -73,17 +73,10 @@ git config --global user.name "$GIT_NAME"
 git config --global user.email "$GIT_EMAIL"
 echo "Git: $GIT_NAME <$GIT_EMAIL>"
 
-# GitHub CLI
+# GitHub CLI - use SSH key for auth
 echo "Setting up GitHub CLI..."
-GH_TOKEN=$(op read "op://${OP_VAULT}/github-token/token" 2>/dev/null || echo "")
-
-if [ -z "$GH_TOKEN" ]; then
-    echo "ERROR: github-token item not found (need field: token)"
-    exit 1
-fi
-
-echo "$GH_TOKEN" | gh auth login --with-token 2>/dev/null
-echo "GitHub CLI authenticated"
+gh auth login --git-protocol ssh --hostname github.com <<< ""
+echo "GitHub CLI authenticated (via SSH)"
 
 # Claude Code
 echo "Setting up Claude..."

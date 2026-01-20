@@ -29,7 +29,6 @@ devpod up . \
 |------|------|--------|
 | SSH key | SSH Key | (auto) |
 | `git-config` | Secure Note | `name`, `email` |
-| `github-token` | API Credential | `token` |
 | `claude-credentials` | Secure Note | `credentials` |
 | `secrets` | Secure Note | `system-admin-email`, `gemini-api-key` |
 
