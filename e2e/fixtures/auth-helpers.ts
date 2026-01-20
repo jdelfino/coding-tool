@@ -58,23 +58,25 @@ export async function signInAs(
 
   // For system-admin users, handle MFA flow
   if (role === 'system-admin') {
-    // Wait for MFA verification form to appear
-    await page.waitForSelector('input#mfaCode', { timeout: 10000 });
+    // Wait for MFA verification form to appear with email confirmation
+    await page.waitForSelector(`text=We sent a verification code to`, { timeout: 15000 });
 
-    // Wait for OTP email to arrive
+    // Small delay to ensure email is sent
+    await page.waitForTimeout(1000);
+
+    // Wait for OTP email to arrive (Supabase sends "Your one-time password" or similar)
     const otpEmail = await waitForEmail(email, {
       timeout: 30000,
       afterDate: beforeSignIn,
-      subjectContains: 'verification',
     });
 
     if (!otpEmail) {
-      throw new Error(`MFA email not received for ${email}`);
+      throw new Error(`MFA email not received for ${email}. Check Mailpit at localhost:54324`);
     }
 
     const otpCode = extractOtpCode(otpEmail);
     if (!otpCode) {
-      throw new Error(`Could not extract OTP code from email for ${email}`);
+      throw new Error(`Could not extract OTP code from email. Email body: ${otpEmail.body.text?.substring(0, 200)}`);
     }
 
     // Enter the OTP code

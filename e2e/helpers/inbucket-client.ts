@@ -155,9 +155,19 @@ export async function waitForEmail(
   } = options;
 
   const startTime = Date.now();
+  let lastCheckCount = 0;
 
   while (Date.now() - startTime < timeout) {
     const messages = await listEmails(email);
+
+    // Log on first check or when count changes
+    if (messages.length !== lastCheckCount) {
+      console.log(`[waitForEmail] Found ${messages.length} emails for ${email}`);
+      if (messages.length > 0) {
+        console.log(`[waitForEmail] Subjects: ${messages.map(m => m.subject).join(', ')}`);
+      }
+      lastCheckCount = messages.length;
+    }
 
     // Filter by date if specified
     let filtered = messages;
@@ -180,6 +190,7 @@ export async function waitForEmail(
     await new Promise(resolve => setTimeout(resolve, pollInterval));
   }
 
+  console.log(`[waitForEmail] Timeout waiting for email to ${email}`);
   return null;
 }
 
