@@ -8,11 +8,10 @@
 	"runArgs": ["--network=host"],
 
 	"features": {
-		"ghcr.io/devcontainers-extra/features/supabase-cli:1": {},
-		"ghcr.io/devcontainers-contrib/features/1password-cli:1": {}
+		"ghcr.io/devcontainers-extra/features/supabase-cli:1": {}
 	},
 
-	"postCreateCommand": ".devcontainer/ops/setup.sh",
+	"postCreateCommand": ".devcontainer/install-1password-cli.sh && .devcontainer/ops/setup.sh",
 
 	"containerEnv": {
 		"OP_SERVICE_ACCOUNT_TOKEN": "${localEnv:OP_SERVICE_ACCOUNT_TOKEN}",
