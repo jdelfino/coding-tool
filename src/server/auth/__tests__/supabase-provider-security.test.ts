@@ -196,6 +196,7 @@ describe('SupabaseAuthProvider Security', () => {
         error: null,
       });
 
+      // Mock profile fetch
       mockFromSelect.mockResolvedValue({
         data: {
           username: 'verifieduser',

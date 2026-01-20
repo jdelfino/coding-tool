@@ -42,11 +42,15 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO service_role;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO service_role;
 
 -- ============================================================================
--- AUTHENTICATED USER GRANTS (minimal - Realtime subscriptions only)
+-- AUTHENTICATED USER GRANTS (minimal - profile access + Realtime subscriptions)
 -- ============================================================================
--- Client-side code only subscribes to these tables for real-time updates.
+-- RLS policies enforce row-level access control on all these tables.
 -- All mutations go through API routes with service_role.
 
+-- User profiles: RLS allows users to see own profile + same-namespace profiles
+GRANT SELECT ON user_profiles TO authenticated;
+
+-- Realtime subscription tables
 GRANT SELECT ON sessions TO authenticated;
 GRANT SELECT ON session_students TO authenticated;
 GRANT SELECT ON revisions TO authenticated;

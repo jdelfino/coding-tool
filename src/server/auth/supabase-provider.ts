@@ -91,7 +91,7 @@ export class SupabaseAuthProvider implements IAuthProvider {
       return null;
     }
 
-    // Fetch user profile
+    // Fetch user profile using authenticated context (RLS enforces access)
     const { data: profile, error: profileError } = await supabase
       .from('user_profiles')
       .select('*')
@@ -193,7 +193,7 @@ export class SupabaseAuthProvider implements IAuthProvider {
         return null;
       }
 
-      // Fetch user profile
+      // Fetch user profile using authenticated context (RLS enforces access)
       const { data: profile, error: profileError } = await supabase
         .from('user_profiles')
         .select('*')
