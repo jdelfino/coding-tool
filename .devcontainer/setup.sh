@@ -74,8 +74,4 @@ echo "Setting up GitHub CLI..."
 gh auth login --git-protocol ssh --hostname github.com <<< ""
 echo "GitHub CLI authenticated"
 
-# npm
-echo "Installing dependencies..."
-npm install
-
 echo "=== Setup Complete ==="
