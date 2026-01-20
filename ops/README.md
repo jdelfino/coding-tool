@@ -81,13 +81,13 @@ npx tsx ops/db-reset.ts --env production
 
 **Option 2: Use ops devcontainer**
 
-A lightweight container with host networking and mounted credentials:
+A lightweight container with host networking:
 ```bash
 devpod up https://github.com/jdelfino/coding-tool \
   --devcontainer-path .devcontainer/ops/devcontainer.json \
-  --id ops
+  --id ops \
+  --ide none && devpod ssh ops
 
-devpod ssh ops
 # Container auto-links to production, ready for ops
 npx tsx ops/db-reset.ts --env production
 ```

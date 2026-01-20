@@ -59,10 +59,25 @@ Claude Code: Run `claude` and authenticate interactively on first use.
 ## Multiple Workspaces
 
 ```bash
-devpod up https://github.com/jdelfino/coding-tool --workspace-env OP_SERVICE_ACCOUNT_TOKEN="..." --workspace-env OP_VAULT="..." --id agent1
-devpod up https://github.com/jdelfino/coding-tool --workspace-env OP_SERVICE_ACCOUNT_TOKEN="..." --workspace-env OP_VAULT="..." --id agent2
+# Create isolated workspaces with --id
+devpod up https://github.com/jdelfino/coding-tool \
+  --workspace-env OP_SERVICE_ACCOUNT_TOKEN="..." \
+  --workspace-env OP_VAULT="..." \
+  --id agent1 \
+  --ide none && devpod ssh agent1
+```
 
-devpod ssh agent1
+## IDE Options
+
+```bash
+# SSH only (no IDE)
+devpod up ... --ide none && devpod ssh <workspace-id>
+
+# VS Code (default)
+devpod up ...
+
+# Set default IDE for a workspace
+devpod ide use none --workspace <workspace-id>
 ```
 
 ## VS Code
