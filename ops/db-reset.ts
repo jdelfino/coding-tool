@@ -224,7 +224,7 @@ async function resetProduction(options: { dryRun: boolean; seed: boolean; verbos
   if (dryRun) {
     logDryRun('Would run: SUPABASE_ACCESS_TOKEN=*** supabase db push --include-all');
   } else {
-    const result = await exec(`SUPABASE_ACCESS_TOKEN="${accessToken}" supabase db push --include-all`, { verbose });
+    const result = await exec(`SUPABASE_ACCESS_TOKEN="${accessToken}" supabase db push --include-all --yes`, { verbose });
     if (result.exitCode !== 0) {
       logError('Migration failed');
       logError(result.stderr);
