@@ -2,12 +2,13 @@
  * Unit tests for the public instructor view component
  * Tests behavior of the public display page including:
  * - Loading state from API
- * - Realtime updates via Supabase
+ * - Realtime updates via useRealtime hook
+ * - Conditional polling (only when disconnected)
  * - State management
  */
 
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, act } from '@testing-library/react';
 
 // Mock next/navigation
 jest.mock('next/navigation', () => ({
@@ -16,53 +17,88 @@ jest.mock('next/navigation', () => ({
   })),
 }));
 
-// Mock Supabase client
-const mockChannel = {
-  on: jest.fn().mockReturnThis(),
-  subscribe: jest.fn().mockImplementation((callback) => {
-    if (callback) callback('SUBSCRIBED');
-    return mockChannel;
-  }),
-};
-
-const mockSupabase = {
-  channel: jest.fn().mockReturnValue(mockChannel),
-  removeChannel: jest.fn(),
-};
-
-jest.mock('@/lib/supabase/client', () => ({
-  getSupabaseBrowserClient: jest.fn(() => mockSupabase),
+// Mock useRealtime hook
+const mockUseRealtime = jest.fn();
+jest.mock('@/hooks/useRealtime', () => ({
+  useRealtime: (options: any) => mockUseRealtime(options),
 }));
 
 // Mock fetch
 const mockFetch = jest.fn();
 global.fetch = mockFetch;
 
+// Mock useApiDebugger hook
+const mockDebuggerHook = {
+  trace: null,
+  currentStep: 0,
+  isLoading: false,
+  error: null,
+  requestTrace: jest.fn(),
+  setTrace: jest.fn(),
+  setError: jest.fn(),
+  stepForward: jest.fn(),
+  stepBackward: jest.fn(),
+  jumpToStep: jest.fn(),
+  jumpToFirst: jest.fn(),
+  jumpToLast: jest.fn(),
+  reset: jest.fn(),
+  getCurrentStep: jest.fn(),
+  getCurrentLocals: jest.fn(),
+  getCurrentGlobals: jest.fn(),
+  getCurrentCallStack: jest.fn(),
+  getPreviousStep: jest.fn(),
+  totalSteps: 0,
+  hasTrace: false,
+  canStepForward: false,
+  canStepBackward: false,
+};
+jest.mock('@/hooks/useApiDebugger', () => ({
+  useApiDebugger: () => mockDebuggerHook,
+}));
+
+// Track props passed to CodeEditor
+let lastCodeEditorProps: any = null;
+
 // Mock CodeEditor component
 jest.mock('@/app/student/components/CodeEditor', () => {
-  return function MockCodeEditor({ code, title }: any) {
+  return function MockCodeEditor(props: any) {
+    lastCodeEditorProps = props;
     return (
       <div data-testid="code-editor">
-        <div data-testid="code-title">{title}</div>
-        <div data-testid="code-content">{code}</div>
+        <div data-testid="code-title">{props.title}</div>
+        <div data-testid="code-content">{props.code}</div>
+        {props.debugger && <div data-testid="debugger-present">Debugger</div>}
       </div>
     );
   };
 });
 
+// Default mock return values for useRealtime
+const createMockRealtimeReturn = (overrides = {}) => ({
+  isConnected: true,
+  connectionStatus: 'connected' as const,
+  connectionError: null,
+  lastMessage: null,
+  onlineUsers: {},
+  reconnectAttempt: 0,
+  maxReconnectAttempts: 5,
+  connectionStartTime: null,
+  isReconnecting: false,
+  reconnect: jest.fn(),
+  ...overrides,
+});
+
 describe('PublicInstructorView', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockChannel.on.mockReturnThis();
-    mockChannel.subscribe.mockImplementation((callback) => {
-      if (callback) callback('SUBSCRIBED');
-      return mockChannel;
-    });
-    mockSupabase.channel.mockReturnValue(mockChannel);
+    jest.useFakeTimers();
+    // Default to connected state
+    mockUseRealtime.mockReturnValue(createMockRealtimeReturn());
   });
 
   afterEach(() => {
     jest.clearAllMocks();
+    jest.useRealTimers();
   });
 
   test('shows loading state initially', async () => {
@@ -115,6 +151,41 @@ describe('PublicInstructorView', () => {
     });
   });
 
+  test('passes debugger prop to CodeEditor when featured submission exists', async () => {
+    lastCodeEditorProps = null;
+
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        sessionId: 'test-session-id',
+        joinCode: 'ABC-123',
+        problem: {
+          title: 'Test Problem',
+          description: 'A test problem description',
+        },
+        featuredStudentId: 'student-1',
+        featuredCode: 'print("test")',
+        hasFeaturedSubmission: true,
+      }),
+    });
+
+    const PublicInstructorView = require('../page').default;
+    render(<PublicInstructorView />);
+
+    // Wait for code editor to render
+    await waitFor(() => {
+      expect(screen.getByTestId('code-editor')).toBeInTheDocument();
+    });
+
+    // Verify debugger prop is passed
+    expect(lastCodeEditorProps).toBeTruthy();
+    expect(lastCodeEditorProps.debugger).toBeTruthy();
+    expect(lastCodeEditorProps.debugger.requestTrace).toBeDefined();
+
+    // Verify the visual indicator is present
+    expect(screen.getByTestId('debugger-present')).toBeInTheDocument();
+  });
+
   test('shows no submission message when no featured submission', async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
@@ -151,7 +222,7 @@ describe('PublicInstructorView', () => {
     });
   });
 
-  test('subscribes to Supabase Realtime for updates', async () => {
+  test('uses useRealtime hook with correct session ID', async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({
@@ -172,27 +243,16 @@ describe('PublicInstructorView', () => {
       expect(mockFetch).toHaveBeenCalled();
     });
 
-    // Verify Supabase channel was created for session updates
-    await waitFor(() => {
-      expect(mockSupabase.channel).toHaveBeenCalledWith('public-view-test-session-id');
-    });
-
-    // Verify subscription to postgres_changes for UPDATE events
-    expect(mockChannel.on).toHaveBeenCalledWith(
-      'postgres_changes',
+    // Verify useRealtime was called with correct session ID and tables
+    expect(mockUseRealtime).toHaveBeenCalledWith(
       expect.objectContaining({
-        event: 'UPDATE',
-        schema: 'public',
-        table: 'sessions',
-        filter: 'id=eq.test-session-id',
-      }),
-      expect.any(Function)
+        sessionId: 'test-session-id',
+        tables: ['sessions'],
+      })
     );
-
-    expect(mockChannel.subscribe).toHaveBeenCalled();
   });
 
-  test('re-fetches state when realtime update received', async () => {
+  test('re-fetches state when realtime lastMessage changes', async () => {
     // First fetch returns initial state
     mockFetch.mockResolvedValueOnce({
       ok: true,
@@ -206,17 +266,8 @@ describe('PublicInstructorView', () => {
       }),
     });
 
-    // Capture the realtime callback using a container object (TypeScript handles this better)
-    const callbackRef: { current: ((payload: any) => void) | null } = { current: null };
-    mockChannel.on.mockImplementation((event: string, config: any, callback: (payload: any) => void) => {
-      if (event === 'postgres_changes') {
-        callbackRef.current = callback;
-      }
-      return mockChannel;
-    });
-
     const PublicInstructorView = require('../page').default;
-    render(<PublicInstructorView />);
+    const { rerender } = render(<PublicInstructorView />);
 
     // Wait for initial fetch
     await waitFor(() => {
@@ -239,10 +290,17 @@ describe('PublicInstructorView', () => {
       }),
     });
 
-    // Simulate realtime update
-    if (callbackRef.current) {
-      callbackRef.current({ new: { id: 'test-session-id' } });
-    }
+    // Simulate realtime update by changing lastMessage
+    mockUseRealtime.mockReturnValue(createMockRealtimeReturn({
+      lastMessage: {
+        type: 'UPDATE',
+        table: 'sessions',
+        payload: { id: 'test-session-id' },
+      },
+    }));
+
+    // Re-render to trigger the effect
+    rerender(<PublicInstructorView />);
 
     // Wait for re-fetch
     await waitFor(() => {
@@ -253,6 +311,138 @@ describe('PublicInstructorView', () => {
     await waitFor(() => {
       expect(screen.getByTestId('code-content')).toHaveTextContent('print("Updated code")');
     });
+  });
+
+  test('does NOT poll when realtime is connected', async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        sessionId: 'test-session-id',
+        joinCode: 'ABC-123',
+        problem: null,
+        featuredStudentId: null,
+        featuredCode: null,
+        hasFeaturedSubmission: false,
+      }),
+    });
+
+    // Realtime is connected
+    mockUseRealtime.mockReturnValue(createMockRealtimeReturn({ isConnected: true }));
+
+    const PublicInstructorView = require('../page').default;
+    render(<PublicInstructorView />);
+
+    // Wait for initial fetch
+    await waitFor(() => {
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+    });
+
+    // Advance timers by 5 seconds (would be 2+ poll cycles if polling was active)
+    act(() => {
+      jest.advanceTimersByTime(5000);
+    });
+
+    // Should still only have 1 fetch (initial) - no polling
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+  });
+
+  test('polls every 2 seconds when realtime is disconnected', async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        sessionId: 'test-session-id',
+        joinCode: 'ABC-123',
+        problem: null,
+        featuredStudentId: null,
+        featuredCode: null,
+        hasFeaturedSubmission: false,
+      }),
+    });
+
+    // Realtime is disconnected
+    mockUseRealtime.mockReturnValue(createMockRealtimeReturn({
+      isConnected: false,
+      connectionStatus: 'disconnected',
+    }));
+
+    const PublicInstructorView = require('../page').default;
+    render(<PublicInstructorView />);
+
+    // Wait for initial fetch
+    await waitFor(() => {
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+    });
+
+    // Advance timers by 2 seconds - should trigger first poll
+    act(() => {
+      jest.advanceTimersByTime(2000);
+    });
+
+    await waitFor(() => {
+      expect(mockFetch).toHaveBeenCalledTimes(2);
+    });
+
+    // Advance another 2 seconds - should trigger second poll
+    act(() => {
+      jest.advanceTimersByTime(2000);
+    });
+
+    await waitFor(() => {
+      expect(mockFetch).toHaveBeenCalledTimes(3);
+    });
+  });
+
+  test('stops polling when realtime reconnects', async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        sessionId: 'test-session-id',
+        joinCode: 'ABC-123',
+        problem: null,
+        featuredStudentId: null,
+        featuredCode: null,
+        hasFeaturedSubmission: false,
+      }),
+    });
+
+    // Start disconnected
+    mockUseRealtime.mockReturnValue(createMockRealtimeReturn({
+      isConnected: false,
+      connectionStatus: 'disconnected',
+    }));
+
+    const PublicInstructorView = require('../page').default;
+    const { rerender } = render(<PublicInstructorView />);
+
+    // Wait for initial fetch
+    await waitFor(() => {
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+    });
+
+    // Advance 2 seconds - poll should happen
+    act(() => {
+      jest.advanceTimersByTime(2000);
+    });
+
+    await waitFor(() => {
+      expect(mockFetch).toHaveBeenCalledTimes(2);
+    });
+
+    // Now reconnect
+    mockUseRealtime.mockReturnValue(createMockRealtimeReturn({
+      isConnected: true,
+      connectionStatus: 'connected',
+    }));
+
+    rerender(<PublicInstructorView />);
+
+    // Advance another 4 seconds - no additional polls should happen
+    act(() => {
+      jest.advanceTimersByTime(4000);
+    });
+
+    // Should still be at 2 fetches (initial + 1 poll before reconnect)
+    expect(mockFetch).toHaveBeenCalledTimes(2);
   });
 
 });
@@ -267,6 +457,9 @@ describe('PublicInstructorView without sessionId', () => {
     (useSearchParams as jest.Mock).mockReturnValue({
       get: jest.fn(() => null)
     });
+
+    // Still need to mock useRealtime
+    mockUseRealtime.mockReturnValue(createMockRealtimeReturn());
   });
 
   test('shows no session message when sessionId is missing', async () => {

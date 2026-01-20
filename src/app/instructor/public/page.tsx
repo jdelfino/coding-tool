@@ -2,9 +2,10 @@
 
 import React, { useEffect, useState, useCallback, Suspense, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { getSupabaseBrowserClient } from '@/lib/supabase/client';
+import { useRealtime } from '@/hooks/useRealtime';
 import { Problem } from '@/server/types/problem';
 import CodeEditor from '@/app/student/components/CodeEditor';
+import { useApiDebugger } from '@/hooks/useApiDebugger';
 
 interface PublicSessionState {
   sessionId: string;
@@ -48,6 +49,15 @@ function PublicViewContent() {
     }
   }, [sessionId]);
 
+  // Subscribe to Supabase Realtime for session updates
+  const { isConnected, lastMessage } = useRealtime({
+    sessionId: sessionId || '',
+    tables: ['sessions'],
+  });
+
+  // Debugger hook for API-based trace requests
+  const debuggerHook = useApiDebugger(sessionId);
+
   // Initial fetch
   useEffect(() => {
     fetchState();
@@ -61,46 +71,24 @@ function PublicViewContent() {
     }
   }, [state?.featuredStudentId, state?.featuredCode]);
 
-  // Subscribe to Supabase Realtime for session updates
+  // Refetch when realtime message is received
   useEffect(() => {
-    if (!sessionId) return;
+    if (lastMessage && lastMessage.table === 'sessions') {
+      fetchState();
+    }
+  }, [lastMessage, fetchState]);
 
-    const supabase = getSupabaseBrowserClient();
-
-    const channel = supabase
-      .channel(`public-view-${sessionId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'sessions',
-          filter: `id=eq.${sessionId}`,
-        },
-        () => fetchState()
-      )
-      .subscribe((status, err) => {
-        if (err) {
-          console.error('[PublicView] Realtime subscription error:', err);
-        }
-      });
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [sessionId, fetchState]);
-
-  // Fallback: Poll for updates every 2 seconds
-  // This compensates for Realtime connection issues in multi-tab scenarios
+  // Fallback: Poll for updates every 2 seconds ONLY when disconnected
+  // This compensates for Realtime connection issues
   useEffect(() => {
-    if (!sessionId) return;
+    if (!sessionId || isConnected) return;
 
     const pollInterval = setInterval(() => {
       fetchState();
     }, 2000);
 
     return () => clearInterval(pollInterval);
-  }, [sessionId, fetchState]);
+  }, [sessionId, isConnected, fetchState]);
 
   if (!sessionId) {
     return (
@@ -242,6 +230,7 @@ function PublicViewContent() {
               problem={state.problem}
               title="Featured Code"
               useApiExecution={true}
+              debugger={debuggerHook}
             />
           </div>
         </div>
