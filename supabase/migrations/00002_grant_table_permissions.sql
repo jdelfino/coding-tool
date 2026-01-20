@@ -2,8 +2,12 @@
 -- GRANT TABLE PERMISSIONS
 -- ============================================================================
 -- Grant necessary permissions to service_role and authenticated roles.
+--
 -- service_role: Used by the server (via SUPABASE_SECRET_KEY) - needs full access
--- authenticated: Used by logged-in users - grants match RLS policies (least privilege)
+-- authenticated: Minimal grants for client-side Realtime subscriptions only
+--
+-- All mutations go through API routes using service_role, so authenticated
+-- users only need SELECT for Realtime subscriptions.
 -- ============================================================================
 
 -- service_role needs full access (bypasses RLS anyway)
@@ -15,26 +19,11 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO service_role;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO service_role;
 
 -- ============================================================================
--- AUTHENTICATED USER GRANTS (least privilege - matches RLS policies)
+-- AUTHENTICATED USER GRANTS (minimal - Realtime subscriptions only)
 -- ============================================================================
+-- Client-side code only subscribes to these tables for real-time updates.
+-- All mutations go through API routes with service_role.
 
--- Tables with SELECT, INSERT, UPDATE, DELETE policies
-GRANT SELECT, INSERT, UPDATE, DELETE ON classes TO authenticated;
-GRANT SELECT, INSERT, UPDATE, DELETE ON problems TO authenticated;
-GRANT SELECT, INSERT, UPDATE, DELETE ON invitations TO authenticated;
-
--- Tables with SELECT, INSERT, UPDATE (no DELETE)
-GRANT SELECT, INSERT, UPDATE ON namespaces TO authenticated;
-GRANT SELECT, INSERT, UPDATE ON user_profiles TO authenticated;
-GRANT SELECT, INSERT, UPDATE ON sections TO authenticated;
-GRANT SELECT, INSERT, UPDATE ON sessions TO authenticated;
-GRANT SELECT, INSERT, UPDATE ON session_students TO authenticated;
-
--- Tables with SELECT, INSERT, DELETE (no UPDATE)
-GRANT SELECT, INSERT, DELETE ON section_memberships TO authenticated;
-
--- Tables with SELECT, INSERT only
-GRANT SELECT, INSERT ON revisions TO authenticated;
-
--- Sequences for auto-increment IDs
-GRANT USAGE ON ALL SEQUENCES IN SCHEMA public TO authenticated;
+GRANT SELECT ON sessions TO authenticated;
+GRANT SELECT ON session_students TO authenticated;
+GRANT SELECT ON revisions TO authenticated;
