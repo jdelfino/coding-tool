@@ -3,10 +3,11 @@
 /**
  * Sign-in page.
  * Email/password authentication with Supabase.
+ * Includes MFA verification for system-admin users.
  */
 
 import React from 'react';
-import { useState, useCallback, FormEvent } from 'react';
+import { useState, useCallback, useEffect, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
@@ -17,8 +18,26 @@ export default function SignInPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [mfaCode, setMfaCode] = useState('');
+  const [mfaSent, setMfaSent] = useState(false);
   const router = useRouter();
-  const { signIn } = useAuth();
+  const { signIn, isAuthenticated, mfaPending, pendingEmail, sendMfaCode, verifyMfaCode, cancelMfa } = useAuth();
+
+  // Auto-send OTP when mfaPending becomes true
+  useEffect(() => {
+    if (mfaPending && !mfaSent) {
+      sendMfaCode()
+        .then(() => setMfaSent(true))
+        .catch((err) => setError(err instanceof Error ? err.message : 'Failed to send verification code'));
+    }
+  }, [mfaPending, mfaSent, sendMfaCode]);
+
+  // Redirect when authenticated (after successful sign-in without MFA)
+  useEffect(() => {
+    if (isAuthenticated && !mfaPending) {
+      router.push('/');
+    }
+  }, [isAuthenticated, mfaPending, router]);
 
   const handleSubmit = useCallback(async (e?: FormEvent) => {
     if (e) {
@@ -47,8 +66,10 @@ export default function SignInPage() {
     try {
       await signIn(email.trim(), password);
 
-      // Redirect based on role will be handled by the protected routes
-      router.push('/');
+      // If MFA is required, the component will re-render with MFA form
+      // mfaPending will be set by AuthContext, so don't redirect here
+      // Only redirect if sign-in completed without MFA
+      // (The useEffect watching mfaPending will handle the MFA flow)
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Sign in failed';
 
@@ -65,11 +86,90 @@ export default function SignInPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [email, password, signIn, router]);
+  }, [email, password, signIn]);
 
   const handleRetry = useCallback(() => {
     handleSubmit();
   }, [handleSubmit]);
+
+  const handleMfaSubmit = async (e?: FormEvent) => {
+    if (e) e.preventDefault();
+    setError('');
+    setIsLoading(true);
+    try {
+      await verifyMfaCode(mfaCode);
+      router.push('/');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Verification failed');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Render MFA verification form when mfaPending is true
+  if (mfaPending) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+        <div className="max-w-md w-full space-y-8 p-10 bg-white rounded-2xl shadow-2xl border border-gray-100">
+          <div>
+            <h2 className="text-center text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+              Verify Your Identity
+            </h2>
+            <p className="mt-3 text-center text-sm text-gray-600">
+              We sent a verification code to <strong>{pendingEmail}</strong>
+            </p>
+          </div>
+
+          <form className="mt-8 space-y-6" onSubmit={handleMfaSubmit}>
+            <div>
+              <label htmlFor="mfaCode" className="block text-sm font-medium text-gray-700 mb-2">
+                Verification Code
+              </label>
+              <input
+                id="mfaCode"
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                maxLength={6}
+                className="appearance-none rounded-lg relative block w-full px-4 py-3 border border-gray-300 placeholder-gray-400 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-center text-2xl tracking-widest font-mono sm:text-xl disabled:bg-gray-50"
+                placeholder="000000"
+                value={mfaCode}
+                onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                disabled={isLoading}
+                autoFocus
+              />
+            </div>
+
+            {error && <ErrorAlert error={error} onDismiss={() => setError('')} />}
+
+            <button
+              type="submit"
+              disabled={isLoading || mfaCode.length !== 6}
+              className="w-full py-3 px-4 rounded-lg text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 disabled:opacity-50 font-semibold"
+            >
+              {isLoading ? 'Verifying...' : 'Verify Code'}
+            </button>
+          </form>
+
+          <div className="text-center space-y-2">
+            <button
+              onClick={() => { setMfaSent(false); sendMfaCode().then(() => setMfaSent(true)); }}
+              className="text-sm text-indigo-600 hover:text-indigo-500"
+              disabled={isLoading}
+            >
+              Resend code
+            </button>
+            <button
+              onClick={() => { cancelMfa(); setMfaCode(''); setMfaSent(false); }}
+              className="block w-full text-sm text-gray-500 hover:text-gray-700"
+            >
+              Cancel and try different credentials
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">

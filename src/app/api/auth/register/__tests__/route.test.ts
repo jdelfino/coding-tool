@@ -79,7 +79,6 @@ describe('POST /api/auth/register', () => {
 
       const mockAuthProvider = {
         signUp: jest.fn().mockResolvedValue(mockUser),
-        authenticateWithPassword: jest.fn().mockResolvedValue({ user: mockUser }),
       };
 
       mockGetAuthProvider.mockResolvedValue(mockAuthProvider as any);
@@ -97,7 +96,8 @@ describe('POST /api/auth/register', () => {
       const data = await response.json();
 
       expect(response.status).toBe(201);
-      expect(data.user.role).toBe('system-admin');
+      expect(data.success).toBe(true);
+      expect(data.message).toBe('Account created. Please sign in.');
       expect(mockAuthProvider.signUp).toHaveBeenCalledWith(
         'admin@example.com',
         'adminpass123',

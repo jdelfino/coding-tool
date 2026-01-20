@@ -8,6 +8,7 @@ import {
   getTestUserEmail,
   getTestUserPassword
 } from '../helpers/db-helpers';
+import { waitForEmail, extractOtpCode } from '../helpers/inbucket-client';
 
 // Re-export namespace helpers for convenience
 export { generateTestNamespaceId, createTestNamespace, cleanupNamespace };
@@ -26,6 +27,7 @@ export interface TestUser {
 
 /**
  * Creates a test user via Supabase, then signs in via the UI using email/password
+ * For system-admin users, handles MFA verification flow
  * @param namespaceId - Optional namespace ID. If not provided, users are created in 'default' namespace
  */
 export async function signInAs(
@@ -41,6 +43,9 @@ export async function signInAs(
 
   await createTestUser(userId, username, role, namespaceId);
 
+  // Record time before sign-in to filter emails
+  const beforeSignIn = new Date();
+
   // Navigate to sign-in page
   await page.goto('/auth/signin');
 
@@ -50,6 +55,36 @@ export async function signInAs(
 
   // Submit form
   await page.click('button[type="submit"]');
+
+  // For system-admin users, handle MFA flow
+  if (role === 'system-admin') {
+    // Wait for MFA verification form to appear with email confirmation
+    await page.waitForSelector(`text=We sent a verification code to`, { timeout: 15000 });
+
+    // Small delay to ensure email is sent
+    await page.waitForTimeout(1000);
+
+    // Wait for OTP email to arrive (Supabase sends "Your one-time password" or similar)
+    const otpEmail = await waitForEmail(email, {
+      timeout: 30000,
+      afterDate: beforeSignIn,
+    });
+
+    if (!otpEmail) {
+      throw new Error(`MFA email not received for ${email}. Check Mailpit at localhost:54324`);
+    }
+
+    const otpCode = extractOtpCode(otpEmail);
+    if (!otpCode) {
+      throw new Error(`Could not extract OTP code from email. Email body: ${otpEmail.body.text?.substring(0, 200)}`);
+    }
+
+    // Enter the OTP code
+    await page.fill('input#mfaCode', otpCode);
+
+    // Submit MFA form
+    await page.click('button[type="submit"]');
+  }
 
   // Wait for navigation to complete (redirect after successful sign-in)
   await page.waitForURL(/^(?!.*\/auth\/signin).*$/, { timeout: 10000 });

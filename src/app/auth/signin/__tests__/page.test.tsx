@@ -29,6 +29,12 @@ describe('SignInPage', () => {
     });
     (useAuth as jest.Mock).mockReturnValue({
       signIn: mockSignIn,
+      isAuthenticated: false,
+      mfaPending: false,
+      pendingEmail: null,
+      sendMfaCode: jest.fn(),
+      verifyMfaCode: jest.fn(),
+      cancelMfa: jest.fn(),
     });
   });
 
@@ -154,9 +160,22 @@ describe('SignInPage', () => {
     });
 
     it('redirects to home page on successful sign-in', async () => {
-      mockSignIn.mockResolvedValue(undefined);
+      // Simulate successful sign-in by updating isAuthenticated after signIn completes
+      mockSignIn.mockImplementation(() => {
+        // After signIn succeeds, update mock to return isAuthenticated: true
+        (useAuth as jest.Mock).mockReturnValue({
+          signIn: mockSignIn,
+          isAuthenticated: true,
+          mfaPending: false,
+          pendingEmail: null,
+          sendMfaCode: jest.fn(),
+          verifyMfaCode: jest.fn(),
+          cancelMfa: jest.fn(),
+        });
+        return Promise.resolve();
+      });
 
-      render(<SignInPage />);
+      const { rerender } = render(<SignInPage />);
 
       const emailInput = screen.getByLabelText(/email address/i);
       const passwordInput = screen.getByLabelText(/^password$/i);
@@ -165,6 +184,14 @@ describe('SignInPage', () => {
       fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
       fireEvent.change(passwordInput, { target: { value: 'password123' } });
       fireEvent.click(submitButton);
+
+      // Wait for signIn to complete, then rerender to pick up new mock state
+      await waitFor(() => {
+        expect(mockSignIn).toHaveBeenCalled();
+      });
+
+      // Rerender to trigger useEffect with isAuthenticated: true
+      rerender(<SignInPage />);
 
       await waitFor(() => {
         expect(mockPush).toHaveBeenCalledWith('/');

@@ -155,9 +155,19 @@ export async function waitForEmail(
   } = options;
 
   const startTime = Date.now();
+  let lastCheckCount = 0;
 
   while (Date.now() - startTime < timeout) {
     const messages = await listEmails(email);
+
+    // Log on first check or when count changes
+    if (messages.length !== lastCheckCount) {
+      console.log(`[waitForEmail] Found ${messages.length} emails for ${email}`);
+      if (messages.length > 0) {
+        console.log(`[waitForEmail] Subjects: ${messages.map(m => m.subject).join(', ')}`);
+      }
+      lastCheckCount = messages.length;
+    }
 
     // Filter by date if specified
     let filtered = messages;
@@ -178,6 +188,37 @@ export async function waitForEmail(
 
     // Wait before polling again
     await new Promise(resolve => setTimeout(resolve, pollInterval));
+  }
+
+  console.log(`[waitForEmail] Timeout waiting for email to ${email}`);
+  return null;
+}
+
+/**
+ * Extract the OTP code from a Supabase verification email
+ * Supabase OTP emails contain a 6-digit code
+ *
+ * @param emailContent - The email body (HTML or text)
+ * @returns The extracted OTP code, or null if not found
+ */
+export function extractOtpCode(emailContent: InbucketEmail): string | null {
+  // Try HTML body first, then text
+  const content = emailContent.body.html || emailContent.body.text;
+
+  // Look for 6-digit codes (OTP pattern)
+  // Supabase typically formats it as a standalone 6-digit number
+  const otpPatterns = [
+    // Code in a heading or paragraph
+    />\s*(\d{6})\s*</,
+    // Code on its own line
+    /\b(\d{6})\b/,
+  ];
+
+  for (const pattern of otpPatterns) {
+    const match = content.match(pattern);
+    if (match && match[1]) {
+      return match[1];
+    }
   }
 
   return null;
