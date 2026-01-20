@@ -184,6 +184,36 @@ export async function waitForEmail(
 }
 
 /**
+ * Extract the OTP code from a Supabase verification email
+ * Supabase OTP emails contain a 6-digit code
+ *
+ * @param emailContent - The email body (HTML or text)
+ * @returns The extracted OTP code, or null if not found
+ */
+export function extractOtpCode(emailContent: InbucketEmail): string | null {
+  // Try HTML body first, then text
+  const content = emailContent.body.html || emailContent.body.text;
+
+  // Look for 6-digit codes (OTP pattern)
+  // Supabase typically formats it as a standalone 6-digit number
+  const otpPatterns = [
+    // Code in a heading or paragraph
+    />\s*(\d{6})\s*</,
+    // Code on its own line
+    /\b(\d{6})\b/,
+  ];
+
+  for (const pattern of otpPatterns) {
+    const match = content.match(pattern);
+    if (match && match[1]) {
+      return match[1];
+    }
+  }
+
+  return null;
+}
+
+/**
  * Extract the invite/magic link from an email
  * Supabase invitation emails contain a link to verify the invitation
  *
