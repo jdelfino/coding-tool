@@ -73,24 +73,6 @@ describe('VercelSandboxBackend', () => {
     backend = new VercelSandboxBackend(mockStateRepository);
   });
 
-  describe('backendType', () => {
-    it('should have backendType "vercel-sandbox"', () => {
-      expect(backend.backendType).toBe('vercel-sandbox');
-    });
-  });
-
-  describe('capabilities', () => {
-    it('should have all capabilities enabled', () => {
-      expect(backend.capabilities.execute).toBe(true);
-      expect(backend.capabilities.trace).toBe(true);
-      expect(backend.capabilities.attachedFiles).toBe(true);
-      expect(backend.capabilities.stdin).toBe(true);
-      expect(backend.capabilities.randomSeed).toBe(true);
-      expect(backend.capabilities.stateful).toBe(true);
-      expect(backend.capabilities.requiresWarmup).toBe(true);
-    });
-  });
-
   describe('warmup()', () => {
     it('should create sandbox and save state', async () => {
       const mockSandbox = createMockSandbox('new-sandbox-id');

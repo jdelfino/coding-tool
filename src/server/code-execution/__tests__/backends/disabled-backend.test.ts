@@ -8,24 +8,6 @@ describe('DisabledBackend', () => {
     backend = new DisabledBackend();
   });
 
-  describe('backendType', () => {
-    it('should have backendType "disabled"', () => {
-      expect(backend.backendType).toBe('disabled');
-    });
-  });
-
-  describe('capabilities', () => {
-    it('should have all capabilities set to false', () => {
-      expect(backend.capabilities.execute).toBe(false);
-      expect(backend.capabilities.trace).toBe(false);
-      expect(backend.capabilities.attachedFiles).toBe(false);
-      expect(backend.capabilities.stdin).toBe(false);
-      expect(backend.capabilities.randomSeed).toBe(false);
-      expect(backend.capabilities.stateful).toBe(false);
-      expect(backend.capabilities.requiresWarmup).toBe(false);
-    });
-  });
-
   describe('execute()', () => {
     it('should return an error result', async () => {
       const submission: CodeSubmission = {

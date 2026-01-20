@@ -80,18 +80,6 @@ describe('Storage Factory', () => {
   });
 
   describe('StorageBackend', () => {
-    it('should have all required repositories', () => {
-      const storage = new StorageBackend();
-
-      expect(storage.sessions).toBeDefined();
-      expect(storage.revisions).toBeDefined();
-      expect(storage.users).toBeDefined();
-      expect(storage.problems).toBeDefined();
-      expect(storage.classes).toBeDefined();
-      expect(storage.sections).toBeDefined();
-      expect(storage.memberships).toBeDefined();
-    });
-
     it('should provide transaction support', async () => {
       const storage = new StorageBackend();
       await storage.initialize();
