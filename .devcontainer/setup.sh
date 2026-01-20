@@ -41,14 +41,10 @@ if [ "$SSH_ITEM" = "null" ] || [ -z "$SSH_ITEM" ]; then
     exit 1
 fi
 
-PRIVATE_KEY=$(op item get "$SSH_ITEM" --vault "$OP_VAULT" --fields "private key" --reveal)
-if [ -z "$PRIVATE_KEY" ]; then
+if ! op read "op://${OP_VAULT}/${SSH_ITEM}/private key" > ~/.ssh/id_ed25519; then
     echo "ERROR: Could not read SSH private key"
     exit 1
 fi
-
-# Write key with proper permissions and ensure trailing newline
-printf "%s\n" "$PRIVATE_KEY" > ~/.ssh/id_ed25519
 chmod 600 ~/.ssh/id_ed25519
 ssh-keygen -y -f ~/.ssh/id_ed25519 > ~/.ssh/id_ed25519.pub
 ssh-keyscan github.com >> ~/.ssh/known_hosts
