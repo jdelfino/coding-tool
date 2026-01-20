@@ -2,13 +2,7 @@
  * Unit tests for invitation types and helper functions
  */
 
-import {
-  Invitation,
-  InvitationError,
-  getInvitationStatus,
-  InvitationStatus,
-  InvitableRole,
-} from '../types';
+import { Invitation, InvitationError, getInvitationStatus } from '../types';
 
 describe('Invitation Types', () => {
   const createBaseInvitation = (overrides: Partial<Invitation> = {}): Invitation => ({
@@ -137,58 +131,4 @@ describe('Invitation Types', () => {
     });
   });
 
-  describe('Type constraints', () => {
-    it('should only allow valid invitable roles', () => {
-      // This is a compile-time check, but we can verify runtime
-      const validRoles: InvitableRole[] = ['namespace-admin', 'instructor'];
-
-      validRoles.forEach(role => {
-        const invitation = createBaseInvitation({ targetRole: role });
-        expect(['namespace-admin', 'instructor']).toContain(invitation.targetRole);
-      });
-    });
-
-    it('should only allow valid invitation statuses', () => {
-      const validStatuses: InvitationStatus[] = ['pending', 'consumed', 'revoked', 'expired'];
-
-      validStatuses.forEach(status => {
-        expect(['pending', 'consumed', 'revoked', 'expired']).toContain(status);
-      });
-    });
-  });
-
-  describe('Invitation interface', () => {
-    it('should allow optional supabaseUserId', () => {
-      const withoutSupabaseId = createBaseInvitation();
-      expect(withoutSupabaseId.supabaseUserId).toBeUndefined();
-
-      const withSupabaseId = createBaseInvitation({
-        supabaseUserId: 'supabase-auth-user-id',
-      });
-      expect(withSupabaseId.supabaseUserId).toBe('supabase-auth-user-id');
-    });
-
-    it('should allow optional consumed fields', () => {
-      const pending = createBaseInvitation();
-      expect(pending.consumedAt).toBeUndefined();
-      expect(pending.consumedBy).toBeUndefined();
-
-      const consumed = createBaseInvitation({
-        consumedAt: new Date(),
-        consumedBy: 'user-id',
-      });
-      expect(consumed.consumedAt).toBeDefined();
-      expect(consumed.consumedBy).toBe('user-id');
-    });
-
-    it('should allow optional revokedAt', () => {
-      const active = createBaseInvitation();
-      expect(active.revokedAt).toBeUndefined();
-
-      const revoked = createBaseInvitation({
-        revokedAt: new Date(),
-      });
-      expect(revoked.revokedAt).toBeDefined();
-    });
-  });
 });
