@@ -16,9 +16,14 @@ git branch feature/<epic-name> origin/main
 
 # Create worktree for isolated development
 git worktree add ../coding-tool-<epic-name> feature/<epic-name>
+
+# Install dependencies in the worktree BEFORE spawning sub-agents
+cd ../coding-tool-<epic-name>
+npm install
+cd /workspaces/coding-tool
 ```
 
-**IMPORTANT**: All epic work happens in the worktree, not the main checkout.
+**IMPORTANT**: All epic work happens in the worktree, not the main checkout. Always run `npm install` in the worktree before spawning sub-agents to avoid concurrent installation conflicts.
 
 ## 2. Plan and Parallelize
 

@@ -8,7 +8,6 @@ export default function BootstrapPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [username, setUsername] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
@@ -18,8 +17,8 @@ export default function BootstrapPage() {
     setError('');
 
     // Validation
-    if (!email.trim() || !password || !username.trim()) {
-      setError('All fields are required');
+    if (!email.trim() || !password) {
+      setError('Email and password are required');
       return;
     }
 
@@ -35,11 +34,14 @@ export default function BootstrapPage() {
 
     setIsLoading(true);
 
+    // Derive username from email (part before @)
+    const username = email.trim().split('@')[0];
+
     try {
       const response = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email.trim(), password, username: username.trim() }),
+        body: JSON.stringify({ email: email.trim(), password, username }),
       });
 
       const data = await response.json();
@@ -81,21 +83,6 @@ export default function BootstrapPage() {
                 placeholder="admin@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                disabled={isLoading}
-              />
-            </div>
-
-            <div>
-              <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-2">
-                Username
-              </label>
-              <input
-                id="username"
-                type="text"
-                className="appearance-none rounded-lg relative block w-full px-4 py-3 border border-gray-300 placeholder-gray-400 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent sm:text-sm disabled:bg-gray-50"
-                placeholder="admin"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
                 disabled={isLoading}
               />
             </div>
