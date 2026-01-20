@@ -20,7 +20,7 @@
 		"ghcr.io/devcontainers-extra/features/supabase-cli:1": {}
 	},
 
-	"onCreateCommand": "sudo chown -R node:node /home/node/.cache /home/node/.npm && curl -fsSL https://raw.githubusercontent.com/steveyegge/beads/main/scripts/install.sh | bash && npx playwright install-deps chromium && npx playwright install chromium && curl -fsSL https://claude.ai/install.sh | bash && ./.devcontainer/install-nsjail.sh && ./.devcontainer/install-1password-cli.sh && npm install",
+	"onCreateCommand": "sudo chown -R node:node /home/node/.cache /home/node/.npm && curl -fsSL https://raw.githubusercontent.com/steveyegge/beads/main/scripts/install.sh | bash && npx playwright install-deps chromium && npx playwright install chromium && curl -fsSL https://claude.ai/install.sh | bash && ./.devcontainer/install-nsjail.sh && ./.devcontainer/install-1password-cli.sh && npm install && supabase start && supabase stop",
 	"postCreateCommand": "./.devcontainer/setup.sh",
 	"postStartCommand": "./.devcontainer/setup-secrets.sh",
 

@@ -54,7 +54,7 @@ devpod up . \
   --workspace-env OP_VAULT="my-vault"
 ```
 
-Prebuilds cache `onCreateCommand` (npm install, playwright, tools). Credentials are configured at runtime via `postCreateCommand`.
+Prebuilds cache `onCreateCommand` (npm install, playwright, supabase images, tools). Credentials are configured at runtime via `postCreateCommand`.
 
 ## Multiple Workspaces
 
