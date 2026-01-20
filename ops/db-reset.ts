@@ -100,14 +100,14 @@ async function checkLocalSupabaseRunning(): Promise<boolean> {
   return result.exitCode === 0;
 }
 
-async function getDatabaseUrl(): Promise<string | null> {
+async function getFromOnePassword(field: string): Promise<string | null> {
   const vault = process.env.OP_VAULT;
   if (!vault) {
     logError('OP_VAULT environment variable not set');
     return null;
   }
 
-  const result = await exec(`op read "op://${vault}/supabase-prod/database-url" 2>/dev/null`, { verbose: false });
+  const result = await exec(`op read "op://${vault}/supabase-prod/${field}" 2>/dev/null`, { verbose: false });
   if (result.exitCode === 0 && result.stdout.trim()) {
     return result.stdout.trim();
   }
@@ -182,12 +182,20 @@ async function resetProduction(options: { dryRun: boolean; seed: boolean; verbos
   const { dryRun, seed, verbose } = options;
   const totalSteps = seed ? 3 : 2;
 
-  // Get database URL from 1Password
-  const databaseUrl = await getDatabaseUrl();
+  // Get credentials from 1Password
+  const databaseUrl = await getFromOnePassword('database-url');
   if (!databaseUrl) {
-    logError('Could not get database URL from 1Password');
+    logError('Could not get database-url from 1Password');
     logInfo('Add "database-url" field to supabase-prod item in your 1Password vault');
     logInfo('Get this from: Supabase Dashboard > Settings > Database > Connection string (URI)');
+    process.exit(1);
+  }
+
+  const accessToken = await getFromOnePassword('access-token');
+  if (!accessToken) {
+    logError('Could not get access-token from 1Password');
+    logInfo('Add "access-token" field to supabase-prod item in your 1Password vault');
+    logInfo('Get this from: Supabase Dashboard > Account > Access Tokens');
     process.exit(1);
   }
 
@@ -211,9 +219,9 @@ async function resetProduction(options: { dryRun: boolean; seed: boolean; verbos
   // Step 2: Push migrations
   logStep(2, totalSteps, 'Running migrations...');
   if (dryRun) {
-    logDryRun('Would run: supabase db push');
+    logDryRun('Would run: SUPABASE_ACCESS_TOKEN=*** supabase db push');
   } else {
-    const result = await exec('supabase db push', { verbose });
+    const result = await exec(`SUPABASE_ACCESS_TOKEN="${accessToken}" supabase db push`, { verbose });
     if (result.exitCode !== 0) {
       logError('Migration failed');
       logError(result.stderr);
