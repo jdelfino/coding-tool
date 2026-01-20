@@ -205,43 +205,6 @@ describe('POST /api/sections/join', () => {
     });
   });
 
-  it('should normalize join code (uppercase and trim)', async () => {
-    const user: User = {
-      id: 'student-1',
-      username: 'bob@example.com',
-      email: 'test@example.com',
-      role: 'student',
-      namespaceId: 'default',
-      createdAt: new Date(),
-    };
-    (requireAuth as jest.Mock).mockResolvedValue(createAuthContext(user));
-
-    mockSectionRepo.getSectionByJoinCode.mockResolvedValue({
-      id: 'section-1',
-      classId: 'class-1',
-      name: 'Section A',
-      joinCode: 'TEST123',
-      namespaceId: 'default',
-      instructorIds: ['instructor-1'],
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
-    mockMembershipRepo.getMembership.mockResolvedValue(null);
-    mockMembershipRepo.addMembership.mockResolvedValue({
-      id: 'membership-1',
-      sectionId: 'section-1',
-      userId: 'student-1',
-      joinedAt: new Date(),
-    });
-
-    const request = new NextRequest('http://localhost/api/sections/join', {
-      method: 'POST',
-      headers: { Cookie: 'sessionId=test-session' },
-      body: JSON.stringify({ joinCode: '  test123  ' }),
-    });
-
-    await POST(request);
-
-    expect(mockSectionRepo.getSectionByJoinCode).toHaveBeenCalledWith('TEST123');
-  });
+  // Note: Join code normalization (uppercase, trim) is tested in
+  // src/server/classes/__tests__/join-code-service.test.ts
 });

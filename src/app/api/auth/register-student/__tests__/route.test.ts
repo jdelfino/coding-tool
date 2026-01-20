@@ -259,31 +259,8 @@ describe('/api/auth/register-student', () => {
       expect(data.code).toBe('VALIDATION_ERROR');
     });
 
-    it('returns 400 for weak password (too short)', async () => {
-      const request = new NextRequest('http://localhost/api/auth/register-student', {
-        method: 'POST',
-        body: JSON.stringify({ ...validBody, password: 'short' }),
-      });
-      const response = await POST(request);
-
-      expect(response.status).toBe(400);
-      const data = await response.json();
-      expect(data.error).toContain('at least 8 characters');
-      expect(data.code).toBe('WEAK_PASSWORD');
-    });
-
-    it('returns 400 for weak password (no numbers)', async () => {
-      const request = new NextRequest('http://localhost/api/auth/register-student', {
-        method: 'POST',
-        body: JSON.stringify({ ...validBody, password: 'passwordonly' }),
-      });
-      const response = await POST(request);
-
-      expect(response.status).toBe(400);
-      const data = await response.json();
-      expect(data.error).toContain('letter and one number');
-      expect(data.code).toBe('WEAK_PASSWORD');
-    });
+    // Note: Password validation (strength requirements) is tested in
+    // src/server/invitations/__tests__/student-registration-service.test.ts
 
     it('returns 400 for invalid username', async () => {
       const request = new NextRequest('http://localhost/api/auth/register-student', {
@@ -297,18 +274,8 @@ describe('/api/auth/register-student', () => {
       expect(data.code).toBe('INVALID_USERNAME');
     });
 
-    it('returns 400 for invalid email format', async () => {
-      const request = new NextRequest('http://localhost/api/auth/register-student', {
-        method: 'POST',
-        body: JSON.stringify({ ...validBody, email: 'not-an-email' }),
-      });
-      const response = await POST(request);
-
-      expect(response.status).toBe(400);
-      const data = await response.json();
-      expect(data.error).toBe('Invalid email format');
-      expect(data.code).toBe('INVALID_EMAIL');
-    });
+    // Note: Email format validation is tested in
+    // src/server/invitations/__tests__/student-registration-service.test.ts
 
     it('returns 400 for invalid code', async () => {
       // Create an error with the correct name and code
@@ -398,24 +365,8 @@ describe('/api/auth/register-student', () => {
       );
     });
 
-    it('trims whitespace from email and username', async () => {
-      const request = new NextRequest('http://localhost/api/auth/register-student', {
-        method: 'POST',
-        body: JSON.stringify({
-          ...validBody,
-          email: '  student@example.com  ',
-          username: '  newstudent  ',
-        }),
-      });
-      await POST(request);
-
-      expect(mockStudentRegistrationService.registerStudent).toHaveBeenCalledWith(
-        'ABC-123-XYZ',
-        'student@example.com',
-        'Password123',
-        'newstudent'
-      );
-    });
+    // Note: Email/username whitespace trimming is tested in
+    // src/server/invitations/__tests__/student-registration-service.test.ts
 
     it('handles unexpected errors gracefully', async () => {
       mockStudentRegistrationService.registerStudent.mockRejectedValue(
