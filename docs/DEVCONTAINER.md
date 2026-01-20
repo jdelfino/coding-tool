@@ -3,57 +3,60 @@
 ## Quick Start
 
 ```bash
-./setup_env.sh
-```
+brew install loft-sh/tap/devpod
 
-This builds the container, starts Supabase, configures `.env.local`, and copies your credentials.
+devpod up . \
+  --workspace-env OP_SERVICE_ACCOUNT_TOKEN="$OP_SERVICE_ACCOUNT_TOKEN" \
+  --workspace-env OP_VAULT="my-vault"
+```
 
 ## Prerequisites
 
-- **Docker** - [Docker Desktop](https://www.docker.com/products/docker-desktop)
-- **devcontainer CLI** - `npm install -g @devcontainers/cli`
+- Docker
+- DevPod (or devcontainer CLI)
+- 1Password service account with vault access
 
-## Credentials
+## Required Environment Variables
 
-### Automatically Copied from Host
+| Variable | Description |
+|----------|-------------|
+| `OP_SERVICE_ACCOUNT_TOKEN` | 1Password service account token |
+| `OP_VAULT` | 1Password vault name |
 
-| Credential | Host Location | Manual Setup (if not found) |
-|------------|---------------|----------------------------|
-| Git identity | `~/.gitconfig` | `git config --global user.name/email` |
-| GitHub CLI | `~/.config/gh/hosts.yml` | `gh auth login` |
-| Claude Code | `~/.claude/.credentials.json` | `claude auth` |
+## Required 1Password Items
 
-### Environment Variables (`.env.local`)
+| Item | Type | Fields | Tag |
+|------|------|--------|-----|
+| SSH key | SSH Key | (auto) | `devcontainer` |
+| `git-config` | Secure Note | `name`, `email` | |
+| `github-pat` | API Credential | `credential` | |
+| `secrets` | Secure Note | `system-admin-email`, `gemini-api-key` | |
 
-| Variable | Source |
-|----------|--------|
-| `NEXT_PUBLIC_SUPABASE_URL` | Auto-set to `http://localhost:54321` |
-| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Extracted from `supabase start` |
-| `SUPABASE_SECRET_KEY` | Extracted from `supabase start` |
-| `SYSTEM_ADMIN_EMAIL` | 1Password or manual |
-| `GEMINI_API_KEY` | 1Password or manual (optional) |
+Claude Code: Run `claude` and authenticate interactively on first use.
 
-## 1Password Setup (Optional)
+## Creating a GitHub Personal Access Token
 
-Enables automatic secret injection via `op://` references in `.env.1password`.
+1. Go to [github.com/settings/tokens](https://github.com/settings/tokens)
+2. Click "Generate new token" → "Generate new token (classic)"
+3. Set expiration and select scopes: `repo`, `read:org`, `gist`, `workflow`
+4. Copy the token (starts with `ghp_`)
+5. In 1Password, create an API Credential named `github-pat` with the token in the `credential` field
 
-1. **Create vault**: `coding-tool-dev`
-2. **Create item**: Type "Secure Note", name `secrets`, with fields:
-   - `system-admin-email` - your admin email
-   - `gemini-api-key` - from [Google AI Studio](https://aistudio.google.com/app/apikey)
-3. **Create Service Account**: [my.1password.com](https://my.1password.com) → Developer Tools → Service Accounts
-   - Grant read-only access to `coding-tool-dev` vault
-4. **Set token** in `~/.bashrc` or `~/.zshrc`:
-   ```bash
-   export OP_SERVICE_ACCOUNT_TOKEN="your-token"
-   ```
+## Creating Service Account
 
-Without 1Password, edit `.env.local` manually after setup.
+1. [my.1password.com](https://my.1password.com) → Developer Tools → Service Accounts
+2. Create account with read-only access to your vault
+3. Set token: `export OP_SERVICE_ACCOUNT_TOKEN="..."`
 
-## After Container Rebuild
+## Multiple Workspaces
 
-Run `./setup_env.sh` again. Everything is re-provisioned automatically.
+```bash
+devpod up . --workspace-env OP_SERVICE_ACCOUNT_TOKEN="..." --workspace-env OP_VAULT="..." --id agent1
+devpod up . --workspace-env OP_SERVICE_ACCOUNT_TOKEN="..." --workspace-env OP_VAULT="..." --id agent2
+
+devpod ssh agent1
+```
 
 ## VS Code
 
-After setup: `code .` → `Cmd/Ctrl+Shift+P` → "Reopen in Container"
+After setup: `code .` → `Cmd+Shift+P` → "Reopen in Container"
