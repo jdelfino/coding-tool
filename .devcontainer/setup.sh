@@ -70,7 +70,11 @@ echo "Git: $GIT_NAME <$GIT_EMAIL>"
 
 # GitHub CLI
 echo "Setting up GitHub CLI..."
-gh auth login --git-protocol ssh --hostname github.com <<< ""
+if ! op read "op://${OP_VAULT}/github-pat/credential" | gh auth login --with-token --git-protocol ssh --skip-ssh-key; then
+    echo "ERROR: Could not authenticate GitHub CLI"
+    echo "Fix: In 1Password, create an item named 'github-pat' with field 'credential' containing a GitHub PAT"
+    exit 1
+fi
 echo "GitHub CLI authenticated"
 
 echo "=== Setup Complete ==="

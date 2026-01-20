@@ -29,9 +29,18 @@ devpod up . \
 |------|------|--------|-----|
 | SSH key | SSH Key | (auto) | `devcontainer` |
 | `git-config` | Secure Note | `name`, `email` | |
+| `github-pat` | API Credential | `credential` | |
 | `secrets` | Secure Note | `system-admin-email`, `gemini-api-key` | |
 
 Claude Code: Run `claude` and authenticate interactively on first use.
+
+## Creating a GitHub Personal Access Token
+
+1. Go to [github.com/settings/tokens](https://github.com/settings/tokens)
+2. Click "Generate new token" → "Generate new token (classic)"
+3. Set expiration and select scopes: `repo`, `read:org`, `gist`, `workflow`
+4. Copy the token (starts with `ghp_`)
+5. In 1Password, create an API Credential named `github-pat` with the token in the `credential` field
 
 ## Creating Service Account
 
