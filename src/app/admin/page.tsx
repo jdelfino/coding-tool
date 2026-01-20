@@ -11,7 +11,21 @@ import { ProtectedRoute } from '@/components/ProtectedRoute';
 import NamespaceHeader from '@/components/NamespaceHeader';
 import { ErrorAlert } from '@/components/ErrorAlert';
 import UserList from './components/UserList';
+import InviteInstructorForm from './components/InviteInstructorForm';
+import InstructorInvitationList from './components/InstructorInvitationList';
 import type { User, UserRole } from '@/server/auth/types';
+
+interface Invitation {
+  id: string;
+  email: string;
+  namespaceId: string;
+  targetRole: 'instructor';
+  createdAt: string;
+  expiresAt: string;
+  consumedAt?: string;
+  revokedAt?: string;
+  status?: 'pending' | 'consumed' | 'revoked' | 'expired';
+}
 
 interface SystemStats {
   users: {
@@ -38,6 +52,8 @@ function AdminPage() {
   const [error, setError] = useState('');
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [roleChangeLoading, setRoleChangeLoading] = useState<string | null>(null);
+  const [invitations, setInvitations] = useState<Invitation[]>([]);
+  const [invitationsLoading, setInvitationsLoading] = useState(false);
 
   // Admin page requires authenticated user with role
   if (!user) return null;
@@ -55,6 +71,70 @@ function AdminPage() {
     } catch (err) {
       console.error('Failed to load stats:', err);
     }
+  };
+
+  const loadInvitations = async () => {
+    if (!isAdmin) return;
+
+    setInvitationsLoading(true);
+    try {
+      const res = await fetch('/api/namespace/invitations', { credentials: 'include' });
+      if (res.ok) {
+        const data = await res.json();
+        setInvitations(data.invitations || []);
+      }
+    } catch (err) {
+      console.error('Failed to load invitations:', err);
+    } finally {
+      setInvitationsLoading(false);
+    }
+  };
+
+  const handleInviteInstructor = async (email: string) => {
+    const response = await fetch('/api/namespace/invitations', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+      credentials: 'include'
+    });
+
+    if (!response.ok) {
+      const data = await response.json();
+      throw new Error(data.error || 'Failed to send invitation');
+    }
+
+    // Reload invitations
+    await loadInvitations();
+  };
+
+  const handleRevokeInvitation = async (invitationId: string) => {
+    const response = await fetch(`/api/namespace/invitations/${invitationId}`, {
+      method: 'DELETE',
+      credentials: 'include'
+    });
+
+    if (!response.ok) {
+      const data = await response.json();
+      throw new Error(data.error || 'Failed to revoke invitation');
+    }
+
+    // Reload invitations
+    await loadInvitations();
+  };
+
+  const handleResendInvitation = async (invitationId: string) => {
+    const response = await fetch(`/api/namespace/invitations/${invitationId}/resend`, {
+      method: 'POST',
+      credentials: 'include'
+    });
+
+    if (!response.ok) {
+      const data = await response.json();
+      throw new Error(data.error || 'Failed to resend invitation');
+    }
+
+    // Reload invitations
+    await loadInvitations();
   };
 
   const loadUsers = async () => {
@@ -110,6 +190,7 @@ function AdminPage() {
   useEffect(() => {
     loadUsers();
     loadStats();
+    loadInvitations();
   }, [isAdmin]);
 
   const handleChangeRole = async (userId: string, newRole: UserRole) => {
@@ -471,6 +552,24 @@ function AdminPage() {
           {/* Instructors Tab */}
           {activeTab === 'instructors' && (
             <div>
+              {/* Invitation UI for namespace admins */}
+              {isAdmin && (
+                <div style={{ marginBottom: '2rem' }}>
+                  <InviteInstructorForm
+                    onSubmit={handleInviteInstructor}
+                    loading={invitationsLoading}
+                  />
+
+                  <h3 style={{ marginTop: '2rem', marginBottom: '1rem' }}>Pending Invitations</h3>
+                  <InstructorInvitationList
+                    invitations={invitations}
+                    loading={invitationsLoading}
+                    onRevoke={handleRevokeInvitation}
+                    onResend={handleResendInvitation}
+                  />
+                </div>
+              )}
+
               <h2 style={{ marginBottom: '1rem' }}>Instructors</h2>
               <UserList
                 users={instructors}
