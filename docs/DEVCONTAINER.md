@@ -45,11 +45,11 @@ Speed up container creation by caching npm packages, Playwright browsers, and to
 
 ```bash
 # Build and push prebuild image
-devpod build . --repository ghcr.io/jdelfino/coding-tool-devcontainer
+devpod build . --repository jdelfino/coding-tool-devcontainer
 
 # Use prebuild when creating workspace
 devpod up . \
-  --prebuild-repository ghcr.io/jdelfino/coding-tool-devcontainer \
+  --prebuild-repository jdelfino/coding-tool-devcontainer \
   --workspace-env OP_SERVICE_ACCOUNT_TOKEN="$OP_SERVICE_ACCOUNT_TOKEN" \
   --workspace-env OP_VAULT="my-vault"
 ```
