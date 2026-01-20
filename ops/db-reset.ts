@@ -76,7 +76,7 @@ NOTES
   - After production reset, you'll need to create initial user accounts
 `.trim();
 
-// SQL to completely reset the public schema
+// SQL to completely reset the public schema and migration history
 const RESET_SQL = `
 -- Drop and recreate public schema (removes all tables, functions, triggers)
 DROP SCHEMA public CASCADE;
@@ -88,6 +88,9 @@ GRANT ALL ON SCHEMA public TO public;
 GRANT ALL ON SCHEMA public TO anon;
 GRANT ALL ON SCHEMA public TO authenticated;
 GRANT ALL ON SCHEMA public TO service_role;
+
+-- Clear migration history so migrations run fresh
+TRUNCATE supabase_migrations.schema_migrations;
 `.trim();
 
 async function checkSupabaseLinked(): Promise<boolean> {
