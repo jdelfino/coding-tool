@@ -2,7 +2,7 @@
 	"name": "Node.js",
 	"image": "mcr.microsoft.com/devcontainers/javascript-node:1-22-bookworm",
 
-	"workspaceMount": "source=${localWorkspaceFolderBasename}-workspace,target=/workspaces/coding-tool,type=volume",
+	"workspaceMount": "source=${localWorkspaceFolder},target=/workspaces/coding-tool,type=bind",
 	"workspaceFolder": "/workspaces/coding-tool",
 
 	"mounts": [
@@ -20,8 +20,8 @@
 		"ghcr.io/devcontainers-extra/features/supabase-cli:1": {}
 	},
 
-	"postCreateCommand": "sudo chown -R node:node /home/node/.cache /home/node/.npm && curl -fsSL https://raw.githubusercontent.com/steveyegge/beads/main/scripts/install.sh | bash && npm install && npx playwright install-deps chromium && curl -fsSL https://claude.ai/install.sh | bash && ./.devcontainer/install-nsjail.sh && ./.devcontainer/install-1password-cli.sh",
-	"postStartCommand": "supabase start || true",
+	"postCreateCommand": "sudo chown -R node:node /home/node/.cache /home/node/.npm && curl -fsSL https://raw.githubusercontent.com/steveyegge/beads/main/scripts/install.sh | bash && npx playwright install-deps chromium && curl -fsSL https://claude.ai/install.sh | bash && ./.devcontainer/install-nsjail.sh && ./.devcontainer/install-1password-cli.sh && ./.devcontainer/setup.sh",
+	"postStartCommand": "./.devcontainer/setup-secrets.sh",
 
 	"forwardPorts": [3000, 3001, 54321, 54322, 54323],
 	"portsAttributes": {
