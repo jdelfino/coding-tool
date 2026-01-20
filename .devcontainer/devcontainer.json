@@ -7,16 +7,8 @@
 
 	"mounts": [
 		"source=coding-tool-cache,target=/home/node/.cache,type=volume",
-		"source=coding-tool-npm-cache,target=/home/node/.npm,type=volume",
-		"source=${localEnv:DOCKER_SSH_AUTH_SOCK},target=/ssh-agent,type=bind",
-		"source=${localEnv:HOME}/.gitconfig,target=/home/node/.gitconfig,type=bind,readonly",
-		"source=${localEnv:HOME}/.config/gh,target=/home/node/.config/gh,type=bind,readonly",
-		"source=${localEnv:HOME}/.claude.json,target=/home/node/.claude.json,type=bind,readonly"
+		"source=coding-tool-npm-cache,target=/home/node/.npm,type=volume"
 	],
-
-	"containerEnv": {
-		"SSH_AUTH_SOCK": "/ssh-agent"
-	},
 
 	"features": {
 		"ghcr.io/devcontainers/features/python:1": {
@@ -29,7 +21,7 @@
 	},
 
 	"postCreateCommand": "sudo chown -R node:node /home/node/.cache /home/node/.npm && curl -fsSL https://raw.githubusercontent.com/steveyegge/beads/main/scripts/install.sh | bash && npm install && npx playwright install-deps chromium && curl -fsSL https://claude.ai/install.sh | bash && ./.devcontainer/install-nsjail.sh && ./.devcontainer/install-1password-cli.sh",
-	"postStartCommand": "sudo chmod 666 /ssh-agent 2>/dev/null || true; supabase start || true",
+	"postStartCommand": "supabase start || true",
 
 	"forwardPorts": [3000, 3001, 54321, 54322, 54323],
 	"portsAttributes": {
