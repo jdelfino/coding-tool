@@ -122,7 +122,7 @@ describe('SectionView', () => {
     });
   });
 
-  it('should call onBack when back button is clicked', async () => {
+  it('should not render back button in section list view (breadcrumb handles navigation)', async () => {
     (global.fetch as jest.Mock).mockResolvedValueOnce({
       ok: true,
       json: async () => ({ sections: [] }),
@@ -134,10 +134,9 @@ describe('SectionView', () => {
       expect(screen.getByText('CS101 Fall 2025')).toBeInTheDocument();
     });
 
-    const backButton = screen.getByRole('button', { name: /Back to Classes/ });
-    fireEvent.click(backButton);
-
-    expect(mockOnBack).toHaveBeenCalledTimes(1);
+    // Back button should not be present - navigation is handled by breadcrumbs
+    const backButton = screen.queryByRole('button', { name: /Back to Classes/ });
+    expect(backButton).not.toBeInTheDocument();
   });
 
   it('should navigate to section detail when section is clicked', async () => {

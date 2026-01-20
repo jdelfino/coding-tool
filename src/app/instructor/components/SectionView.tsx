@@ -143,9 +143,6 @@ export default function SectionView({
   if (error) {
     return (
       <div>
-        <div className="mb-4">
-          <BackButton onClick={onBack}>Back to Classes</BackButton>
-        </div>
         <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
           <p className="font-semibold">Error loading sections</p>
           <p className="text-sm">{error}</p>
@@ -157,10 +154,6 @@ export default function SectionView({
   if (!selectedSection) {
     return (
       <div>
-        <div className="mb-6">
-          <BackButton onClick={onBack}>Back to Classes</BackButton>
-        </div>
-
         <div className="flex items-center justify-between mb-6">
           <div>
             <h2 className="text-2xl font-bold text-gray-900">{className}</h2>

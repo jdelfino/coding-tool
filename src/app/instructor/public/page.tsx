@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useCallback, Suspense } from 'react';
+import React, { useEffect, useState, useCallback, Suspense, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { Problem } from '@/server/types/problem';
@@ -22,6 +22,10 @@ function PublicViewContent() {
   const [state, setState] = useState<PublicSessionState | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Local code state for editing (changes don't propagate back to student)
+  const [localCode, setLocalCode] = useState<string>('');
+  const lastFeaturedStudentId = useRef<string | null>(null);
 
   // Fetch session state from API
   const fetchState = useCallback(async () => {
@@ -48,6 +52,14 @@ function PublicViewContent() {
   useEffect(() => {
     fetchState();
   }, [fetchState]);
+
+  // Reset local code when featured student changes
+  useEffect(() => {
+    if (state?.featuredStudentId !== lastFeaturedStudentId.current) {
+      lastFeaturedStudentId.current = state?.featuredStudentId || null;
+      setLocalCode(state?.featuredCode || '');
+    }
+  }, [state?.featuredStudentId, state?.featuredCode]);
 
   // Subscribe to Supabase Realtime for session updates
   useEffect(() => {
@@ -225,13 +237,11 @@ function PublicViewContent() {
         }}>
           <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
             <CodeEditor
-              code={state.featuredCode || ''}
-              onChange={() => {}} // Read-only
-              onRun={() => {}} // Disable run for now
-              isRunning={false}
+              code={localCode}
+              onChange={setLocalCode}
               problem={state.problem}
               title="Featured Code"
-              readOnly
+              useApiExecution={true}
             />
           </div>
         </div>
