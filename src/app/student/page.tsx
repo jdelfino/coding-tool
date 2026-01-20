@@ -7,7 +7,7 @@ import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSessionHistory } from '@/hooks/useSessionHistory';
 import { Problem, ExecutionSettings } from '@/server/types/problem';
-import { useDebugger } from '@/hooks/useDebugger';
+import { useApiDebugger } from '@/hooks/useApiDebugger';
 import { ErrorAlert } from '@/components/ErrorAlert';
 import CodeEditor from './components/CodeEditor';
 import { EditorContainer } from './components/EditorContainer';
@@ -62,14 +62,8 @@ function StudentPage() {
     userName: user?.username,
   });
 
-  // Create a no-op sendMessage for debugger (TODO: Add trace API endpoint)
-  const sendMessage = useCallback((type: string, payload: any) => {
-    console.warn('Debugger sendMessage called but WebSocket not available:', type, payload);
-    // TODO: Implement trace API endpoint
-  }, []);
-
-  // Debugger state
-  const debuggerHook = useDebugger(sendMessage);
+  // Debugger state - uses API-based trace requests
+  const debuggerHook = useApiDebugger(sessionIdFromUrl);
 
   // Track if we've already initiated a join for this sessionId to prevent loops
   const joinAttemptedRef = useRef<string | null>(null);

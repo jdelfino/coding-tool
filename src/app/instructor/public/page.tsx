@@ -2,10 +2,11 @@
 
 import React, { useEffect, useState, useCallback, Suspense, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { useRealtime } from '@/hooks/useRealtime';
+import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { Problem } from '@/server/types/problem';
 import CodeEditor from '@/app/student/components/CodeEditor';
 import { useApiDebugger } from '@/hooks/useApiDebugger';
+import { ProtectedRoute } from '@/components/ProtectedRoute';
 
 interface PublicSessionState {
   sessionId: string;
@@ -27,6 +28,7 @@ function PublicViewContent() {
   // Local code state for editing (changes don't propagate back to student)
   const [localCode, setLocalCode] = useState<string>('');
   const lastFeaturedStudentId = useRef<string | null>(null);
+  const lastFeaturedCode = useRef<string | null>(null);
 
   // Fetch session state from API
   const fetchState = useCallback(async () => {
@@ -49,11 +51,36 @@ function PublicViewContent() {
     }
   }, [sessionId]);
 
-  // Subscribe to Supabase Realtime for session updates
-  const { isConnected, lastMessage } = useRealtime({
-    sessionId: sessionId || '',
-    tables: ['sessions'],
-  });
+  // Listen for Broadcast messages (more reliable than postgres_changes, recommended by Supabase)
+  const [isConnected, setIsConnected] = useState(false);
+
+  useEffect(() => {
+    if (!sessionId) return;
+
+    const supabase = getSupabaseBrowserClient();
+    const channelName = `session:${sessionId}`;
+
+    const channel = supabase
+      .channel(channelName)
+      .on('broadcast', { event: 'featured_student_changed' }, (payload) => {
+        if (payload.payload) {
+          const { featuredStudentId, featuredCode } = payload.payload;
+          setState(prev => prev ? {
+            ...prev,
+            featuredStudentId,
+            featuredCode,
+            hasFeaturedSubmission: !!featuredStudentId,
+          } : prev);
+        }
+      })
+      .subscribe((status) => {
+        setIsConnected(status === 'SUBSCRIBED');
+      });
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [sessionId]);
 
   // Debugger hook for API-based trace requests
   const debuggerHook = useApiDebugger(sessionId);
@@ -63,20 +90,17 @@ function PublicViewContent() {
     fetchState();
   }, [fetchState]);
 
-  // Reset local code when featured student changes
+  // Reset local code when featured student or their code changes
   useEffect(() => {
-    if (state?.featuredStudentId !== lastFeaturedStudentId.current) {
+    const studentChanged = state?.featuredStudentId !== lastFeaturedStudentId.current;
+    const codeChanged = state?.featuredCode !== lastFeaturedCode.current;
+
+    if (studentChanged || codeChanged) {
       lastFeaturedStudentId.current = state?.featuredStudentId || null;
+      lastFeaturedCode.current = state?.featuredCode || null;
       setLocalCode(state?.featuredCode || '');
     }
   }, [state?.featuredStudentId, state?.featuredCode]);
-
-  // Refetch when realtime message is received
-  useEffect(() => {
-    if (lastMessage && lastMessage.table === 'sessions') {
-      fetchState();
-    }
-  }, [lastMessage, fetchState]);
 
   // Fallback: Poll for updates every 2 seconds ONLY when disconnected
   // This compensates for Realtime connection issues
@@ -255,18 +279,20 @@ function PublicViewContent() {
 
 export default function PublicInstructorView() {
   return (
-    <Suspense fallback={
-      <div style={{
-        minHeight: '100vh',
-        backgroundColor: '#f9fafb',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center'
-      }}>
-        <div style={{ fontSize: '1.25rem', color: '#666' }}>Loading...</div>
-      </div>
-    }>
-      <PublicViewContent />
-    </Suspense>
+    <ProtectedRoute requiredRole="instructor">
+      <Suspense fallback={
+        <div style={{
+          minHeight: '100vh',
+          backgroundColor: '#f9fafb',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}>
+          <div style={{ fontSize: '1.25rem', color: '#666' }}>Loading...</div>
+        </div>
+      }>
+        <PublicViewContent />
+      </Suspense>
+    </ProtectedRoute>
   );
 }

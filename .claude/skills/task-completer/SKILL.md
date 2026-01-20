@@ -43,7 +43,34 @@ No commits without new tests for changed code.
 - "Frontend change" - Needs component tests
 - "Changed 3 files, added tests for 1" - Need tests for ALL 3
 
-## 3. Quality Gates
+## 3. Fail Fast, Fail Loud
+
+**Never silently work around problems. Fix them or let them fail visibly.**
+
+### Principles
+
+- **Missing env vars**: Throw an error, don't silently skip functionality
+- **Invalid state**: Crash early with a clear message, don't limp along
+- **Missing dependencies**: Fail at startup, not at runtime
+- **Tests need mocking**: Mock properly in tests, don't add fallbacks to production code
+
+### Anti-Patterns to Avoid
+
+```typescript
+// BAD: Silent failure hides production bugs
+if (!process.env.API_KEY) {
+  return; // Silently does nothing
+}
+
+// GOOD: Fail loudly so the problem is fixed
+if (!process.env.API_KEY) {
+  throw new Error('API_KEY environment variable is required');
+}
+```
+
+**The app should work correctly or not at all. Silent misbehavior is worse than a crash.**
+
+## 4. Quality Gates
 
 Run these before committing:
 
@@ -57,7 +84,7 @@ npx tsc --noEmit
 
 Both must pass with zero errors.
 
-## 4. Commit Checklist
+## 5. Commit Checklist
 
 Before EVERY commit, verify ALL of these:
 
@@ -70,7 +97,7 @@ Before EVERY commit, verify ALL of these:
 
 **If you cannot check ALL boxes, DO NOT COMMIT.**
 
-## 5. Make the Commit
+## 6. Make the Commit
 
 ```bash
 git add -A
@@ -86,13 +113,13 @@ EOF
 
 Types: `feat`, `fix`, `refactor`, `test`, `docs`, `chore`
 
-## 6. Close the Task
+## 7. Close the Task
 
 ```bash
 bd close <task-id> --reason "Completed"
 ```
 
-## 7. Landing the Plane (Session Completion)
+## 8. Landing the Plane (Session Completion)
 
 When ending a work session, complete ALL steps:
 

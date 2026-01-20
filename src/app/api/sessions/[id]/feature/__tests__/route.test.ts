@@ -17,6 +17,17 @@ jest.mock('@/server/auth/api-auth');
 jest.mock('@/server/persistence');
 jest.mock('@/server/services/session-service');
 
+// Mock Supabase client for broadcast functionality
+jest.mock('@supabase/supabase-js', () => ({
+  createClient: jest.fn(() => ({
+    channel: jest.fn(() => ({
+      subscribe: jest.fn(),
+      send: jest.fn(),
+    })),
+    removeChannel: jest.fn(),
+  })),
+}));
+
 const mockGetAuthenticatedUser = getAuthenticatedUser as jest.MockedFunction<typeof getAuthenticatedUser>;
 const mockCheckPermission = checkPermission as jest.MockedFunction<typeof checkPermission>;
 const mockGetStorage = getStorage as jest.MockedFunction<typeof getStorage>;
@@ -68,6 +79,10 @@ describe('POST /api/sessions/[id]/feature', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+
+    // Set required env vars for broadcast
+    process.env.NEXT_PUBLIC_SUPABASE_URL = 'http://localhost:54321';
+    process.env.SUPABASE_SECRET_KEY = 'test-secret-key';
 
     mockStorage = {
       sessions: {

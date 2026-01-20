@@ -27,6 +27,8 @@ export interface UseRealtimeOptions {
   tables?: string[];
   /** Maximum reconnection attempts before giving up (default: 5) */
   maxReconnectAttempts?: number;
+  /** Channel name prefix (defaults to 'session'). Use unique prefixes if multiple components subscribe to the same session. */
+  channelPrefix?: string;
 }
 
 const DEFAULT_TABLES = ['session_students', 'sessions', 'revisions'];
@@ -47,6 +49,7 @@ export function useRealtime({
   presenceData = {},
   tables = DEFAULT_TABLES,
   maxReconnectAttempts = DEFAULT_MAX_RECONNECT_ATTEMPTS,
+  channelPrefix = 'session',
 }: UseRealtimeOptions) {
   const [isConnected, setIsConnected] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('disconnected');
@@ -112,7 +115,7 @@ export function useRealtime({
     setConnectionStartTime(Date.now());
 
     // Create channel for this session
-    const channel = supabase.channel(`session:${sessionId}`, {
+    const channel = supabase.channel(`${channelPrefix}:${sessionId}`, {
       config: {
         presence: {
           key: userId || 'anonymous',
@@ -124,13 +127,14 @@ export function useRealtime({
     tablesRef.current.forEach((table) => {
       // The sessions table uses 'id', other tables use 'session_id'
       const filterColumn = table === 'sessions' ? 'id' : 'session_id';
+      const filter = `${filterColumn}=eq.${sessionId}`;
       channel.on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
           table,
-          filter: `${filterColumn}=eq.${sessionId}`,
+          filter,
         },
         handleDatabaseChange
       );
@@ -205,7 +209,7 @@ export function useRealtime({
     };
     // Use stable keys instead of object/array references to prevent reconnection loops
     // reconnectKey is used to force re-subscription when manual reconnect is triggered
-  }, [sessionId, userId, handleDatabaseChange, handlePresenceSync, tablesKey, presenceDataKey, reconnectKey]);
+  }, [sessionId, userId, handleDatabaseChange, handlePresenceSync, tablesKey, presenceDataKey, reconnectKey, channelPrefix]);
 
   /**
    * Manual reconnection function

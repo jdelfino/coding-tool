@@ -4,10 +4,52 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
 import { getAuthenticatedUser, checkPermission } from '@/server/auth/api-auth';
 import { getStorage } from '@/server/persistence';
 import * as SessionService from '@/server/services/session-service';
 import { rateLimit } from '@/server/rate-limit';
+
+/**
+ * Send a broadcast message to notify clients of featured student changes.
+ * Uses Broadcast instead of postgres_changes for reliability (recommended by Supabase).
+ * Exported for testing.
+ */
+export function broadcastFeaturedStudentChange(
+  sessionId: string,
+  featuredStudentId: string | null,
+  featuredCode: string | null
+) {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = process.env.SUPABASE_SECRET_KEY;
+
+  if (!supabaseUrl) {
+    throw new Error('NEXT_PUBLIC_SUPABASE_URL is required for broadcast');
+  }
+  if (!supabaseKey) {
+    throw new Error('SUPABASE_SECRET_KEY is required for broadcast');
+  }
+
+  const supabase = createClient(supabaseUrl, supabaseKey);
+  const channel = supabase.channel(`session:${sessionId}`);
+
+  // Fire and forget - don't await to avoid blocking the response
+  channel.subscribe(async (status) => {
+    if (status === 'SUBSCRIBED') {
+      await channel.send({
+        type: 'broadcast',
+        event: 'featured_student_changed',
+        payload: {
+          sessionId,
+          featuredStudentId,
+          featuredCode,
+          timestamp: Date.now(),
+        },
+      });
+      supabase.removeChannel(channel);
+    }
+  });
+}
 
 interface FeatureStudentBody {
   studentId?: string;
@@ -65,6 +107,9 @@ export async function POST(
       // Set featured submission via service
       await SessionService.setFeaturedSubmission(storage, session, studentId);
 
+      // Broadcast the change to all connected clients (more reliable than postgres_changes)
+      broadcastFeaturedStudentChange(sessionId, studentId, student.code || null);
+
       return NextResponse.json({
         success: true,
         featuredStudentId: studentId,
@@ -73,6 +118,9 @@ export async function POST(
     } else {
       // Clear featured submission via service
       await SessionService.clearFeaturedSubmission(storage, sessionId);
+
+      // Broadcast the change to all connected clients
+      broadcastFeaturedStudentChange(sessionId, null, null);
 
       return NextResponse.json({
         success: true,
