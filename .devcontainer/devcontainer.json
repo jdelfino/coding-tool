@@ -2,7 +2,7 @@
 	"name": "Node.js",
 	"image": "mcr.microsoft.com/devcontainers/javascript-node:1-22-bookworm",
 
-	"workspaceMount": "source=${localWorkspaceFolder},target=/workspaces/coding-tool,type=bind",
+	"workspaceMount": "source=${localWorkspaceFolderBasename}-workspace,target=/workspaces/coding-tool,type=volume",
 	"workspaceFolder": "/workspaces/coding-tool",
 
 	"mounts": [

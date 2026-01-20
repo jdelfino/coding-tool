@@ -5,7 +5,7 @@
 ```bash
 brew install loft-sh/tap/devpod
 
-devpod up . \
+devpod up https://github.com/jdelfino/coding-tool \
   --workspace-env OP_SERVICE_ACCOUNT_TOKEN="$OP_SERVICE_ACCOUNT_TOKEN" \
   --workspace-env OP_VAULT="my-vault"
 ```
@@ -31,6 +31,14 @@ devpod up . \
 | `git-config` | Secure Note | `name`, `email` | |
 | `github-pat` | API Credential | `credential` | |
 | `secrets` | Secure Note | `system-admin-email`, `gemini-api-key` | |
+| `supabase-prod` | Secure Note | `project-ref`, `access-token`, `database-url` | |
+
+### Getting Supabase Production Credentials
+
+For `supabase-prod`, get values from your Supabase Dashboard:
+- `project-ref`: From URL `https://supabase.com/dashboard/project/<project-ref>`
+- `access-token`: Account → Access Tokens → Generate new token
+- `database-url`: Settings → Database → Connection string (URI)
 
 Claude Code: Run `claude` and authenticate interactively on first use.
 
@@ -51,8 +59,8 @@ Claude Code: Run `claude` and authenticate interactively on first use.
 ## Multiple Workspaces
 
 ```bash
-devpod up . --workspace-env OP_SERVICE_ACCOUNT_TOKEN="..." --workspace-env OP_VAULT="..." --id agent1
-devpod up . --workspace-env OP_SERVICE_ACCOUNT_TOKEN="..." --workspace-env OP_VAULT="..." --id agent2
+devpod up https://github.com/jdelfino/coding-tool --workspace-env OP_SERVICE_ACCOUNT_TOKEN="..." --workspace-env OP_VAULT="..." --id agent1
+devpod up https://github.com/jdelfino/coding-tool --workspace-env OP_SERVICE_ACCOUNT_TOKEN="..." --workspace-env OP_VAULT="..." --id agent2
 
 devpod ssh agent1
 ```

@@ -1,0 +1,24 @@
+{
+	"name": "Production Ops",
+	"image": "mcr.microsoft.com/devcontainers/javascript-node:1-22-bookworm",
+
+	"workspaceMount": "source=${localWorkspaceFolderBasename}-ops,target=/workspaces/coding-tool,type=volume",
+	"workspaceFolder": "/workspaces/coding-tool",
+
+	"runArgs": ["--network=host"],
+
+	"mounts": [
+		"source=${localEnv:HOME}/.config/op,target=/home/node/.config/op,type=bind,readonly",
+		"source=${localEnv:HOME}/.config/supabase,target=/home/node/.config/supabase,type=bind"
+	],
+
+	"features": {
+		"ghcr.io/devcontainers-extra/features/supabase-cli:1": {}
+	},
+
+	"postCreateCommand": ".devcontainer/ops/setup.sh",
+
+	"containerEnv": {
+		"OP_VAULT": "${localEnv:OP_VAULT}"
+	}
+}

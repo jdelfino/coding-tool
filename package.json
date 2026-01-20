@@ -25,7 +25,8 @@
     "supabase:reset": "supabase db reset",
     "supabase:studio": "echo 'Supabase Studio available at http://localhost:54323'",
     "supabase:migrate": "supabase db reset",
-    "db:reset": "supabase db reset"
+    "db:reset": "supabase db reset",
+    "ops:db-reset": "tsx ops/db-reset.ts"
   },
   "repository": {
     "type": "git",
@@ -62,6 +63,7 @@
     "@types/diff-match-patch": "^1.0.36",
     "@types/jest": "^30.0.0",
     "@types/node": "^25.0.3",
+    "@types/pg": "^8.16.0",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
     "@types/uuid": "^10.0.0",
@@ -71,6 +73,7 @@
     "dotenv-cli": "^11.0.0",
     "jest": "^30.2.0",
     "jest-environment-jsdom": "^30.2.0",
+    "pg": "^8.17.1",
     "postcss": "^8.5.6",
     "supabase": "^2.70.5",
     "tailwindcss": "^3.4.19",
