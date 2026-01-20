@@ -2,12 +2,11 @@
  * System Admin API - Namespace User Management
  *
  * GET /api/system/namespaces/[id]/users - List users in namespace
- * POST /api/system/namespaces/[id]/users - Create user in namespace
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAuth, requirePermission } from '@/server/auth/api-helpers';
-import { getNamespaceRepository, getUserRepository, getAuthProvider } from '@/server/auth';
+import { requirePermission } from '@/server/auth/api-helpers';
+import { getNamespaceRepository, getUserRepository } from '@/server/auth';
 
 /**
  * GET /api/system/namespaces/[id]/users
@@ -52,98 +51,6 @@ export async function GET(
     return NextResponse.json(
       {
         error: 'Failed to list users',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      },
-      { status: 500 }
-    );
-  }
-}
-
-/**
- * POST /api/system/namespaces/[id]/users
- *
- * Create a new user in a namespace (system-admin only)
- *
- * Body:
- * - email: string
- * - username: string
- * - password: string
- * - role: 'namespace-admin' | 'instructor' | 'student'
- */
-export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    // Require system-admin permission
-    const permissionCheck = await requirePermission(request, 'user.create');
-    if (permissionCheck instanceof NextResponse) {
-      return permissionCheck;
-    }
-
-    const { id: namespaceId } = await params;
-    const body = await request.json();
-    const { email, username, password, role } = body;
-
-    // Validate inputs
-    if (!email || typeof email !== 'string') {
-      return NextResponse.json(
-        { error: 'Email is required' },
-        { status: 400 }
-      );
-    }
-
-    if (!username || typeof username !== 'string') {
-      return NextResponse.json(
-        { error: 'Username is required' },
-        { status: 400 }
-      );
-    }
-
-    if (!password || typeof password !== 'string') {
-      return NextResponse.json(
-        { error: 'Password is required' },
-        { status: 400 }
-      );
-    }
-
-    if (!role || !['namespace-admin', 'instructor', 'student'].includes(role)) {
-      return NextResponse.json(
-        { error: 'Role must be namespace-admin, instructor, or student' },
-        { status: 400 }
-      );
-    }
-
-    // Verify namespace exists
-    const namespaceRepo = await getNamespaceRepository();
-    const namespace = await namespaceRepo.getNamespace(namespaceId);
-    if (!namespace) {
-      return NextResponse.json(
-        { error: 'Namespace not found' },
-        { status: 404 }
-      );
-    }
-
-    // Create user via Supabase Auth
-    const authProvider = await getAuthProvider();
-    const user = await authProvider.signUp(
-      email.trim(),
-      password,
-      username.trim(),
-      role,
-      namespaceId
-    );
-
-    return NextResponse.json({
-      success: true,
-      user,
-    }, { status: 201 });
-
-  } catch (error) {
-    console.error('Error creating user:', error);
-    return NextResponse.json(
-      {
-        error: 'Failed to create user',
         details: error instanceof Error ? error.message : 'Unknown error'
       },
       { status: 500 }

@@ -2,7 +2,6 @@
  * System Admin API - User Management
  *
  * GET /api/system/users - List all users
- * POST /api/system/users - Create new user
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -61,68 +60,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(
       {
         error: 'Failed to list users',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      },
-      { status: 500 }
-    );
-  }
-}
-
-/**
- * POST /api/system/users
- *
- * Create a new user (system-admin only)
- *
- * Body:
- * - email: string (required)
- * - password: string (required)
- * - username: string (required)
- * - role: 'system-admin' | 'namespace-admin' | 'instructor' | 'student' (required)
- * - namespaceId?: string (required for non-admin users)
- */
-export async function POST(request: NextRequest) {
-  try {
-    const authContext = await requireSystemAdmin(request);
-    if (authContext instanceof NextResponse) {
-      return authContext;
-    }
-
-    const body = await request.json();
-    const { email, password, username, role, namespaceId } = body;
-
-    // Validation
-    if (!email || !password || !username || !role) {
-      return NextResponse.json(
-        { error: 'Email, password, username, and role required' },
-        { status: 400 }
-      );
-    }
-
-    if (role !== 'system-admin' && !namespaceId) {
-      return NextResponse.json(
-        { error: 'Non-admin users must have a namespace' },
-        { status: 400 }
-      );
-    }
-
-    const authProvider = await getAuthProvider();
-    const user = await authProvider.signUp(email, password, username, role, namespaceId || null);
-
-    return NextResponse.json({ user }, { status: 201 });
-
-  } catch (error) {
-    console.error('[Admin] Create user error:', error);
-
-    if (error instanceof Error && error.message?.includes('already exists')) {
-      return NextResponse.json(
-        { error: 'User already exists' },
-        { status: 409 }
-      );
-    }
-
-    return NextResponse.json(
-      {
-        error: 'Failed to create user',
         details: error instanceof Error ? error.message : 'Unknown error'
       },
       { status: 500 }

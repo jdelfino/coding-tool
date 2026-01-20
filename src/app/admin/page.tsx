@@ -11,7 +11,6 @@ import { ProtectedRoute } from '@/components/ProtectedRoute';
 import NamespaceHeader from '@/components/NamespaceHeader';
 import { ErrorAlert } from '@/components/ErrorAlert';
 import UserList from './components/UserList';
-import AddInstructorForm from './components/AddInstructorForm';
 import type { User, UserRole } from '@/server/auth/types';
 
 interface SystemStats {
@@ -112,24 +111,6 @@ function AdminPage() {
     loadUsers();
     loadStats();
   }, [isAdmin]);
-
-  const handleAddInstructor = async (username: string) => {
-    const response = await fetch('/api/admin/instructors', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username }),
-      credentials: 'include'
-    });
-
-    if (!response.ok) {
-      const data = await response.json();
-      throw new Error(data.error || 'Failed to create instructor');
-    }
-
-    // Reload users
-    await loadUsers();
-    await loadStats();
-  };
 
   const handleChangeRole = async (userId: string, newRole: UserRole) => {
     if (!isAdmin) return;
@@ -490,11 +471,6 @@ function AdminPage() {
           {/* Instructors Tab */}
           {activeTab === 'instructors' && (
             <div>
-              <div style={{ marginBottom: '1.5rem' }}>
-                <h2 style={{ marginBottom: '1rem' }}>Add New Instructor</h2>
-                <AddInstructorForm onAdd={handleAddInstructor} />
-              </div>
-
               <h2 style={{ marginBottom: '1rem' }}>Instructors</h2>
               <UserList
                 users={instructors}

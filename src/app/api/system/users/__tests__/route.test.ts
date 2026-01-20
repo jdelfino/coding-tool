@@ -3,7 +3,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { GET, POST } from '../route';
+import { GET } from '../route';
 import { PUT, DELETE } from '../[id]/route';
 import * as apiHelpers from '@/server/auth/api-helpers';
 import * as authInstance from '@/server/auth/instance';
@@ -45,7 +45,6 @@ describe('System Admin User Management API', () => {
     // Mock auth provider
     mockAuthProvider = {
       getSupabaseClient: jest.fn().mockReturnValue(mockSupabaseClient),
-      signUp: jest.fn(),
     } as any;
 
     (authInstance.getAuthProvider as jest.Mock).mockResolvedValue(mockAuthProvider);
@@ -167,149 +166,6 @@ describe('System Admin User Management API', () => {
 
       expect(response.status).toBe(500);
       expect(data.error).toBe('Database error');
-    });
-  });
-
-  describe('POST /api/system/users', () => {
-    it('should create a new user with email and password', async () => {
-      const newUser: User = {
-        id: 'new-user-id',
-        username: 'newuser',
-        email: 'newuser@test.local',
-        role: 'instructor' as UserRole,
-        namespaceId: 'ns1',
-        displayName: 'New User',
-        createdAt: new Date(),
-      };
-
-      (apiHelpers.requireSystemAdmin as jest.Mock).mockResolvedValue({
-        user: mockSystemAdmin,
-        rbac: {}
-      });
-
-      (mockAuthProvider.signUp as jest.Mock).mockResolvedValue(newUser);
-
-      const request = new NextRequest('http://localhost/api/system/users', {
-        method: 'POST',
-        body: JSON.stringify({
-          email: 'newuser@test.local',
-          password: 'testpassword123',
-          username: 'newuser',
-          role: 'instructor',
-          namespaceId: 'ns1'
-        })
-      });
-
-      const response = await POST(request);
-      const data = await response.json();
-
-      expect(response.status).toBe(201);
-      expect(data.user).toMatchObject({
-        id: 'new-user-id',
-        username: 'newuser',
-        email: 'newuser@test.local',
-        role: 'instructor'
-      });
-      expect(mockAuthProvider.signUp).toHaveBeenCalledWith(
-        'newuser@test.local',
-        'testpassword123',
-        'newuser',
-        'instructor',
-        'ns1'
-      );
-    });
-
-    it('should allow creating system-admin without namespace', async () => {
-      const newAdmin: User = {
-        id: 'new-admin-id',
-        username: 'newadmin',
-        email: 'newadmin@test.local',
-        role: 'system-admin' as UserRole,
-        namespaceId: null,
-        displayName: 'New Admin',
-        createdAt: new Date(),
-      };
-
-      (apiHelpers.requireSystemAdmin as jest.Mock).mockResolvedValue({
-        user: mockSystemAdmin,
-        rbac: {}
-      });
-
-      (mockAuthProvider.signUp as jest.Mock).mockResolvedValue(newAdmin);
-
-      const request = new NextRequest('http://localhost/api/system/users', {
-        method: 'POST',
-        body: JSON.stringify({
-          email: 'newadmin@test.local',
-          password: 'testpassword123',
-          username: 'newadmin',
-          role: 'system-admin'
-        })
-      });
-
-      const response = await POST(request);
-      const data = await response.json();
-
-      expect(response.status).toBe(201);
-      expect(mockAuthProvider.signUp).toHaveBeenCalledWith(
-        'newadmin@test.local',
-        'testpassword123',
-        'newadmin',
-        'system-admin',
-        null
-      );
-    });
-
-    it('should reject non-admin users without namespace', async () => {
-      (apiHelpers.requireSystemAdmin as jest.Mock).mockResolvedValue({
-        user: mockSystemAdmin,
-        rbac: {}
-      });
-
-      const request = new NextRequest('http://localhost/api/system/users', {
-        method: 'POST',
-        body: JSON.stringify({
-          email: 'newuser@test.local',
-          password: 'testpassword123',
-          username: 'newuser',
-          role: 'instructor'
-          // Missing namespaceId
-        })
-      });
-
-      const response = await POST(request);
-      const data = await response.json();
-
-      expect(response.status).toBe(400);
-      expect(data.error).toBe('Non-admin users must have a namespace');
-    });
-
-    it('should return 409 for duplicate email', async () => {
-      (apiHelpers.requireSystemAdmin as jest.Mock).mockResolvedValue({
-        user: mockSystemAdmin,
-        rbac: {}
-      });
-
-      (mockAuthProvider.signUp as jest.Mock).mockRejectedValue(
-        new Error('User already exists')
-      );
-
-      const request = new NextRequest('http://localhost/api/system/users', {
-        method: 'POST',
-        body: JSON.stringify({
-          email: 'existing@test.local',
-          password: 'testpassword123',
-          username: 'existing',
-          role: 'instructor',
-          namespaceId: 'ns1'
-        })
-      });
-
-      const response = await POST(request);
-      const data = await response.json();
-
-      expect(response.status).toBe(409);
-      expect(data.error).toBe('User already exists');
     });
   });
 

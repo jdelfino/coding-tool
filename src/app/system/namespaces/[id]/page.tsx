@@ -23,18 +23,12 @@ export default function NamespaceUsersPage() {
     loading,
     error,
     getNamespaceUsers,
-    createUser,
     updateUserRole,
     deleteUser,
   } = useNamespaces();
 
   const [namespace, setNamespace] = useState<Namespace | null>(null);
   const [users, setUsers] = useState<User[]>([]);
-  const [showCreateForm, setShowCreateForm] = useState(false);
-  const [newEmail, setNewEmail] = useState('');
-  const [newUsername, setNewUsername] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [newUserRole, setNewUserRole] = useState<'namespace-admin' | 'instructor' | 'student'>('student');
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
   const [editingRole, setEditingRole] = useState<'namespace-admin' | 'instructor' | 'student'>('student');
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
@@ -68,25 +62,6 @@ export default function NamespaceUsersPage() {
       setUsers(fetchedUsers);
     } catch (err) {
       console.error('Failed to fetch data:', err);
-    }
-  };
-
-  const handleCreateUser = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setActionError(null);
-
-    if (!newEmail.trim() || !newUsername.trim() || !newPassword.trim()) return;
-
-    try {
-      await createUser(namespaceId, newEmail.trim(), newUsername.trim(), newPassword, newUserRole);
-      await fetchData();
-      setNewEmail('');
-      setNewUsername('');
-      setNewPassword('');
-      setNewUserRole('student');
-      setShowCreateForm(false);
-    } catch (err) {
-      setActionError(err instanceof Error ? err.message : 'Failed to create user');
     }
   };
 
@@ -150,20 +125,6 @@ export default function NamespaceUsersPage() {
         marginBottom: '2rem'
       }}>
         <h2 style={{ margin: 0 }}>Users ({users.length})</h2>
-        <button
-          onClick={() => setShowCreateForm(!showCreateForm)}
-          style={{
-            padding: '0.5rem 1rem',
-            background: '#0070f3',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            fontWeight: '500'
-          }}
-        >
-          {showCreateForm ? 'Cancel' : 'Create New User'}
-        </button>
       </div>
 
       {/* Error Display */}
@@ -177,144 +138,6 @@ export default function NamespaceUsersPage() {
           marginBottom: '2rem'
         }}>
           <strong>Error:</strong> {error || actionError}
-        </div>
-      )}
-
-      {/* Create User Form */}
-      {showCreateForm && (
-        <div style={{
-          padding: '1.5rem',
-          background: 'white',
-          border: '1px solid #dee2e6',
-          borderRadius: '8px',
-          marginBottom: '2rem'
-        }}>
-          <h3 style={{ marginTop: 0 }}>Create New User</h3>
-          <form onSubmit={handleCreateUser}>
-            <div style={{ marginBottom: '1rem' }}>
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>
-                Email
-              </label>
-              <input
-                type="email"
-                value={newEmail}
-                onChange={(e) => setNewEmail(e.target.value)}
-                placeholder="Enter email"
-                disabled={loading}
-                style={{
-                  width: '100%',
-                  padding: '0.5rem',
-                  border: '1px solid #dee2e6',
-                  borderRadius: '4px',
-                  fontSize: '1rem',
-                  boxSizing: 'border-box'
-                }}
-              />
-            </div>
-
-            <div style={{ marginBottom: '1rem' }}>
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>
-                Username
-              </label>
-              <input
-                type="text"
-                value={newUsername}
-                onChange={(e) => setNewUsername(e.target.value)}
-                placeholder="Enter username"
-                disabled={loading}
-                style={{
-                  width: '100%',
-                  padding: '0.5rem',
-                  border: '1px solid #dee2e6',
-                  borderRadius: '4px',
-                  fontSize: '1rem',
-                  boxSizing: 'border-box'
-                }}
-              />
-            </div>
-
-            <div style={{ marginBottom: '1rem' }}>
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>
-                Password
-              </label>
-              <input
-                type="password"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                placeholder="Enter password"
-                disabled={loading}
-                style={{
-                  width: '100%',
-                  padding: '0.5rem',
-                  border: '1px solid #dee2e6',
-                  borderRadius: '4px',
-                  fontSize: '1rem',
-                  boxSizing: 'border-box'
-                }}
-              />
-            </div>
-
-            <div style={{ marginBottom: '1.5rem' }}>
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>
-                Role
-              </label>
-              <select
-                value={newUserRole}
-                onChange={(e) => setNewUserRole(e.target.value as any)}
-                disabled={loading}
-                style={{
-                  width: '100%',
-                  padding: '0.5rem',
-                  border: '1px solid #dee2e6',
-                  borderRadius: '4px',
-                  fontSize: '1rem'
-                }}
-              >
-                <option value="student">Student</option>
-                <option value="instructor">Instructor</option>
-                <option value="namespace-admin">Namespace Admin</option>
-              </select>
-            </div>
-
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
-              <button
-                type="submit"
-                disabled={loading || !newEmail.trim() || !newUsername.trim() || !newPassword.trim()}
-                style={{
-                  padding: '0.5rem 1rem',
-                  background: loading || !newEmail.trim() || !newUsername.trim() || !newPassword.trim() ? '#ccc' : '#0070f3',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '4px',
-                  cursor: loading || !newEmail.trim() || !newUsername.trim() || !newPassword.trim() ? 'not-allowed' : 'pointer',
-                  fontWeight: '500'
-                }}
-              >
-                {loading ? 'Creating...' : 'Create User'}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setShowCreateForm(false);
-                  setNewEmail('');
-                  setNewUsername('');
-                  setNewPassword('');
-                  setNewUserRole('student');
-                }}
-                disabled={loading}
-                style={{
-                  padding: '0.5rem 1rem',
-                  background: '#6c757d',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '4px',
-                  cursor: loading ? 'not-allowed' : 'pointer'
-                }}
-              >
-                Cancel
-              </button>
-            </div>
-          </form>
         </div>
       )}
 
