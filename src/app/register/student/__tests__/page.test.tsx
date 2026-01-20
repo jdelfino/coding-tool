@@ -353,7 +353,7 @@ describe('StudentRegistrationPage', () => {
       });
 
       await waitFor(() => {
-        expect(mockPush).toHaveBeenCalledWith('/student');
+        expect(mockPush).toHaveBeenCalledWith('/sections');
       });
     });
 

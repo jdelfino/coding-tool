@@ -297,8 +297,8 @@ function StudentRegistrationContent() {
       // Success!
       setPageState({ status: 'success' });
 
-      // Redirect to student dashboard
-      router.push('/student');
+      // Redirect to sections page
+      router.push('/sections');
     } catch (error) {
       console.error('[StudentRegistration] Register error:', error);
       setSubmitError(ERROR_MESSAGES.network_error);

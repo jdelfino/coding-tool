@@ -221,6 +221,19 @@ function StudentPage() {
     }
   };
 
+  // No sessionId in URL - show error message (check before loading to avoid infinite loading)
+  if (!sessionIdFromUrl) {
+    return (
+      <main className="p-8 text-center">
+        <h1 className="text-2xl font-bold mb-4">No Session</h1>
+        <p className="text-gray-600 mb-4">Please navigate to a session from your sections page.</p>
+        <a href="/sections" className="text-blue-600 hover:text-blue-700 underline">
+          Go to My Sections
+        </a>
+      </main>
+    );
+  }
+
   // Show loading state while connecting
   if (!isConnected || loading) {
     return (
@@ -235,19 +248,6 @@ function StudentPage() {
             />
           </div>
         )}
-      </main>
-    );
-  }
-
-  // No sessionId in URL - show error message
-  if (!sessionIdFromUrl) {
-    return (
-      <main className="p-8 text-center">
-        <h1 className="text-2xl font-bold mb-4">No Session</h1>
-        <p className="text-gray-600 mb-4">Please navigate to a session from your sections page.</p>
-        <a href="/sections" className="text-blue-600 hover:text-blue-700 underline">
-          Go to My Sections
-        </a>
       </main>
     );
   }
