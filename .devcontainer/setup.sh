@@ -27,35 +27,27 @@ fi
 
 echo "Using 1Password vault: $OP_VAULT"
 
-# SSH Key - look for tagged item first, then any SSH Key, then named item
+# SSH Key - must be tagged with "devcontainer"
 echo "Setting up SSH..."
 mkdir -p ~/.ssh && chmod 700 ~/.ssh
 
 SSH_ITEM=$(op item list --vault "$OP_VAULT" --tags devcontainer --categories "SSH Key" --format json 2>/dev/null | jq -r '.[0].id // empty')
-[ -z "$SSH_ITEM" ] && SSH_ITEM=$(op item list --vault "$OP_VAULT" --categories "SSH Key" --format json 2>/dev/null | jq -r '.[0].id // empty')
 
-if [ -n "$SSH_ITEM" ]; then
-    PRIVATE_KEY=$(op item get "$SSH_ITEM" --fields "private key" --reveal 2>/dev/null || echo "")
-    if [ -n "$PRIVATE_KEY" ]; then
-        echo "$PRIVATE_KEY" > ~/.ssh/id_ed25519
-        chmod 600 ~/.ssh/id_ed25519
-        ssh-keygen -y -f ~/.ssh/id_ed25519 > ~/.ssh/id_ed25519.pub 2>/dev/null || true
-        echo "SSH key: $(op item get "$SSH_ITEM" --format json | jq -r '.title')"
-    fi
-else
-    PRIVATE_KEY=$(op read "op://${OP_VAULT}/ssh-key/private key" 2>/dev/null || echo "")
-    if [ -n "$PRIVATE_KEY" ]; then
-        echo "$PRIVATE_KEY" > ~/.ssh/id_ed25519
-        chmod 600 ~/.ssh/id_ed25519
-        ssh-keygen -y -f ~/.ssh/id_ed25519 > ~/.ssh/id_ed25519.pub 2>/dev/null || true
-        echo "SSH key: ssh-key"
-    fi
-fi
-
-if [ ! -f ~/.ssh/id_ed25519 ]; then
-    echo "ERROR: No SSH key found in vault"
+if [ -z "$SSH_ITEM" ]; then
+    echo "ERROR: No SSH Key item tagged 'devcontainer' found in vault"
     exit 1
 fi
+
+PRIVATE_KEY=$(op item get "$SSH_ITEM" --fields "private key" --reveal 2>/dev/null || echo "")
+if [ -z "$PRIVATE_KEY" ]; then
+    echo "ERROR: Could not read private key from SSH Key item"
+    exit 1
+fi
+
+echo "$PRIVATE_KEY" > ~/.ssh/id_ed25519
+chmod 600 ~/.ssh/id_ed25519
+ssh-keygen -y -f ~/.ssh/id_ed25519 > ~/.ssh/id_ed25519.pub 2>/dev/null || true
+echo "SSH key: $(op item get "$SSH_ITEM" --format json | jq -r '.title')"
 
 ssh-keyscan github.com >> ~/.ssh/known_hosts 2>/dev/null
 

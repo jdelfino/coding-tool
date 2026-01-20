@@ -25,16 +25,11 @@ devpod up . \
 
 ## Required 1Password Items
 
-| Item | Type | Fields |
-|------|------|--------|
-| SSH key | SSH Key | (auto) |
-| `git-config` | Secure Note | `name`, `email` |
-| `secrets` | Secure Note | `system-admin-email`, `gemini-api-key` |
-
-SSH key lookup order:
-1. SSH Key items tagged `devcontainer`
-2. Any SSH Key item in vault
-3. Item named `ssh-key` with field `private key`
+| Item | Type | Fields | Tag |
+|------|------|--------|-----|
+| SSH key | SSH Key | (auto) | `devcontainer` |
+| `git-config` | Secure Note | `name`, `email` | |
+| `secrets` | Secure Note | `system-admin-email`, `gemini-api-key` | |
 
 Claude Code: Run `claude` and authenticate interactively on first use.
 
