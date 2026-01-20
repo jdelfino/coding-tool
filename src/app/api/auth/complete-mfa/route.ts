@@ -82,9 +82,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 4. Get user profile
+    // 4. Get user profile using Supabase user ID (more reliable than email lookup)
     const authProvider = await getAuthProvider();
-    const user = await authProvider.userRepository.getUserByEmail(pendingEmail);
+    const user = await authProvider.userRepository.getUser(supabaseUser.id);
 
     if (!user) {
       return NextResponse.json(

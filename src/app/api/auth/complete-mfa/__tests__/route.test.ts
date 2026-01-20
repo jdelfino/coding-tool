@@ -59,7 +59,7 @@ describe('/api/auth/complete-mfa', () => {
 
     // Setup user repository mock
     mockUserRepository = {
-      getUserByEmail: jest.fn().mockResolvedValue(mockUser),
+      getUser: jest.fn().mockResolvedValue(mockUser),
     };
 
     // Setup auth provider mock
@@ -170,7 +170,7 @@ describe('/api/auth/complete-mfa', () => {
     });
 
     it('returns 404 when user not found in database', async () => {
-      mockUserRepository.getUserByEmail.mockResolvedValue(null);
+      mockUserRepository.getUser.mockResolvedValue(null);
 
       const request = createRequest('valid-cookie');
       const response = await POST(request);
@@ -219,15 +219,15 @@ describe('/api/auth/complete-mfa', () => {
       expect(mockSupabase.auth.getUser).not.toHaveBeenCalled();
     });
 
-    it('calls getUserByEmail with the pending email', async () => {
+    it('calls getUser with the session user ID', async () => {
       const request = createRequest('valid-cookie');
       await POST(request);
 
-      expect(mockUserRepository.getUserByEmail).toHaveBeenCalledWith('test@example.com');
+      expect(mockUserRepository.getUser).toHaveBeenCalledWith('user-123');
     });
 
     it('handles repository errors gracefully', async () => {
-      mockUserRepository.getUserByEmail.mockRejectedValue(new Error('Database error'));
+      mockUserRepository.getUser.mockRejectedValue(new Error('Database error'));
 
       const request = createRequest('valid-cookie');
       const response = await POST(request);
@@ -254,7 +254,7 @@ describe('/api/auth/complete-mfa', () => {
         role: 'student' as const,
         username: 'studentuser',
       };
-      mockUserRepository.getUserByEmail.mockResolvedValue(studentUser);
+      mockUserRepository.getUser.mockResolvedValue(studentUser);
 
       const request = createRequest('valid-cookie');
       const response = await POST(request);

@@ -152,12 +152,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
   };
 
   const sendMfaCode = async () => {
-    // Use the browser Supabase client to send OTP
-    const { createClient } = await import('@supabase/supabase-js');
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
-    );
+    // Use the browser Supabase client (SSR version) to send OTP
+    // This properly handles cookies for server-side verification
+    const { getSupabaseBrowserClient } = await import('@/lib/supabase/client');
+    const supabase = getSupabaseBrowserClient();
     const { error } = await supabase.auth.signInWithOtp({
       email: pendingEmail!,
       options: { shouldCreateUser: false },
@@ -166,11 +164,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
   };
 
   const verifyMfaCode = async (code: string) => {
-    const { createClient } = await import('@supabase/supabase-js');
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
-    );
+    // Use the browser Supabase client (SSR version) for proper cookie handling
+    const { getSupabaseBrowserClient } = await import('@/lib/supabase/client');
+    const supabase = getSupabaseBrowserClient();
     const { error } = await supabase.auth.verifyOtp({
       email: pendingEmail!,
       token: code,
