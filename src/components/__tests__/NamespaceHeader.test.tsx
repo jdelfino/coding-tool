@@ -38,6 +38,11 @@ describe('NamespaceHeader', () => {
         signIn: jest.fn(),
         signOut: jest.fn(),
         refreshUser: jest.fn(),
+        mfaPending: false,
+        pendingEmail: null,
+        sendMfaCode: jest.fn(),
+        verifyMfaCode: jest.fn(),
+        cancelMfa: jest.fn(),
       });
 
       // Mock fetch for namespace details
@@ -78,6 +83,11 @@ describe('NamespaceHeader', () => {
         signIn: jest.fn(),
         signOut: jest.fn(),
         refreshUser: jest.fn(),
+        mfaPending: false,
+        pendingEmail: null,
+        sendMfaCode: jest.fn(),
+        verifyMfaCode: jest.fn(),
+        cancelMfa: jest.fn(),
       });
 
       (global.fetch as jest.Mock).mockResolvedValueOnce({
@@ -117,6 +127,11 @@ describe('NamespaceHeader', () => {
         signIn: jest.fn(),
         signOut: jest.fn(),
         refreshUser: jest.fn(),
+        mfaPending: false,
+        pendingEmail: null,
+        sendMfaCode: jest.fn(),
+        verifyMfaCode: jest.fn(),
+        cancelMfa: jest.fn(),
       });
 
       (global.fetch as jest.Mock).mockResolvedValueOnce({
@@ -156,6 +171,11 @@ describe('NamespaceHeader', () => {
         signIn: jest.fn(),
         signOut: jest.fn(),
         refreshUser: jest.fn(),
+        mfaPending: false,
+        pendingEmail: null,
+        sendMfaCode: jest.fn(),
+        verifyMfaCode: jest.fn(),
+        cancelMfa: jest.fn(),
       });
 
       // Mock fetch to fail
@@ -188,6 +208,11 @@ describe('NamespaceHeader', () => {
         signIn: jest.fn(),
         signOut: jest.fn(),
         refreshUser: jest.fn(),
+        mfaPending: false,
+        pendingEmail: null,
+        sendMfaCode: jest.fn(),
+        verifyMfaCode: jest.fn(),
+        cancelMfa: jest.fn(),
       });
 
       (global.fetch as jest.Mock).mockResolvedValueOnce({
@@ -230,6 +255,11 @@ describe('NamespaceHeader', () => {
         signIn: jest.fn(),
         signOut: jest.fn(),
         refreshUser: jest.fn(),
+        mfaPending: false,
+        pendingEmail: null,
+        sendMfaCode: jest.fn(),
+        verifyMfaCode: jest.fn(),
+        cancelMfa: jest.fn(),
       });
 
       (global.fetch as jest.Mock).mockResolvedValueOnce({
@@ -293,6 +323,11 @@ describe('NamespaceHeader', () => {
         signIn: jest.fn(),
         signOut: jest.fn(),
         refreshUser: jest.fn(),
+        mfaPending: false,
+        pendingEmail: null,
+        sendMfaCode: jest.fn(),
+        verifyMfaCode: jest.fn(),
+        cancelMfa: jest.fn(),
       });
 
       (global.fetch as jest.Mock).mockResolvedValueOnce({
@@ -337,6 +372,11 @@ describe('NamespaceHeader', () => {
         signIn: jest.fn(),
         signOut: jest.fn(),
         refreshUser: jest.fn(),
+        mfaPending: false,
+        pendingEmail: null,
+        sendMfaCode: jest.fn(),
+        verifyMfaCode: jest.fn(),
+        cancelMfa: jest.fn(),
       });
 
       const { container } = render(<NamespaceHeader />);
@@ -359,6 +399,11 @@ describe('NamespaceHeader', () => {
         signIn: jest.fn(),
         signOut: jest.fn(),
         refreshUser: jest.fn(),
+        mfaPending: false,
+        pendingEmail: null,
+        sendMfaCode: jest.fn(),
+        verifyMfaCode: jest.fn(),
+        cancelMfa: jest.fn(),
       });
 
       const { container } = render(<NamespaceHeader />);
@@ -381,6 +426,11 @@ describe('NamespaceHeader', () => {
         signIn: jest.fn(),
         signOut: jest.fn(),
         refreshUser: jest.fn(),
+        mfaPending: false,
+        pendingEmail: null,
+        sendMfaCode: jest.fn(),
+        verifyMfaCode: jest.fn(),
+        cancelMfa: jest.fn(),
       });
 
       // Mock fetch to throw error

@@ -23,9 +23,14 @@ interface AuthContextType {
   sessionId: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  mfaPending: boolean;
+  pendingEmail: string | null;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   refreshUser: () => Promise<void>;
+  sendMfaCode: () => Promise<void>;
+  verifyMfaCode: (code: string) => Promise<void>;
+  cancelMfa: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -38,6 +43,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [mfaPending, setMfaPending] = useState(false);
+  const [pendingEmail, setPendingEmail] = useState<string | null>(null);
 
   // Load session from localStorage on mount
   useEffect(() => {
@@ -90,6 +97,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
       }
 
       const data = await response.json();
+
+      // Handle MFA required response
+      if (data.mfaRequired) {
+        setMfaPending(true);
+        setPendingEmail(data.email);
+        return; // Don't set user yet
+      }
+
       setUser(data.user);
       setSessionId(data.sessionId);
 
@@ -136,14 +151,66 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
+  const sendMfaCode = async () => {
+    // Use the browser Supabase client to send OTP
+    const { createClient } = await import('@supabase/supabase-js');
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
+    );
+    const { error } = await supabase.auth.signInWithOtp({
+      email: pendingEmail!,
+      options: { shouldCreateUser: false },
+    });
+    if (error) throw new Error(error.message);
+  };
+
+  const verifyMfaCode = async (code: string) => {
+    const { createClient } = await import('@supabase/supabase-js');
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
+    );
+    const { error } = await supabase.auth.verifyOtp({
+      email: pendingEmail!,
+      token: code,
+      type: 'email',
+    });
+    if (error) throw new Error(error.message);
+
+    // Complete MFA on server
+    const response = await fetch('/api/auth/complete-mfa', {
+      method: 'POST',
+      credentials: 'include',
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error);
+
+    setUser(data.user);
+    setSessionId(data.sessionId);
+    localStorage.setItem('sessionId', data.sessionId);
+    setMfaPending(false);
+    setPendingEmail(null);
+  };
+
+  const cancelMfa = () => {
+    setMfaPending(false);
+    setPendingEmail(null);
+  };
+
   const value: AuthContextType = {
     user,
     sessionId,
     isAuthenticated: !!user,
     isLoading,
+    mfaPending,
+    pendingEmail,
     signIn,
     signOut,
     refreshUser,
+    sendMfaCode,
+    verifyMfaCode,
+    cancelMfa,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
