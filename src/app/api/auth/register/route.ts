@@ -50,10 +50,11 @@ export async function POST(request: NextRequest) {
       null
     );
 
-    // Auto sign-in after registration
-    await authProvider.authenticateWithPassword(email, password);
-
-    return NextResponse.json({ user }, { status: 201 });
+    // Do not auto-sign-in - user must sign in separately (triggers MFA for system-admin)
+    return NextResponse.json(
+      { success: true, message: 'Account created. Please sign in.' },
+      { status: 201 }
+    );
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : '';
     console.error('[API] Registration error:', error);
