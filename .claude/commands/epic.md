@@ -7,4 +7,4 @@ Work on epic **$ARGUMENTS** using the epic-coordinator workflow.
 
 ---
 
-${{.claude/skills/epic-coordinator/SKILL.md}}
+@.claude/skills/epic-coordinator/SKILL.md

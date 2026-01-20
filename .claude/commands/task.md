@@ -7,4 +7,4 @@ Work on task **$ARGUMENTS** using the task-completer workflow.
 
 ---
 
-${{.claude/skills/task-completer/SKILL.md}}
+@.claude/skills/task-completer/SKILL.md
