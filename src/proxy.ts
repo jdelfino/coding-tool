@@ -7,6 +7,21 @@
  * 3. Ensure session continuity across page loads
  *
  * This is required for Supabase SSR to work correctly with Next.js.
+ *
+ * Cookie Flow:
+ * 1. Browser sends request with sb-access-token cookie
+ * 2. Middleware calls supabase.auth.getSession()
+ * 3. If token expired, Supabase refreshes using refresh token
+ * 4. Middleware updates response cookies with new tokens
+ * 5. Browser receives response with updated cookies
+ * 6. Subsequent requests use new cookies
+ *
+ * This ensures users stay logged in as long as refresh token is valid (~7 days).
+ *
+ * Performance Expectations:
+ * - Valid session: <10ms (just cookie read + validation)
+ * - Expired session: <200ms (includes Supabase API call for refresh)
+ * - Middleware runs on EVERY matched request
  */
 
 import { createServerClient, type CookieOptions } from '@supabase/ssr'

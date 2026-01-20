@@ -244,36 +244,3 @@ describe('Proxy (Supabase Session Refresh)', () => {
     })
   })
 })
-
-describe('Integration Behavior Documentation', () => {
-  it('should document expected cookie flow', () => {
-    /*
-     * Expected Flow:
-     * 1. Browser sends request with sb-access-token cookie
-     * 2. Middleware calls supabase.auth.getSession()
-     * 3. If token expired, Supabase refreshes using refresh token
-     * 4. Middleware updates response cookies with new tokens
-     * 5. Browser receives response with updated cookies
-     * 6. Subsequent requests use new cookies
-     *
-     * This ensures users stay logged in as long as refresh token is valid (~7 days)
-     */
-    expect(true).toBe(true)
-  })
-
-  it('should document performance characteristics', () => {
-    /*
-     * Performance Expectations:
-     * - Valid session: <10ms (just cookie read + validation)
-     * - Expired session: <200ms (includes Supabase API call for refresh)
-     * - Middleware runs on EVERY matched request
-     * - Consider caching if performance becomes issue
-     *
-     * Monitor:
-     * - P95 latency for middleware execution
-     * - Rate of session refreshes (should be ~1 per hour per user)
-     * - Supabase API error rates
-     */
-    expect(true).toBe(true)
-  })
-})
