@@ -130,11 +130,11 @@ export default function SignInPage() {
                 type="text"
                 inputMode="numeric"
                 pattern="[0-9]*"
-                maxLength={6}
+                maxLength={8}
                 className="appearance-none rounded-lg relative block w-full px-4 py-3 border border-gray-300 placeholder-gray-400 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-center text-2xl tracking-widest font-mono sm:text-xl disabled:bg-gray-50"
-                placeholder="000000"
+                placeholder="00000000"
                 value={mfaCode}
-                onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, '').slice(0, 8))}
                 disabled={isLoading}
                 autoFocus
               />
@@ -144,7 +144,7 @@ export default function SignInPage() {
 
             <button
               type="submit"
-              disabled={isLoading || mfaCode.length !== 6}
+              disabled={isLoading || mfaCode.length < 6}
               className="w-full py-3 px-4 rounded-lg text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 disabled:opacity-50 font-semibold"
             >
               {isLoading ? 'Verifying...' : 'Verify Code'}
