@@ -31,4 +31,4 @@ else
 fi
 
 echo "Ops container ready"
-echo "Run: npx tsx ops/db-reset.ts --env production"
+echo "Available: npx tsx ops/db-reset.ts --help"
