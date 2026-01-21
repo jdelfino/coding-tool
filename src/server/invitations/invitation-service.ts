@@ -272,48 +272,38 @@ export class InvitationService {
     );
 
     // If user already exists (e.g., scanner clicked link, or user clicked but didn't complete profile),
-    // delete the orphaned auth user and retry the invite
+    // delete the orphaned auth user and create a fresh invitation
     if (error?.message?.includes('already been registered')) {
-      // Find and delete the orphaned user
-      if (invitation.supabaseUserId) {
-        const { error: deleteError } = await this.supabaseAdmin.auth.admin.deleteUser(
-          invitation.supabaseUserId
-        );
-
-        if (deleteError) {
-          throw new Error(`Failed to clean up orphaned user: ${deleteError.message}`);
-        }
-
-        // Retry the invite
-        const { data: retryData, error: retryError } = await this.supabaseAdmin.auth.admin.inviteUserByEmail(
-          invitation.email,
-          {
-            redirectTo: `${this.appUrl}/invite/accept`,
-            data: {
-              invitationId: invitation.id,
-              targetRole: invitation.targetRole,
-              namespaceId: invitation.namespaceId,
-            },
-          }
-        );
-
-        if (retryError) {
-          throw new Error(`Failed to resend invitation email: ${retryError.message}`);
-        }
-
-        // Update Supabase user ID
-        if (retryData?.user?.id) {
-          await this.invitationRepository.updateInvitation(invitation.id, {
-            supabaseUserId: retryData.user.id,
-          });
-          invitation.supabaseUserId = retryData.user.id;
-        }
-
-        return invitation;
+      if (!invitation.supabaseUserId) {
+        // No supabaseUserId stored - can't clean up automatically
+        throw new Error('User already exists but cannot be cleaned up automatically. Please contact support.');
       }
 
-      // No supabaseUserId stored - can't clean up automatically
-      throw new Error('User already exists but cannot be cleaned up automatically. Please contact support.');
+      // Store invitation data before cleanup (CASCADE will delete the invitation)
+      const { email, targetRole, namespaceId, createdBy } = invitation;
+
+      // Delete the orphaned user (CASCADE deletes the invitation too)
+      const { error: deleteError } = await this.supabaseAdmin.auth.admin.deleteUser(
+        invitation.supabaseUserId
+      );
+
+      if (deleteError) {
+        throw new Error(`Failed to clean up orphaned user: ${deleteError.message}`);
+      }
+
+      // Create a fresh invitation (reusing createInvitation for consistency)
+      if (!createdBy) {
+        throw new Error('Cannot resend invitation: original creator no longer exists');
+      }
+
+      const newInvitation = await this.createInvitation({
+        email,
+        targetRole,
+        namespaceId,
+        createdBy,
+      });
+
+      return newInvitation;
     }
 
     if (error) {
