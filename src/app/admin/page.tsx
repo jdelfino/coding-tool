@@ -12,7 +12,7 @@ import NamespaceHeader from '@/components/NamespaceHeader';
 import { ErrorAlert } from '@/components/ErrorAlert';
 import UserList from './components/UserList';
 import InviteInstructorForm from './components/InviteInstructorForm';
-import InstructorInvitationList from './components/InstructorInvitationList';
+import InvitationList from '@/components/InvitationList';
 import type { User, UserRole } from '@/server/auth/types';
 
 interface Invitation {
@@ -561,11 +561,12 @@ function AdminPage() {
                   />
 
                   <h3 style={{ marginTop: '2rem', marginBottom: '1rem' }}>Pending Invitations</h3>
-                  <InstructorInvitationList
+                  <InvitationList
                     invitations={invitations}
                     loading={invitationsLoading}
                     onRevoke={handleRevokeInvitation}
                     onResend={handleResendInvitation}
+                    emptyMessage="No invitations found. Use the form above to invite instructors."
                   />
                 </div>
               )}

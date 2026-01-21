@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useNamespaces } from '@/hooks/useNamespaces';
 import NamespaceList from './components/NamespaceList';
 import CreateNamespaceForm from './components/CreateNamespaceForm';
-import InvitationList from './components/InvitationList';
+import InvitationList from '@/components/InvitationList';
 import CreateInvitationForm from './components/CreateInvitationForm';
 
 // Invitation type
@@ -644,10 +644,12 @@ function SystemAdminContent() {
           {/* Invitation List */}
           <InvitationList
             invitations={invitations}
-            namespaces={namespaceOptions}
             loading={invitationsLoading}
             onRevoke={revokeInvitation}
             onResend={resendInvitation}
+            showNamespace
+            showRole
+            namespaces={namespaceOptions}
           />
         </>
       )}
