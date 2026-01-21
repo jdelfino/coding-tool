@@ -96,9 +96,7 @@ export default function AcceptInvitePage() {
   const reload = useLocationReload();
   const [pageState, setPageState] = useState<PageState>({ status: 'verifying' });
   const [invitation, setInvitation] = useState<InvitationInfo | null>(null);
-  const [username, setUsername] = useState('');
   const [displayName, setDisplayName] = useState('');
-  const [usernameError, setUsernameError] = useState('');
   const [submitError, setSubmitError] = useState('');
 
   // Verify token and load invitation on mount
@@ -225,36 +223,10 @@ export default function AcceptInvitePage() {
     verifyAndLoadInvitation();
   }, [locationHash]);
 
-  // Validate username
-  const validateUsername = (value: string): string => {
-    const trimmed = value.trim();
-    if (!trimmed) {
-      return 'Username is required';
-    }
-    if (trimmed.length < 3) {
-      return 'Username must be at least 3 characters';
-    }
-    if (trimmed.length > 30) {
-      return 'Username must be at most 30 characters';
-    }
-    if (!/^[a-zA-Z0-9_]+$/.test(trimmed)) {
-      return 'Username can only contain letters, numbers, and underscores';
-    }
-    return '';
-  };
-
   // Handle form submission
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
 
-    // Validate username
-    const validationError = validateUsername(username);
-    if (validationError) {
-      setUsernameError(validationError);
-      return;
-    }
-
-    setUsernameError('');
     setSubmitError('');
     if (!invitation) return;
     setPageState({ status: 'submitting', invitation });
@@ -265,7 +237,6 @@ export default function AcceptInvitePage() {
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({
-          username: username.trim(),
           displayName: displayName.trim() || undefined,
         }),
       });
@@ -274,9 +245,7 @@ export default function AcceptInvitePage() {
         const data = await response.json();
 
         // Map error codes
-        if (data.code === 'DUPLICATE_USERNAME') {
-          setSubmitError('This username is already taken. Please choose another.');
-        } else if (data.code === 'INVITATION_CONSUMED') {
+        if (data.code === 'INVITATION_CONSUMED') {
           setPageState({ status: 'error', error: 'invitation_consumed' });
           return;
         } else if (data.code === 'INVITATION_EXPIRED') {
@@ -450,32 +419,6 @@ export default function AcceptInvitePage() {
 
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           <div className="space-y-4">
-            <div>
-              <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-2">
-                Username <span className="text-red-500">*</span>
-              </label>
-              <input
-                id="username"
-                name="username"
-                type="text"
-                autoComplete="username"
-                className={`appearance-none rounded-lg relative block w-full px-4 py-3 border ${
-                  usernameError ? 'border-red-300' : 'border-gray-300'
-                } placeholder-gray-400 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 sm:text-sm disabled:bg-gray-50 disabled:text-gray-500`}
-                placeholder="Choose a username"
-                value={username}
-                onChange={(e) => {
-                  setUsername(e.target.value);
-                  if (usernameError) setUsernameError('');
-                }}
-                disabled={pageState.status === 'submitting'}
-              />
-              {usernameError && (
-                <p className="mt-1 text-sm text-red-600">{usernameError}</p>
-              )}
-              <p className="mt-1 text-xs text-gray-500">3-30 characters, letters, numbers, and underscores only</p>
-            </div>
-
             <div>
               <label htmlFor="displayName" className="block text-sm font-medium text-gray-700 mb-2">
                 Display Name <span className="text-gray-400 font-normal">(optional)</span>
