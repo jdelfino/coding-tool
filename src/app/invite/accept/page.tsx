@@ -127,9 +127,18 @@ export default function AcceptInvitePage() {
         // Case 1: Already verified (access_token in URL)
         // Supabase verified server-side and redirected with tokens
         if (accessToken) {
-          // The Supabase client auto-detects tokens in URL hash and establishes session
-          // Just verify we have a valid session
-          const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+          // Set the session from URL tokens
+          const refreshToken = params.get('refresh_token');
+          if (!refreshToken) {
+            console.error('[AcceptInvite] No refresh token in URL');
+            setPageState({ status: 'error', error: 'otp_invalid' });
+            return;
+          }
+
+          const { data: { session }, error: sessionError } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          });
 
           if (sessionError || !session) {
             console.error('[AcceptInvite] Session error:', sessionError);
