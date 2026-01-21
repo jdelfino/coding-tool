@@ -7,6 +7,10 @@ import { useNamespaces } from '@/hooks/useNamespaces';
 import { User } from '@/server/auth/types';
 import { Namespace } from '@/server/auth/types';
 import { BackButton } from '@/components/ui/BackButton';
+import { Card } from '@/components/ui/Card';
+import { Button } from '@/components/ui/Button';
+import { Badge } from '@/components/ui/Badge';
+import { Alert } from '@/components/ui/Alert';
 
 /**
  * Namespace User Management Page
@@ -90,8 +94,8 @@ export default function NamespaceUsersPage() {
   // Show loading state
   if (authLoading || !currentUser) {
     return (
-      <main style={{ padding: '2rem', textAlign: 'center' }}>
-        <h1>Loading...</h1>
+      <main className="p-8 text-center">
+        <h1 className="text-2xl font-semibold">Loading...</h1>
       </main>
     );
   }
@@ -101,230 +105,158 @@ export default function NamespaceUsersPage() {
     return null; // Will redirect
   }
 
+  // Get badge variant based on role
+  const getRoleBadgeVariant = (role: string): 'warning' | 'info' | 'default' => {
+    switch (role) {
+      case 'namespace-admin':
+        return 'warning';
+      case 'instructor':
+        return 'info';
+      default:
+        return 'default';
+    }
+  };
+
   return (
-    <main style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
+    <main className="p-8 max-w-6xl mx-auto">
       {/* Header */}
-      <div style={{ marginBottom: '2rem' }}>
-        <div style={{ marginBottom: '1rem' }}>
+      <div className="mb-8">
+        <div className="mb-4">
           <BackButton href="/system">Back to System Admin</BackButton>
         </div>
 
-        <h1 style={{ marginBottom: '0.5rem' }}>
+        <h1 className="text-2xl font-bold mb-2">
           {namespace?.displayName || namespaceId}
         </h1>
-        <p style={{ color: '#666', margin: 0, fontFamily: 'monospace' }}>
+        <p className="text-gray-500 font-mono">
           {namespaceId}
         </p>
       </div>
 
       {/* Actions */}
-      <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: '2rem'
-      }}>
-        <h2 style={{ margin: 0 }}>Users ({users.length})</h2>
+      <div className="flex justify-between items-center mb-8">
+        <h2 className="text-xl font-semibold">Users ({users.length})</h2>
       </div>
 
       {/* Error Display */}
       {(error || actionError) && (
-        <div style={{
-          padding: '1rem',
-          background: '#fee',
-          border: '1px solid #fcc',
-          borderRadius: '4px',
-          color: '#c33',
-          marginBottom: '2rem'
-        }}>
+        <Alert variant="error" className="mb-8">
           <strong>Error:</strong> {error || actionError}
-        </div>
+        </Alert>
       )}
 
       {/* User List */}
       {loading && users.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '2rem', color: '#666' }}>
+        <div className="text-center p-8 text-gray-500">
           Loading users...
         </div>
       ) : users.length === 0 ? (
-        <div style={{
-          textAlign: 'center',
-          padding: '3rem',
-          background: '#f8f9fa',
-          borderRadius: '8px',
-          border: '1px solid #dee2e6'
-        }}>
-          <p style={{ color: '#666', margin: 0 }}>
+        <Card variant="outlined" className="text-center p-12">
+          <p className="text-gray-500">
             No users in this namespace. Create a user to get started.
           </p>
-        </div>
+        </Card>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <div className="flex flex-col gap-4">
           {users.map(user => (
-            <div
-              key={user.id}
-              style={{
-                padding: '1.5rem',
-                background: 'white',
-                border: '1px solid #dee2e6',
-                borderRadius: '8px'
-              }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <div style={{ flex: 1 }}>
-                  <h3 style={{ margin: 0, marginBottom: '0.5rem' }}>{user.displayName || user.email}</h3>
+            <Card key={user.id} variant="outlined" className="p-6">
+              <div className="flex justify-between items-start">
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold mb-2">{user.displayName || user.email}</h3>
 
                   {editingUserId === user.id ? (
-                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '0.5rem' }}>
+                    <div className="flex gap-2 items-center mb-2">
                       <select
                         value={editingRole}
-                        onChange={(e) => setEditingRole(e.target.value as any)}
+                        onChange={(e) => setEditingRole(e.target.value as 'namespace-admin' | 'instructor' | 'student')}
                         disabled={loading}
-                        style={{
-                          padding: '0.25rem 0.5rem',
-                          border: '1px solid #dee2e6',
-                          borderRadius: '4px'
-                        }}
+                        className="px-3 py-1.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                       >
                         <option value="student">Student</option>
                         <option value="instructor">Instructor</option>
                         <option value="namespace-admin">Namespace Admin</option>
                       </select>
-                      <button
+                      <Button
+                        variant="primary"
+                        size="sm"
                         onClick={() => handleUpdateRole(user.id)}
                         disabled={loading}
-                        style={{
-                          padding: '0.25rem 0.75rem',
-                          background: '#28a745',
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: '4px',
-                          cursor: loading ? 'not-allowed' : 'pointer',
-                          fontSize: '0.875rem'
-                        }}
+                        className="bg-green-600 hover:bg-green-700 from-green-600 to-green-600 hover:from-green-700 hover:to-green-700"
                       >
                         Save
-                      </button>
-                      <button
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        size="sm"
                         onClick={() => setEditingUserId(null)}
                         disabled={loading}
-                        style={{
-                          padding: '0.25rem 0.75rem',
-                          background: '#6c757d',
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: '4px',
-                          cursor: loading ? 'not-allowed' : 'pointer',
-                          fontSize: '0.875rem'
-                        }}
                       >
                         Cancel
-                      </button>
+                      </Button>
                     </div>
                   ) : (
-                    <div style={{ marginBottom: '0.5rem' }}>
-                      <span style={{
-                        padding: '0.25rem 0.75rem',
-                        background: user.role === 'namespace-admin' ? '#ffc107' :
-                                   user.role === 'instructor' ? '#0070f3' : '#6c757d',
-                        color: user.role === 'namespace-admin' ? '#000' : 'white',
-                        borderRadius: '4px',
-                        fontSize: '0.875rem',
-                        fontWeight: '500'
-                      }}>
+                    <div className="mb-2">
+                      <Badge variant={getRoleBadgeVariant(user.role)}>
                         {user.role}
-                      </span>
+                      </Badge>
                     </div>
                   )}
 
-                  <div style={{ fontSize: '0.875rem', color: '#666' }}>
+                  <div className="text-sm text-gray-500">
                     Created: {new Date(user.createdAt).toLocaleString()}
                   </div>
                 </div>
 
                 {/* User Actions */}
                 {deletingUserId === user.id ? (
-                  <div style={{
-                    padding: '1rem',
-                    background: '#fff3cd',
-                    border: '1px solid #ffc107',
-                    borderRadius: '4px'
-                  }}>
-                    <p style={{ margin: '0 0 0.5rem 0', fontSize: '0.875rem' }}>
+                  <Alert variant="warning" className="p-4 ml-4">
+                    <p className="text-sm mb-2">
                       Delete this user?
                     </p>
-                    <div style={{ display: 'flex', gap: '0.5rem' }}>
-                      <button
+                    <div className="flex gap-2">
+                      <Button
+                        variant="danger"
+                        size="sm"
                         onClick={() => handleDeleteUser(user.id)}
                         disabled={loading}
-                        style={{
-                          padding: '0.25rem 0.75rem',
-                          background: '#dc3545',
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: '4px',
-                          cursor: loading ? 'not-allowed' : 'pointer',
-                          fontSize: '0.875rem'
-                        }}
                       >
                         Yes
-                      </button>
-                      <button
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        size="sm"
                         onClick={() => setDeletingUserId(null)}
                         disabled={loading}
-                        style={{
-                          padding: '0.25rem 0.75rem',
-                          background: '#6c757d',
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: '4px',
-                          cursor: loading ? 'not-allowed' : 'pointer',
-                          fontSize: '0.875rem'
-                        }}
                       >
                         No
-                      </button>
+                      </Button>
                     </div>
-                  </div>
+                  </Alert>
                 ) : (
-                  <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    <button
+                  <div className="flex gap-2">
+                    <Button
+                      variant="secondary"
+                      size="sm"
                       onClick={() => {
                         setEditingUserId(user.id);
-                        setEditingRole(user.role as any);
+                        setEditingRole(user.role as 'namespace-admin' | 'instructor' | 'student');
                       }}
                       disabled={loading}
-                      style={{
-                        padding: '0.5rem 1rem',
-                        background: '#6c757d',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '4px',
-                        cursor: loading ? 'not-allowed' : 'pointer',
-                        fontSize: '0.875rem'
-                      }}
                     >
                       Change Role
-                    </button>
-                    <button
+                    </Button>
+                    <Button
+                      variant="danger"
+                      size="sm"
                       onClick={() => setDeletingUserId(user.id)}
                       disabled={loading}
-                      style={{
-                        padding: '0.5rem 1rem',
-                        background: '#dc3545',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '4px',
-                        cursor: loading ? 'not-allowed' : 'pointer',
-                        fontSize: '0.875rem'
-                      }}
                     >
                       Delete
-                    </button>
+                    </Button>
                   </div>
                 )}
               </div>
-            </div>
+            </Card>
           ))}
         </div>
       )}

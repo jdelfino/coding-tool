@@ -70,8 +70,8 @@ describe('SystemAdminPage', () => {
     it('renders namespaces tab by default', () => {
       render(<SystemAdminPage />);
 
-      expect(screen.getByRole('button', { name: 'Namespaces' })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: 'Invitations' })).toBeInTheDocument();
+      expect(screen.getByRole('tab', { name: 'Namespaces' })).toBeInTheDocument();
+      expect(screen.getByRole('tab', { name: 'Invitations' })).toBeInTheDocument();
       expect(screen.getByRole('heading', { name: 'Namespaces' })).toBeInTheDocument();
     });
 
@@ -96,7 +96,7 @@ describe('SystemAdminPage', () => {
 
       render(<SystemAdminPage />);
 
-      await user.click(screen.getByRole('button', { name: 'Invitations' }));
+      await user.click(screen.getByRole('tab', { name: 'Invitations' }));
 
       expect(screen.getByRole('heading', { name: 'Invitations' })).toBeInTheDocument();
       expect(mockPush).toHaveBeenCalledWith('/system?tab=invitations', { scroll: false });
@@ -112,7 +112,7 @@ describe('SystemAdminPage', () => {
 
       render(<SystemAdminPage />);
 
-      await user.click(screen.getByRole('button', { name: 'Namespaces' }));
+      await user.click(screen.getByRole('tab', { name: 'Namespaces' }));
 
       expect(screen.getByRole('heading', { name: 'Namespaces' })).toBeInTheDocument();
       expect(mockPush).toHaveBeenCalledWith('/system?tab=namespaces', { scroll: false });

@@ -3,6 +3,11 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Namespace } from '@/server/auth/types';
+import { Card } from '@/components/ui/Card';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
+import { Badge } from '@/components/ui/Badge';
+import { Alert } from '@/components/ui/Alert';
 
 interface NamespaceWithStats extends Namespace {
   userCount: number;
@@ -83,101 +88,64 @@ export default function NamespaceList({ namespaces, onUpdate, onDelete, loading 
 
   if (namespaces.length === 0) {
     return (
-      <div style={{
-        textAlign: 'center',
-        padding: '3rem',
-        background: '#f8f9fa',
-        borderRadius: '8px',
-        border: '1px solid #dee2e6'
-      }}>
-        <p style={{ color: '#666', margin: 0 }}>
+      <Card variant="outlined" className="text-center p-12">
+        <p className="text-gray-500">
           No namespaces found. Create your first namespace to get started.
         </p>
-      </div>
+      </Card>
     );
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+    <div className="flex flex-col gap-4">
       {namespaces.map(namespace => (
-        <div
+        <Card
           key={namespace.id}
-          style={{
-            padding: '1.5rem',
-            background: namespace.active ? 'white' : '#f8f9fa',
-            border: '1px solid #dee2e6',
-            borderRadius: '8px',
-            opacity: namespace.active ? 1 : 0.7
-          }}
+          variant="outlined"
+          className={`p-6 ${!namespace.active ? 'bg-gray-50 opacity-70' : ''}`}
         >
           {/* Namespace Header */}
-          <div style={{ marginBottom: '1rem' }}>
+          <div className="mb-4">
             {editingId === namespace.id ? (
-              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                <input
+              <div className="flex gap-2 items-center">
+                <Input
                   type="text"
                   value={editDisplayName}
                   onChange={(e) => setEditDisplayName(e.target.value)}
-                  style={{
-                    flex: 1,
-                    padding: '0.5rem',
-                    border: '1px solid #dee2e6',
-                    borderRadius: '4px',
-                    fontSize: '1.1rem'
-                  }}
                   disabled={actionLoading}
+                  className="flex-1"
                 />
-                <button
+                <Button
+                  variant="primary"
+                  size="sm"
                   onClick={() => handleSaveEdit(namespace.id)}
                   disabled={actionLoading || !editDisplayName.trim()}
-                  style={{
-                    padding: '0.5rem 1rem',
-                    background: '#28a745',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '4px',
-                    cursor: actionLoading ? 'not-allowed' : 'pointer'
-                  }}
+                  className="bg-green-600 hover:bg-green-700 from-green-600 to-green-600 hover:from-green-700 hover:to-green-700"
                 >
                   Save
-                </button>
-                <button
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
                   onClick={handleCancelEdit}
                   disabled={actionLoading}
-                  style={{
-                    padding: '0.5rem 1rem',
-                    background: '#6c757d',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '4px',
-                    cursor: actionLoading ? 'not-allowed' : 'pointer'
-                  }}
                 >
                   Cancel
-                </button>
+                </Button>
               </div>
             ) : (
               <>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div className="flex justify-between items-start">
                   <div>
-                    <h3 style={{ margin: 0, marginBottom: '0.25rem', fontSize: '1.25rem' }}>
+                    <h3 className="text-lg font-semibold mb-1">
                       {namespace.displayName}
                     </h3>
-                    <div style={{ fontSize: '0.9rem', color: '#666', fontFamily: 'monospace' }}>
+                    <div className="text-sm text-gray-500 font-mono">
                       {namespace.id}
                     </div>
                   </div>
                   {!namespace.active && (
-                    <span style={{
-                      padding: '0.25rem 0.75rem',
-                      background: '#ffc107',
-                      color: '#000',
-                      borderRadius: '4px',
-                      fontSize: '0.85rem',
-                      fontWeight: '500'
-                    }}>
-                      Inactive
-                    </span>
+                    <Badge variant="warning">Inactive</Badge>
                   )}
                 </div>
               </>
@@ -185,128 +153,81 @@ export default function NamespaceList({ namespaces, onUpdate, onDelete, loading 
           </div>
 
           {/* Namespace Info */}
-          <div style={{
-            display: 'flex',
-            gap: '2rem',
-            marginBottom: '1rem',
-            paddingBottom: '1rem',
-            borderBottom: '1px solid #dee2e6',
-            fontSize: '0.9rem',
-            color: '#666'
-          }}>
+          <div className="flex gap-8 mb-4 pb-4 border-b border-gray-200 text-sm text-gray-500">
             <div>
-              <strong>Users:</strong> {namespace.userCount}
+              <strong className="text-gray-700">Users:</strong> {namespace.userCount}
             </div>
             <div>
-              <strong>Created:</strong> {new Date(namespace.createdAt).toLocaleDateString()}
+              <strong className="text-gray-700">Created:</strong> {new Date(namespace.createdAt).toLocaleDateString()}
             </div>
           </div>
 
           {/* Actions */}
           {deletingId === namespace.id ? (
-            <div style={{
-              padding: '1rem',
-              background: '#fff3cd',
-              border: '1px solid #ffc107',
-              borderRadius: '4px'
-            }}>
-              <p style={{ margin: '0 0 1rem 0', fontWeight: '500' }}>
+            <Alert variant="warning" className="p-4">
+              <p className="font-medium mb-3">
                 Are you sure you want to delete this namespace? This will deactivate it.
               </p>
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <button
+              <div className="flex gap-2">
+                <Button
+                  variant="danger"
+                  size="sm"
                   onClick={() => handleConfirmDelete(namespace.id)}
                   disabled={actionLoading}
-                  style={{
-                    padding: '0.5rem 1rem',
-                    background: '#dc3545',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '4px',
-                    cursor: actionLoading ? 'not-allowed' : 'pointer',
-                    fontWeight: '500'
-                  }}
+                  loading={actionLoading}
                 >
                   {actionLoading ? 'Deleting...' : 'Yes, Delete'}
-                </button>
-                <button
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
                   onClick={handleCancelDelete}
                   disabled={actionLoading}
-                  style={{
-                    padding: '0.5rem 1rem',
-                    background: '#6c757d',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '4px',
-                    cursor: actionLoading ? 'not-allowed' : 'pointer'
-                  }}
                 >
                   Cancel
-                </button>
+                </Button>
               </div>
-            </div>
+            </Alert>
           ) : (
-            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-              <button
+            <div className="flex gap-2 flex-wrap">
+              <Button
+                variant="primary"
+                size="sm"
                 onClick={() => handleManageUsers(namespace.id)}
                 disabled={loading || actionLoading}
-                style={{
-                  padding: '0.5rem 1rem',
-                  background: '#0070f3',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '4px',
-                  cursor: (loading || actionLoading) ? 'not-allowed' : 'pointer',
-                  fontWeight: '500'
-                }}
               >
                 Manage Users
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
                 onClick={() => handleEdit(namespace)}
                 disabled={loading || actionLoading}
-                style={{
-                  padding: '0.5rem 1rem',
-                  background: '#6c757d',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '4px',
-                  cursor: (loading || actionLoading) ? 'not-allowed' : 'pointer'
-                }}
               >
                 Edit Name
-              </button>
-              <button
+              </Button>
+              <Button
+                variant={namespace.active ? 'secondary' : 'primary'}
+                size="sm"
                 onClick={() => handleToggleActive(namespace)}
                 disabled={loading || actionLoading}
-                style={{
-                  padding: '0.5rem 1rem',
-                  background: namespace.active ? '#ffc107' : '#28a745',
-                  color: namespace.active ? '#000' : 'white',
-                  border: 'none',
-                  borderRadius: '4px',
-                  cursor: (loading || actionLoading) ? 'not-allowed' : 'pointer'
-                }}
+                className={namespace.active
+                  ? 'bg-warning-100 text-warning-800 border-warning-300 hover:bg-warning-200'
+                  : 'bg-success-600 hover:bg-success-700 from-success-600 to-success-600 hover:from-success-700 hover:to-success-700'}
               >
                 {namespace.active ? 'Deactivate' : 'Activate'}
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="danger"
+                size="sm"
                 onClick={() => handleDeleteClick(namespace.id)}
                 disabled={loading || actionLoading}
-                style={{
-                  padding: '0.5rem 1rem',
-                  background: '#dc3545',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '4px',
-                  cursor: (loading || actionLoading) ? 'not-allowed' : 'pointer'
-                }}
               >
                 Delete
-              </button>
+              </Button>
             </div>
           )}
-        </div>
+        </Card>
       ))}
     </div>
   );
