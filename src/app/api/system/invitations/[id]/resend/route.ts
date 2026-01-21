@@ -41,8 +41,9 @@ export async function POST(request: NextRequest, context: RouteContext) {
     }
 
     const { id } = await context.params;
+    const { accessToken } = auth;
 
-    const invitationService = await getInvitationService();
+    const invitationService = getInvitationService(accessToken);
 
     let invitation;
     try {

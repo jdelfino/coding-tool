@@ -8,12 +8,10 @@ jest.mock('@/server/auth/api-helpers', () => ({
   requireAuth: jest.fn(),
   getNamespaceContext: jest.fn((req: any, user: any) => user.namespaceId || 'default'),
 }));
-jest.mock('@/server/persistence', () => ({
-  getStorage: jest.fn(),
-}));
+jest.mock('@/server/persistence');
 
 import { requireAuth } from '@/server/auth/api-helpers';
-import { getStorage } from '@/server/persistence';
+import { createStorage } from '@/server/persistence';
 
 // Test helper to create mock auth context
 function createAuthContext(user: User) {
@@ -99,7 +97,7 @@ describe('GET /api/sessions/history', () => {
       },
     };
 
-    (getStorage as jest.Mock).mockResolvedValue(mockStorage);
+    (createStorage as jest.Mock).mockResolvedValue(mockStorage);
   });
 
   it('returns 401 if not authenticated', async () => {

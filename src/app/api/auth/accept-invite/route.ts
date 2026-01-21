@@ -15,6 +15,7 @@ import { createServerClient } from '@supabase/ssr';
 import { getInvitationService, getInvitationRepository } from '@/server/invitations';
 import { getInvitationStatus } from '@/server/invitations/types';
 import { getAuthProvider, getNamespaceRepository } from '@/server/auth';
+import { SERVICE_ROLE_MARKER } from '@/server/supabase/client';
 
 /**
  * Get the authenticated Supabase user from request cookies.
@@ -64,7 +65,8 @@ export async function GET(request: NextRequest) {
     }
 
     // Look up invitation by Supabase user ID
-    const invitationRepository = await getInvitationRepository();
+    // Use SERVICE_ROLE_MARKER because user profile doesn't exist yet
+    const invitationRepository = getInvitationRepository(SERVICE_ROLE_MARKER);
     const invitation = await invitationRepository.getInvitationBySupabaseUserId(supabaseUser.id);
 
     if (!invitation) {
@@ -99,7 +101,8 @@ export async function GET(request: NextRequest) {
     }
 
     // Get namespace info
-    const namespaceRepository = await getNamespaceRepository();
+    // Use SERVICE_ROLE_MARKER because user profile doesn't exist yet
+    const namespaceRepository = getNamespaceRepository(SERVICE_ROLE_MARKER);
     const namespace = await namespaceRepository.getNamespace(invitation.namespaceId);
 
     return NextResponse.json({
@@ -155,7 +158,8 @@ export async function POST(request: NextRequest) {
     const { displayName } = body;
 
     // Look up invitation by Supabase user ID
-    const invitationRepository = await getInvitationRepository();
+    // Use SERVICE_ROLE_MARKER because user profile doesn't exist yet
+    const invitationRepository = getInvitationRepository(SERVICE_ROLE_MARKER);
     const invitation = await invitationRepository.getInvitationBySupabaseUserId(supabaseUser.id);
 
     if (!invitation) {
@@ -205,7 +209,8 @@ export async function POST(request: NextRequest) {
     });
 
     // Consume the invitation
-    const invitationService = await getInvitationService();
+    // Use SERVICE_ROLE_MARKER because user profile was just created
+    const invitationService = getInvitationService(SERVICE_ROLE_MARKER);
     await invitationService.consumeInvitation(invitation.id, supabaseUser.id);
 
     // Return the created user

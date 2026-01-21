@@ -32,43 +32,37 @@ export { SectionRepository } from './local';
 export { MembershipRepository } from './local';
 export { generateJoinCode, isValidJoinCodeFormat } from './join-code-service';
 
-// Singleton instances
-import { getStorage } from '../persistence';
+// Factory functions for RLS-backed repositories
 import type { IClassRepository, ISectionRepository, IMembershipRepository } from './interfaces';
+import {
+  SupabaseClassRepository,
+  SupabaseSectionRepository,
+  SupabaseMembershipRepository,
+} from '../persistence/supabase';
 
-let classRepositoryInstance: IClassRepository | null = null;
-let sectionRepositoryInstance: ISectionRepository | null = null;
-let membershipRepositoryInstance: IMembershipRepository | null = null;
-
-export async function getClassRepository(): Promise<IClassRepository> {
-  if (!classRepositoryInstance) {
-    const storage = await getStorage();
-    if (!storage.classes) {
-      throw new Error('Class repository not initialized in storage backend');
-    }
-    classRepositoryInstance = storage.classes;
-  }
-  return classRepositoryInstance;
+/**
+ * Get class repository with RLS-backed access control.
+ *
+ * @param accessToken - JWT access token for RLS policies (required)
+ */
+export function getClassRepository(accessToken: string): IClassRepository {
+  return new SupabaseClassRepository(accessToken);
 }
 
-export async function getSectionRepository(): Promise<ISectionRepository> {
-  if (!sectionRepositoryInstance) {
-    const storage = await getStorage();
-    if (!storage.sections) {
-      throw new Error('Section repository not initialized in storage backend');
-    }
-    sectionRepositoryInstance = storage.sections;
-  }
-  return sectionRepositoryInstance;
+/**
+ * Get section repository with RLS-backed access control.
+ *
+ * @param accessToken - JWT access token for RLS policies (required)
+ */
+export function getSectionRepository(accessToken: string): ISectionRepository {
+  return new SupabaseSectionRepository(accessToken);
 }
 
-export async function getMembershipRepository(): Promise<IMembershipRepository> {
-  if (!membershipRepositoryInstance) {
-    const storage = await getStorage();
-    if (!storage.memberships) {
-      throw new Error('Membership repository not initialized in storage backend');
-    }
-    membershipRepositoryInstance = storage.memberships;
-  }
-  return membershipRepositoryInstance;
+/**
+ * Get membership repository with RLS-backed access control.
+ *
+ * @param accessToken - JWT access token for RLS policies (required)
+ */
+export function getMembershipRepository(accessToken: string): IMembershipRepository {
+  return new SupabaseMembershipRepository(accessToken);
 }

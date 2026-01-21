@@ -57,9 +57,9 @@ describe('/api/classes/[id]/sections', () => {
 
     beforeEach(() => {
       mockGetAuthProvider.mockResolvedValue(mockAuthProvider as any);
-      mockGetClassRepository.mockResolvedValue(mockClassRepo as any);
-      mockGetSectionRepository.mockResolvedValue(mockSectionRepo as any);
-      mockGetMembershipRepository.mockResolvedValue(mockMembershipRepo as any);
+      mockGetClassRepository.mockReturnValue(mockClassRepo as any);
+      mockGetSectionRepository.mockReturnValue(mockSectionRepo as any);
+      mockGetMembershipRepository.mockReturnValue(mockMembershipRepo as any);
     });
 
     it('should return 401 if not authenticated', async () => {
@@ -276,8 +276,8 @@ describe('/api/classes/[id]/sections', () => {
       };
 
       mockGetAuthProvider.mockResolvedValue(mockAuthProvider as any);
-      mockGetClassRepository.mockResolvedValue(mockClassRepo as any);
-      mockGetSectionRepository.mockResolvedValue(mockSectionRepo as any);
+      mockGetClassRepository.mockReturnValue(mockClassRepo as any);
+      mockGetSectionRepository.mockReturnValue(mockSectionRepo as any);
 
       mockClassRepo.getClass.mockResolvedValue({ id: 'class-1', name: 'CS101' } as any);
       mockSectionRepo.createSection.mockResolvedValue({

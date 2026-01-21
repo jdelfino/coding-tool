@@ -7,6 +7,7 @@ import { requireAuth } from '@/server/auth/api-helpers';
 import { getSectionRepository, getMembershipRepository } from '@/server/classes';
 import { normalizeJoinCode } from '@/server/classes/join-code-service';
 import { rateLimit } from '@/server/rate-limit';
+import { SERVICE_ROLE_MARKER } from '@/server/supabase/client';
 
 export async function POST(request: NextRequest) {
   // Rate limit by IP to prevent join code brute force attacks
@@ -19,7 +20,7 @@ export async function POST(request: NextRequest) {
       return auth; // Return 401 error response
     }
 
-    const { user } = auth;
+    const { user, accessToken } = auth;
 
     const body = await request.json();
     const { joinCode } = body;
@@ -40,8 +41,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Find section by join code (join codes are globally unique)
-    const sectionRepo = await getSectionRepository();
+    // Find section by join code using service role (bypasses RLS)
+    // RLS policy requires students to be members to see sections, but we need
+    // to look up the section first to join it. We validate namespace manually below.
+    const sectionRepo = getSectionRepository(SERVICE_ROLE_MARKER);
     const section = await sectionRepo.getSectionByJoinCode(normalizedCode);
 
     if (!section) {
@@ -59,8 +62,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if already a member
-    const membershipRepo = await getMembershipRepository();
+    // Check if already a member using service role (user can't see their own membership until joined)
+    // Use service role because RLS membership_select requires being a member or instructor
+    const membershipRepo = getMembershipRepository(SERVICE_ROLE_MARKER);
     const existingMembership = await membershipRepo.getMembership(user.id, section.id);
 
     if (existingMembership) {
@@ -70,7 +74,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Add student to section
+    // Add student to section using service role
+    // RLS policy allows user_id = auth.uid() but requires a valid JWT with auth.uid()
+    // Use service role since we've already verified: user is authenticated, section exists,
+    // section is in user's namespace, and user isn't already a member
     await membershipRepo.addMembership({
       userId: user.id,
       sectionId: section.id,

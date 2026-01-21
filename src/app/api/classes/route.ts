@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
       return auth; // Return 401 error response
     }
 
-    const { user } = auth;
+    const { user, accessToken } = auth;
 
     // Rate limit by user ID (read operation)
     const limited = await rateLimit('read', request, user.id);
@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
     const namespaceId = getNamespaceContext(request, user);
 
     // Get all classes where user is an instructor, filtered by namespace
-    const classRepo = await getClassRepository();
+    const classRepo = getClassRepository(accessToken);
     const classes = await classRepo.listClasses(user.id, namespaceId);
 
     return NextResponse.json({ classes });
@@ -45,8 +45,10 @@ export async function POST(request: NextRequest) {
       return auth; // Return 401/403 error response
     }
 
+    const { user, accessToken } = auth;
+
     // Rate limit by user ID (write operation)
-    const limited = await rateLimit('write', request, auth.user.id);
+    const limited = await rateLimit('write', request, user.id);
     if (limited) return limited;
 
     const body = await request.json();
@@ -59,12 +61,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const classRepo = await getClassRepository();
+    const classRepo = getClassRepository(accessToken);
     const newClass = await classRepo.createClass({
       name: name.trim(),
       description: description?.trim() || '',
-      createdBy: auth.user.id,
-      namespaceId: auth.user.namespaceId!,
+      createdBy: user.id,
+      namespaceId: user.namespaceId!,
     });
 
     return NextResponse.json({ class: newClass }, { status: 201 });

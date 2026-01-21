@@ -19,7 +19,7 @@ export async function GET(
       return auth; // Return 401 error response
     }
 
-    const { user } = auth;
+    const { user, accessToken } = auth;
 
     // Rate limit by user ID (read operation)
     const limited = await rateLimit('read', request, user.id);
@@ -27,7 +27,7 @@ export async function GET(
 
     const namespaceId = getNamespaceContext(request, user);
 
-    const sectionRepo = await getSectionRepository();
+    const sectionRepo = getSectionRepository(accessToken);
     const section = await sectionRepo.getSection(id, namespaceId);
 
     if (!section) {
@@ -38,7 +38,7 @@ export async function GET(
     }
 
     // Get members
-    const membershipRepo = await getMembershipRepository();
+    const membershipRepo = getMembershipRepository(accessToken);
     const members = await membershipRepo.getSectionMembers(id);
 
     return NextResponse.json({
@@ -65,7 +65,7 @@ export async function PUT(
       return auth; // Return 401 error response
     }
 
-    const { user } = auth;
+    const { user, accessToken } = auth;
 
     // Rate limit by user ID (write operation)
     const limited = await rateLimit('write', request, user.id);
@@ -73,7 +73,7 @@ export async function PUT(
 
     const namespaceId = getNamespaceContext(request, user);
 
-    const sectionRepo = await getSectionRepository();
+    const sectionRepo = getSectionRepository(accessToken);
     const section = await sectionRepo.getSection(id, namespaceId);
 
     if (!section) {
@@ -120,7 +120,7 @@ export async function DELETE(
       return auth; // Return 401 error response
     }
 
-    const { user } = auth;
+    const { user, accessToken } = auth;
 
     // Rate limit by user ID (write operation)
     const limited = await rateLimit('write', request, user.id);
@@ -129,7 +129,7 @@ export async function DELETE(
     const namespaceId = getNamespaceContext(request, user);
     const { id } = await context.params;
 
-    const sectionRepo = await getSectionRepository();
+    const sectionRepo = getSectionRepository(accessToken);
     const section = await sectionRepo.getSection(id, namespaceId);
     if (!section) {
       return NextResponse.json(

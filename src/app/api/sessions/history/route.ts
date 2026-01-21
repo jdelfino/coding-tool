@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/server/auth/api-helpers';
-import { getStorage } from '@/server/persistence';
+import { createStorage } from '@/server/persistence';
 import { rateLimit } from '@/server/rate-limit';
 
 /**
@@ -22,13 +22,13 @@ export async function GET(request: NextRequest) {
       return auth; // Return 401 error response
     }
 
-    const user = auth.user;
+    const { user, accessToken } = auth;
 
     // Rate limit by user ID (read operation)
     const limited = await rateLimit('read', request, user.id);
     if (limited) return limited;
 
-    const storage = await getStorage();
+    const storage = await createStorage(accessToken);
     let sessions;
 
     // Check permission for viewing sessions

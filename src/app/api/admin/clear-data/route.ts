@@ -6,7 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthProvider } from '@/server/auth';
-import { getStorage } from '@/server/persistence';
+import { createStorage } from '@/server/persistence';
 import { requirePermission } from '@/server/auth/api-helpers';
 import * as SessionService from '@/server/services/session-service';
 
@@ -31,9 +31,10 @@ export async function POST(request: NextRequest) {
     }
 
     const auth = { user: session.user };
+    const accessToken = session.sessionId;
 
     // Get storage backend and clear all data
-    const storage = await getStorage();
+    const storage = await createStorage(accessToken);
 
     // Clear in dependency order:
     // 1. Sessions (depend on users, sections)

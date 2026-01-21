@@ -1,22 +1,23 @@
 /**
- * Supabase-backed revision repository implementation
+ * Service-role backed revision repository for internal system operations.
  *
- * Implements code revision operations using Supabase as the storage backend.
- * Revisions track student code changes during coding sessions.
+ * This repository uses service_role to bypass RLS and is only used by
+ * internal system components like RevisionBuffer that don't have access
+ * to user accessTokens.
  *
- * Supports RLS-backed access control when accessToken is provided.
+ * DO NOT use this repository for user-facing API operations - use
+ * SupabaseRevisionRepository with accessToken instead.
  */
 
 import { v4 as uuidv4 } from 'uuid';
-import { IRevisionRepository } from '../interfaces';
-import { CodeRevision, StoredRevision, StorageMetadata } from '../types';
-import { getSupabaseClientWithAuth, RevisionRow } from '../../supabase/client';
+import { IRevisionRepository } from './interfaces';
+import { CodeRevision, StoredRevision } from './types';
+import { getSupabaseClient, RevisionRow } from '../supabase/client';
 
 /**
  * Maps a database row to a StoredRevision domain object
  */
 function mapRowToRevision(row: RevisionRow): StoredRevision {
-  // Parse execution_result from JSONB
   let executionResult: StoredRevision['executionResult'] | undefined;
   if (row.execution_result) {
     const result = row.execution_result as {
@@ -31,7 +32,7 @@ function mapRowToRevision(row: RevisionRow): StoredRevision {
     };
   }
 
-  const revision: StoredRevision = {
+  return {
     id: row.id,
     namespaceId: row.namespace_id,
     sessionId: row.session_id,
@@ -48,57 +49,30 @@ function mapRowToRevision(row: RevisionRow): StoredRevision {
       version: 1,
     },
   };
-
-  return revision;
 }
 
 /**
- * Supabase implementation of IRevisionRepository
+ * Service-role revision repository for internal system operations.
  */
-export class SupabaseRevisionRepository implements IRevisionRepository {
-  private initialized = false;
-  private readonly accessToken: string;
-
-  constructor(accessToken: string) {
-    this.accessToken = accessToken;
-  }
+export class ServiceRoleRevisionRepository implements IRevisionRepository {
+  private supabase = getSupabaseClient();
 
   async initialize(): Promise<void> {
-    if (this.initialized) return;
-
-    // Test connection
-    const supabase = getSupabaseClientWithAuth(this.accessToken);
-    const { error } = await supabase.from('revisions').select('id').limit(1);
-
-    if (error) {
-      throw new Error(`Failed to initialize RevisionRepository: ${error.message}`);
-    }
-
-    this.initialized = true;
+    // No initialization needed
   }
 
   async shutdown(): Promise<void> {
-    // No cleanup needed for Supabase client
-    this.initialized = false;
+    // No cleanup needed
   }
 
   async health(): Promise<boolean> {
-    try {
-      const supabase = getSupabaseClientWithAuth(this.accessToken);
-      const { error } = await supabase.from('revisions').select('id').limit(1);
-      return !error;
-    } catch {
-      return false;
-    }
+    const { error } = await this.supabase.from('revisions').select('id').limit(1);
+    return !error;
   }
 
   async saveRevision(revision: CodeRevision): Promise<string> {
-    const supabase = getSupabaseClientWithAuth(this.accessToken);
-
-    // Generate ID if not provided
     const id = revision.id || uuidv4();
 
-    // Prepare revision data for database
     const revisionData = {
       id,
       namespace_id: revision.namespaceId,
@@ -118,7 +92,7 @@ export class SupabaseRevisionRepository implements IRevisionRepository {
         : null,
     };
 
-    const { error } = await supabase.from('revisions').insert(revisionData);
+    const { error } = await this.supabase.from('revisions').insert(revisionData);
 
     if (error) {
       throw new Error(`Failed to save revision: ${error.message}`);
@@ -132,16 +106,13 @@ export class SupabaseRevisionRepository implements IRevisionRepository {
     studentId: string,
     namespaceId?: string
   ): Promise<StoredRevision[]> {
-    const supabase = getSupabaseClientWithAuth(this.accessToken);
-
-    let query = supabase
+    let query = this.supabase
       .from('revisions')
       .select('*')
       .eq('session_id', sessionId)
       .eq('student_id', studentId)
       .order('timestamp', { ascending: true });
 
-    // Apply namespace filter if provided
     if (namespaceId) {
       query = query.eq('namespace_id', namespaceId);
     }
@@ -156,19 +127,14 @@ export class SupabaseRevisionRepository implements IRevisionRepository {
   }
 
   async getRevision(revisionId: string): Promise<StoredRevision | null> {
-    const supabase = getSupabaseClientWithAuth(this.accessToken);
-
-    const { data, error } = await supabase
+    const { data, error } = await this.supabase
       .from('revisions')
       .select('*')
       .eq('id', revisionId)
       .single();
 
     if (error) {
-      // Not found is expected, other errors are not
-      if (error.code === 'PGRST116') {
-        return null;
-      }
+      if (error.code === 'PGRST116') return null;
       throw new Error(`Failed to get revision: ${error.message}`);
     }
 
@@ -179,9 +145,7 @@ export class SupabaseRevisionRepository implements IRevisionRepository {
     sessionId: string,
     studentId: string
   ): Promise<StoredRevision | null> {
-    const supabase = getSupabaseClientWithAuth(this.accessToken);
-
-    const { data, error } = await supabase
+    const { data, error } = await this.supabase
       .from('revisions')
       .select('*')
       .eq('session_id', sessionId)
@@ -191,10 +155,7 @@ export class SupabaseRevisionRepository implements IRevisionRepository {
       .single();
 
     if (error) {
-      // Not found is expected (no revisions yet)
-      if (error.code === 'PGRST116') {
-        return null;
-      }
+      if (error.code === 'PGRST116') return null;
       throw new Error(`Failed to get latest revision: ${error.message}`);
     }
 
@@ -202,11 +163,8 @@ export class SupabaseRevisionRepository implements IRevisionRepository {
   }
 
   async deleteRevisions(sessionId: string, studentId?: string): Promise<void> {
-    const supabase = getSupabaseClientWithAuth(this.accessToken);
+    let query = this.supabase.from('revisions').delete().eq('session_id', sessionId);
 
-    let query = supabase.from('revisions').delete().eq('session_id', sessionId);
-
-    // If studentId is provided, only delete that student's revisions
     if (studentId) {
       query = query.eq('student_id', studentId);
     }
@@ -219,9 +177,7 @@ export class SupabaseRevisionRepository implements IRevisionRepository {
   }
 
   async countRevisions(sessionId: string, studentId: string): Promise<number> {
-    const supabase = getSupabaseClientWithAuth(this.accessToken);
-
-    const { count, error } = await supabase
+    const { count, error } = await this.supabase
       .from('revisions')
       .select('*', { count: 'exact', head: true })
       .eq('session_id', sessionId)
@@ -238,15 +194,12 @@ export class SupabaseRevisionRepository implements IRevisionRepository {
     sessionId: string,
     namespaceId?: string
   ): Promise<Map<string, StoredRevision[]>> {
-    const supabase = getSupabaseClientWithAuth(this.accessToken);
-
-    let query = supabase
+    let query = this.supabase
       .from('revisions')
       .select('*')
       .eq('session_id', sessionId)
       .order('timestamp', { ascending: true });
 
-    // Apply namespace filter if provided
     if (namespaceId) {
       query = query.eq('namespace_id', namespaceId);
     }
@@ -257,7 +210,6 @@ export class SupabaseRevisionRepository implements IRevisionRepository {
       throw new Error(`Failed to get all session revisions: ${error.message}`);
     }
 
-    // Group revisions by student_id
     const result = new Map<string, StoredRevision[]>();
 
     if (data) {

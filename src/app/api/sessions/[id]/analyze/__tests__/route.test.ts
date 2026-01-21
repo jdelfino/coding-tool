@@ -7,8 +7,8 @@
 
 import { NextRequest } from 'next/server';
 import { POST } from '../route';
-import { getAuthenticatedUser, checkPermission } from '@/server/auth/api-auth';
-import { getStorage } from '@/server/persistence';
+import { getAuthenticatedUserWithToken, checkPermission } from '@/server/auth/api-auth';
+import { createStorage } from '@/server/persistence';
 import { getGeminiService, GeminiAnalysisService } from '@/server/services/gemini-analysis-service';
 import { rateLimit, checkAnalyzeDailyLimits } from '@/server/rate-limit';
 import { Session, Student } from '@/server/types';
@@ -23,9 +23,9 @@ jest.mock('@/server/rate-limit', () => ({
   checkAnalyzeDailyLimits: jest.fn().mockResolvedValue(null),
 }));
 
-const mockGetAuthenticatedUser = getAuthenticatedUser as jest.MockedFunction<typeof getAuthenticatedUser>;
+const mockGetAuthenticatedUserWithToken = getAuthenticatedUserWithToken as jest.MockedFunction<typeof getAuthenticatedUserWithToken>;
 const mockCheckPermission = checkPermission as jest.MockedFunction<typeof checkPermission>;
-const mockGetStorage = getStorage as jest.MockedFunction<typeof getStorage>;
+const mockCreateStorage = createStorage as jest.MockedFunction<typeof createStorage>;
 const mockGetGeminiService = getGeminiService as jest.MockedFunction<typeof getGeminiService>;
 const mockRateLimit = rateLimit as jest.MockedFunction<typeof rateLimit>;
 const mockCheckAnalyzeDailyLimits = checkAnalyzeDailyLimits as jest.MockedFunction<typeof checkAnalyzeDailyLimits>;
@@ -114,7 +114,7 @@ describe('POST /api/sessions/[id]/analyze', () => {
         getSession: jest.fn().mockResolvedValue(mockSession),
       },
     };
-    mockGetStorage.mockResolvedValue(mockStorage);
+    mockCreateStorage.mockResolvedValue(mockStorage);
 
     mockGeminiService = {
       isConfigured: jest.fn().mockReturnValue(true),
@@ -124,7 +124,7 @@ describe('POST /api/sessions/[id]/analyze', () => {
   });
 
   it('analyzes student code successfully', async () => {
-    mockGetAuthenticatedUser.mockResolvedValue(mockInstructor);
+    mockGetAuthenticatedUserWithToken.mockResolvedValue({ user: mockInstructor, accessToken: 'test-token' });
     mockCheckPermission.mockReturnValue(true);
 
     const request = new NextRequest('http://localhost:3000/api/sessions/session-1/analyze', {
@@ -143,7 +143,7 @@ describe('POST /api/sessions/[id]/analyze', () => {
   });
 
   it('passes correct input to Gemini service', async () => {
-    mockGetAuthenticatedUser.mockResolvedValue(mockInstructor);
+    mockGetAuthenticatedUserWithToken.mockResolvedValue({ user: mockInstructor, accessToken: 'test-token' });
     mockCheckPermission.mockReturnValue(true);
 
     const request = new NextRequest('http://localhost:3000/api/sessions/session-1/analyze', {
@@ -168,7 +168,7 @@ describe('POST /api/sessions/[id]/analyze', () => {
   });
 
   it('returns 401 when not authenticated', async () => {
-    mockGetAuthenticatedUser.mockRejectedValue(new Error('Not authenticated'));
+    mockGetAuthenticatedUserWithToken.mockRejectedValue(new Error('Not authenticated'));
 
     const request = new NextRequest('http://localhost:3000/api/sessions/session-1/analyze', {
       method: 'POST',
@@ -181,7 +181,7 @@ describe('POST /api/sessions/[id]/analyze', () => {
   });
 
   it('returns 403 when user lacks data.viewAll permission', async () => {
-    mockGetAuthenticatedUser.mockResolvedValue(mockInstructor);
+    mockGetAuthenticatedUserWithToken.mockResolvedValue({ user: mockInstructor, accessToken: 'test-token' });
     mockCheckPermission.mockReturnValue(false);
 
     const request = new NextRequest('http://localhost:3000/api/sessions/session-1/analyze', {
@@ -197,7 +197,7 @@ describe('POST /api/sessions/[id]/analyze', () => {
   });
 
   it('returns 503 when Gemini not configured', async () => {
-    mockGetAuthenticatedUser.mockResolvedValue(mockInstructor);
+    mockGetAuthenticatedUserWithToken.mockResolvedValue({ user: mockInstructor, accessToken: 'test-token' });
     mockCheckPermission.mockReturnValue(true);
     (mockGeminiService.isConfigured as jest.Mock).mockReturnValue(false);
 
@@ -214,7 +214,7 @@ describe('POST /api/sessions/[id]/analyze', () => {
   });
 
   it('returns 404 when session not found', async () => {
-    mockGetAuthenticatedUser.mockResolvedValue(mockInstructor);
+    mockGetAuthenticatedUserWithToken.mockResolvedValue({ user: mockInstructor, accessToken: 'test-token' });
     mockCheckPermission.mockReturnValue(true);
     mockStorage.sessions.getSession.mockResolvedValue(null);
 
@@ -231,7 +231,7 @@ describe('POST /api/sessions/[id]/analyze', () => {
   });
 
   it('returns 429 on rate limit error', async () => {
-    mockGetAuthenticatedUser.mockResolvedValue(mockInstructor);
+    mockGetAuthenticatedUserWithToken.mockResolvedValue({ user: mockInstructor, accessToken: 'test-token' });
     mockCheckPermission.mockReturnValue(true);
     (mockGeminiService.analyzeSubmissions as jest.Mock).mockRejectedValue(
       new Error('Rate limit exceeded')
@@ -248,7 +248,7 @@ describe('POST /api/sessions/[id]/analyze', () => {
   });
 
   it('returns 429 when per-minute rate limit is exceeded', async () => {
-    mockGetAuthenticatedUser.mockResolvedValue(mockInstructor);
+    mockGetAuthenticatedUserWithToken.mockResolvedValue({ user: mockInstructor, accessToken: 'test-token' });
     const rateLimitResponse = new Response(
       JSON.stringify({ error: 'Too many requests. Please try again later.' }),
       { status: 429, headers: { 'Content-Type': 'application/json' } }
@@ -268,7 +268,7 @@ describe('POST /api/sessions/[id]/analyze', () => {
   });
 
   it('returns 429 when daily user limit is exceeded', async () => {
-    mockGetAuthenticatedUser.mockResolvedValue(mockInstructor);
+    mockGetAuthenticatedUserWithToken.mockResolvedValue({ user: mockInstructor, accessToken: 'test-token' });
     const dailyLimitResponse = new Response(
       JSON.stringify({ error: 'Daily analysis limit reached (100 per day). Please try again tomorrow.' }),
       { status: 429, headers: { 'Content-Type': 'application/json' } }
@@ -290,7 +290,7 @@ describe('POST /api/sessions/[id]/analyze', () => {
   });
 
   it('returns 429 when global daily limit is exceeded', async () => {
-    mockGetAuthenticatedUser.mockResolvedValue(mockInstructor);
+    mockGetAuthenticatedUserWithToken.mockResolvedValue({ user: mockInstructor, accessToken: 'test-token' });
     const globalLimitResponse = new Response(
       JSON.stringify({ error: 'Global daily analysis limit reached. Please try again tomorrow.' }),
       { status: 429, headers: { 'Content-Type': 'application/json' } }
@@ -312,7 +312,7 @@ describe('POST /api/sessions/[id]/analyze', () => {
   });
 
   it('calls checkAnalyzeDailyLimits with request and user ID', async () => {
-    mockGetAuthenticatedUser.mockResolvedValue(mockInstructor);
+    mockGetAuthenticatedUserWithToken.mockResolvedValue({ user: mockInstructor, accessToken: 'test-token' });
     mockCheckPermission.mockReturnValue(true);
 
     const request = new NextRequest('http://localhost:3000/api/sessions/session-1/analyze', {
@@ -326,7 +326,7 @@ describe('POST /api/sessions/[id]/analyze', () => {
   });
 
   it('returns 504 on timeout error', async () => {
-    mockGetAuthenticatedUser.mockResolvedValue(mockInstructor);
+    mockGetAuthenticatedUserWithToken.mockResolvedValue({ user: mockInstructor, accessToken: 'test-token' });
     mockCheckPermission.mockReturnValue(true);
     (mockGeminiService.analyzeSubmissions as jest.Mock).mockRejectedValue(
       new Error('Analysis timed out')
@@ -343,7 +343,7 @@ describe('POST /api/sessions/[id]/analyze', () => {
   });
 
   it('returns 503 on API key error', async () => {
-    mockGetAuthenticatedUser.mockResolvedValue(mockInstructor);
+    mockGetAuthenticatedUserWithToken.mockResolvedValue({ user: mockInstructor, accessToken: 'test-token' });
     mockCheckPermission.mockReturnValue(true);
     (mockGeminiService.analyzeSubmissions as jest.Mock).mockRejectedValue(
       new Error('Invalid Gemini API key')
@@ -360,7 +360,7 @@ describe('POST /api/sessions/[id]/analyze', () => {
   });
 
   it('returns 500 on unknown error', async () => {
-    mockGetAuthenticatedUser.mockResolvedValue(mockInstructor);
+    mockGetAuthenticatedUserWithToken.mockResolvedValue({ user: mockInstructor, accessToken: 'test-token' });
     mockCheckPermission.mockReturnValue(true);
     (mockGeminiService.analyzeSubmissions as jest.Mock).mockRejectedValue(
       new Error('Something went wrong')
@@ -379,7 +379,7 @@ describe('POST /api/sessions/[id]/analyze', () => {
   });
 
   it('handles session with no students', async () => {
-    mockGetAuthenticatedUser.mockResolvedValue(mockInstructor);
+    mockGetAuthenticatedUserWithToken.mockResolvedValue({ user: mockInstructor, accessToken: 'test-token' });
     mockCheckPermission.mockReturnValue(true);
 
     const emptySession = { ...mockSession, students: new Map() };

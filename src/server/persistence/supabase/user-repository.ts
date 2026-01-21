@@ -3,11 +3,13 @@
  *
  * Implements user CRUD operations using Supabase as the storage backend.
  * Users are stored in user_profiles table which extends auth.users.
+ *
+ * Supports RLS-backed access control when accessToken is provided.
  */
 
 import { User, UserRole } from '../../auth/types';
 import { IUserRepository } from '../../auth/interfaces';
-import { getSupabaseClient } from '../../supabase/client';
+import { getSupabaseClientWithAuth } from '../../supabase/client';
 
 /**
  * Maps a database row to a User domain object
@@ -30,12 +32,17 @@ function mapRowToUser(row: any): User {
  */
 export class SupabaseUserRepository implements IUserRepository {
   private initialized = false;
+  private readonly accessToken: string;
+
+  constructor(accessToken: string) {
+    this.accessToken = accessToken;
+  }
 
   async initialize(): Promise<void> {
     if (this.initialized) return;
 
     // Test connection
-    const supabase = getSupabaseClient();
+    const supabase = getSupabaseClientWithAuth(this.accessToken);
     const { error } = await supabase.from('user_profiles').select('id').limit(1);
 
     if (error) {
@@ -46,7 +53,7 @@ export class SupabaseUserRepository implements IUserRepository {
   }
 
   async saveUser(user: User): Promise<void> {
-    const supabase = getSupabaseClient();
+    const supabase = getSupabaseClientWithAuth(this.accessToken);
 
     // Prepare user data for database
     const userData = {
@@ -69,7 +76,7 @@ export class SupabaseUserRepository implements IUserRepository {
   }
 
   async getUser(userId: string): Promise<User | null> {
-    const supabase = getSupabaseClient();
+    const supabase = getSupabaseClientWithAuth(this.accessToken);
 
     const { data, error } = await supabase
       .from('user_profiles')
@@ -89,7 +96,7 @@ export class SupabaseUserRepository implements IUserRepository {
   }
 
   async getUserByEmail(email: string): Promise<User | null> {
-    const supabase = getSupabaseClient();
+    const supabase = getSupabaseClientWithAuth(this.accessToken);
 
     // Email is stored in auth.users, so we need to query via the join
     // The email field is available in the user_profiles view/query if joined
@@ -111,7 +118,7 @@ export class SupabaseUserRepository implements IUserRepository {
   }
 
   async listUsers(role?: UserRole, namespaceId?: string | null): Promise<User[]> {
-    const supabase = getSupabaseClient();
+    const supabase = getSupabaseClientWithAuth(this.accessToken);
 
     let query = supabase.from('user_profiles').select('*');
 
@@ -142,7 +149,7 @@ export class SupabaseUserRepository implements IUserRepository {
   }
 
   async updateUser(userId: string, updates: Partial<User>): Promise<void> {
-    const supabase = getSupabaseClient();
+    const supabase = getSupabaseClientWithAuth(this.accessToken);
 
     // Map User fields to database columns
     const dbUpdates: any = {};
@@ -165,7 +172,7 @@ export class SupabaseUserRepository implements IUserRepository {
   }
 
   async deleteUser(userId: string): Promise<void> {
-    const supabase = getSupabaseClient();
+    const supabase = getSupabaseClientWithAuth(this.accessToken);
 
     const { error } = await supabase.from('user_profiles').delete().eq('id', userId);
 
@@ -176,7 +183,7 @@ export class SupabaseUserRepository implements IUserRepository {
 
   async health(): Promise<boolean> {
     try {
-      const supabase = getSupabaseClient();
+      const supabase = getSupabaseClientWithAuth(this.accessToken);
       const { error } = await supabase.from('user_profiles').select('id').limit(1);
       return !error;
     } catch {

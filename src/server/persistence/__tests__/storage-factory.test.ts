@@ -2,28 +2,25 @@
  * Tests for storage factory function
  *
  * Verifies that the createStorage factory correctly instantiates
- * the Supabase storage backend.
+ * the Supabase storage backend with RLS-backed access control.
  */
 
-import { createStorage, createDefaultStorage, StorageBackend } from '../index';
-import { StorageConfig } from '../types';
+import { createStorage, StorageBackend } from '../index';
 
 describe('Storage Factory', () => {
   describe('createStorage', () => {
-    it('should create Supabase storage backend', async () => {
+    it('should create Supabase storage backend with accessToken', async () => {
       // Mock environment variables for Supabase
       const originalUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
       const originalKey = process.env.SUPABASE_SECRET_KEY;
+      const originalPublishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 
       process.env.NEXT_PUBLIC_SUPABASE_URL = 'http://localhost:54321';
       process.env.SUPABASE_SECRET_KEY = 'test-service-key';
+      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY = 'test-publishable-key';
 
       try {
-        const config: StorageConfig = {
-          type: 'supabase',
-        };
-
-        const storage = await createStorage(config);
+        const storage = await createStorage('test-access-token');
 
         expect(storage).toBeInstanceOf(StorageBackend);
         expect(storage.sessions).toBeDefined();
@@ -47,15 +44,16 @@ describe('Storage Factory', () => {
         } else {
           delete process.env.SUPABASE_SECRET_KEY;
         }
+        if (originalPublishableKey) {
+          process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY = originalPublishableKey;
+        } else {
+          delete process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+        }
       }
     });
 
     it('should initialize all repositories', async () => {
-      const config: StorageConfig = {
-        type: 'supabase',
-      };
-
-      const storage = await createStorage(config);
+      const storage = await createStorage('test-access-token');
 
       // Verify that repositories are ready to use
       expect(storage.sessions).toBeDefined();
@@ -71,17 +69,9 @@ describe('Storage Factory', () => {
     });
   });
 
-  describe('createDefaultStorage', () => {
-    it('should create Supabase storage', async () => {
-      const storage = await createDefaultStorage();
-      expect(storage).toBeInstanceOf(StorageBackend);
-      await storage.shutdown();
-    });
-  });
-
   describe('StorageBackend', () => {
     it('should provide transaction support', async () => {
-      const storage = new StorageBackend();
+      const storage = new StorageBackend('test-access-token');
       await storage.initialize();
 
       const result = await storage.transaction(async (tx) => {

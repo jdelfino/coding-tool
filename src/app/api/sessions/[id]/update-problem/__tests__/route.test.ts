@@ -5,14 +5,10 @@ import type { User } from '@/server/auth/types';
 
 // Mock dependencies
 jest.mock('@/server/auth');
-jest.mock('@/server/persistence', () => ({
-  getStorage: jest.fn(),
-}));
-jest.mock('@/server/services/session-service', () => ({
-  updateSessionProblem: jest.fn(),
-}));
+jest.mock('@/server/persistence');
+jest.mock('@/server/services/session-service');
 
-import { getStorage } from '@/server/persistence';
+import { createStorage } from '@/server/persistence';
 import * as SessionService from '@/server/services/session-service';
 
 describe('POST /api/sessions/[sessionId]/update-problem', () => {
@@ -63,7 +59,7 @@ describe('POST /api/sessions/[sessionId]/update-problem', () => {
     };
 
     (getAuthProvider as jest.Mock).mockResolvedValue(mockAuthProvider);
-    (getStorage as jest.Mock).mockResolvedValue(mockStorage);
+    (createStorage as jest.Mock).mockResolvedValue(mockStorage);
   });
 
   it('updates problem with execution settings', async () => {

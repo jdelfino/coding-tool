@@ -78,9 +78,9 @@ describe('POST /api/sections/[id]/instructors', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    (getSectionRepository as jest.Mock).mockResolvedValue(mockSectionRepo);
-    (getMembershipRepository as jest.Mock).mockResolvedValue(mockMembershipRepo);
-    (getUserRepository as jest.Mock).mockResolvedValue(mockUserRepo);
+    (getSectionRepository as jest.Mock).mockReturnValue(mockSectionRepo);
+    (getMembershipRepository as jest.Mock).mockReturnValue(mockMembershipRepo);
+    (getUserRepository as jest.Mock).mockReturnValue(mockUserRepo);
   });
 
   it('should return 401 if not authenticated', async () => {

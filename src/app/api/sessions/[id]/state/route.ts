@@ -4,8 +4,8 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getAuthenticatedUser } from '@/server/auth/api-auth';
-import { getStorage } from '@/server/persistence';
+import { getAuthenticatedUserWithToken } from '@/server/auth/api-auth';
+import { createStorage } from '@/server/persistence';
 import { rateLimit } from '@/server/rate-limit';
 
 export async function GET(
@@ -14,7 +14,7 @@ export async function GET(
 ) {
   try {
     // Authenticate user
-    const user = await getAuthenticatedUser(request);
+    const { user, accessToken } = await getAuthenticatedUserWithToken(request);
 
     // Rate limit by user ID (read operation)
     const limited = await rateLimit('read', request, user.id);
@@ -24,7 +24,7 @@ export async function GET(
     const { id: sessionId } = await params;
 
     // Get session from storage
-    const storage = await getStorage();
+    const storage = await createStorage(accessToken);
     const session = await storage.sessions.getSession(sessionId);
 
     if (!session) {

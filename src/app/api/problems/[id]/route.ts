@@ -7,7 +7,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getStorage } from '@/server/persistence';
+import { createStorage } from '@/server/persistence';
 import { requireAuth, getNamespaceContext } from '@/server/auth/api-helpers';
 import { rateLimit } from '@/server/rate-limit';
 
@@ -33,7 +33,7 @@ export async function GET(
       return auth; // Return 401 error response
     }
 
-    const { user } = auth;
+    const { user, accessToken } = auth;
 
     // Rate limit by user ID (read operation)
     const limited = await rateLimit('read', request, user.id);
@@ -41,7 +41,7 @@ export async function GET(
 
     const namespaceId = getNamespaceContext(request, user);
 
-    const storage = await getStorage();
+    const storage = await createStorage(accessToken);
     const problem = await storage.problems.getById(id, namespaceId);
 
     if (!problem) {
@@ -79,14 +79,14 @@ export async function PATCH(
       return auth; // Return 401 error response
     }
 
-    const { user } = auth;
+    const { user, accessToken } = auth;
 
     // Rate limit by user ID (write operation)
     const limited = await rateLimit('write', request, user.id);
     if (limited) return limited;
 
     const namespaceId = getNamespaceContext(request, user);
-    const storage = await getStorage();
+    const storage = await createStorage(accessToken);
 
     // Get existing problem
     const existing = await storage.problems.getById(id, namespaceId);
@@ -151,14 +151,14 @@ export async function DELETE(
       return auth; // Return 401 error response
     }
 
-    const { user } = auth;
+    const { user, accessToken } = auth;
 
     // Rate limit by user ID (write operation)
     const limited = await rateLimit('write', request, user.id);
     if (limited) return limited;
 
     const namespaceId = getNamespaceContext(request, user);
-    const storage = await getStorage();
+    const storage = await createStorage(accessToken);
 
     // Get existing problem
     const existing = await storage.problems.getById(id, namespaceId);

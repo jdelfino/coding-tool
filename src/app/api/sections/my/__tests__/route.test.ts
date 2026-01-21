@@ -70,7 +70,7 @@ describe('GET /api/sections/my', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    (getMembershipRepository as jest.Mock).mockResolvedValue(mockMembershipRepo);
+    (getMembershipRepository as jest.Mock).mockReturnValue(mockMembershipRepo);
     (getNamespaceContext as jest.Mock).mockReturnValue('default');
   });
 

@@ -12,3 +12,4 @@ export { SupabaseClassRepository } from './class-repository';
 export { SupabaseSectionRepository } from './section-repository';
 export { SupabaseMembershipRepository } from './membership-repository';
 export { SupabaseNamespaceRepository } from './namespace-repository';
+export { SupabaseInvitationRepository } from './invitation-repository';

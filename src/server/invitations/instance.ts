@@ -1,8 +1,9 @@
 /**
- * Singleton instances for invitation services
+ * Factory functions for invitation-related services.
  *
- * Provides lazy-initialized instances of InvitationService, CapacityService,
- * and StudentRegistrationService for use in API routes.
+ * These services are created per-request with accessToken for RLS-backed
+ * access control. Some admin operations use getSupabaseClient() for
+ * service_role access.
  */
 
 import { InvitationService } from './invitation-service';
@@ -10,75 +11,79 @@ import { CapacityService } from './capacity-service';
 import { StudentRegistrationService } from './student-registration-service';
 import { IInvitationRepository } from './interfaces';
 import { SupabaseInvitationRepository } from '../persistence/supabase/invitation-repository';
-import { getNamespaceRepository, getAuthProvider } from '../auth';
-import { getStorage } from '../persistence';
-import { getSupabaseClient } from '../supabase/client';
-
-let invitationRepositoryInstance: IInvitationRepository | null = null;
-let capacityServiceInstance: CapacityService | null = null;
-let invitationServiceInstance: InvitationService | null = null;
-let studentRegistrationServiceInstance: StudentRegistrationService | null = null;
+import { SupabaseNamespaceRepository } from '../persistence/supabase/namespace-repository';
+import { SupabaseSectionRepository } from '../persistence/supabase/section-repository';
+import { SupabaseMembershipRepository } from '../persistence/supabase/membership-repository';
+import { getAuthProvider } from '../auth';
+import { getSupabaseClient, SERVICE_ROLE_MARKER } from '../supabase/client';
 
 /**
- * Get the invitation repository instance
+ * Get invitation repository with RLS-backed access control.
+ * @param accessToken - JWT access token for RLS policies (required)
  */
-export async function getInvitationRepository(): Promise<IInvitationRepository> {
-  if (!invitationRepositoryInstance) {
-    invitationRepositoryInstance = new SupabaseInvitationRepository();
-    await invitationRepositoryInstance.initialize?.();
-  }
-  return invitationRepositoryInstance;
+export function getInvitationRepository(accessToken: string): IInvitationRepository {
+  return new SupabaseInvitationRepository(accessToken);
 }
 
 /**
- * Get the capacity service instance
+ * Get capacity service with RLS-backed access control.
+ * @param accessToken - JWT access token for RLS policies (required)
  */
-export async function getCapacityService(): Promise<CapacityService> {
-  if (!capacityServiceInstance) {
-    const namespaceRepository = await getNamespaceRepository();
-    const invitationRepository = await getInvitationRepository();
-    capacityServiceInstance = new CapacityService(namespaceRepository, invitationRepository);
-  }
-  return capacityServiceInstance;
+export function getCapacityService(accessToken: string): CapacityService {
+  const namespaceRepository = new SupabaseNamespaceRepository(accessToken);
+  const invitationRepository = new SupabaseInvitationRepository(accessToken);
+  return new CapacityService(namespaceRepository, invitationRepository);
 }
 
 /**
- * Get the invitation service instance
+ * Get invitation service with RLS-backed access control.
+ * @param accessToken - JWT access token for RLS policies (required)
  */
-export async function getInvitationService(): Promise<InvitationService> {
-  if (!invitationServiceInstance) {
-    const invitationRepository = await getInvitationRepository();
-    const capacityService = await getCapacityService();
-    const supabaseAdmin = getSupabaseClient();
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+export function getInvitationService(accessToken: string): InvitationService {
+  const invitationRepository = new SupabaseInvitationRepository(accessToken);
+  const capacityService = getCapacityService(accessToken);
+  const supabaseAdmin = getSupabaseClient(); // Admin operations use service_role
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
-    invitationServiceInstance = new InvitationService(
-      invitationRepository,
-      capacityService,
-      supabaseAdmin,
-      appUrl
-    );
-  }
-  return invitationServiceInstance;
+  return new InvitationService(
+    invitationRepository,
+    capacityService,
+    supabaseAdmin,
+    appUrl
+  );
 }
 
 /**
- * Get the student registration service instance
+ * Get student registration service.
+ *
+ * This service handles public student registration which always uses service_role
+ * because the user doesn't exist yet and creating users requires admin privileges.
  */
 export async function getStudentRegistrationService(): Promise<StudentRegistrationService> {
-  if (!studentRegistrationServiceInstance) {
-    const storage = await getStorage();
-    const namespaceRepository = await getNamespaceRepository();
-    const capacityService = await getCapacityService();
-    const authProvider = await getAuthProvider();
+  // Use existing Supabase repositories with service_role
+  // Student registration is a special case that requires admin access:
+  // 1. The user doesn't exist yet during registration
+  // 2. Creating users/memberships requires admin privileges
+  // 3. RLS can't apply because there's no authenticated user
+  //
+  // We reuse the regular Supabase repositories by passing a "service" marker
+  // that tells getSupabaseClientWithAuth to use service_role
+  const sectionRepository = new SupabaseSectionRepository(SERVICE_ROLE_MARKER);
+  const namespaceRepository = new SupabaseNamespaceRepository(SERVICE_ROLE_MARKER);
+  const membershipRepository = new SupabaseMembershipRepository(SERVICE_ROLE_MARKER);
 
-    studentRegistrationServiceInstance = new StudentRegistrationService(
-      storage.sections,
-      namespaceRepository,
-      capacityService,
-      authProvider,
-      storage.memberships
-    );
-  }
-  return studentRegistrationServiceInstance;
+  // Capacity service also uses service_role for registration
+  const capacityServiceNamespaceRepo = new SupabaseNamespaceRepository(SERVICE_ROLE_MARKER);
+  const capacityServiceInvitationRepo = new SupabaseInvitationRepository(SERVICE_ROLE_MARKER);
+  const capacityService = new CapacityService(capacityServiceNamespaceRepo, capacityServiceInvitationRepo);
+
+  const authProvider = await getAuthProvider();
+
+  return new StudentRegistrationService(
+    sectionRepository,
+    namespaceRepository,
+    capacityService,
+    authProvider,
+    membershipRepository
+  );
 }

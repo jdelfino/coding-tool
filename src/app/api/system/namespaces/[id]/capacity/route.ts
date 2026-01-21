@@ -31,8 +31,9 @@ export async function GET(
       return permissionCheck;
     }
 
+    const { accessToken } = permissionCheck;
     const { id: namespaceId } = await params;
-    const namespaceRepo = await getNamespaceRepository();
+    const namespaceRepo = getNamespaceRepository(accessToken);
 
     const capacity = await namespaceRepo.getCapacityUsage(namespaceId);
 
@@ -124,7 +125,8 @@ export async function PUT(
       }
     }
 
-    const namespaceRepo = await getNamespaceRepository();
+    const { accessToken } = permissionCheck;
+    const namespaceRepo = getNamespaceRepository(accessToken);
 
     // Check if namespace exists
     const exists = await namespaceRepo.namespaceExists(namespaceId);

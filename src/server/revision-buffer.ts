@@ -1,7 +1,7 @@
 import * as DiffMatchPatch from 'diff-match-patch';
 import { v4 as uuidv4 } from 'uuid';
 import { CodeRevision } from './persistence/types';
-import { StorageBackend } from './persistence';
+import { IRevisionRepository } from './persistence/interfaces';
 
 interface BufferedRevision {
   sessionId: string;
@@ -34,7 +34,7 @@ interface StudentRevisionState {
  */
 export class RevisionBuffer {
   private dmp = new DiffMatchPatch.diff_match_patch();
-  private storage: StorageBackend;
+  private revisionRepository: IRevisionRepository;
 
   // Map: sessionId-studentId -> StudentRevisionState
   private stateMap = new Map<string, StudentRevisionState>();
@@ -48,8 +48,8 @@ export class RevisionBuffer {
   private readonly SNAPSHOT_INTERVAL = 10; // Store full snapshot every 10 revisions
   private readonly MAX_BUFFER_SIZE = 100; // Max revisions to buffer per student
 
-  constructor(storage: StorageBackend) {
-    this.storage = storage;
+  constructor(revisionRepository: IRevisionRepository) {
+    this.revisionRepository = revisionRepository;
   }
 
   /**
@@ -195,7 +195,7 @@ export class RevisionBuffer {
           fullCode: buffered.isDiff ? undefined : buffered.code,
         };
 
-        await this.storage.revisions.saveRevision(revision);
+        await this.revisionRepository.saveRevision(revision);
       }
 
       // Clear buffer
@@ -279,20 +279,21 @@ export class RevisionBuffer {
   }
 }
 
-// Singleton instance holder (initialized with storage backend)
+// Singleton instance holder (initialized with revision repository)
 export const revisionBufferHolder: { instance: RevisionBuffer | null } = {
   instance: null,
 };
 
 /**
- * Get or create the RevisionBuffer singleton
- * Lazily initializes if not already set
+ * Get or create the RevisionBuffer singleton.
+ * Uses service_role for internal system operations (bypasses RLS).
  */
 export async function getRevisionBuffer(): Promise<RevisionBuffer> {
   if (!revisionBufferHolder.instance) {
-    const { getStorage } = await import('./persistence');
-    const storage = await getStorage();
-    revisionBufferHolder.instance = new RevisionBuffer(storage);
+    // Import dynamically to avoid circular dependencies
+    const { ServiceRoleRevisionRepository } = await import('./persistence/service-role-revision-repository');
+    const revisionRepository = new ServiceRoleRevisionRepository();
+    revisionBufferHolder.instance = new RevisionBuffer(revisionRepository);
     revisionBufferHolder.instance.startAutoFlush();
   }
   return revisionBufferHolder.instance;

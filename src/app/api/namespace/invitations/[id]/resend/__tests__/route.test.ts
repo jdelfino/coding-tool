@@ -80,12 +80,12 @@ describe('/api/namespace/invitations/[id]/resend', () => {
     mockInvitationRepository = {
       getInvitation: jest.fn().mockResolvedValue(mockInvitation),
     };
-    (getInvitationRepository as jest.Mock).mockResolvedValue(mockInvitationRepository);
+    (getInvitationRepository as jest.Mock).mockReturnValue(mockInvitationRepository);
 
     mockInvitationService = {
       resendInvitation: jest.fn().mockResolvedValue(mockInvitation),
     };
-    (getInvitationService as jest.Mock).mockResolvedValue(mockInvitationService);
+    (getInvitationService as jest.Mock).mockReturnValue(mockInvitationService);
   });
 
   describe('POST /api/namespace/invitations/[id]/resend', () => {

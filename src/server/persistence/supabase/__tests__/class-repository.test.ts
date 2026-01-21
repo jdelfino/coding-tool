@@ -23,7 +23,7 @@ const mockSingle = jest.fn();
 const mockLimit = jest.fn();
 
 jest.mock('../../../supabase/client', () => ({
-  getSupabaseClient: jest.fn(() => ({
+  getSupabaseClientWithAuth: jest.fn(() => ({
     from: mockFrom,
   })),
 }));
@@ -110,7 +110,7 @@ describe('SupabaseClassRepository', () => {
       };
     });
 
-    repository = new SupabaseClassRepository();
+    repository = new SupabaseClassRepository('test-token');
   });
 
   describe('initialize', () => {

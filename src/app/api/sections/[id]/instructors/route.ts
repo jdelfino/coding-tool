@@ -22,11 +22,13 @@ export async function GET(
       return auth; // Return 401 error response
     }
 
+    const { accessToken } = auth;
+
     // Rate limit by user ID (read operation)
     const limited = await rateLimit('read', request, auth.user.id);
     if (limited) return limited;
 
-    const sectionRepo = await getSectionRepository();
+    const sectionRepo = getSectionRepository(accessToken);
     const section = await sectionRepo.getSection(id);
 
     if (!section) {
@@ -37,7 +39,7 @@ export async function GET(
     }
 
     // Get instructor details
-    const userRepo = await getUserRepository();
+    const userRepo = getUserRepository(accessToken);
     const instructors = await Promise.all(
       section.instructorIds.map(async (instructorId) => {
         const user = await userRepo.getUser(instructorId);
@@ -70,11 +72,13 @@ export async function POST(
       return auth; // Return 401 error response
     }
 
+    const { accessToken } = auth;
+
     // Rate limit by user ID (write operation)
     const limited = await rateLimit('write', request, auth.user.id);
     if (limited) return limited;
 
-    const sectionRepo = await getSectionRepository();
+    const sectionRepo = getSectionRepository(accessToken);
     const section = await sectionRepo.getSection(id);
 
     if (!section) {
@@ -111,7 +115,7 @@ export async function POST(
     }
 
     // Find user by email
-    const userRepo = await getUserRepository();
+    const userRepo = getUserRepository(accessToken);
     const user = await userRepo.getUserByEmail(email.toLowerCase().trim());
 
     if (!user) {
@@ -129,7 +133,7 @@ export async function POST(
     }
 
     // Add instructor to section
-    const membershipRepo = await getMembershipRepository();
+    const membershipRepo = getMembershipRepository(accessToken);
     await membershipRepo.addMembership({
       userId: user.id,
       sectionId: id,

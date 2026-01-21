@@ -4,26 +4,22 @@
 
 import { NextRequest } from 'next/server';
 import { POST } from '../route';
-import { getAuthenticatedUser } from '@/server/auth/api-auth';
+import { getAuthenticatedUserWithToken } from '@/server/auth/api-auth';
 import { getExecutorService } from '@/server/code-execution';
 import { Session } from '@/server/types';
 import { Problem, ExecutionSettings } from '@/server/types/problem';
 
 // Mock dependencies
 jest.mock('@/server/auth/api-auth');
-jest.mock('@/server/persistence', () => ({
-  getStorage: jest.fn(),
-}));
-jest.mock('@/server/services/session-service', () => ({
-  getStudentData: jest.fn(),
-}));
+jest.mock('@/server/persistence');
+jest.mock('@/server/services/session-service');
 jest.mock('@/server/code-execution');
 
-import { getStorage } from '@/server/persistence';
+import { createStorage } from '@/server/persistence';
 import * as SessionService from '@/server/services/session-service';
 
-const mockGetAuthenticatedUser = getAuthenticatedUser as jest.MockedFunction<typeof getAuthenticatedUser>;
-const mockGetStorage = getStorage as jest.MockedFunction<typeof getStorage>;
+const mockGetAuthenticatedUserWithToken = getAuthenticatedUserWithToken as jest.MockedFunction<typeof getAuthenticatedUserWithToken>;
+const mockCreateStorage = createStorage as jest.MockedFunction<typeof createStorage>;
 const mockExecuteCode = jest.fn();
 const mockGetExecutorService = getExecutorService as jest.MockedFunction<typeof getExecutorService>;
 mockGetExecutorService.mockReturnValue({ executeCode: mockExecuteCode } as any);
@@ -80,11 +76,11 @@ describe('POST /api/sessions/[id]/execute', () => {
         getSession: jest.fn(),
       },
     };
-    mockGetStorage.mockResolvedValue(mockStorage);
+    mockCreateStorage.mockResolvedValue(mockStorage);
   });
 
   it('should successfully execute code', async () => {
-    mockGetAuthenticatedUser.mockResolvedValue(mockUser);
+    mockGetAuthenticatedUserWithToken.mockResolvedValue({ user: mockUser, accessToken: 'test-token' });
     mockStorage.sessions.getSession.mockResolvedValue(mockSession);
     (SessionService.getStudentData as jest.Mock).mockReturnValue({
       code: 'print("Hello")',
@@ -128,7 +124,7 @@ describe('POST /api/sessions/[id]/execute', () => {
   });
 
   it('should merge execution settings (student overrides session)', async () => {
-    mockGetAuthenticatedUser.mockResolvedValue(mockUser);
+    mockGetAuthenticatedUserWithToken.mockResolvedValue({ user: mockUser, accessToken: 'test-token' });
     mockStorage.sessions.getSession.mockResolvedValue(mockSession);
 
     const studentSettings: ExecutionSettings = {
@@ -173,7 +169,7 @@ describe('POST /api/sessions/[id]/execute', () => {
   });
 
   it('should use payload settings if provided (highest priority)', async () => {
-    mockGetAuthenticatedUser.mockResolvedValue(mockUser);
+    mockGetAuthenticatedUserWithToken.mockResolvedValue({ user: mockUser, accessToken: 'test-token' });
     mockStorage.sessions.getSession.mockResolvedValue(mockSession);
 
     const studentSettings: ExecutionSettings = {
@@ -224,7 +220,7 @@ describe('POST /api/sessions/[id]/execute', () => {
   });
 
   it('should return 401 when not authenticated', async () => {
-    mockGetAuthenticatedUser.mockRejectedValue(new Error('Not authenticated'));
+    mockGetAuthenticatedUserWithToken.mockRejectedValue(new Error('Not authenticated'));
 
     const request = new NextRequest('http://localhost:3000/api/sessions/session-1/execute', {
       method: 'POST',
@@ -243,7 +239,7 @@ describe('POST /api/sessions/[id]/execute', () => {
   });
 
   it('should return 400 when code is missing', async () => {
-    mockGetAuthenticatedUser.mockResolvedValue(mockUser);
+    mockGetAuthenticatedUserWithToken.mockResolvedValue({ user: mockUser, accessToken: 'test-token' });
 
     const request = new NextRequest('http://localhost:3000/api/sessions/session-1/execute', {
       method: 'POST',
@@ -261,7 +257,7 @@ describe('POST /api/sessions/[id]/execute', () => {
   });
 
   it('should return 400 when studentId is missing', async () => {
-    mockGetAuthenticatedUser.mockResolvedValue(mockUser);
+    mockGetAuthenticatedUserWithToken.mockResolvedValue({ user: mockUser, accessToken: 'test-token' });
 
     const request = new NextRequest('http://localhost:3000/api/sessions/session-1/execute', {
       method: 'POST',
@@ -279,7 +275,7 @@ describe('POST /api/sessions/[id]/execute', () => {
   });
 
   it('should return 404 when session not found', async () => {
-    mockGetAuthenticatedUser.mockResolvedValue(mockUser);
+    mockGetAuthenticatedUserWithToken.mockResolvedValue({ user: mockUser, accessToken: 'test-token' });
     mockStorage.sessions.getSession.mockResolvedValue(null);
 
     const request = new NextRequest('http://localhost:3000/api/sessions/session-1/execute', {
@@ -299,7 +295,7 @@ describe('POST /api/sessions/[id]/execute', () => {
   });
 
   it('should return 400 when session is closed', async () => {
-    mockGetAuthenticatedUser.mockResolvedValue(mockUser);
+    mockGetAuthenticatedUserWithToken.mockResolvedValue({ user: mockUser, accessToken: 'test-token' });
     mockStorage.sessions.getSession.mockResolvedValue({
       ...mockSession,
       status: 'completed',
@@ -323,7 +319,7 @@ describe('POST /api/sessions/[id]/execute', () => {
   });
 
   it('should return 500 on execution error', async () => {
-    mockGetAuthenticatedUser.mockResolvedValue(mockUser);
+    mockGetAuthenticatedUserWithToken.mockResolvedValue({ user: mockUser, accessToken: 'test-token' });
     mockStorage.sessions.getSession.mockResolvedValue(mockSession);
     (SessionService.getStudentData as jest.Mock).mockReturnValue({
       code: 'print("Hello")',
@@ -354,7 +350,7 @@ describe('POST /api/sessions/[id]/execute', () => {
         ...mockUser,
         id: 'other-user-id',
       };
-      mockGetAuthenticatedUser.mockResolvedValue(nonParticipantUser);
+      mockGetAuthenticatedUserWithToken.mockResolvedValue({ user: nonParticipantUser, accessToken: 'test-token' });
 
       // Session where user is neither creator nor participant
       const restrictedSession = {
@@ -388,7 +384,7 @@ describe('POST /api/sessions/[id]/execute', () => {
         id: 'instructor-1',
         role: 'instructor' as const, // SECURITY: Instructor role required to execute other students' code
       };
-      mockGetAuthenticatedUser.mockResolvedValue(creatorUser);
+      mockGetAuthenticatedUserWithToken.mockResolvedValue({ user: creatorUser, accessToken: 'test-token' });
 
       // Session where user is the creator but not in participants list
       const creatorSession = {
@@ -432,7 +428,7 @@ describe('POST /api/sessions/[id]/execute', () => {
         id: 'student-1',
         role: 'student' as const,
       };
-      mockGetAuthenticatedUser.mockResolvedValue(participantUser);
+      mockGetAuthenticatedUserWithToken.mockResolvedValue({ user: participantUser, accessToken: 'test-token' });
 
       // Session where user is a participant
       const participantSession = {
@@ -477,7 +473,7 @@ describe('POST /api/sessions/[id]/execute', () => {
         id: 'student-1',
         role: 'student' as const,
       };
-      mockGetAuthenticatedUser.mockResolvedValue(studentUser);
+      mockGetAuthenticatedUserWithToken.mockResolvedValue({ user: studentUser, accessToken: 'test-token' });
 
       // Session where both students are participants
       const sessionWithBothStudents = {
@@ -510,7 +506,7 @@ describe('POST /api/sessions/[id]/execute', () => {
         id: 'student-1',
         role: 'student' as const,
       };
-      mockGetAuthenticatedUser.mockResolvedValue(studentUser);
+      mockGetAuthenticatedUserWithToken.mockResolvedValue({ user: studentUser, accessToken: 'test-token' });
 
       const sessionWithStudent = {
         ...mockSession,
@@ -552,7 +548,7 @@ describe('POST /api/sessions/[id]/execute', () => {
         id: 'instructor-1',
         role: 'instructor' as const,
       };
-      mockGetAuthenticatedUser.mockResolvedValue(instructorUser);
+      mockGetAuthenticatedUserWithToken.mockResolvedValue({ user: instructorUser, accessToken: 'test-token' });
 
       const sessionAsCreator = {
         ...mockSession,

@@ -20,7 +20,7 @@ export async function GET(
       return auth; // Return 401 error response
     }
 
-    const { user } = auth;
+    const { user, accessToken } = auth;
 
     // Rate limit by user ID (read operation)
     const limited = await rateLimit('read', request, user.id);
@@ -28,7 +28,7 @@ export async function GET(
 
     const namespaceId = getNamespaceContext(request, user);
 
-    const classRepo = await getClassRepository();
+    const classRepo = getClassRepository(accessToken);
     const classData = await classRepo.getClass(id, namespaceId);
 
     if (!classData) {
@@ -65,14 +65,14 @@ export async function PUT(
       return auth; // Return 401 error response
     }
 
-    const { user } = auth;
+    const { user, accessToken } = auth;
 
     // Rate limit by user ID (write operation)
     const limited = await rateLimit('write', request, user.id);
     if (limited) return limited;
     const namespaceId = getNamespaceContext(request, user);
 
-    const classRepo = await getClassRepository();
+    const classRepo = getClassRepository(accessToken);
     const classData = await classRepo.getClass(id, namespaceId);
 
     if (!classData) {
@@ -120,14 +120,14 @@ export async function DELETE(
       return auth; // Return 401 error response
     }
 
-    const { user } = auth;
+    const { user, accessToken } = auth;
 
     // Rate limit by user ID (write operation)
     const limited = await rateLimit('write', request, user.id);
     if (limited) return limited;
     const namespaceId = getNamespaceContext(request, user);
 
-    const classRepo = await getClassRepository();
+    const classRepo = getClassRepository(accessToken);
     const classData = await classRepo.getClass(id, namespaceId);
 
     if (!classData) {

@@ -5,8 +5,8 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getAuthenticatedUser, checkPermission } from '@/server/auth/api-auth';
-import { getStorage } from '@/server/persistence';
+import { getAuthenticatedUserWithToken, checkPermission } from '@/server/auth/api-auth';
+import { createStorage } from '@/server/persistence';
 import { rateLimit } from '@/server/rate-limit';
 import { formatJoinCodeForDisplay } from '@/server/classes/join-code-service';
 
@@ -20,7 +20,7 @@ export async function GET(
     if (limited) return limited;
 
     // Require authentication - instructors only
-    const user = await getAuthenticatedUser(request);
+    const { user, accessToken } = await getAuthenticatedUserWithToken(request);
     if (!checkPermission(user, 'session.viewAll')) {
       return NextResponse.json(
         { error: 'Permission denied' },
@@ -30,7 +30,7 @@ export async function GET(
 
     const { id: sessionId } = await params;
 
-    const storage = await getStorage();
+    const storage = await createStorage(accessToken);
     const session = await storage.sessions.getSession(sessionId);
 
     if (!session) {

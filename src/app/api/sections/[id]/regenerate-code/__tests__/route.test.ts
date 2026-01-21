@@ -58,7 +58,7 @@ describe('POST /api/sections/[id]/regenerate-code', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     (getAuthProvider as jest.Mock).mockResolvedValue(mockAuthProvider);
-    (getSectionRepository as jest.Mock).mockResolvedValue(mockSectionRepo);
+    (getSectionRepository as jest.Mock).mockReturnValue(mockSectionRepo);
   });
 
   it('should return 401 if not authenticated', async () => {

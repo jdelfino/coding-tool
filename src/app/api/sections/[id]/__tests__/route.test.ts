@@ -68,8 +68,8 @@ describe('GET /api/sections/[id]', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    (getSectionRepository as jest.Mock).mockResolvedValue(mockSectionRepo);
-    (getMembershipRepository as jest.Mock).mockResolvedValue(mockMembershipRepo);
+    (getSectionRepository as jest.Mock).mockReturnValue(mockSectionRepo);
+    (getMembershipRepository as jest.Mock).mockReturnValue(mockMembershipRepo);
     (getNamespaceContext as jest.Mock).mockReturnValue('default');
   });
 
@@ -140,7 +140,7 @@ describe('PUT /api/sections/[id]', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    (getSectionRepository as jest.Mock).mockResolvedValue(mockSectionRepo);
+    (getSectionRepository as jest.Mock).mockReturnValue(mockSectionRepo);
     (getNamespaceContext as jest.Mock).mockReturnValue('default');
   });
 
@@ -275,7 +275,7 @@ describe('DELETE /api/sections/[id]', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    (getSectionRepository as jest.Mock).mockResolvedValue(mockSectionRepo);
+    (getSectionRepository as jest.Mock).mockReturnValue(mockSectionRepo);
     (getNamespaceContext as jest.Mock).mockReturnValue('default');
   });
 

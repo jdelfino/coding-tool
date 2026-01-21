@@ -3,11 +3,13 @@
  *
  * Implements section CRUD operations using Supabase as the storage backend.
  * Sections represent specific offerings of classes (e.g., Fall 2025 - Section A).
+ *
+ * Uses RLS-backed access control - all queries respect row-level security policies.
  */
 
 import { Section, SectionFilters, SectionStats } from '../../classes/types';
 import { ISectionRepository } from '../../classes/interfaces';
-import { getSupabaseClient } from '../../supabase/client';
+import { getSupabaseClientWithAuth } from '../../supabase/client';
 import { generateJoinCode, normalizeJoinCode } from '../../classes/join-code-service';
 
 /**
@@ -30,15 +32,22 @@ function mapRowToSection(row: any): Section {
 
 /**
  * Supabase implementation of ISectionRepository
+ *
+ * All queries use RLS-backed access control via the user's JWT.
  */
 export class SupabaseSectionRepository implements ISectionRepository {
   private initialized = false;
+  private readonly accessToken: string;
+
+  constructor(accessToken: string) {
+    this.accessToken = accessToken;
+  }
 
   async initialize(): Promise<void> {
     if (this.initialized) return;
 
     // Test connection
-    const supabase = getSupabaseClient();
+    const supabase = getSupabaseClientWithAuth(this.accessToken);
     const { error } = await supabase.from('sections').select('id').limit(1);
 
     if (error) {
@@ -55,7 +64,7 @@ export class SupabaseSectionRepository implements ISectionRepository {
 
   async health(): Promise<boolean> {
     try {
-      const supabase = getSupabaseClient();
+      const supabase = getSupabaseClientWithAuth(this.accessToken);
       const { error } = await supabase.from('sections').select('id').limit(1);
       return !error;
     } catch {
@@ -64,7 +73,7 @@ export class SupabaseSectionRepository implements ISectionRepository {
   }
 
   async createSection(sectionData: Omit<Section, 'id' | 'joinCode' | 'createdAt' | 'updatedAt'>): Promise<Section> {
-    const supabase = getSupabaseClient();
+    const supabase = getSupabaseClientWithAuth(this.accessToken);
 
     const now = new Date();
     const id = crypto.randomUUID();
@@ -122,7 +131,7 @@ export class SupabaseSectionRepository implements ISectionRepository {
   }
 
   async getSection(sectionId: string, namespaceId?: string): Promise<Section | null> {
-    const supabase = getSupabaseClient();
+    const supabase = getSupabaseClientWithAuth(this.accessToken);
 
     let query = supabase
       .from('sections')
@@ -153,7 +162,7 @@ export class SupabaseSectionRepository implements ISectionRepository {
       return null;
     }
 
-    const supabase = getSupabaseClient();
+    const supabase = getSupabaseClientWithAuth(this.accessToken);
 
     const { data, error } = await supabase
       .from('sections')
@@ -173,7 +182,7 @@ export class SupabaseSectionRepository implements ISectionRepository {
   }
 
   async updateSection(sectionId: string, updates: Partial<Omit<Section, 'id' | 'createdAt'>>): Promise<void> {
-    const supabase = getSupabaseClient();
+    const supabase = getSupabaseClientWithAuth(this.accessToken);
 
     // Map domain fields to database columns
     const dbUpdates: any = {
@@ -200,7 +209,7 @@ export class SupabaseSectionRepository implements ISectionRepository {
   }
 
   async deleteSection(sectionId: string): Promise<void> {
-    const supabase = getSupabaseClient();
+    const supabase = getSupabaseClientWithAuth(this.accessToken);
 
     const { error } = await supabase
       .from('sections')
@@ -213,7 +222,7 @@ export class SupabaseSectionRepository implements ISectionRepository {
   }
 
   async listSections(filters?: SectionFilters, namespaceId?: string): Promise<Section[]> {
-    const supabase = getSupabaseClient();
+    const supabase = getSupabaseClientWithAuth(this.accessToken);
 
     let query = supabase.from('sections').select('*');
 
@@ -244,7 +253,7 @@ export class SupabaseSectionRepository implements ISectionRepository {
   }
 
   async regenerateJoinCode(sectionId: string): Promise<string> {
-    const supabase = getSupabaseClient();
+    const supabase = getSupabaseClientWithAuth(this.accessToken);
 
     // Generate a new unique join code
     let newJoinCode: string;
@@ -289,7 +298,7 @@ export class SupabaseSectionRepository implements ISectionRepository {
   }
 
   async addInstructor(sectionId: string, instructorId: string): Promise<void> {
-    const supabase = getSupabaseClient();
+    const supabase = getSupabaseClientWithAuth(this.accessToken);
 
     // Get current section
     const section = await this.getSection(sectionId);
@@ -319,7 +328,7 @@ export class SupabaseSectionRepository implements ISectionRepository {
   }
 
   async removeInstructor(sectionId: string, instructorId: string): Promise<void> {
-    const supabase = getSupabaseClient();
+    const supabase = getSupabaseClientWithAuth(this.accessToken);
 
     // Get current section
     const section = await this.getSection(sectionId);
@@ -349,7 +358,7 @@ export class SupabaseSectionRepository implements ISectionRepository {
   }
 
   async getSectionStats(sectionId: string): Promise<SectionStats> {
-    const supabase = getSupabaseClient();
+    const supabase = getSupabaseClientWithAuth(this.accessToken);
 
     // Count students in section_memberships table
     const { count: studentCount, error: studentError } = await supabase

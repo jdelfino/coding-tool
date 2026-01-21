@@ -23,6 +23,9 @@ jest.mock('../../../../supabase/client', () => ({
   getSupabaseClient: jest.fn(() => ({
     from: mockFrom,
   })),
+  getSupabaseClientWithAuth: jest.fn(() => ({
+    from: mockFrom,
+  })),
 }));
 
 describe('Wave 1 Integration: Namespace ↔ User', () => {
@@ -85,8 +88,8 @@ describe('Wave 1 Integration: Namespace ↔ User', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    namespaceRepo = new SupabaseNamespaceRepository();
-    userRepo = new SupabaseUserRepository();
+    namespaceRepo = new SupabaseNamespaceRepository('test-token');
+    userRepo = new SupabaseUserRepository('test-token');
   });
 
   describe('User namespace association', () => {

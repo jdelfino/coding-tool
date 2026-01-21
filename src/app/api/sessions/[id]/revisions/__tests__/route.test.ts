@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GET } from '../route';
 import { getAuthProvider } from '@/server/auth';
-import { getStorage } from '@/server/persistence';
+import { createStorage } from '@/server/persistence';
 import type { User } from '@/server/auth/types';
 
 // Mock dependencies
@@ -53,7 +53,7 @@ describe('GET /api/sessions/[sessionId]/revisions', () => {
     };
 
     (getAuthProvider as jest.Mock).mockResolvedValue(mockAuthProvider);
-    (getStorage as jest.Mock).mockResolvedValue(mockStorage);
+    (createStorage as jest.Mock).mockResolvedValue(mockStorage);
   });
 
   it('returns revisions for a student', async () => {

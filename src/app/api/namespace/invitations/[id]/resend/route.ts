@@ -42,10 +42,11 @@ export async function POST(request: NextRequest, context: RouteContext) {
     }
 
     const { id } = await context.params;
+    const { accessToken } = auth;
     const namespaceId = getNamespaceContext(request, auth.user);
 
     // First verify the invitation exists and belongs to user's namespace
-    const invitationRepository = await getInvitationRepository();
+    const invitationRepository = getInvitationRepository(accessToken);
     const existingInvitation = await invitationRepository.getInvitation(id);
 
     if (!existingInvitation) {
@@ -63,7 +64,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
       );
     }
 
-    const invitationService = await getInvitationService();
+    const invitationService = getInvitationService(accessToken);
 
     let invitation;
     try {

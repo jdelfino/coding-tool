@@ -7,8 +7,8 @@
 
 import { NextRequest } from 'next/server';
 import { POST } from '../route';
-import { getAuthenticatedUser } from '@/server/auth/api-auth';
-import { getStorage } from '@/server/persistence';
+import { getAuthenticatedUserWithToken } from '@/server/auth/api-auth';
+import { createStorage } from '@/server/persistence';
 import { revisionBufferHolder } from '@/server/revision-buffer';
 import * as SessionService from '@/server/services/session-service';
 import { Session } from '@/server/types';
@@ -18,8 +18,8 @@ jest.mock('@/server/auth/api-auth');
 jest.mock('@/server/persistence');
 jest.mock('@/server/services/session-service');
 
-const mockGetAuthenticatedUser = getAuthenticatedUser as jest.MockedFunction<typeof getAuthenticatedUser>;
-const mockGetStorage = getStorage as jest.MockedFunction<typeof getStorage>;
+const mockGetAuthenticatedUserWithToken = getAuthenticatedUserWithToken as jest.MockedFunction<typeof getAuthenticatedUserWithToken>;
+const mockCreateStorage = createStorage as jest.MockedFunction<typeof createStorage>;
 
 describe('POST /api/sessions/[id]/code', () => {
   const mockUser = {
@@ -78,7 +78,7 @@ describe('POST /api/sessions/[id]/code', () => {
       },
     };
 
-    mockGetStorage.mockResolvedValue(mockStorage);
+    mockCreateStorage.mockResolvedValue(mockStorage);
 
     // Default service mock
     (SessionService.updateStudentCode as jest.Mock).mockResolvedValue(undefined);
@@ -94,7 +94,7 @@ describe('POST /api/sessions/[id]/code', () => {
   });
 
   it('saves code successfully', async () => {
-    mockGetAuthenticatedUser.mockResolvedValue(mockUser);
+    mockGetAuthenticatedUserWithToken.mockResolvedValue({ user: mockUser, accessToken: 'test-token' });
     const code = 'print("Updated code")';
 
     const request = new NextRequest('http://localhost:3000/api/sessions/session-1/code', {
@@ -121,7 +121,7 @@ describe('POST /api/sessions/[id]/code', () => {
   });
 
   it('passes execution settings to service', async () => {
-    mockGetAuthenticatedUser.mockResolvedValue(mockUser);
+    mockGetAuthenticatedUserWithToken.mockResolvedValue({ user: mockUser, accessToken: 'test-token' });
 
     const request = new NextRequest('http://localhost:3000/api/sessions/session-1/code', {
       method: 'POST',
@@ -146,7 +146,7 @@ describe('POST /api/sessions/[id]/code', () => {
   });
 
   it('returns 401 when not authenticated', async () => {
-    mockGetAuthenticatedUser.mockRejectedValue(new Error('Not authenticated'));
+    mockGetAuthenticatedUserWithToken.mockRejectedValue(new Error('Not authenticated'));
 
     const request = new NextRequest('http://localhost:3000/api/sessions/session-1/code', {
       method: 'POST',
@@ -160,7 +160,7 @@ describe('POST /api/sessions/[id]/code', () => {
   });
 
   it('returns 400 when code is missing', async () => {
-    mockGetAuthenticatedUser.mockResolvedValue(mockUser);
+    mockGetAuthenticatedUserWithToken.mockResolvedValue({ user: mockUser, accessToken: 'test-token' });
 
     const request = new NextRequest('http://localhost:3000/api/sessions/session-1/code', {
       method: 'POST',
@@ -176,7 +176,7 @@ describe('POST /api/sessions/[id]/code', () => {
   });
 
   it('returns 400 when studentId is missing', async () => {
-    mockGetAuthenticatedUser.mockResolvedValue(mockUser);
+    mockGetAuthenticatedUserWithToken.mockResolvedValue({ user: mockUser, accessToken: 'test-token' });
 
     const request = new NextRequest('http://localhost:3000/api/sessions/session-1/code', {
       method: 'POST',
@@ -192,7 +192,7 @@ describe('POST /api/sessions/[id]/code', () => {
   });
 
   it('returns 404 when session not found', async () => {
-    mockGetAuthenticatedUser.mockResolvedValue(mockUser);
+    mockGetAuthenticatedUserWithToken.mockResolvedValue({ user: mockUser, accessToken: 'test-token' });
     mockStorage.sessions.getSession.mockResolvedValue(null);
 
     const request = new NextRequest('http://localhost:3000/api/sessions/session-1/code', {
@@ -209,7 +209,7 @@ describe('POST /api/sessions/[id]/code', () => {
   });
 
   it('returns 400 when session is closed', async () => {
-    mockGetAuthenticatedUser.mockResolvedValue(mockUser);
+    mockGetAuthenticatedUserWithToken.mockResolvedValue({ user: mockUser, accessToken: 'test-token' });
     mockStorage.sessions.getSession.mockResolvedValue({
       ...createMockSession(),
       status: 'completed',
@@ -230,7 +230,7 @@ describe('POST /api/sessions/[id]/code', () => {
   });
 
   it('returns 404 when student not found in session', async () => {
-    mockGetAuthenticatedUser.mockResolvedValue(mockUser);
+    mockGetAuthenticatedUserWithToken.mockResolvedValue({ user: mockUser, accessToken: 'test-token' });
     mockStorage.sessions.getSession.mockResolvedValue({
       ...createMockSession(),
       students: new Map(),
@@ -251,7 +251,7 @@ describe('POST /api/sessions/[id]/code', () => {
 
   it('works without revision buffer', async () => {
     revisionBufferHolder.instance = null;
-    mockGetAuthenticatedUser.mockResolvedValue(mockUser);
+    mockGetAuthenticatedUserWithToken.mockResolvedValue({ user: mockUser, accessToken: 'test-token' });
 
     const request = new NextRequest('http://localhost:3000/api/sessions/session-1/code', {
       method: 'POST',
@@ -265,7 +265,7 @@ describe('POST /api/sessions/[id]/code', () => {
   });
 
   it('returns 500 when service fails', async () => {
-    mockGetAuthenticatedUser.mockResolvedValue(mockUser);
+    mockGetAuthenticatedUserWithToken.mockResolvedValue({ user: mockUser, accessToken: 'test-token' });
     (SessionService.updateStudentCode as jest.Mock).mockRejectedValue(new Error('Database error'));
 
     const request = new NextRequest('http://localhost:3000/api/sessions/session-1/code', {
@@ -288,7 +288,7 @@ describe('POST /api/sessions/[id]/code', () => {
         id: 'student-1',
         role: 'student' as const,
       };
-      mockGetAuthenticatedUser.mockResolvedValue(studentUser);
+      mockGetAuthenticatedUserWithToken.mockResolvedValue({ user: studentUser, accessToken: 'test-token' });
 
       const request = new NextRequest('http://localhost:3000/api/sessions/session-1/code', {
         method: 'POST',
@@ -310,7 +310,7 @@ describe('POST /api/sessions/[id]/code', () => {
         id: 'student-1',
         role: 'student' as const,
       };
-      mockGetAuthenticatedUser.mockResolvedValue(studentUser);
+      mockGetAuthenticatedUserWithToken.mockResolvedValue({ user: studentUser, accessToken: 'test-token' });
       mockStorage.sessions.getSession.mockResolvedValue({
         ...createMockSession(),
         students: new Map([['student-1', { id: 'student-1', name: 'Student', code: '', lastUpdate: new Date() }]]),
@@ -334,7 +334,7 @@ describe('POST /api/sessions/[id]/code', () => {
         id: 'instructor-1',
         role: 'instructor' as const,
       };
-      mockGetAuthenticatedUser.mockResolvedValue(instructorUser);
+      mockGetAuthenticatedUserWithToken.mockResolvedValue({ user: instructorUser, accessToken: 'test-token' });
 
       const request = new NextRequest('http://localhost:3000/api/sessions/session-1/code', {
         method: 'POST',
@@ -354,7 +354,7 @@ describe('POST /api/sessions/[id]/code', () => {
         id: 'ns-admin-1',
         role: 'namespace-admin' as const,
       };
-      mockGetAuthenticatedUser.mockResolvedValue(namespaceAdminUser);
+      mockGetAuthenticatedUserWithToken.mockResolvedValue({ user: namespaceAdminUser, accessToken: 'test-token' });
 
       const request = new NextRequest('http://localhost:3000/api/sessions/session-1/code', {
         method: 'POST',
@@ -374,7 +374,7 @@ describe('POST /api/sessions/[id]/code', () => {
         id: 'sys-admin-1',
         role: 'system-admin' as const,
       };
-      mockGetAuthenticatedUser.mockResolvedValue(sysAdminUser);
+      mockGetAuthenticatedUserWithToken.mockResolvedValue({ user: sysAdminUser, accessToken: 'test-token' });
 
       const request = new NextRequest('http://localhost:3000/api/sessions/session-1/code', {
         method: 'POST',

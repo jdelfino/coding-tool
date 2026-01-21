@@ -11,20 +11,17 @@ jest.mock('@/server/auth', () => ({
   getAuthProvider: jest.fn(),
 }));
 
-jest.mock('@/server/persistence', () => ({
-  getStorage: jest.fn(),
-}));
-
-jest.mock('@/server/services/session-service', () => ({
-  updateSessionProblem: jest.fn(),
-}));
+jest.mock('@/server/persistence');
+jest.mock('@/server/services/session-service');
 
 import { getAuthProvider } from '@/server/auth';
-import { getStorage } from '@/server/persistence';
+import { createStorage } from '@/server/persistence';
 import * as SessionService from '@/server/services/session-service';
 import type { User } from '@/server/auth/types';
 import type { Problem } from '@/server/types/problem';
 import type { Session } from '@/server/types';
+
+const mockCreateStorage = createStorage as jest.MockedFunction<typeof createStorage>;
 
 describe('POST /api/sessions/:sessionId/load-problem', () => {
   const mockAuthProvider = {
@@ -104,7 +101,7 @@ describe('POST /api/sessions/:sessionId/load-problem', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     (getAuthProvider as jest.Mock).mockResolvedValue(mockAuthProvider);
-    (getStorage as jest.Mock).mockResolvedValue(mockStorage);
+    mockCreateStorage.mockResolvedValue(mockStorage as any);
   });
 
   function createRequest(body: any, sessionId: string = 'session-123'): NextRequest {

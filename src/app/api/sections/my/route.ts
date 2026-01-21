@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
       return auth; // Return 401 error response
     }
 
-    const { user } = auth;
+    const { user, accessToken } = auth;
 
     // Rate limit by user ID (read operation)
     const limited = await rateLimit('read', request, user.id);
@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
     const namespaceId = getNamespaceContext(request, user);
 
     // Get all sections for this user with class info
-    const membershipRepo = await getMembershipRepository();
+    const membershipRepo = getMembershipRepository(accessToken);
     const sectionsWithClass = await membershipRepo.getUserSections(user.id, namespaceId);
 
     // Transform to match frontend expectations (flat className instead of nested class object)

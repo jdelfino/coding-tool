@@ -73,7 +73,8 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const invitationRepository = await getInvitationRepository();
+    const { accessToken } = auth;
+    const invitationRepository = getInvitationRepository(accessToken);
     const invitations = await invitationRepository.listInvitations({
       namespaceId,
       status,
@@ -178,7 +179,8 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const invitationService = await getInvitationService();
+    const { accessToken } = auth;
+    const invitationService = getInvitationService(accessToken);
     const invitation = await invitationService.createInvitation({
       email: normalizedEmail,
       namespaceId,

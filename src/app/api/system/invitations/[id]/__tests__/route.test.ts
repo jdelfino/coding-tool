@@ -72,12 +72,12 @@ describe('/api/system/invitations/[id]', () => {
     mockInvitationRepository = {
       getInvitation: jest.fn().mockResolvedValue(mockInvitation),
     };
-    (getInvitationRepository as jest.Mock).mockResolvedValue(mockInvitationRepository);
+    (getInvitationRepository as jest.Mock).mockReturnValue(mockInvitationRepository);
 
     mockInvitationService = {
       revokeInvitation: jest.fn().mockResolvedValue(undefined),
     };
-    (getInvitationService as jest.Mock).mockResolvedValue(mockInvitationService);
+    (getInvitationService as jest.Mock).mockReturnValue(mockInvitationService);
 
     (getInvitationStatus as jest.Mock).mockReturnValue('pending');
   });

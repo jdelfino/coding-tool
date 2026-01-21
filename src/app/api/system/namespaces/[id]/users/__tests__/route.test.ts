@@ -71,8 +71,8 @@ describe('Namespace Users API', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mockGetNamespaceRepository.mockResolvedValue(mockNamespaceRepo as any);
-    mockGetUserRepository.mockResolvedValue(mockUserRepo as any);
+    mockGetNamespaceRepository.mockReturnValue(mockNamespaceRepo as any);
+    mockGetUserRepository.mockReturnValue(mockUserRepo as any);
   });
 
   const mockAuthForUser = (user: any | null, permission: string = 'namespace.viewAll') => {
@@ -94,6 +94,7 @@ describe('Namespace Users API', () => {
       if (hasPermission) {
         const authContext = {
           user,
+          accessToken: 'test-access-token',
           rbac: {
             hasPermission: jest.fn().mockReturnValue(true),
             canManageUser: jest.fn().mockReturnValue(true),

@@ -5,8 +5,8 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { getAuthenticatedUser, checkPermission } from '@/server/auth/api-auth';
-import { getStorage } from '@/server/persistence';
+import { getAuthenticatedUserWithToken, checkPermission } from '@/server/auth/api-auth';
+import { createStorage } from '@/server/persistence';
 import * as SessionService from '@/server/services/session-service';
 import { rateLimit } from '@/server/rate-limit';
 
@@ -61,7 +61,7 @@ export async function POST(
 ) {
   try {
     // Authenticate user
-    const user = await getAuthenticatedUser(request);
+    const { user, accessToken } = await getAuthenticatedUserWithToken(request);
 
     // Rate limit by user ID (write operation)
     const limited = await rateLimit('write', request, user.id);
@@ -83,7 +83,7 @@ export async function POST(
     const { studentId } = body;
 
     // Get session
-    const storage = await getStorage();
+    const storage = await createStorage(accessToken);
     const session = await storage.sessions.getSession(sessionId);
 
     if (!session) {

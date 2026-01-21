@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GET, POST } from '../route';
-import { getStorage } from '@/server/persistence';
+import { createStorage } from '@/server/persistence';
 import * as SessionService from '@/server/services/session-service';
 import type { User } from '@/server/auth/types';
 import { RBACService } from '@/server/auth/rbac';
@@ -27,7 +27,7 @@ import { requireAuth } from '@/server/auth/api-helpers';
 function createAuthContext(user: User) {
   return {
     user,
-    sessionId: 'test-session',
+    accessToken: 'test-access-token',
     rbac: new RBACService(user),
   };
 }
@@ -101,7 +101,7 @@ describe('POST /api/sessions', () => {
       },
     };
 
-    (getStorage as jest.Mock).mockResolvedValue(mockStorage);
+    (createStorage as jest.Mock).mockResolvedValue(mockStorage);
   });
 
   it('creates a session without a problem', async () => {
@@ -415,7 +415,7 @@ describe('GET /api/sessions', () => {
       },
     };
 
-    (getStorage as jest.Mock).mockResolvedValue(mockStorage);
+    (createStorage as jest.Mock).mockResolvedValue(mockStorage);
   });
 
   it('returns sessions created by instructor', async () => {

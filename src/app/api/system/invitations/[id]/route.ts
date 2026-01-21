@@ -35,8 +35,9 @@ export async function GET(request: NextRequest, context: RouteContext) {
     }
 
     const { id } = await context.params;
+    const { accessToken } = auth;
 
-    const invitationRepository = await getInvitationRepository();
+    const invitationRepository = getInvitationRepository(accessToken);
     const invitation = await invitationRepository.getInvitation(id);
 
     if (!invitation) {
@@ -87,8 +88,9 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
     }
 
     const { id } = await context.params;
+    const { accessToken } = auth;
 
-    const invitationService = await getInvitationService();
+    const invitationService = getInvitationService(accessToken);
 
     try {
       await invitationService.revokeInvitation(id);
@@ -111,7 +113,7 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
     }
 
     // Get the updated invitation
-    const invitationRepository = await getInvitationRepository();
+    const invitationRepository = getInvitationRepository(accessToken);
     const invitation = await invitationRepository.getInvitation(id);
 
     if (!invitation) {
