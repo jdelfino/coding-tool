@@ -108,7 +108,7 @@ function InstructorPage() {
   } = useRealtimeSession({
     sessionId: sessionId || '',
     userId: user?.id,
-    userName: user?.username,
+    userName: user?.displayName || user?.email,
   });
 
   // Session operations hook
@@ -686,7 +686,7 @@ function InstructorPage() {
                 <div className="flex items-center gap-3 mt-1">
                   {user && (
                     <p className="text-sm text-gray-600">
-                      Signed in as {user.username}
+                      Signed in as {user.displayName || user.email}
                     </p>
                   )}
                   <NamespaceHeader className="text-sm" />

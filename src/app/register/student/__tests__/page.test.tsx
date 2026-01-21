@@ -222,7 +222,6 @@ describe('StudentRegistrationPage', () => {
 
       // Fill other fields
       await user.type(screen.getByPlaceholderText('you@example.com'), 'test@example.com');
-      await user.type(screen.getByPlaceholderText('Choose a username'), 'testuser');
       await user.type(screen.getByPlaceholderText('At least 8 characters'), 'weak');
       await user.type(screen.getByPlaceholderText('Re-enter your password'), 'weak');
 
@@ -238,7 +237,6 @@ describe('StudentRegistrationPage', () => {
       const user = await setupForm();
 
       await user.type(screen.getByPlaceholderText('you@example.com'), 'test@example.com');
-      await user.type(screen.getByPlaceholderText('Choose a username'), 'testuser');
       await user.type(screen.getByPlaceholderText('At least 8 characters'), 'abcdefgh');
       await user.type(screen.getByPlaceholderText('Re-enter your password'), 'abcdefgh');
 
@@ -249,26 +247,10 @@ describe('StudentRegistrationPage', () => {
       expect(screen.getByText('Password must contain at least one letter and one number')).toBeInTheDocument();
     });
 
-    it('validates username format', async () => {
-      const user = await setupForm();
-
-      await user.type(screen.getByPlaceholderText('you@example.com'), 'test@example.com');
-      await user.type(screen.getByPlaceholderText('Choose a username'), 'ab');
-      await user.type(screen.getByPlaceholderText('At least 8 characters'), 'Password123');
-      await user.type(screen.getByPlaceholderText('Re-enter your password'), 'Password123');
-
-      mockFetch.mockClear();
-
-      await user.click(screen.getByRole('button', { name: 'Create Account' }));
-
-      expect(screen.getByText('Username must be at least 3 characters')).toBeInTheDocument();
-    });
-
     it('shows password mismatch error', async () => {
       const user = await setupForm();
 
       await user.type(screen.getByPlaceholderText('you@example.com'), 'test@example.com');
-      await user.type(screen.getByPlaceholderText('Choose a username'), 'testuser');
       await user.type(screen.getByPlaceholderText('At least 8 characters'), 'Password123');
       await user.type(screen.getByPlaceholderText('Re-enter your password'), 'Different123');
 
@@ -315,7 +297,6 @@ describe('StudentRegistrationPage', () => {
       });
 
       await user.type(screen.getByPlaceholderText('you@example.com'), 'student@example.com');
-      await user.type(screen.getByPlaceholderText('Choose a username'), 'newstudent');
       await user.type(screen.getByPlaceholderText('At least 8 characters'), 'Password123');
       await user.type(screen.getByPlaceholderText('Re-enter your password'), 'Password123');
 
@@ -343,7 +324,6 @@ describe('StudentRegistrationPage', () => {
             code: 'ABC123XYZ',
             email: 'student@example.com',
             password: 'Password123',
-            username: 'newstudent',
           }),
         }));
       });

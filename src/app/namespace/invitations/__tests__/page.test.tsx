@@ -41,7 +41,6 @@ describe('InvitationsPage', () => {
 
   const mockUser = {
     id: 'user-1',
-    username: 'admin@example.com',
     role: 'namespace-admin' as const,
     namespaceId: 'test-namespace',
   };

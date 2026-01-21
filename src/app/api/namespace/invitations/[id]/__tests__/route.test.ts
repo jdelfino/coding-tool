@@ -33,7 +33,6 @@ describe('/api/namespace/invitations/[id]', () => {
   const mockNamespaceAdmin = {
     id: 'admin-123',
     email: 'admin@example.com',
-    username: 'admin',
     role: 'namespace-admin' as const,
     namespaceId: 'test-namespace',
     createdAt: new Date('2024-01-01'),

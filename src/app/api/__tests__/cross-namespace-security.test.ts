@@ -15,7 +15,6 @@ import { getNamespaceContext } from '@/server/auth/api-helpers';
 // Test users in different namespaces
 const namespaceAInstructor: User = {
   id: 'instructor-a',
-  username: 'alice',
   email: 'alice@namespace-a.com',
   role: 'instructor',
   namespaceId: 'namespace-a',
@@ -24,7 +23,6 @@ const namespaceAInstructor: User = {
 
 const namespaceBInstructor: User = {
   id: 'instructor-b',
-  username: 'bob',
   email: 'bob@namespace-b.com',
   role: 'instructor',
   namespaceId: 'namespace-b',
@@ -33,7 +31,6 @@ const namespaceBInstructor: User = {
 
 const namespaceAStudent: User = {
   id: 'student-a',
-  username: 'studentA',
   email: 'student@namespace-a.com',
   role: 'student',
   namespaceId: 'namespace-a',
@@ -42,7 +39,6 @@ const namespaceAStudent: User = {
 
 const namespaceBStudent: User = {
   id: 'student-b',
-  username: 'studentB',
   email: 'student@namespace-b.com',
   role: 'student',
   namespaceId: 'namespace-b',
@@ -51,7 +47,6 @@ const namespaceBStudent: User = {
 
 const namespaceAAdmin: User = {
   id: 'admin-a',
-  username: 'adminA',
   email: 'admin@namespace-a.com',
   role: 'namespace-admin',
   namespaceId: 'namespace-a',
@@ -60,7 +55,6 @@ const namespaceAAdmin: User = {
 
 const namespaceBAdmin: User = {
   id: 'admin-b',
-  username: 'adminB',
   email: 'admin@namespace-b.com',
   role: 'namespace-admin',
   namespaceId: 'namespace-b',
@@ -69,7 +63,6 @@ const namespaceBAdmin: User = {
 
 const systemAdmin: User = {
   id: 'sys-admin',
-  username: 'sysadmin',
   email: 'admin@system.com',
   role: 'system-admin',
   namespaceId: 'default',
@@ -154,7 +147,7 @@ describe('Cross-namespace user management (RBAC canManageUser)', () => {
     });
 
     it('namespace-admin-a cannot manage other namespace-admins in same namespace', () => {
-      const anotherNsAAdmin: User = { ...namespaceAAdmin, id: 'admin-a2', username: 'adminA2' };
+      const anotherNsAAdmin: User = { ...namespaceAAdmin, id: 'admin-a2', email: 'admin-a2@namespace-a.com' };
       const rbac = new RBACService(namespaceAAdmin);
       expect(rbac.canManageUser(namespaceAAdmin, anotherNsAAdmin)).toBe(false);
     });

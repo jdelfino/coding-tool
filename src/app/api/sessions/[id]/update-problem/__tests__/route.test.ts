@@ -18,7 +18,6 @@ import * as SessionService from '@/server/services/session-service';
 describe('POST /api/sessions/[sessionId]/update-problem', () => {
   const mockUser: User = {
     id: 'instructor-1',
-    username: 'instructor',
     email: 'instructor@example.com',
     role: 'instructor' as const,
     namespaceId: 'default',

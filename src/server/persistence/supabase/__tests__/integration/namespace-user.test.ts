@@ -50,7 +50,6 @@ describe('Wave 1 Integration: Namespace ↔ User', () => {
 
   const systemAdmin: User = {
     id: 'admin-1',
-    username: 'sysadmin',
       email: "test@example.com",
     role: 'system-admin',
     namespaceId: null,
@@ -60,7 +59,6 @@ describe('Wave 1 Integration: Namespace ↔ User', () => {
 
   const stanfordInstructor: User = {
     id: 'user-123',
-    username: 'stanford-prof',
       email: "test@example.com",
     role: 'instructor',
     namespaceId: 'stanford',
@@ -70,7 +68,6 @@ describe('Wave 1 Integration: Namespace ↔ User', () => {
 
   const mitInstructor: User = {
     id: 'user-456',
-    username: 'mit-prof',
       email: "test@example.com",
     role: 'instructor',
     namespaceId: 'mit',
@@ -80,7 +77,6 @@ describe('Wave 1 Integration: Namespace ↔ User', () => {
 
   const stanfordStudent: User = {
     id: 'user-789',
-    username: 'stanford-student',
       email: "test@example.com",
     role: 'student',
     namespaceId: 'stanford',
@@ -95,10 +91,8 @@ describe('Wave 1 Integration: Namespace ↔ User', () => {
 
   describe('User namespace association', () => {
     it('should retrieve user with correct namespace reference', async () => {
-      // Mock getUserByUsername to return Stanford instructor
       const userRow = {
         id: stanfordInstructor.id,
-        username: stanfordInstructor.username,
         role: stanfordInstructor.role,
         namespace_id: stanfordInstructor.namespaceId,
         display_name: stanfordInstructor.displayName,
@@ -114,7 +108,7 @@ describe('Wave 1 Integration: Namespace ↔ User', () => {
         }),
       });
 
-      const user = await userRepo.getUserByUsername('stanford-prof');
+      const user = await userRepo.getUser(stanfordInstructor.id);
 
       expect(user).not.toBeNull();
       expect(user?.namespaceId).toBe('stanford');
@@ -126,7 +120,6 @@ describe('Wave 1 Integration: Namespace ↔ User', () => {
       const stanfordUserRows = [
         {
           id: stanfordInstructor.id,
-          username: stanfordInstructor.username,
           role: stanfordInstructor.role,
           namespace_id: 'stanford',
           display_name: stanfordInstructor.displayName,
@@ -135,7 +128,6 @@ describe('Wave 1 Integration: Namespace ↔ User', () => {
         },
         {
           id: stanfordStudent.id,
-          username: stanfordStudent.username,
           role: stanfordStudent.role,
           namespace_id: 'stanford',
           display_name: null,
@@ -161,7 +153,6 @@ describe('Wave 1 Integration: Namespace ↔ User', () => {
       const mitUserRows = [
         {
           id: mitInstructor.id,
-          username: mitInstructor.username,
           role: mitInstructor.role,
           namespace_id: 'mit',
           display_name: mitInstructor.displayName,
@@ -190,7 +181,6 @@ describe('Wave 1 Integration: Namespace ↔ User', () => {
       // Mock getUser for system admin
       const adminRow = {
         id: systemAdmin.id,
-        username: systemAdmin.username,
         role: systemAdmin.role,
         namespace_id: null,
         display_name: systemAdmin.displayName,
@@ -218,7 +208,6 @@ describe('Wave 1 Integration: Namespace ↔ User', () => {
       const adminRows = [
         {
           id: systemAdmin.id,
-          username: systemAdmin.username,
           role: systemAdmin.role,
           namespace_id: null,
           display_name: systemAdmin.displayName,
@@ -338,7 +327,6 @@ describe('Wave 1 Integration: Namespace ↔ User', () => {
 
       const newUser: User = {
         id: 'new-user',
-        username: 'newuser',
       email: "test@example.com",
         role: 'student',
         namespaceId: 'stanford',
@@ -355,7 +343,6 @@ describe('Wave 1 Integration: Namespace ↔ User', () => {
       // Mock this as a database error
       const invalidAdmin: User = {
         id: 'bad-admin',
-        username: 'badadmin',
       email: "test@example.com",
         role: 'system-admin',
         namespaceId: 'stanford', // INVALID!
@@ -381,7 +368,6 @@ describe('Wave 1 Integration: Namespace ↔ User', () => {
       // Database constraint: non-admin roles MUST have namespace_id
       const invalidInstructor: User = {
         id: 'bad-instructor',
-        username: 'badinstructor',
       email: "test@example.com",
         role: 'instructor',
         namespaceId: null, // INVALID!
@@ -413,7 +399,6 @@ describe('Wave 1 Integration: Namespace ↔ User', () => {
             data: [
               {
                 id: stanfordInstructor.id,
-                username: stanfordInstructor.username,
                 role: stanfordInstructor.role,
                 namespace_id: 'stanford',
                 display_name: stanfordInstructor.displayName,
@@ -436,7 +421,6 @@ describe('Wave 1 Integration: Namespace ↔ User', () => {
             data: [
               {
                 id: mitInstructor.id,
-                username: mitInstructor.username,
                 role: mitInstructor.role,
                 namespace_id: 'mit',
                 display_name: mitInstructor.displayName,

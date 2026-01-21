@@ -11,7 +11,6 @@ jest.mock('@/server/persistence');
 describe('GET /api/sessions/[sessionId]/revisions', () => {
   const mockUser: User = {
     id: 'instructor-1',
-    username: 'instructor',
     email: 'instructor@example.com',
     role: 'instructor' as const,
     namespaceId: 'default',

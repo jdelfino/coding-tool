@@ -13,10 +13,9 @@ import { getAuthProvider } from '@/server/auth';
  * PUT /api/system/users/[id]
  *
  * Update a user (system-admin only)
- * 
+ *
  * Body:
  * - email?: string
- * - username?: string
  * - role?: 'system-admin' | 'namespace-admin' | 'instructor' | 'student'
  * - namespaceId?: string | null
  * - displayName?: string
@@ -33,7 +32,7 @@ export async function PUT(
 
     const { id: userId } = await params;
     const body = await request.json();
-    const { email, username, role, namespaceId, displayName } = body;
+    const { email, role, namespaceId, displayName } = body;
 
     const authProvider = await getAuthProvider();
     const supabase = authProvider.getSupabaseClient('admin');
@@ -54,7 +53,6 @@ export async function PUT(
 
     // Update user_profiles
     const profileUpdates: any = {};
-    if (username !== undefined) profileUpdates.username = username;
     if (role !== undefined) profileUpdates.role = role;
     if (namespaceId !== undefined) profileUpdates.namespace_id = namespaceId;
     if (displayName !== undefined) profileUpdates.display_name = displayName;
@@ -96,7 +94,6 @@ export async function PUT(
 
     const user = {
       id: profile.id,
-      username: profile.username,
       email: authUser.user?.email || '',
       role: profile.role,
       namespaceId: profile.namespace_id,

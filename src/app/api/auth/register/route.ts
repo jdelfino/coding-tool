@@ -19,12 +19,12 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { email, password, username } = body;
+    const { email, password } = body;
 
     // Validation
-    if (!email || !password || !username) {
+    if (!email || !password) {
       return NextResponse.json(
-        { error: 'Email, password, and username are required' },
+        { error: 'Email and password are required' },
         { status: 400 }
       );
     }
@@ -45,7 +45,6 @@ export async function POST(request: NextRequest) {
     const user = await authProvider.signUp(
       email,
       password,
-      username,
       'system-admin',
       null
     );

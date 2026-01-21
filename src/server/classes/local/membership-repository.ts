@@ -285,8 +285,8 @@ export class MembershipRepository implements IMembershipRepository {
       }
     }
 
-    // Sort by username
-    users.sort((a, b) => a.username.localeCompare(b.username));
+    // Sort by email
+    users.sort((a, b) => a.email.localeCompare(b.email));
 
     return users;
   }

@@ -10,7 +10,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 // User type (should match server type)
 interface User {
   id: string;
-  username: string;
+  email: string;
   role: 'system-admin' | 'namespace-admin' | 'instructor' | 'student';
   namespaceId: string | null;
   displayName?: string;

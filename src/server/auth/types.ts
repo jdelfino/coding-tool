@@ -95,10 +95,8 @@ export interface CapacityLimitsUpdate {
 export interface User {
   /** Unique identifier for the user (UUID from auth.users) */
   id: string;
-  /** Email address for authentication */
+  /** Email address for authentication and identification */
   email: string;
-  /** Username for display purposes */
-  username: string;
   /** User's role determining their permissions */
   role: UserRole;
   /** Namespace this user belongs to (null for system-admin, required for all others) */

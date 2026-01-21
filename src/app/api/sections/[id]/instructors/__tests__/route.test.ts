@@ -40,7 +40,6 @@ function createAuthContext(user: User) {
 function createTestUser(overrides: Partial<User> = {}): User {
   return {
     id: 'instructor-1',
-    username: 'instructor@example.com',
     email: 'instructor@example.com',
     role: 'instructor',
     namespaceId: 'default',

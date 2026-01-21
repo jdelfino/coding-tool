@@ -55,7 +55,6 @@ describe('/api/problems/[id]', () => {
 
   const mockUser = {
     id: 'user-1',
-    username: 'instructor1',
     email: 'instructor1@test.com',
     role: 'instructor' as const,
     namespaceId: 'default',

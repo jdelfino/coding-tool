@@ -20,7 +20,6 @@ jest.mock('next/navigation', () => ({
 // Mock AuthContext
 const mockUser = {
   id: 'admin-1',
-  username: 'admin',
   role: 'system-admin' as const,
   namespaceId: null,
 };

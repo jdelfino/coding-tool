@@ -29,7 +29,6 @@ import { getStorage } from '@/server/persistence';
 function createTestUser(overrides: Partial<User> = {}): User {
   return {
     id: 'user-1',
-    username: 'user@example.com',
     email: 'user@example.com',
     role: 'student',
     namespaceId: 'default',

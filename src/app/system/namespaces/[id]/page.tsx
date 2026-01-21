@@ -172,7 +172,7 @@ export default function NamespaceUsersPage() {
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <div style={{ flex: 1 }}>
-                  <h3 style={{ margin: 0, marginBottom: '0.5rem' }}>{user.username}</h3>
+                  <h3 style={{ margin: 0, marginBottom: '0.5rem' }}>{user.displayName || user.email}</h3>
 
                   {editingUserId === user.id ? (
                     <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '0.5rem' }}>

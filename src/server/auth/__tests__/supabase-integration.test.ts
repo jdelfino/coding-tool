@@ -56,15 +56,13 @@ describeIfSupabase('Supabase Auth Integration', () => {
     it('should create auth.users + user_profiles on signUp', async () => {
       const email = 'test-register@integration-test.local';
       const password = 'testpassword123';
-      const username = 'testuser';
       const role: UserRole = 'student';
       const namespaceId = 'default';
 
-      const user = await authProvider.signUp(email, password, username, role, namespaceId);
+      const user = await authProvider.signUp(email, password, role, namespaceId);
 
       expect(user.id).toBeDefined();
       expect(user.email).toBe(email);
-      expect(user.username).toBe(username);
       expect(user.role).toBe(role);
       expect(user.namespaceId).toBe(namespaceId);
 
@@ -79,7 +77,6 @@ describeIfSupabase('Supabase Auth Integration', () => {
         .eq('id', user.id)
         .single();
 
-      expect(profile.username).toBe(username);
       expect(profile.role).toBe(role);
       expect(profile.namespace_id).toBe(namespaceId);
     });
@@ -90,7 +87,6 @@ describeIfSupabase('Supabase Auth Integration', () => {
         authProvider.signUp(
           'test-rollback@integration-test.local',
           'password123',
-          'testuser',
           'student' as UserRole,
           'nonexistent-namespace-xyz'
         )
@@ -105,20 +101,19 @@ describeIfSupabase('Supabase Auth Integration', () => {
     it('should reject duplicate email', async () => {
       const email = 'duplicate@integration-test.local';
 
-      await authProvider.signUp(email, 'password123', 'user1', 'student' as UserRole, 'default');
+      await authProvider.signUp(email, 'password123', 'student' as UserRole, 'default');
 
       await expect(
-        authProvider.signUp(email, 'password123', 'user2', 'student' as UserRole, 'default')
+        authProvider.signUp(email, 'password123', 'student' as UserRole, 'default')
       ).rejects.toThrow();
     });
 
     it('should create system-admin without namespace', async () => {
       const email = 'sysadmin@integration-test.local';
       const password = 'testpassword123';
-      const username = 'sysadmin';
       const role: UserRole = 'system-admin';
 
-      const user = await authProvider.signUp(email, password, username, role, null);
+      const user = await authProvider.signUp(email, password, role, null);
 
       expect(user.role).toBe('system-admin');
       expect(user.namespaceId).toBeNull();
@@ -144,7 +139,6 @@ describeIfSupabase('Supabase Auth Integration', () => {
       await authProvider.signUp(
         testEmail,
         testPassword,
-        'signinuser',
         'student' as UserRole,
         'default'
       );
@@ -155,7 +149,6 @@ describeIfSupabase('Supabase Auth Integration', () => {
 
       expect(user).toBeDefined();
       expect(user!.email).toBe(testEmail);
-      expect(user!.username).toBe('signinuser');
       expect(user!.role).toBe('student');
     });
 
@@ -184,7 +177,6 @@ describeIfSupabase('Supabase Auth Integration', () => {
       const user = await authProvider.signUp(
         'session-test@integration-test.local',
         'password123',
-        'sessionuser',
         'student' as UserRole,
         'default'
       );
@@ -208,7 +200,6 @@ describeIfSupabase('Supabase Auth Integration', () => {
 
       expect(session).toBeDefined();
       expect(session!.user.id).toBe(testUserId);
-      expect(session!.user.username).toBe('sessionuser');
     });
 
     it('should return null for expired/invalid JWT', async () => {
@@ -220,7 +211,7 @@ describeIfSupabase('Supabase Auth Integration', () => {
     it('should handle session expiration gracefully', async () => {
       // This test validates that the session validation logic handles expired tokens
       // In a real scenario, we'd need to wait for token expiration or mock the time
-      
+
       // For now, just verify that invalid tokens return null
       const expiredToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyLCJleHAiOjF9.invalid';
       const session = await authProvider.getSession(expiredToken);
@@ -236,7 +227,6 @@ describeIfSupabase('Supabase Auth Integration', () => {
       const user = await authProvider.signUp(
         'profile-test@integration-test.local',
         'password123',
-        'profileuser',
         'student' as UserRole,
         'default'
       );
@@ -248,15 +238,6 @@ describeIfSupabase('Supabase Auth Integration', () => {
 
       expect(user).toBeDefined();
       expect(user!.id).toBe(testUserId);
-      expect(user!.username).toBe('profileuser');
-    });
-
-    it('should fetch user by username', async () => {
-      const user = await authProvider.getUserByUsername('profileuser');
-
-      expect(user).toBeDefined();
-      expect(user!.id).toBe(testUserId);
-      expect(user!.username).toBe('profileuser');
     });
 
     it('should update user profile', async () => {
@@ -295,49 +276,32 @@ describeIfSupabase('Supabase Auth Integration', () => {
       await authProvider.signUp(
         'admin-test-1@integration-test.local',
         'password123',
-        'user1',
         'student' as UserRole,
         'default'
       );
       await authProvider.signUp(
         'admin-test-2@integration-test.local',
         'password123',
-        'user2',
         'instructor' as UserRole,
         'default'
       );
 
       const adminClient = authProvider.getSupabaseClient('admin');
 
-      // Query user_profiles
-      const { data: profiles, error } = await adminClient
-        .from('user_profiles')
-        .select('*')
-        .or('username.eq.user1,username.eq.user2');
+      // Query user_profiles via auth users (since we removed username)
+      const { data: authUsers } = await adminClient.auth.admin.listUsers();
+      const testUsers = authUsers.users.filter(u =>
+        u.email === 'admin-test-1@integration-test.local' ||
+        u.email === 'admin-test-2@integration-test.local'
+      );
 
-      expect(error).toBeNull();
-      expect(profiles).toBeDefined();
-      expect(profiles!.length).toBeGreaterThanOrEqual(2);
-
-      const user1 = profiles!.find((p: any) => p.username === 'user1');
-      const user2 = profiles!.find((p: any) => p.username === 'user2');
-
-      expect(user1).toBeDefined();
-      expect(user2).toBeDefined();
-
-      // Fetch auth.users separately for email verification
-      const { data: authUser1 } = await adminClient.auth.admin.getUserById(user1!.id);
-      const { data: authUser2 } = await adminClient.auth.admin.getUserById(user2!.id);
-
-      expect(authUser1.user?.email).toBe('admin-test-1@integration-test.local');
-      expect(authUser2.user?.email).toBe('admin-test-2@integration-test.local');
+      expect(testUsers.length).toBe(2);
     });
 
     it('should update user email via admin API', async () => {
       const user = await authProvider.signUp(
         'update-email-test@integration-test.local',
         'password123',
-        'emailuser',
         'student' as UserRole,
         'default'
       );
@@ -364,8 +328,8 @@ describeIfSupabase('Supabase Auth Integration', () => {
 
       // Both should fail except the first one that succeeds
       const promises = [
-        authProvider.signUp(email, 'password123', 'user1', 'student' as UserRole, 'default'),
-        authProvider.signUp(email, 'password123', 'user2', 'student' as UserRole, 'default')
+        authProvider.signUp(email, 'password123', 'student' as UserRole, 'default'),
+        authProvider.signUp(email, 'password123', 'student' as UserRole, 'default')
       ];
 
       const results = await Promise.allSettled(promises);
@@ -376,11 +340,6 @@ describeIfSupabase('Supabase Auth Integration', () => {
 
       expect(succeeded.length).toBe(1);
       expect(failed.length).toBe(1);
-    });
-
-    it('should handle getUserByUsername with nonexistent username', async () => {
-      const user = await authProvider.getUserByUsername('nonexistent-user-xyz');
-      expect(user).toBeNull();
     });
 
     it('should handle deleteUser with nonexistent user ID', async () => {

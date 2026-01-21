@@ -22,7 +22,6 @@ describe('System Admin User Management API', () => {
   beforeEach(() => {
     mockSystemAdmin = {
       id: 'admin-id',
-      username: 'admin',
       email: 'admin@test.local',
       role: 'system-admin' as UserRole,
       namespaceId: null,
@@ -55,7 +54,6 @@ describe('System Admin User Management API', () => {
       const mockProfiles = [
         {
           id: 'user1',
-          username: 'user1',
           role: 'instructor',
           namespace_id: 'ns1',
           display_name: 'User One',
@@ -64,7 +62,6 @@ describe('System Admin User Management API', () => {
         },
         {
           id: 'user2',
-          username: 'user2',
           role: 'student',
           namespace_id: 'ns1',
           display_name: 'User Two',
@@ -116,7 +113,6 @@ describe('System Admin User Management API', () => {
       expect(data.users).toHaveLength(2);
       expect(data.users[0]).toMatchObject({
         id: 'user1',
-        username: 'user1',
         email: 'user1@test.local',
         role: 'instructor',
         namespaceId: 'ns1',
@@ -124,7 +120,6 @@ describe('System Admin User Management API', () => {
       });
       expect(data.users[1]).toMatchObject({
         id: 'user2',
-        username: 'user2',
         email: 'user2@test.local',
         role: 'student',
         emailConfirmed: false
@@ -173,7 +168,6 @@ describe('System Admin User Management API', () => {
     it('should update user email and profile fields', async () => {
       const updatedProfile = {
         id: 'user1',
-        username: 'updateduser',
         role: 'instructor',
         namespace_id: 'ns1',
         display_name: 'Updated User',
@@ -223,7 +217,6 @@ describe('System Admin User Management API', () => {
         method: 'PUT',
         body: JSON.stringify({
           email: 'updated@test.local',
-          username: 'updateduser',
           role: 'instructor',
           displayName: 'Updated User'
         })
@@ -235,7 +228,6 @@ describe('System Admin User Management API', () => {
       expect(response.status).toBe(200);
       expect(data.user).toMatchObject({
         id: 'user1',
-        username: 'updateduser',
         email: 'updated@test.local',
         role: 'instructor'
       });

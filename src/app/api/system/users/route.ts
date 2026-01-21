@@ -41,7 +41,6 @@ export async function GET(request: NextRequest) {
         const { data: authUser } = await supabase.auth.admin.getUserById(p.id);
         return {
           id: p.id,
-          username: p.username,
           email: authUser.user?.email || '',
           role: p.role,
           namespaceId: p.namespace_id,

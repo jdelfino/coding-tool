@@ -44,13 +44,12 @@ class MockSessionRepository {
 function createUser(
   role: 'system-admin' | 'namespace-admin' | 'instructor' | 'student',
   id = 'user-1',
-  username = 'testuser',
+  email = 'testuser@example.com',
   namespaceId = 'default'
 ): User {
   return {
     id,
-    email: `${username}@example.com`,
-    username,
+    email,
     role,
     namespaceId,
     displayName: `Test ${role}`,
@@ -404,7 +403,6 @@ describe('RBACService', () => {
         const instructor = createUser('instructor', 'instructor-1', 'instructor', 'default');
         const minimalUser = {
           id: 'user-1',
-          username: 'user',
           role: 'student',
           namespaceId: 'default', // Must match instructor's namespace
         } as User;
@@ -417,7 +415,6 @@ describe('RBACService', () => {
         const instructor = createUser('instructor', 'instructor-1', 'instructor', 'default');
         const userWithoutNamespace = {
           id: 'user-1',
-          username: 'user',
           role: 'student',
         } as User;
 

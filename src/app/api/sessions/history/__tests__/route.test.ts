@@ -27,7 +27,6 @@ function createAuthContext(user: User) {
 describe('GET /api/sessions/history', () => {
   const mockUser: User = {
     id: 'user-1',
-    username: 'instructor',
     email: "test@example.com",
     role: 'instructor' as const,
     namespaceId: 'default',
@@ -36,7 +35,6 @@ describe('GET /api/sessions/history', () => {
 
   const mockStudentUser: User = {
     id: 'user-2',
-    username: 'student',
     email: 'test@example.com',
     role: 'student' as const,
     namespaceId: 'default',

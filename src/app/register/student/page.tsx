@@ -8,7 +8,7 @@
  * Flow:
  * 1. Enter/validate join code
  * 2. See section preview (class name, instructor)
- * 3. Fill registration form (email, password, username)
+ * 3. Fill registration form (email, password)
  * 4. On success, redirect to student dashboard
  */
 
@@ -31,7 +31,6 @@ type ErrorType =
   | 'namespace_at_capacity'
   | 'email_exists'
   | 'weak_password'
-  | 'username_taken'
   | 'network_error';
 
 interface SectionInfo {
@@ -57,7 +56,6 @@ const ERROR_MESSAGES: Record<ErrorType, string> = {
   namespace_at_capacity: 'This class has reached its student limit. Contact your instructor.',
   email_exists: 'An account with this email already exists. Please sign in instead.',
   weak_password: 'Password must be at least 8 characters with a number and letter.',
-  username_taken: 'This username is already taken. Please choose another.',
   network_error: 'Unable to connect. Please try again.',
 };
 
@@ -95,14 +93,12 @@ function StudentRegistrationContent() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [username, setUsername] = useState('');
 
   // Field errors
   const [codeError, setCodeError] = useState('');
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [confirmPasswordError, setConfirmPasswordError] = useState('');
-  const [usernameError, setUsernameError] = useState('');
   const [submitError, setSubmitError] = useState('');
 
   // Pre-fill code from URL param
@@ -152,18 +148,6 @@ function StudentRegistrationContent() {
     if (password.length < 8) return 'Password must be at least 8 characters';
     if (!/[a-zA-Z]/.test(password) || !/[0-9]/.test(password)) {
       return 'Password must contain at least one letter and one number';
-    }
-    return '';
-  };
-
-  // Validate username
-  const validateUsername = (username: string): string => {
-    const trimmed = username.trim();
-    if (!trimmed) return 'Username is required';
-    if (trimmed.length < 3) return 'Username must be at least 3 characters';
-    if (trimmed.length > 30) return 'Username must be at most 30 characters';
-    if (!/^[a-zA-Z0-9_]+$/.test(trimmed)) {
-      return 'Username can only contain letters, numbers, and underscores';
     }
     return '';
   };
@@ -241,16 +225,14 @@ function StudentRegistrationContent() {
     // Validate all fields
     const emailErr = validateEmail(email);
     const passwordErr = validatePassword(password);
-    const usernameErr = validateUsername(username);
     const confirmErr = password !== confirmPassword ? 'Passwords do not match' : '';
 
     setEmailError(emailErr);
     setPasswordError(passwordErr);
-    setUsernameError(usernameErr);
     setConfirmPasswordError(confirmErr);
     setSubmitError('');
 
-    if (emailErr || passwordErr || usernameErr || confirmErr) {
+    if (emailErr || passwordErr || confirmErr) {
       return;
     }
 
@@ -265,7 +247,6 @@ function StudentRegistrationContent() {
           code: joinCode.replace(/-/g, ''),
           email: email.trim(),
           password,
-          username: username.trim(),
         }),
       });
 
@@ -277,8 +258,6 @@ function StudentRegistrationContent() {
           setSubmitError(ERROR_MESSAGES.email_exists);
         } else if (data.code === 'WEAK_PASSWORD') {
           setSubmitError(ERROR_MESSAGES.weak_password);
-        } else if (data.code === 'INVALID_USERNAME' || data.code === 'DUPLICATE_USERNAME') {
-          setSubmitError(ERROR_MESSAGES.username_taken);
         } else if (data.code === 'NAMESPACE_AT_CAPACITY') {
           setSubmitError(ERROR_MESSAGES.namespace_at_capacity);
         } else if (data.code === 'INVALID_CODE' || data.code === 'SECTION_INACTIVE') {
@@ -313,7 +292,6 @@ function StudentRegistrationContent() {
     setEmail('');
     setPassword('');
     setConfirmPassword('');
-    setUsername('');
     setSubmitError('');
   };
 
@@ -453,32 +431,6 @@ function StudentRegistrationContent() {
                 {emailError && (
                   <p className="mt-1 text-sm text-red-600">{emailError}</p>
                 )}
-              </div>
-
-              <div>
-                <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-2">
-                  Username
-                </label>
-                <input
-                  id="username"
-                  name="username"
-                  type="text"
-                  autoComplete="username"
-                  className={`appearance-none rounded-lg relative block w-full px-4 py-3 border ${
-                    usernameError ? 'border-red-300' : 'border-gray-300'
-                  } placeholder-gray-400 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 sm:text-sm disabled:bg-gray-50 disabled:text-gray-500`}
-                  placeholder="Choose a username"
-                  value={username}
-                  onChange={(e) => {
-                    setUsername(e.target.value);
-                    if (usernameError) setUsernameError('');
-                  }}
-                  disabled={pageState.status === 'submitting'}
-                />
-                {usernameError && (
-                  <p className="mt-1 text-sm text-red-600">{usernameError}</p>
-                )}
-                <p className="mt-1 text-xs text-gray-500">Letters, numbers, and underscores only</p>
               </div>
 
               <div>

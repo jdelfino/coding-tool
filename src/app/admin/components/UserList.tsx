@@ -79,7 +79,7 @@ export default function UserList({ users, currentUserId, onDelete, showActions =
             <tr key={user.id} style={{ borderBottom: '1px solid #dee2e6' }}>
               <td style={{ padding: '0.75rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  {user.username}
+                  {user.displayName || user.email}
                   {user.id === currentUserId && (
                     <span style={{
                       fontSize: '0.75rem',
@@ -116,7 +116,7 @@ export default function UserList({ users, currentUserId, onDelete, showActions =
                   ) : confirmDeleteId === user.id ? (
                     <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
                       <button
-                        onClick={() => handleDelete(user.id, user.username)}
+                        onClick={() => handleDelete(user.id, user.displayName || user.email)}
                         disabled={deletingId === user.id}
                         style={{
                           padding: '0.25rem 0.75rem',

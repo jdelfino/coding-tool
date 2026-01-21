@@ -86,7 +86,6 @@ describe('/api/classes', () => {
     it('should return classes for authenticated instructor', async () => {
       const user: User = {
         id: 'instructor-1',
-        username: 'alice@example.com',
         email: "test@example.com",
         role: 'instructor',
         namespaceId: 'default',
@@ -154,7 +153,6 @@ describe('/api/classes', () => {
     it('should return 400 if name is missing', async () => {
       const user: User = {
         id: 'instructor-1',
-        username: 'alice@example.com',
         email: "test@example.com",
         role: 'instructor',
         namespaceId: 'default',
@@ -179,7 +177,6 @@ describe('/api/classes', () => {
     it('should create class with valid data', async () => {
       const user: User = {
         id: 'instructor-1',
-        username: 'alice@example.com',
         email: "test@example.com",
         role: 'instructor',
         namespaceId: 'default',
@@ -220,7 +217,6 @@ describe('/api/classes', () => {
     it('should trim whitespace from inputs', async () => {
       const user: User = {
         id: 'instructor-1',
-        username: 'alice@example.com',
         email: "test@example.com",
         role: 'instructor',
         namespaceId: 'default',

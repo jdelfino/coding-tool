@@ -31,7 +31,6 @@ describe('SupabaseUserRepository', () => {
 
   const mockUser: User = {
     id: 'user-123',
-    username: 'jdoe',
       email: "test@example.com",
     emailConfirmed: false,
     role: 'instructor' as UserRole,
@@ -43,7 +42,6 @@ describe('SupabaseUserRepository', () => {
 
   const mockUserRow = {
     id: mockUser.id,
-    username: mockUser.username,
     email: mockUser.email,
     email_confirmed: false,
     role: mockUser.role,
@@ -134,17 +132,15 @@ describe('SupabaseUserRepository', () => {
       await repository.saveUser(mockUser);
 
       expect(mockFrom).toHaveBeenCalledWith('user_profiles');
+      // Note: email and email_confirmed are not saved to user_profiles - they come from auth.users
       expect(mockUpsert).toHaveBeenCalledWith(
         {
           id: mockUser.id,
-          email: mockUser.email,
-          username: mockUser.username,
           role: mockUser.role,
           namespace_id: mockUser.namespaceId,
           display_name: mockUser.displayName,
           created_at: mockUser.createdAt.toISOString(),
           last_login_at: mockUser.lastLoginAt?.toISOString(),
-          email_confirmed: mockUser.emailConfirmed,
         },
         { onConflict: 'id' }
       );
@@ -153,7 +149,6 @@ describe('SupabaseUserRepository', () => {
     it('should save a user without optional fields', async () => {
       const minimalUser: User = {
         id: 'user-456',
-        username: 'minimal',
       email: "test@example.com",
         role: 'student',
         namespaceId: 'stanford',
@@ -219,38 +214,26 @@ describe('SupabaseUserRepository', () => {
     });
   });
 
-  describe('getUserByUsername', () => {
-    it('should get a user by username', async () => {
+  describe('getUserByEmail', () => {
+    it('should get a user by email', async () => {
       mockSingle.mockResolvedValue({ data: mockUserRow, error: null });
 
-      const result = await repository.getUserByUsername(mockUser.username);
+      const result = await repository.getUserByEmail(mockUser.email);
 
       expect(mockFrom).toHaveBeenCalledWith('user_profiles');
-      expect(mockEq).toHaveBeenCalledWith('username', mockUser.username);
+      expect(mockEq).toHaveBeenCalledWith('email', mockUser.email);
       expect(result).toEqual(mockUser);
     });
 
-    it('should return null if username not found', async () => {
+    it('should return null if email not found', async () => {
       mockSingle.mockResolvedValue({
         data: null,
         error: { code: 'PGRST116', message: 'Not found' },
       });
 
-      const result = await repository.getUserByUsername('nonexistent');
+      const result = await repository.getUserByEmail('nonexistent@example.com');
 
       expect(result).toBeNull();
-    });
-  });
-
-  describe('getUserByEmail', () => {
-    it('should get a user by email (delegates to getUserByUsername)', async () => {
-      mockSingle.mockResolvedValue({ data: mockUserRow, error: null });
-
-      const result = await repository.getUserByEmail(mockUser.username);
-
-      expect(mockFrom).toHaveBeenCalledWith('user_profiles');
-      expect(mockEq).toHaveBeenCalledWith('username', mockUser.username);
-      expect(result).toEqual(mockUser);
     });
   });
 
@@ -261,7 +244,6 @@ describe('SupabaseUserRepository', () => {
         id: 'user-456',
         email: 'jsmith@example.com',
         emailConfirmed: false,
-        username: 'jsmith',
         role: 'student',
         namespaceId: 'stanford',
         createdAt: new Date('2025-01-02T00:00:00Z'),
@@ -270,7 +252,6 @@ describe('SupabaseUserRepository', () => {
 
     const mockUserRows = mockUsers.map((u) => ({
       id: u.id,
-      username: u.username,
       email: u.email,
       email_confirmed: u.emailConfirmed || false,
       role: u.role,
@@ -326,7 +307,6 @@ describe('SupabaseUserRepository', () => {
     it('should list system-admin users (null namespace)', async () => {
       const adminRow = {
         id: 'admin-1',
-        username: 'admin',
         role: 'system-admin',
         namespace_id: null,
         display_name: 'System Admin',
@@ -428,13 +408,13 @@ describe('SupabaseUserRepository', () => {
       expect(mockEq).toHaveBeenCalledWith('id', mockUser.id);
     });
 
-    it('should update username', async () => {
+    it('should update displayName', async () => {
       mockEq.mockResolvedValue({ data: null, error: null });
 
-      await repository.updateUser(mockUser.id, { username: 'newusername' });
+      await repository.updateUser(mockUser.id, { displayName: 'New Display Name' });
 
       const updateCall = mockFrom.mock.results[0].value.update;
-      expect(updateCall).toHaveBeenCalledWith({ username: 'newusername' });
+      expect(updateCall).toHaveBeenCalledWith({ display_name: 'New Display Name' });
     });
 
     it('should update namespace', async () => {

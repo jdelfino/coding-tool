@@ -112,7 +112,6 @@ export class SupabaseAuthProvider implements IAuthProvider {
   async signUp(
     email: string,
     password: string,
-    username: string,
     role: UserRole,
     namespaceId?: string | null
   ): Promise<User> {
@@ -122,9 +121,6 @@ export class SupabaseAuthProvider implements IAuthProvider {
         email,
         password,
         email_confirm: true, // Auto-confirm email (no verification required)
-        user_metadata: {
-          username,
-        },
       });
 
       if (error || !data.user) {
@@ -137,10 +133,8 @@ export class SupabaseAuthProvider implements IAuthProvider {
         .from('user_profiles')
         .insert({
           id: data.user.id,
-          username,
           role,
           namespace_id: namespaceId || null,
-          display_name: username,
           created_at: new Date().toISOString(),
         });
 
@@ -154,10 +148,8 @@ export class SupabaseAuthProvider implements IAuthProvider {
       return {
         id: data.user.id,
         email,
-        username,
         role,
         namespaceId: namespaceId || null,
-        displayName: username,
         createdAt: new Date(data.user.created_at),
         emailConfirmed: data.user.email_confirmed_at != null,
       };
@@ -270,13 +262,6 @@ export class SupabaseAuthProvider implements IAuthProvider {
   }
 
   /**
-   * Get user by username
-   */
-  async getUserByUsername(username: string): Promise<User | null> {
-    return this.userRepository.getUserByUsername(username);
-  }
-
-  /**
    * Update user
    */
   async updateUser(userId: string, updates: Partial<User>): Promise<void> {
@@ -309,7 +294,6 @@ export class SupabaseAuthProvider implements IAuthProvider {
     return {
       id: authUser.id,
       email: authUser.email,
-      username: profile.username,
       role: profile.role as UserRole,
       namespaceId: profile.namespace_id,
       displayName: profile.display_name || undefined,

@@ -61,14 +61,12 @@ describe('/api/auth/register-student', () => {
 
   const mockInstructor = {
     id: 'instructor-1',
-    username: 'prof_smith',
     displayName: 'Professor Smith',
   };
 
   const mockUser = {
     id: 'student-123',
     email: 'student@example.com',
-    username: 'newstudent',
     role: 'student' as const,
     namespaceId: 'test-namespace',
     createdAt: new Date('2024-01-01'),
@@ -244,7 +242,6 @@ describe('/api/auth/register-student', () => {
       code: 'ABC-123-XYZ',
       email: 'student@example.com',
       password: 'Password123',
-      username: 'newstudent',
     };
 
     it('returns 400 for missing required fields', async () => {
@@ -261,18 +258,6 @@ describe('/api/auth/register-student', () => {
 
     // Note: Password validation (strength requirements) is tested in
     // src/server/invitations/__tests__/student-registration-service.test.ts
-
-    it('returns 400 for invalid username', async () => {
-      const request = new NextRequest('http://localhost/api/auth/register-student', {
-        method: 'POST',
-        body: JSON.stringify({ ...validBody, username: 'ab' }),
-      });
-      const response = await POST(request);
-
-      expect(response.status).toBe(400);
-      const data = await response.json();
-      expect(data.code).toBe('INVALID_USERNAME');
-    });
 
     // Note: Email format validation is tested in
     // src/server/invitations/__tests__/student-registration-service.test.ts
@@ -346,7 +331,6 @@ describe('/api/auth/register-student', () => {
       expect(data.user).toEqual({
         id: 'student-123',
         email: 'student@example.com',
-        username: 'newstudent',
         role: 'student',
         namespaceId: 'test-namespace',
         createdAt: '2024-01-01T00:00:00.000Z',
@@ -361,11 +345,11 @@ describe('/api/auth/register-student', () => {
         'ABC-123-XYZ',
         'student@example.com',
         'Password123',
-        'newstudent'
+        undefined
       );
     });
 
-    // Note: Email/username whitespace trimming is tested in
+    // Note: Email whitespace trimming is tested in
     // src/server/invitations/__tests__/student-registration-service.test.ts
 
     it('handles unexpected errors gracefully', async () => {

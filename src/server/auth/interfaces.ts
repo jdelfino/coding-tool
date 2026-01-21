@@ -33,7 +33,6 @@ export interface IAuthProvider {
    *
    * @param email - User's email address
    * @param password - User's password
-   * @param username - User's username (for display)
    * @param role - User's role (system-admin, namespace-admin, instructor, or student)
    * @param namespaceId - Namespace ID (null for system-admin, required for others)
    * @returns The newly created user
@@ -42,7 +41,6 @@ export interface IAuthProvider {
   signUp(
     email: string,
     password: string,
-    username: string,
     role: UserRole,
     namespaceId?: string | null
   ): Promise<User>;
@@ -54,14 +52,6 @@ export interface IAuthProvider {
    * @returns User if found, null otherwise
    */
   getUser(userId: string): Promise<User | null>;
-
-  /**
-   * Get a user by their username.
-   *
-   * @param username - User's username
-   * @returns User if found, null otherwise
-   */
-  getUserByUsername(username: string): Promise<User | null>;
 
   /**
    * Update user information.
@@ -160,16 +150,7 @@ export interface IUserRepository {
   getUser(userId: string): Promise<User | null>;
 
   /**
-   * Get a user by their username.
-   *
-   * @param username - User's username
-   * @returns User if found, null otherwise
-   */
-  getUserByUsername(username: string): Promise<User | null>;
-
-  /**
    * Get a user by their email.
-   * Note: In the current implementation, email and username are the same.
    *
    * @param email - User's email
    * @returns User if found, null otherwise

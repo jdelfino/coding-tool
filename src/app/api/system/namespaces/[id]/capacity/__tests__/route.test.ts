@@ -18,7 +18,6 @@ const mockGetNamespaceRepository = getNamespaceRepository as jest.MockedFunction
 describe('Namespace Capacity API', () => {
   const mockSystemAdmin = {
     id: 'admin-123',
-    username: 'sysadmin',
     role: 'system-admin' as const,
     namespaceId: null,
     createdAt: new Date(),
@@ -27,7 +26,6 @@ describe('Namespace Capacity API', () => {
 
   const mockInstructor = {
     id: 'instructor-123',
-    username: 'teacher',
     role: 'instructor' as const,
     namespaceId: 'test-namespace',
     createdAt: new Date(),

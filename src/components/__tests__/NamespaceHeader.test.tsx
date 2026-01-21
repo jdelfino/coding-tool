@@ -26,7 +26,7 @@ describe('NamespaceHeader', () => {
       mockUseAuth.mockReturnValue({
         user: {
           id: 'user1',
-          username: 'instructor1',
+          email: 'instructor1@example.com',
           role: 'instructor',
           namespaceId: 'stanford',
           displayName: 'Instructor One',
@@ -71,7 +71,7 @@ describe('NamespaceHeader', () => {
       mockUseAuth.mockReturnValue({
         user: {
           id: 'admin1',
-          username: 'admin1',
+          email: 'admin@example.com',
           role: 'namespace-admin',
           namespaceId: 'mit',
           displayName: 'Admin One',
@@ -115,7 +115,7 @@ describe('NamespaceHeader', () => {
       mockUseAuth.mockReturnValue({
         user: {
           id: 'student1',
-          username: 'student1',
+          email: 'student1@example.com',
           role: 'student',
           namespaceId: 'stanford',
           displayName: 'Student One',
@@ -159,7 +159,7 @@ describe('NamespaceHeader', () => {
       mockUseAuth.mockReturnValue({
         user: {
           id: 'user1',
-          username: 'user1',
+          email: 'user1@example.com',
           role: 'instructor',
           namespaceId: 'testns',
           displayName: 'User One',
@@ -196,7 +196,7 @@ describe('NamespaceHeader', () => {
       mockUseAuth.mockReturnValue({
         user: {
           id: 'user1',
-          username: 'user1',
+          email: 'user1@example.com',
           role: 'instructor',
           namespaceId: 'stanford',
           displayName: 'User One',
@@ -243,7 +243,7 @@ describe('NamespaceHeader', () => {
       mockUseAuth.mockReturnValue({
         user: {
           id: 'sysadmin1',
-          username: 'sysadmin',
+          email: 'sysadmin@example.com',
           role: 'system-admin',
           namespaceId: 'default',
           displayName: 'System Admin',
@@ -311,7 +311,7 @@ describe('NamespaceHeader', () => {
       mockUseAuth.mockReturnValue({
         user: {
           id: 'sysadmin1',
-          username: 'sysadmin',
+          email: 'sysadmin@example.com',
           role: 'system-admin',
           namespaceId: 'default',
           displayName: 'System Admin',
@@ -387,7 +387,7 @@ describe('NamespaceHeader', () => {
       mockUseAuth.mockReturnValue({
         user: {
           id: 'user1',
-          username: 'user1',
+          email: 'user1@example.com',
           role: 'instructor',
           namespaceId: null,
           displayName: 'User One',
@@ -414,7 +414,7 @@ describe('NamespaceHeader', () => {
       mockUseAuth.mockReturnValue({
         user: {
           id: 'user1',
-          username: 'user1',
+          email: 'user1@example.com',
           role: 'instructor',
           namespaceId: 'stanford',
           displayName: 'User One',

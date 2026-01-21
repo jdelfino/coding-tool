@@ -16,7 +16,6 @@ function mapRowToUser(row: any): User {
   return {
     id: row.id,
     email: row.email,
-    username: row.username,
     role: row.role as UserRole,
     namespaceId: row.namespace_id,
     displayName: row.display_name || undefined,
@@ -52,18 +51,15 @@ export class SupabaseUserRepository implements IUserRepository {
     // Prepare user data for database
     const userData = {
       id: user.id,
-      email: user.email,
-      username: user.username,
       role: user.role,
       namespace_id: user.namespaceId,
       display_name: user.displayName || null,
       created_at: user.createdAt.toISOString(),
       last_login_at: user.lastLoginAt?.toISOString() || null,
-      email_confirmed: user.emailConfirmed || false,
     };
 
     // Try to insert, if conflict update
-    const { error } = await supabase.from('user_profiles').upsert(userData, {
+    const { error } = await supabase.from('user_profiles').upsert(userData as any, {
       onConflict: 'id',
     });
 
@@ -92,13 +88,15 @@ export class SupabaseUserRepository implements IUserRepository {
     return data ? mapRowToUser(data) : null;
   }
 
-  async getUserByUsername(username: string): Promise<User | null> {
+  async getUserByEmail(email: string): Promise<User | null> {
     const supabase = getSupabaseClient();
 
+    // Email is stored in auth.users, so we need to query via the join
+    // The email field is available in the user_profiles view/query if joined
     const { data, error } = await supabase
       .from('user_profiles')
       .select('*')
-      .eq('username', username)
+      .eq('email', email)
       .single();
 
     if (error) {
@@ -106,15 +104,10 @@ export class SupabaseUserRepository implements IUserRepository {
       if (error.code === 'PGRST116') {
         return null;
       }
-      throw new Error(`Failed to get user by username: ${error.message}`);
+      throw new Error(`Failed to get user by email: ${error.message}`);
     }
 
     return data ? mapRowToUser(data) : null;
-  }
-
-  async getUserByEmail(email: string): Promise<User | null> {
-    // In the current implementation, email and username are the same
-    return this.getUserByUsername(email);
   }
 
   async listUsers(role?: UserRole, namespaceId?: string | null): Promise<User[]> {
@@ -154,7 +147,6 @@ export class SupabaseUserRepository implements IUserRepository {
     // Map User fields to database columns
     const dbUpdates: any = {};
 
-    if (updates.username !== undefined) dbUpdates.username = updates.username;
     if (updates.role !== undefined) dbUpdates.role = updates.role;
     if (updates.namespaceId !== undefined) dbUpdates.namespace_id = updates.namespaceId;
     if (updates.displayName !== undefined) dbUpdates.display_name = updates.displayName;
