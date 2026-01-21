@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { cn } from '@/lib/utils';
 
 interface ExecutionSettingsProps {
   stdin?: string;
@@ -94,58 +95,28 @@ export default function ExecutionSettings({
 
   const hasContent = stdin || randomSeed !== undefined || attachedFiles.length > 0;
 
-  // Color scheme based on mode
-  const bgColor = useDarkTheme ? 'transparent' : '#f5f5f5';
-  const contentBg = useDarkTheme ? '#1f2937' : 'white'; // gray-800 for dark theme
-  const textColor = useDarkTheme ? '#e5e7eb' : '#000'; // gray-200 for dark theme
-  const labelColor = useDarkTheme ? '#d1d5db' : '#000'; // gray-300 for dark theme
-  const inputBg = useDarkTheme ? '#374151' : '#fff'; // gray-700 for dark theme
-  const inputBorder = useDarkTheme ? '#4b5563' : '#ccc'; // gray-600 for dark theme
-  const inputText = useDarkTheme ? '#f3f4f6' : '#000'; // gray-100 for dark theme
-  const buttonBg = useDarkTheme ? '#374151' : '#f5f5f5'; // gray-700 for dark theme
-  const buttonHoverBg = useDarkTheme ? '#4b5563' : '#e5e5e5'; // gray-600 for dark theme
-  const borderColor = useDarkTheme ? '#374151' : '#ccc'; // gray-700 for dark theme
-  const disabledBg = useDarkTheme ? '#1f2937' : '#f5f5f5'; // gray-800 for dark theme, light gray for light theme
-  const displayBg = useDarkTheme ? '#111827' : '#f8f9fa'; // gray-900 for dark theme, lighter gray for light
-  const displayBorder = useDarkTheme ? '#374151' : '#dee2e6'; // gray-700 for dark, light border for light
-  const mutedText = useDarkTheme ? '#9ca3af' : '#666'; // gray-400 for dark, medium gray for light
-  const sectionBorder = useDarkTheme ? '#374151' : '#eee'; // gray-700 for dark, very light for light
-
   return (
-    <div style={{
-      borderTop: inSidebar ? 'none' : `1px solid ${borderColor}`,
-      backgroundColor: bgColor,
-      color: textColor,
-    }}>
+    <div className={cn(
+      !inSidebar && 'border-t',
+      useDarkTheme ? 'border-gray-700 bg-transparent text-gray-200' : 'border-gray-300 bg-gray-100 text-black'
+    )}>
       {shouldShowCollapse && (
         <button
           type="button"
           onClick={() => setExpanded(!expanded)}
-          style={{
-            width: '100%',
-            padding: '0.5rem 1rem',
-            backgroundColor: 'transparent',
-            border: 'none',
-            cursor: 'pointer',
-            textAlign: 'left',
-            fontWeight: 'bold',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-          }}
+          className="w-full px-4 py-2 bg-transparent border-none cursor-pointer text-left font-bold flex items-center justify-between"
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span style={{
-              transition: 'transform 0.2s',
-              display: 'inline-block',
-              transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
-            }}>
+          <div className="flex items-center gap-2">
+            <span className={cn(
+              'inline-block transition-transform duration-200',
+              isExpanded && 'rotate-90'
+            )}>
               ▶
             </span>
             Execution Settings
           </div>
           {hasContent && !isExpanded && (
-            <span style={{ fontSize: '0.85rem', color: '#666', fontWeight: 'normal' }}>
+            <span className="text-sm text-gray-500 font-normal">
               {stdin && '📝'} {randomSeed !== undefined && '🎲'} {attachedFiles.length > 0 && `📁 ${attachedFiles.length}`}
             </span>
           )}
@@ -153,29 +124,23 @@ export default function ExecutionSettings({
       )}
 
       {isExpanded && (
-        <div style={{
-          padding: '1rem',
-          backgroundColor: contentBg,
-          borderTop: shouldShowCollapse ? `1px solid ${borderColor}` : 'none',
-          color: textColor,
-        }}>
+        <div className={cn(
+          'p-4',
+          useDarkTheme ? 'bg-gray-800 text-gray-200' : 'bg-white text-black',
+          shouldShowCollapse && (useDarkTheme ? 'border-t border-gray-700' : 'border-t border-gray-300')
+        )}>
           {/* Program Input */}
-          <div style={{ marginBottom: '1rem' }}>
-            <label style={{
-              display: 'block',
-              marginBottom: '0.5rem',
-              fontWeight: 'bold',
-              fontSize: '0.9rem',
-              color: labelColor,
-            }}>
+          <div className="mb-4">
+            <label className={cn(
+              'block mb-2 font-bold text-sm',
+              useDarkTheme ? 'text-gray-300' : 'text-black'
+            )}>
               Program Input (stdin):
               {exampleInput && (
-                <span style={{
-                  marginLeft: '0.5rem',
-                  fontSize: '0.8rem',
-                  color: inSidebar ? '#9ca3af' : '#666',
-                  fontWeight: 'normal'
-                }}>
+                <span className={cn(
+                  'ml-2 text-xs font-normal',
+                  useDarkTheme ? 'text-gray-400' : 'text-gray-500'
+                )}>
                   (example provided by instructor)
                 </span>
               )}
@@ -185,25 +150,26 @@ export default function ExecutionSettings({
               onChange={(e) => onStdinChange?.(e.target.value)}
               placeholder="Enter input for your program (one value per line)"
               readOnly={readOnly}
-              style={{
-                width: '100%',
-                minHeight: '80px',
-                padding: '0.5rem',
-                fontFamily: 'monospace',
-                fontSize: '0.9rem',
-                border: `1px solid ${inputBorder}`,
-                borderRadius: '4px',
-                resize: 'vertical',
-                backgroundColor: readOnly ? disabledBg : inputBg,
-                color: inputText,
-              }}
+              className={cn(
+                'w-full min-h-[80px] p-2 font-mono text-sm border rounded resize-y',
+                useDarkTheme
+                  ? 'bg-gray-700 border-gray-600 text-gray-100 placeholder-gray-400'
+                  : 'bg-white border-gray-300 text-black placeholder-gray-400',
+                readOnly && (useDarkTheme ? 'bg-gray-800' : 'bg-gray-100')
+              )}
             />
           </div>
 
           {/* Random Seed */}
-          <div style={{ marginBottom: '1rem', paddingTop: '1rem', borderTop: `1px solid ${sectionBorder}` }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-              <h4 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 'bold', color: labelColor }}>Random Seed:</h4>
+          <div className={cn(
+            'mb-4 pt-4 border-t',
+            useDarkTheme ? 'border-gray-700' : 'border-gray-200'
+          )}>
+            <div className="flex items-center justify-between mb-2">
+              <h4 className={cn(
+                'm-0 text-sm font-bold',
+                useDarkTheme ? 'text-gray-300' : 'text-black'
+              )}>Random Seed:</h4>
               {!readOnly && !editingSeed && (
                 <button
                   type="button"
@@ -211,15 +177,7 @@ export default function ExecutionSettings({
                     setSeedInput(randomSeed?.toString() || '');
                     setEditingSeed(true);
                   }}
-                  style={{
-                    padding: '0.25rem 0.5rem',
-                    fontSize: '0.8rem',
-                    backgroundColor: '#0070f3',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '3px',
-                    cursor: 'pointer',
-                  }}
+                  className="px-2 py-1 text-xs bg-blue-500 text-white border-none rounded cursor-pointer hover:bg-blue-600"
                 >
                   Edit
                 </button>
@@ -227,78 +185,69 @@ export default function ExecutionSettings({
             </div>
 
             {!editingSeed ? (
-              <div style={{
-                padding: '0.5rem',
-                backgroundColor: displayBg,
-                border: `1px solid ${displayBorder}`,
-                borderRadius: '4px',
-                fontSize: '0.9rem',
-                color: textColor,
-              }}>
+              <div className={cn(
+                'p-2 rounded border text-sm',
+                useDarkTheme
+                  ? 'bg-gray-900 border-gray-700 text-gray-200'
+                  : 'bg-gray-50 border-gray-200 text-black'
+              )}>
                 {randomSeed !== undefined ? (
                   <code>{randomSeed}</code>
                 ) : (
-                  <span style={{ color: mutedText, fontStyle: 'italic' }}>No seed set (random)</span>
+                  <span className={cn(
+                    'italic',
+                    useDarkTheme ? 'text-gray-400' : 'text-gray-500'
+                  )}>No seed set (random)</span>
                 )}
               </div>
             ) : (
-              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              <div className="flex gap-2 items-center">
                 <input
                   type="number"
                   value={seedInput}
                   onChange={(e) => setSeedInput(e.target.value)}
                   placeholder="Enter seed (leave empty for random)"
-                  style={{
-                    flex: 1,
-                    padding: '0.5rem',
-                    border: `1px solid ${inputBorder}`,
-                    borderRadius: '4px',
-                    fontSize: '0.9rem',
-                    backgroundColor: inputBg,
-                    color: inputText,
-                  }}
+                  className={cn(
+                    'flex-1 p-2 border rounded text-sm',
+                    useDarkTheme
+                      ? 'bg-gray-700 border-gray-600 text-gray-100'
+                      : 'bg-white border-gray-300 text-black'
+                  )}
                 />
                 <button
                   type="button"
                   onClick={handleSaveSeed}
-                  style={{
-                    padding: '0.5rem 0.75rem',
-                    backgroundColor: '#28a745',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '3px',
-                    cursor: 'pointer',
-                    fontSize: '0.85rem'
-                  }}
+                  className="px-3 py-2 bg-green-600 text-white border-none rounded cursor-pointer text-sm hover:bg-green-700"
                 >
                   Save
                 </button>
                 <button
                   type="button"
                   onClick={handleCancelSeedEdit}
-                  style={{
-                    padding: '0.5rem 0.75rem',
-                    backgroundColor: '#6c757d',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '3px',
-                    cursor: 'pointer',
-                    fontSize: '0.85rem'
-                  }}
+                  className="px-3 py-2 bg-gray-500 text-white border-none rounded cursor-pointer text-sm hover:bg-gray-600"
                 >
                   Cancel
                 </button>
               </div>
             )}
-            <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.8rem', color: mutedText }}>
+            <p className={cn(
+              'mt-2 mb-0 text-xs',
+              useDarkTheme ? 'text-gray-400' : 'text-gray-500'
+            )}>
               Makes random numbers predictable. Same seed = same "random" results.
             </p>
           </div>
 
           {/* Attached Files */}
-          <div style={{ paddingTop: '1rem', borderTop: `1px solid ${sectionBorder}` }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-              <h4 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 'bold', color: labelColor }}>Attached Files:</h4>
+          <div className={cn(
+            'pt-4 border-t',
+            useDarkTheme ? 'border-gray-700' : 'border-gray-200'
+          )}>
+            <div className="flex items-center justify-between mb-2">
+              <h4 className={cn(
+                'm-0 text-sm font-bold',
+                useDarkTheme ? 'text-gray-300' : 'text-black'
+              )}>Attached Files:</h4>
               {!readOnly && !editingFiles && (
                 <button
                   type="button"
@@ -306,15 +255,7 @@ export default function ExecutionSettings({
                     setLocalFiles(attachedFiles);
                     setEditingFiles(true);
                   }}
-                  style={{
-                    padding: '0.25rem 0.5rem',
-                    fontSize: '0.8rem',
-                    backgroundColor: '#0070f3',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '3px',
-                    cursor: 'pointer',
-                  }}
+                  className="px-2 py-1 text-xs bg-blue-500 text-white border-none rounded cursor-pointer hover:bg-blue-600"
                 >
                   Edit
                 </button>
@@ -324,65 +265,51 @@ export default function ExecutionSettings({
             {!editingFiles ? (
               <>
                 {attachedFiles.length === 0 ? (
-                  <div style={{
-                    padding: '0.5rem',
-                    backgroundColor: displayBg,
-                    border: `1px solid ${displayBorder}`,
-                    borderRadius: '4px',
-                    fontSize: '0.9rem',
-                    color: textColor,
-                  }}>
-                    <span style={{ color: mutedText, fontStyle: 'italic' }}>No files attached</span>
+                  <div className={cn(
+                    'p-2 rounded border text-sm',
+                    useDarkTheme
+                      ? 'bg-gray-900 border-gray-700 text-gray-200'
+                      : 'bg-gray-50 border-gray-200 text-black'
+                  )}>
+                    <span className={cn(
+                      'italic',
+                      useDarkTheme ? 'text-gray-400' : 'text-gray-500'
+                    )}>No files attached</span>
                   </div>
                 ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  <div className="flex flex-col gap-2">
                     {attachedFiles.map((file, index) => (
                       <div
                         key={index}
-                        style={{
-                          padding: '0.75rem',
-                          backgroundColor: displayBg,
-                          border: `1px solid ${displayBorder}`,
-                          borderRadius: '4px',
-                          color: textColor,
-                        }}
+                        className={cn(
+                          'p-3 rounded border',
+                          useDarkTheme
+                            ? 'bg-gray-900 border-gray-700 text-gray-200'
+                            : 'bg-gray-50 border-gray-200 text-black'
+                        )}
                       >
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            <strong style={{ fontSize: '0.9rem' }}>{file.name}</strong>
+                        <div className="flex justify-between items-center mb-2">
+                          <div className="flex items-center gap-2">
+                            <strong className="text-sm">{file.name}</strong>
                             <button
                               type="button"
                               onClick={() => copyToClipboard(file.name)}
                               title="Copy file path"
-                              style={{
-                                padding: '0.2rem 0.4rem',
-                                fontSize: '0.75rem',
-                                backgroundColor: '#6c757d',
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: '3px',
-                                cursor: 'pointer',
-                              }}
+                              className="px-1.5 py-0.5 text-xs bg-gray-500 text-white border-none rounded cursor-pointer hover:bg-gray-600"
                             >
                               📋 Copy Path
                             </button>
                           </div>
-                          <span style={{ fontSize: '0.8rem', color: '#666' }}>
+                          <span className="text-xs text-gray-500">
                             {file.content.length} bytes
                           </span>
                         </div>
-                        <pre style={{
-                          margin: 0,
-                          padding: '0.5rem',
-                          backgroundColor: 'white',
-                          border: '1px solid #dee2e6',
-                          borderRadius: '3px',
-                          fontSize: '0.85rem',
-                          maxHeight: '150px',
-                          overflow: 'auto',
-                          whiteSpace: 'pre-wrap',
-                          wordBreak: 'break-all',
-                        }}>
+                        <pre className={cn(
+                          'm-0 p-2 rounded border text-sm max-h-[150px] overflow-auto whitespace-pre-wrap break-all font-mono',
+                          useDarkTheme
+                            ? 'bg-gray-800 border-gray-700'
+                            : 'bg-white border-gray-200'
+                        )}>
                           {file.content}
                         </pre>
                       </div>
@@ -391,52 +318,33 @@ export default function ExecutionSettings({
                 )}
               </>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <div className="flex flex-col gap-3">
                 {/* Existing files list */}
                 {localFiles.length > 0 && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  <div className="flex flex-col gap-2">
                     {localFiles.map((file, index) => (
                       <div
                         key={index}
-                        style={{
-                          padding: '0.5rem',
-                          backgroundColor: '#e9ecef',
-                          border: '1px solid #dee2e6',
-                          borderRadius: '4px',
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center',
-                        }}
+                        className={cn(
+                          'p-2 rounded border flex justify-between items-center',
+                          useDarkTheme
+                            ? 'bg-gray-700 border-gray-600'
+                            : 'bg-gray-100 border-gray-200'
+                        )}
                       >
-                        <span style={{ fontSize: '0.9rem' }}>{file.name}</span>
-                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <span className="text-sm">{file.name}</span>
+                        <div className="flex gap-2">
                           <button
                             type="button"
                             onClick={() => handleEditFile(index)}
-                            style={{
-                              padding: '0.25rem 0.5rem',
-                              fontSize: '0.8rem',
-                              backgroundColor: '#0070f3',
-                              color: 'white',
-                              border: 'none',
-                              borderRadius: '3px',
-                              cursor: 'pointer',
-                            }}
+                            className="px-2 py-1 text-xs bg-blue-500 text-white border-none rounded cursor-pointer hover:bg-blue-600"
                           >
                             Edit
                           </button>
                           <button
                             type="button"
                             onClick={() => handleRemoveFile(index)}
-                            style={{
-                              padding: '0.25rem 0.5rem',
-                              fontSize: '0.8rem',
-                              backgroundColor: '#dc3545',
-                              color: 'white',
-                              border: 'none',
-                              borderRadius: '3px',
-                              cursor: 'pointer',
-                            }}
+                            className="px-2 py-1 text-xs bg-red-500 text-white border-none rounded cursor-pointer hover:bg-red-600"
                           >
                             Remove
                           </button>
@@ -447,97 +355,74 @@ export default function ExecutionSettings({
                 )}
 
                 {/* Add new file form */}
-                <div style={{
-                  padding: '0.75rem',
-                  backgroundColor: '#f8f9fa',
-                  border: '1px solid #dee2e6',
-                  borderRadius: '4px',
-                }}>
-                  <h5 style={{ margin: '0 0 0.5rem 0', fontSize: '0.9rem' }}>Add File:</h5>
+                <div className={cn(
+                  'p-3 rounded border',
+                  useDarkTheme
+                    ? 'bg-gray-700 border-gray-600'
+                    : 'bg-gray-50 border-gray-200'
+                )}>
+                  <h5 className="m-0 mb-2 text-sm">Add File:</h5>
                   <input
                     type="text"
                     value={newFileName}
                     onChange={(e) => setNewFileName(e.target.value)}
                     placeholder="Filename (e.g., data.txt)"
-                    style={{
-                      width: '100%',
-                      padding: '0.5rem',
-                      marginBottom: '0.5rem',
-                      border: '1px solid #ccc',
-                      borderRadius: '4px',
-                      fontSize: '0.9rem'
-                    }}
+                    className={cn(
+                      'w-full p-2 mb-2 border rounded text-sm',
+                      useDarkTheme
+                        ? 'bg-gray-800 border-gray-600 text-gray-100'
+                        : 'bg-white border-gray-300 text-black'
+                    )}
                   />
                   <textarea
                     value={newFileContent}
                     onChange={(e) => setNewFileContent(e.target.value)}
                     placeholder="File content"
-                    style={{
-                      width: '100%',
-                      minHeight: '80px',
-                      padding: '0.5rem',
-                      border: '1px solid #ccc',
-                      borderRadius: '4px',
-                      fontSize: '0.9rem',
-                      fontFamily: 'monospace',
-                      resize: 'vertical',
-                    }}
+                    className={cn(
+                      'w-full min-h-[80px] p-2 border rounded text-sm font-mono resize-y',
+                      useDarkTheme
+                        ? 'bg-gray-800 border-gray-600 text-gray-100'
+                        : 'bg-white border-gray-300 text-black'
+                    )}
                   />
                   <button
                     type="button"
                     onClick={handleAddFile}
                     disabled={!newFileName.trim() || !newFileContent.trim()}
-                    style={{
-                      marginTop: '0.5rem',
-                      padding: '0.5rem 0.75rem',
-                      backgroundColor: newFileName.trim() && newFileContent.trim() ? '#28a745' : '#6c757d',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '3px',
-                      cursor: newFileName.trim() && newFileContent.trim() ? 'pointer' : 'not-allowed',
-                      fontSize: '0.85rem'
-                    }}
+                    className={cn(
+                      'mt-2 px-3 py-2 text-sm text-white border-none rounded',
+                      newFileName.trim() && newFileContent.trim()
+                        ? 'bg-green-600 cursor-pointer hover:bg-green-700'
+                        : 'bg-gray-500 cursor-not-allowed'
+                    )}
                   >
                     Add File
                   </button>
                 </div>
 
                 {/* Save/Cancel buttons */}
-                <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                <div className="flex gap-2 justify-end">
                   <button
                     type="button"
                     onClick={handleSaveFiles}
-                    style={{
-                      padding: '0.5rem 1rem',
-                      backgroundColor: '#28a745',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '3px',
-                      cursor: 'pointer',
-                      fontSize: '0.9rem'
-                    }}
+                    className="px-4 py-2 bg-green-600 text-white border-none rounded cursor-pointer text-sm hover:bg-green-700"
                   >
                     Save Changes
                   </button>
                   <button
                     type="button"
                     onClick={handleCancelFilesEdit}
-                    style={{
-                      padding: '0.5rem 1rem',
-                      backgroundColor: '#6c757d',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '3px',
-                      cursor: 'pointer',
-                      fontSize: '0.9rem'
-                    }}
+                    className="px-4 py-2 bg-gray-500 text-white border-none rounded cursor-pointer text-sm hover:bg-gray-600"
                   >
                     Cancel
                   </button>
                 </div>
               </div>
             )}
-            <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.8rem', color: '#666' }}>
+            <p className={cn(
+              'mt-2 mb-0 text-xs',
+              useDarkTheme ? 'text-gray-400' : 'text-gray-500'
+            )}>
               Files your code can read from. Use the filename to open (e.g., <code>open("data.txt")</code>).
             </p>
           </div>

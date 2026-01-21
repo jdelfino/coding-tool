@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import CreateClassModal from './CreateClassModal';
 import { ErrorAlert } from '@/components/ErrorAlert';
 import { fetchWithRetry } from '@/lib/api-utils';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 
 interface ClassInfo {
   id: string;
@@ -23,6 +24,8 @@ export default function ClassList({ onSelectClass }: ClassListProps) {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<Error | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [classToDelete, setClassToDelete] = useState<{ id: string; name: string } | null>(null);
 
   useEffect(() => {
     loadClasses();
@@ -46,15 +49,19 @@ export default function ClassList({ onSelectClass }: ClassListProps) {
     }
   };
 
-  const handleDelete = async (classId: string, className: string) => {
-    if (!confirm(`Delete "${className}"? This will also delete all sections and sessions within this class.`)) {
-      return;
-    }
+  const handleDeleteClick = (classId: string, className: string) => {
+    setClassToDelete({ id: classId, name: className });
+    setShowDeleteConfirm(true);
+  };
 
-    setDeletingId(classId);
+  const handleConfirmDelete = async () => {
+    if (!classToDelete) return;
+
+    setShowDeleteConfirm(false);
+    setDeletingId(classToDelete.id);
     setDeleteError(null);
     try {
-      const response = await fetchWithRetry(`/api/classes/${classId}`, {
+      const response = await fetchWithRetry(`/api/classes/${classToDelete.id}`, {
         fetchOptions: { method: 'DELETE' },
         maxRetries: 2,
       });
@@ -72,6 +79,7 @@ export default function ClassList({ onSelectClass }: ClassListProps) {
       setDeleteError(error);
     } finally {
       setDeletingId(null);
+      setClassToDelete(null);
     }
   };
 
@@ -192,7 +200,7 @@ export default function ClassList({ onSelectClass }: ClassListProps) {
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                handleDelete(classInfo.id, classInfo.name);
+                handleDeleteClick(classInfo.id, classInfo.name);
               }}
               disabled={deletingId === classInfo.id}
               className="absolute top-4 right-4 p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100 disabled:opacity-50"
@@ -218,6 +226,18 @@ export default function ClassList({ onSelectClass }: ClassListProps) {
           }}
         />
       )}
+      <ConfirmDialog
+        open={showDeleteConfirm}
+        title="Delete Class"
+        message={`Delete "${classToDelete?.name}"? This will also delete all sections and sessions within this class.`}
+        confirmLabel="Delete"
+        variant="danger"
+        onConfirm={handleConfirmDelete}
+        onCancel={() => {
+          setShowDeleteConfirm(false);
+          setClassToDelete(null);
+        }}
+      />
     </>
   );
 }

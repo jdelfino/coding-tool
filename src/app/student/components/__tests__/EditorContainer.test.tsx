@@ -1,8 +1,8 @@
 /**
  * Tests for EditorContainer component
- * 
+ *
  * Ensures the wrapper component enforces correct patterns for CodeEditor
- * 
+ *
  * @jest-environment jsdom
  */
 
@@ -49,7 +49,7 @@ describe('EditorContainer', () => {
   });
 
   describe('Flex variant', () => {
-    it('should apply flex properties', () => {
+    it('should apply flex classes', () => {
       const { container } = render(
         <EditorContainer variant="flex">
           <div data-testid="child">Content</div>
@@ -57,12 +57,10 @@ describe('EditorContainer', () => {
       );
 
       const wrapper = container.firstChild as HTMLElement;
-      expect(wrapper).toHaveStyle({
-        flex: '1',
-        minHeight: '0',
-        display: 'flex',
-        flexDirection: 'column',
-      });
+      expect(wrapper).toHaveClass('flex-1');
+      expect(wrapper).toHaveClass('min-h-0');
+      expect(wrapper).toHaveClass('flex');
+      expect(wrapper).toHaveClass('flex-col');
     });
 
     it('should not have fixed height', () => {
@@ -73,37 +71,35 @@ describe('EditorContainer', () => {
       );
 
       const wrapper = container.firstChild as HTMLElement;
-      // Height should not be set (or be empty/auto)
-      const height = window.getComputedStyle(wrapper).height;
-      expect(height).not.toBe('500px');
+      // Height should not be set inline for flex variant
+      expect(wrapper.style.height).toBe('');
     });
   });
 
-  describe('Style merging', () => {
-    it('should allow additional inline styles', () => {
+  describe('ClassName merging', () => {
+    it('should allow additional CSS classes for fixed variant', () => {
       const { container } = render(
-        <EditorContainer height="500px" style={{ marginTop: '1rem' }}>
+        <EditorContainer height="500px" className="mt-4">
           <div data-testid="child">Content</div>
         </EditorContainer>
       );
 
       const wrapper = container.firstChild as HTMLElement;
-      expect(wrapper).toHaveStyle({ height: '500px', marginTop: '1rem' });
+      expect(wrapper).toHaveStyle({ height: '500px' });
+      expect(wrapper).toHaveClass('mt-4');
     });
 
-    it('should not override variant-specific styles', () => {
+    it('should allow additional CSS classes for flex variant', () => {
       const { container } = render(
-        <EditorContainer variant="flex" style={{ padding: '1rem' }}>
+        <EditorContainer variant="flex" className="p-4">
           <div data-testid="child">Content</div>
         </EditorContainer>
       );
 
       const wrapper = container.firstChild as HTMLElement;
-      expect(wrapper).toHaveStyle({
-        flex: '1',
-        minHeight: '0',
-        padding: '1rem',
-      });
+      expect(wrapper).toHaveClass('flex-1');
+      expect(wrapper).toHaveClass('min-h-0');
+      expect(wrapper).toHaveClass('p-4');
     });
   });
 

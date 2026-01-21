@@ -24,3 +24,28 @@ export type { SkeletonProps } from './Skeleton';
 
 export { ConfirmDialog } from './ConfirmDialog';
 export type { ConfirmDialogProps, ConfirmDialogVariant } from './ConfirmDialog';
+
+export { Table } from './Table';
+export type {
+  TableProps,
+  TableHeaderProps,
+  TableBodyProps,
+  TableRowProps,
+  TableHeaderCellProps,
+  TableCellProps,
+  TableCellAlign,
+} from './Table';
+
+export { Tabs } from './Tabs';
+export type {
+  TabsProps,
+  TabsListProps,
+  TabsTabProps,
+  TabsPanelProps,
+} from './Tabs';
+
+export { Alert } from './Alert';
+export type { AlertProps, AlertVariant } from './Alert';
+
+export { StatusBadge } from './StatusBadge';
+export type { StatusBadgeProps, StatusBadgeStatus } from './StatusBadge';

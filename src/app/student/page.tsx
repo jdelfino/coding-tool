@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useSearchParams } from 'next/navigation';
 import { useRealtimeSession } from '@/hooks/useRealtimeSession';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
@@ -39,6 +40,8 @@ function StudentPage() {
   const [isJoining, setIsJoining] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [sessionEnded, setSessionEnded] = useState(false);
+  const [showReplaceCodeConfirm, setShowReplaceCodeConfirm] = useState(false);
+  const [pendingStarterCode, setPendingStarterCode] = useState<string | null>(null);
 
   // Use Realtime session hook
   const {
@@ -156,42 +159,40 @@ function StudentPage() {
 
   const editorRef = useRef<any>(null);
 
+  const applyStarterCode = useCallback((starterCode: string) => {
+    // Use Monaco editor API to preserve undo history
+    if (editorRef.current) {
+      const editor = editorRef.current;
+      const model = editor.getModel();
+      if (model) {
+        const fullRange = model.getFullModelRange();
+        editor.executeEdits('load-starter-code', [{
+          range: fullRange,
+          text: starterCode,
+        }]);
+      }
+    } else {
+      setCode(starterCode);
+    }
+  }, []);
+
   const handleLoadStarterCode = useCallback((starterCode: string) => {
     if (code.trim().length > 0) {
       // Ask for confirmation if there's existing code
-      if (confirm('This will replace your current code. Are you sure?')) {
-        // Use Monaco editor API to preserve undo history
-        if (editorRef.current) {
-          const editor = editorRef.current;
-          const model = editor.getModel();
-          if (model) {
-            const fullRange = model.getFullModelRange();
-            editor.executeEdits('load-starter-code', [{
-              range: fullRange,
-              text: starterCode,
-            }]);
-          }
-        } else {
-          setCode(starterCode);
-        }
-      }
+      setPendingStarterCode(starterCode);
+      setShowReplaceCodeConfirm(true);
     } else {
-      // Use Monaco editor API to preserve undo history
-      if (editorRef.current) {
-        const editor = editorRef.current;
-        const model = editor.getModel();
-        if (model) {
-          const fullRange = model.getFullModelRange();
-          editor.executeEdits('load-starter-code', [{
-            range: fullRange,
-            text: starterCode,
-          }]);
-        }
-      } else {
-        setCode(starterCode);
-      }
+      applyStarterCode(starterCode);
     }
-  }, [code]);
+  }, [code, applyStarterCode]);
+
+  const handleConfirmReplaceCode = useCallback(() => {
+    setShowReplaceCodeConfirm(false);
+    if (pendingStarterCode) {
+      applyStarterCode(pendingStarterCode);
+      setPendingStarterCode(null);
+    }
+  }, [pendingStarterCode, applyStarterCode]);
 
   const handleRunCode = async (executionSettings: ExecutionSettings) => {
     if (!isConnected) {
@@ -282,17 +283,11 @@ function StudentPage() {
 
   // Active session view
   return (
-    <main style={{ padding: '1rem', width: '100%', height: '100vh', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+    <main className="p-4 w-full h-screen box-border flex flex-col relative">
       {/* Header with Sign Out */}
-      <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: '1rem',
-        flexShrink: 0
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <h1 style={{ margin: 0 }}>Live Coding Session</h1>
+      <div className="flex justify-between items-center mb-4 flex-shrink-0">
+        <div className="flex items-center gap-4">
+          <h1 className="m-0">Live Coding Session</h1>
           <ConnectionStatus
             status={connectionStatus}
             error={connectionError}
@@ -304,55 +299,22 @@ function StudentPage() {
             variant="badge"
           />
         </div>
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.5rem'
-        }}>
+        <div className="flex items-center gap-2">
           <button
             onClick={handleLeaveSession}
-            style={{
-              padding: '0.5rem 1rem',
-              backgroundColor: 'transparent',
-              color: '#0070f3',
-              border: '1px solid #0070f3',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              fontSize: '0.9rem'
-            }}
+            className="px-4 py-2 bg-transparent text-blue-500 border border-blue-500 rounded cursor-pointer text-sm hover:bg-blue-50"
           >
             Leave Session
           </button>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '1rem',
-            padding: '0.5rem 1rem',
-            backgroundColor: '#f8f9fa',
-            borderRadius: '4px',
-            border: '1px solid #dee2e6'
-          }}>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-              <span style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>{user?.displayName || user?.email}</span>
-              <span style={{
-                fontSize: '0.75rem',
-                color: '#28a745',
-                fontWeight: '500'
-              }}>Student</span>
+          <div className="flex items-center gap-4 px-4 py-2 bg-gray-50 rounded border border-gray-200">
+            <div className="flex flex-col items-end">
+              <span className="font-bold text-sm">{user?.displayName || user?.email}</span>
+              <span className="text-xs text-green-600 font-medium">Student</span>
             </div>
             <button
               onClick={handleSignOut}
               disabled={isSigningOut}
-              style={{
-                padding: '0.5rem 1rem',
-                backgroundColor: '#dc3545',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: isSigningOut ? 'not-allowed' : 'pointer',
-                fontSize: '0.9rem',
-                opacity: isSigningOut ? 0.6 : 1
-              }}
+              className="px-4 py-2 bg-red-500 text-white border-none rounded cursor-pointer text-sm disabled:opacity-60 disabled:cursor-not-allowed hover:bg-red-600"
             >
               {isSigningOut ? 'Signing out...' : 'Sign Out'}
             </button>
@@ -411,6 +373,19 @@ function StudentPage() {
           showRunButton={!sessionEnded}
         />
       </EditorContainer>
+
+      <ConfirmDialog
+        open={showReplaceCodeConfirm}
+        title="Replace Code"
+        message="This will replace your current code. Are you sure?"
+        confirmLabel="Replace"
+        variant="danger"
+        onConfirm={handleConfirmReplaceCode}
+        onCancel={() => {
+          setShowReplaceCodeConfirm(false);
+          setPendingStarterCode(null);
+        }}
+      />
     </main>
   );
 }

@@ -7,6 +7,7 @@
  */
 
 import React, { useState } from 'react';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 
 interface Problem {
   id: string;
@@ -36,12 +37,14 @@ export default function ProblemCard({
   onCreateSession,
 }: ProblemCardProps) {
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  const handleDelete = async () => {
-    if (!confirm(`Delete "${problem.title}"? This action cannot be undone.`)) {
-      return;
-    }
+  const handleDeleteClick = () => {
+    setShowDeleteConfirm(true);
+  };
 
+  const handleConfirmDelete = async () => {
+    setShowDeleteConfirm(false);
     setIsDeleting(true);
     try {
       await onDelete(problem.id, problem.title);
@@ -114,7 +117,7 @@ export default function ProblemCard({
               Create Session
             </button>
             <button
-              onClick={handleDelete}
+              onClick={handleDeleteClick}
               disabled={isDeleting}
               className="px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
               title="Delete problem"
@@ -123,6 +126,15 @@ export default function ProblemCard({
             </button>
           </div>
         </div>
+        <ConfirmDialog
+          open={showDeleteConfirm}
+          title="Delete Problem"
+          message={`Delete "${problem.title}"? This action cannot be undone.`}
+          confirmLabel="Delete"
+          variant="danger"
+          onConfirm={handleConfirmDelete}
+          onCancel={() => setShowDeleteConfirm(false)}
+        />
       </div>
     );
   }
@@ -170,13 +182,22 @@ export default function ProblemCard({
           Create Session
         </button>
         <button
-          onClick={handleDelete}
+          onClick={handleDeleteClick}
           disabled={isDeleting}
           className="col-span-2 px-3 py-2 text-sm text-red-600 border border-red-300 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
         >
           {isDeleting ? 'Deleting...' : 'Delete'}
         </button>
       </div>
+      <ConfirmDialog
+        open={showDeleteConfirm}
+        title="Delete Problem"
+        message={`Delete "${problem.title}"? This action cannot be undone.`}
+        confirmLabel="Delete"
+        variant="danger"
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setShowDeleteConfirm(false)}
+      />
     </div>
   );
 }

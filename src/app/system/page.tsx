@@ -6,8 +6,12 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useNamespaces } from '@/hooks/useNamespaces';
 import NamespaceList from './components/NamespaceList';
 import CreateNamespaceForm from './components/CreateNamespaceForm';
-import InvitationList from './components/InvitationList';
+import InvitationList from '@/components/InvitationList';
 import CreateInvitationForm from './components/CreateInvitationForm';
+import { Tabs } from '@/components/ui/Tabs';
+import { Card } from '@/components/ui/Card';
+import { Button } from '@/components/ui/Button';
+import { Alert } from '@/components/ui/Alert';
 
 // Invitation type
 interface Invitation {
@@ -32,9 +36,30 @@ interface InvitationFilters {
 // Loading fallback for Suspense boundary
 function LoadingFallback() {
   return (
-    <main style={{ padding: '2rem', textAlign: 'center' }}>
-      <h1>Loading...</h1>
+    <main className="p-8 text-center">
+      <h1 className="text-2xl font-semibold">Loading...</h1>
     </main>
+  );
+}
+
+/**
+ * Stat card component for displaying statistics
+ */
+function StatCard({ value, label, color }: { value: number; label: string; color: string }) {
+  const colorClasses: Record<string, string> = {
+    blue: 'text-primary-600',
+    green: 'text-success-600',
+    gray: 'text-gray-500',
+    orange: 'text-warning-600',
+  };
+
+  return (
+    <Card variant="outlined" className="p-6">
+      <div className={`text-3xl font-bold ${colorClasses[color] || colorClasses.blue}`}>
+        {value}
+      </div>
+      <div className="text-gray-500 mt-2">{label}</div>
+    </Card>
   );
 }
 
@@ -191,9 +216,10 @@ function SystemAdminContent() {
   };
 
   // Update URL when tab changes
-  const handleTabChange = (tab: 'namespaces' | 'invitations') => {
-    setActiveTab(tab);
-    router.push(`/system?tab=${tab}`, { scroll: false });
+  const handleTabChange = (tab: string) => {
+    const validTab = tab === 'invitations' ? 'invitations' : 'namespaces';
+    setActiveTab(validTab);
+    router.push(`/system?tab=${validTab}`, { scroll: false });
   };
 
   // Redirect if not system admin
@@ -220,8 +246,8 @@ function SystemAdminContent() {
   // Show loading state
   if (authLoading || !user) {
     return (
-      <main style={{ padding: '2rem', textAlign: 'center' }}>
-        <h1>Loading...</h1>
+      <main className="p-8 text-center">
+        <h1 className="text-2xl font-semibold">Loading...</h1>
       </main>
     );
   }
@@ -255,180 +281,65 @@ function SystemAdminContent() {
   }));
 
   return (
-    <main style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
+    <main className="p-8 max-w-6xl mx-auto">
       {/* Header */}
-      <div
-        style={{
-          marginBottom: '2rem',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'flex-start',
-        }}
-      >
+      <div className="mb-8 flex justify-between items-start">
         <div>
-          <h1 style={{ marginBottom: '0.5rem' }}>System Administration</h1>
-          <p style={{ color: '#666', margin: 0 }}>Manage namespaces and users across the system</p>
+          <h1 className="text-2xl font-bold mb-2">System Administration</h1>
+          <p className="text-gray-500">Manage namespaces and users across the system</p>
         </div>
-        <button
+        <Button
+          variant="danger"
           onClick={handleSignOut}
           disabled={isSigningOut}
-          style={{
-            padding: '0.5rem 1rem',
-            background: '#dc3545',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: isSigningOut ? 'not-allowed' : 'pointer',
-            opacity: isSigningOut ? 0.7 : 1,
-          }}
+          loading={isSigningOut}
         >
           {isSigningOut ? 'Signing out...' : 'Sign Out'}
-        </button>
+        </Button>
       </div>
 
       {/* Statistics */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-          gap: '1rem',
-          marginBottom: '2rem',
-        }}
-      >
-        <div
-          style={{
-            padding: '1.5rem',
-            background: '#f8f9fa',
-            borderRadius: '8px',
-            border: '1px solid #dee2e6',
-          }}
-        >
-          <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#0070f3' }}>{totalNamespaces}</div>
-          <div style={{ color: '#666', marginTop: '0.5rem' }}>Total Namespaces</div>
-        </div>
-
-        <div
-          style={{
-            padding: '1.5rem',
-            background: '#f8f9fa',
-            borderRadius: '8px',
-            border: '1px solid #dee2e6',
-          }}
-        >
-          <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#28a745' }}>{activeNamespaces}</div>
-          <div style={{ color: '#666', marginTop: '0.5rem' }}>Active Namespaces</div>
-        </div>
-
-        <div
-          style={{
-            padding: '1.5rem',
-            background: '#f8f9fa',
-            borderRadius: '8px',
-            border: '1px solid #dee2e6',
-          }}
-        >
-          <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#6c757d' }}>{totalUsers}</div>
-          <div style={{ color: '#666', marginTop: '0.5rem' }}>Total Users</div>
-        </div>
-
-        <div
-          style={{
-            padding: '1.5rem',
-            background: '#f8f9fa',
-            borderRadius: '8px',
-            border: '1px solid #dee2e6',
-          }}
-        >
-          <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#fd7e14' }}>{pendingInvitations}</div>
-          <div style={{ color: '#666', marginTop: '0.5rem' }}>Pending Invitations</div>
-        </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <StatCard value={totalNamespaces} label="Total Namespaces" color="blue" />
+        <StatCard value={activeNamespaces} label="Active Namespaces" color="green" />
+        <StatCard value={totalUsers} label="Total Users" color="gray" />
+        <StatCard value={pendingInvitations} label="Pending Invitations" color="orange" />
       </div>
 
       {/* Tab Navigation */}
-      <div
-        style={{
-          display: 'flex',
-          gap: '0',
-          marginBottom: '2rem',
-          borderBottom: '2px solid #dee2e6',
-        }}
-      >
-        <button
-          onClick={() => handleTabChange('namespaces')}
-          style={{
-            padding: '0.75rem 1.5rem',
-            background: 'transparent',
-            color: activeTab === 'namespaces' ? '#0070f3' : '#6c757d',
-            border: 'none',
-            borderBottom: activeTab === 'namespaces' ? '2px solid #0070f3' : '2px solid transparent',
-            marginBottom: '-2px',
-            cursor: 'pointer',
-            fontWeight: activeTab === 'namespaces' ? '600' : '400',
-            fontSize: '1rem',
-          }}
-        >
-          Namespaces
-        </button>
-        <button
-          onClick={() => handleTabChange('invitations')}
-          style={{
-            padding: '0.75rem 1.5rem',
-            background: 'transparent',
-            color: activeTab === 'invitations' ? '#0070f3' : '#6c757d',
-            border: 'none',
-            borderBottom: activeTab === 'invitations' ? '2px solid #0070f3' : '2px solid transparent',
-            marginBottom: '-2px',
-            cursor: 'pointer',
-            fontWeight: activeTab === 'invitations' ? '600' : '400',
-            fontSize: '1rem',
-          }}
-        >
-          Invitations
-        </button>
-      </div>
+      <Tabs activeTab={activeTab} onTabChange={handleTabChange} className="mb-8">
+        <Tabs.List>
+          <Tabs.Tab tabId="namespaces">Namespaces</Tabs.Tab>
+          <Tabs.Tab tabId="invitations">Invitations</Tabs.Tab>
+        </Tabs.List>
 
-      {/* Namespaces Tab */}
-      {activeTab === 'namespaces' && (
-        <>
+        {/* Namespaces Tab */}
+        <Tabs.Panel tabId="namespaces">
           {/* Actions */}
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: '1.5rem',
-            }}
-          >
-            <h2 style={{ margin: 0 }}>Namespaces</h2>
-            <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-xl font-semibold">Namespaces</h2>
+            <div className="flex gap-4 items-center">
+              <label className="flex items-center gap-2 cursor-pointer">
                 <input
                   type="checkbox"
                   checked={includeInactive}
                   onChange={(e) => setIncludeInactive(e.target.checked)}
+                  className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
                 />
-                <span>Show inactive</span>
+                <span className="text-sm text-gray-700">Show inactive</span>
               </label>
-              <button
+              <Button
+                variant={showCreateNamespaceForm ? 'secondary' : 'primary'}
                 onClick={() => setShowCreateNamespaceForm(!showCreateNamespaceForm)}
-                style={{
-                  padding: '0.5rem 1rem',
-                  background: '#0070f3',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  fontWeight: '500',
-                }}
               >
                 {showCreateNamespaceForm ? 'Cancel' : 'Create New Namespace'}
-              </button>
+              </Button>
             </div>
           </div>
 
           {/* Create Form */}
           {showCreateNamespaceForm && (
-            <div style={{ marginBottom: '2rem' }}>
+            <div className="mb-8">
               <CreateNamespaceForm
                 onSubmit={handleCreateNamespace}
                 onCancel={() => setShowCreateNamespaceForm(false)}
@@ -439,23 +350,14 @@ function SystemAdminContent() {
 
           {/* Error Display */}
           {namespacesError && (
-            <div
-              style={{
-                padding: '1rem',
-                background: '#fee',
-                border: '1px solid #fcc',
-                borderRadius: '4px',
-                color: '#c33',
-                marginBottom: '2rem',
-              }}
-            >
+            <Alert variant="error" className="mb-8">
               <strong>Error:</strong> {namespacesError}
-            </div>
+            </Alert>
           )}
 
           {/* Namespace List */}
           {namespacesLoading && namespaces.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '2rem', color: '#666' }}>Loading namespaces...</div>
+            <div className="text-center p-8 text-gray-500">Loading namespaces...</div>
           ) : (
             <NamespaceList
               namespaces={namespaces}
@@ -464,43 +366,24 @@ function SystemAdminContent() {
               loading={namespacesLoading}
             />
           )}
-        </>
-      )}
+        </Tabs.Panel>
 
-      {/* Invitations Tab */}
-      {activeTab === 'invitations' && (
-        <>
+        {/* Invitations Tab */}
+        <Tabs.Panel tabId="invitations">
           {/* Actions */}
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: '1.5rem',
-              flexWrap: 'wrap',
-              gap: '1rem',
-            }}
-          >
-            <h2 style={{ margin: 0 }}>Invitations</h2>
-            <button
+          <div className="flex justify-between items-center mb-6 flex-wrap gap-4">
+            <h2 className="text-xl font-semibold">Invitations</h2>
+            <Button
+              variant={showCreateInvitationForm ? 'secondary' : 'primary'}
               onClick={() => setShowCreateInvitationForm(!showCreateInvitationForm)}
-              style={{
-                padding: '0.5rem 1rem',
-                background: '#0070f3',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                fontWeight: '500',
-              }}
             >
               {showCreateInvitationForm ? 'Cancel' : 'Create Invitation'}
-            </button>
+            </Button>
           </div>
 
           {/* Create Form */}
           {showCreateInvitationForm && (
-            <div style={{ marginBottom: '2rem' }}>
+            <div className="mb-8">
               <CreateInvitationForm
                 namespaces={namespaceOptions}
                 onSubmit={createInvitation}
@@ -511,24 +394,11 @@ function SystemAdminContent() {
           )}
 
           {/* Filters */}
-          <div
-            style={{
-              display: 'flex',
-              gap: '1rem',
-              marginBottom: '1.5rem',
-              flexWrap: 'wrap',
-              alignItems: 'center',
-            }}
-          >
+          <div className="flex gap-4 mb-6 flex-wrap items-center">
             <div>
               <label
                 htmlFor="filter-namespace"
-                style={{
-                  display: 'block',
-                  fontSize: '0.75rem',
-                  color: '#6c757d',
-                  marginBottom: '0.25rem',
-                }}
+                className="block text-xs text-gray-500 mb-1"
               >
                 Namespace
               </label>
@@ -538,12 +408,7 @@ function SystemAdminContent() {
                 onChange={(e) =>
                   setInvitationFilters((f) => ({ ...f, namespaceId: e.target.value }))
                 }
-                style={{
-                  padding: '0.5rem',
-                  borderRadius: '4px',
-                  border: '1px solid #ced4da',
-                  minWidth: '150px',
-                }}
+                className="px-3 py-2 rounded-lg border border-gray-300 min-w-[150px] text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               >
                 <option value="all">All Namespaces</option>
                 {namespaceOptions.map((ns) => (
@@ -557,12 +422,7 @@ function SystemAdminContent() {
             <div>
               <label
                 htmlFor="filter-role"
-                style={{
-                  display: 'block',
-                  fontSize: '0.75rem',
-                  color: '#6c757d',
-                  marginBottom: '0.25rem',
-                }}
+                className="block text-xs text-gray-500 mb-1"
               >
                 Role
               </label>
@@ -575,12 +435,7 @@ function SystemAdminContent() {
                     targetRole: e.target.value as 'namespace-admin' | 'instructor' | 'all',
                   }))
                 }
-                style={{
-                  padding: '0.5rem',
-                  borderRadius: '4px',
-                  border: '1px solid #ced4da',
-                  minWidth: '150px',
-                }}
+                className="px-3 py-2 rounded-lg border border-gray-300 min-w-[150px] text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               >
                 <option value="all">All Roles</option>
                 <option value="namespace-admin">Namespace Admin</option>
@@ -591,12 +446,7 @@ function SystemAdminContent() {
             <div>
               <label
                 htmlFor="filter-status"
-                style={{
-                  display: 'block',
-                  fontSize: '0.75rem',
-                  color: '#6c757d',
-                  marginBottom: '0.25rem',
-                }}
+                className="block text-xs text-gray-500 mb-1"
               >
                 Status
               </label>
@@ -609,12 +459,7 @@ function SystemAdminContent() {
                     status: e.target.value as 'pending' | 'consumed' | 'revoked' | 'expired' | 'all',
                   }))
                 }
-                style={{
-                  padding: '0.5rem',
-                  borderRadius: '4px',
-                  border: '1px solid #ced4da',
-                  minWidth: '150px',
-                }}
+                className="px-3 py-2 rounded-lg border border-gray-300 min-w-[150px] text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               >
                 <option value="all">All Statuses</option>
                 <option value="pending">Pending</option>
@@ -627,30 +472,23 @@ function SystemAdminContent() {
 
           {/* Error Display */}
           {invitationsError && (
-            <div
-              style={{
-                padding: '1rem',
-                background: '#fee',
-                border: '1px solid #fcc',
-                borderRadius: '4px',
-                color: '#c33',
-                marginBottom: '2rem',
-              }}
-            >
+            <Alert variant="error" className="mb-8">
               <strong>Error:</strong> {invitationsError}
-            </div>
+            </Alert>
           )}
 
           {/* Invitation List */}
           <InvitationList
             invitations={invitations}
-            namespaces={namespaceOptions}
             loading={invitationsLoading}
             onRevoke={revokeInvitation}
             onResend={resendInvitation}
+            showNamespace
+            showRole
+            namespaces={namespaceOptions}
           />
-        </>
-      )}
+        </Tabs.Panel>
+      </Tabs>
     </main>
   );
 }

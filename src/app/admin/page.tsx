@@ -12,7 +12,12 @@ import NamespaceHeader from '@/components/NamespaceHeader';
 import { ErrorAlert } from '@/components/ErrorAlert';
 import UserList from './components/UserList';
 import InviteInstructorForm from './components/InviteInstructorForm';
-import InstructorInvitationList from './components/InstructorInvitationList';
+import InvitationList from '@/components/InvitationList';
+import { Tabs } from '@/components/ui/Tabs';
+import { Table } from '@/components/ui/Table';
+import { Card } from '@/components/ui/Card';
+import { Badge } from '@/components/ui/Badge';
+import { Button } from '@/components/ui/Button';
 import type { User, UserRole } from '@/server/auth/types';
 
 interface Invitation {
@@ -248,68 +253,47 @@ function AdminPage() {
     }
   };
 
-  const getRoleBadgeColor = (role: UserRole) => {
+  const getRoleBadgeVariant = (role: UserRole): 'error' | 'info' | 'success' | 'warning' | 'default' => {
     switch (role) {
-      case 'namespace-admin': return '#dc3545';
-      case 'system-admin': return '#6610f2';
-      case 'instructor': return '#0070f3';
-      case 'student': return '#28a745';
+      case 'namespace-admin': return 'error';
+      case 'system-admin': return 'warning';
+      case 'instructor': return 'info';
+      case 'student': return 'success';
     }
   };
 
+  // Set default tab based on user role
+  const effectiveTab = !isAdmin && activeTab === 'overview' ? 'instructors' : activeTab;
+
   return (
-    <main style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
+    <main className="p-8 max-w-6xl mx-auto">
       {/* Header */}
-      <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: '2rem'
-      }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-          <h1 style={{ margin: 0 }}>{isAdmin ? 'System Administration' : 'Admin Panel'}</h1>
+      <div className="flex justify-between items-center mb-8">
+        <div className="flex flex-col gap-2">
+          <h1 className="text-2xl font-bold">{isAdmin ? 'System Administration' : 'Admin Panel'}</h1>
           <NamespaceHeader />
         </div>
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '1rem',
-          padding: '0.5rem 1rem',
-          backgroundColor: '#f8f9fa',
-          borderRadius: '4px',
-          border: '1px solid #dee2e6'
-        }}>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-            <span style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>{user.displayName || user.email}</span>
-            <span style={{
-              fontSize: '0.75rem',
-              color: getRoleBadgeColor(user.role),
-              fontWeight: '500',
-              textTransform: 'capitalize'
-            }}>{user.role}</span>
+        <Card variant="outlined" className="flex items-center gap-4 px-4 py-2">
+          <div className="flex flex-col items-end">
+            <span className="font-bold text-sm">{user.displayName || user.email}</span>
+            <Badge variant={getRoleBadgeVariant(user.role)} className="capitalize">
+              {user.role}
+            </Badge>
           </div>
-          <button
+          <Button
+            variant="danger"
+            size="sm"
             onClick={handleSignOut}
-            disabled={isSigningOut}
-            style={{
-              padding: '0.5rem 1rem',
-              backgroundColor: '#dc3545',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: isSigningOut ? 'not-allowed' : 'pointer',
-              fontSize: '0.9rem',
-              opacity: isSigningOut ? 0.6 : 1
-            }}
+            loading={isSigningOut}
           >
             {isSigningOut ? 'Signing out...' : 'Sign Out'}
-          </button>
-        </div>
+          </Button>
+        </Card>
       </div>
 
       {/* Error Message */}
       {error && (
-        <div style={{ marginBottom: '1rem' }}>
+        <div className="mb-4">
           <ErrorAlert
             error={error}
             onRetry={handleRetry}
@@ -321,281 +305,158 @@ function AdminPage() {
       )}
 
       {/* Tabs */}
-      <div style={{
-        display: 'flex',
-        gap: '1rem',
-        marginBottom: '2rem',
-        borderBottom: '2px solid #dee2e6'
-      }}>
-        {isAdmin && (
-          <button
-            onClick={() => setActiveTab('overview')}
-            style={{
-              padding: '0.75rem 1.5rem',
-              backgroundColor: 'transparent',
-              border: 'none',
-              borderBottom: activeTab === 'overview' ? '3px solid #0070f3' : '3px solid transparent',
-              color: activeTab === 'overview' ? '#0070f3' : '#6c757d',
-              cursor: 'pointer',
-              fontSize: '1rem',
-              fontWeight: activeTab === 'overview' ? 600 : 400,
-              marginBottom: '-2px'
-            }}
-          >
-            Overview
-          </button>
-        )}
-        {isAdmin && (
-          <button
-            onClick={() => setActiveTab('users')}
-            style={{
-              padding: '0.75rem 1.5rem',
-              backgroundColor: 'transparent',
-              border: 'none',
-              borderBottom: activeTab === 'users' ? '3px solid #0070f3' : '3px solid transparent',
-              color: activeTab === 'users' ? '#0070f3' : '#6c757d',
-              cursor: 'pointer',
-              fontSize: '1rem',
-              fontWeight: activeTab === 'users' ? 600 : 400,
-              marginBottom: '-2px'
-            }}
-          >
-            All Users ({allUsers.length})
-          </button>
-        )}
-        <button
-          onClick={() => setActiveTab('instructors')}
-          style={{
-            padding: '0.75rem 1.5rem',
-            backgroundColor: 'transparent',
-            border: 'none',
-            borderBottom: activeTab === 'instructors' ? '3px solid #0070f3' : '3px solid transparent',
-            color: activeTab === 'instructors' ? '#0070f3' : '#6c757d',
-            cursor: 'pointer',
-            fontSize: '1rem',
-            fontWeight: activeTab === 'instructors' ? 600 : 400,
-            marginBottom: '-2px'
-          }}
-        >
-          Instructors ({instructors.length})
-        </button>
-        <button
-          onClick={() => setActiveTab('students')}
-          style={{
-            padding: '0.75rem 1.5rem',
-            backgroundColor: 'transparent',
-            border: 'none',
-            borderBottom: activeTab === 'students' ? '3px solid #0070f3' : '3px solid transparent',
-            color: activeTab === 'students' ? '#0070f3' : '#6c757d',
-            cursor: 'pointer',
-            fontSize: '1rem',
-            fontWeight: activeTab === 'students' ? 600 : 400,
-            marginBottom: '-2px'
-          }}
-        >
-          Students ({students.length})
-        </button>
-      </div>
+      <Tabs activeTab={effectiveTab} onTabChange={(tab) => setActiveTab(tab as typeof activeTab)}>
+        <Tabs.List className="mb-6">
+          {isAdmin && <Tabs.Tab tabId="overview">Overview</Tabs.Tab>}
+          {isAdmin && <Tabs.Tab tabId="users">All Users ({allUsers.length})</Tabs.Tab>}
+          <Tabs.Tab tabId="instructors">Instructors ({instructors.length})</Tabs.Tab>
+          <Tabs.Tab tabId="students">Students ({students.length})</Tabs.Tab>
+        </Tabs.List>
 
-      {/* Loading State */}
-      {isLoading ? (
-        <div style={{ textAlign: 'center', padding: '2rem', color: '#6c757d' }}>
-          Loading...
-        </div>
-      ) : (
-        <>
-          {/* Overview Tab (Admin Only) */}
-          {activeTab === 'overview' && isAdmin && stats && (
-            <div>
-              <h2 style={{ marginBottom: '1.5rem' }}>System Overview</h2>
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-                gap: '1rem',
-                marginBottom: '2rem'
-              }}>
-                <div style={{
-                  padding: '1.5rem',
-                  backgroundColor: '#f8f9fa',
-                  borderRadius: '8px',
-                  border: '1px solid #dee2e6'
-                }}>
-                  <div style={{ fontSize: '0.875rem', color: '#6c757d', marginBottom: '0.5rem' }}>
-                    Total Users
-                  </div>
-                  <div style={{ fontSize: '2rem', fontWeight: 'bold' }}>
-                    {stats.users.total}
-                  </div>
-                  <div style={{ fontSize: '0.75rem', color: '#6c757d', marginTop: '0.5rem' }}>
-                    {stats.users.byRole.admin} admin · {stats.users.byRole.instructor} instructors · {stats.users.byRole.student} students
-                  </div>
-                </div>
+        {/* Loading State */}
+        {isLoading ? (
+          <div className="text-center py-8 text-gray-500">
+            Loading...
+          </div>
+        ) : (
+          <>
+            {/* Overview Tab (Admin Only) */}
+            <Tabs.Panel tabId="overview">
+              {isAdmin && stats && (
+                <div>
+                  <h2 className="text-xl font-semibold mb-6">System Overview</h2>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                    <Card variant="outlined" className="p-6">
+                      <div className="text-sm text-gray-500 mb-2">Total Users</div>
+                      <div className="text-3xl font-bold">{stats.users.total}</div>
+                      <div className="text-xs text-gray-500 mt-2">
+                        {stats.users.byRole.admin} admin · {stats.users.byRole.instructor} instructors · {stats.users.byRole.student} students
+                      </div>
+                    </Card>
 
-                <div style={{
-                  padding: '1.5rem',
-                  backgroundColor: '#f8f9fa',
-                  borderRadius: '8px',
-                  border: '1px solid #dee2e6'
-                }}>
-                  <div style={{ fontSize: '0.875rem', color: '#6c757d', marginBottom: '0.5rem' }}>
-                    Classes
-                  </div>
-                  <div style={{ fontSize: '2rem', fontWeight: 'bold' }}>
-                    {stats.classes.total}
-                  </div>
-                </div>
+                    <Card variant="outlined" className="p-6">
+                      <div className="text-sm text-gray-500 mb-2">Classes</div>
+                      <div className="text-3xl font-bold">{stats.classes.total}</div>
+                    </Card>
 
-                <div style={{
-                  padding: '1.5rem',
-                  backgroundColor: '#f8f9fa',
-                  borderRadius: '8px',
-                  border: '1px solid #dee2e6'
-                }}>
-                  <div style={{ fontSize: '0.875rem', color: '#6c757d', marginBottom: '0.5rem' }}>
-                    Sections
-                  </div>
-                  <div style={{ fontSize: '2rem', fontWeight: 'bold' }}>
-                    {stats.sections.total}
-                  </div>
-                </div>
+                    <Card variant="outlined" className="p-6">
+                      <div className="text-sm text-gray-500 mb-2">Sections</div>
+                      <div className="text-3xl font-bold">{stats.sections.total}</div>
+                    </Card>
 
-                <div style={{
-                  padding: '1.5rem',
-                  backgroundColor: '#d4edda',
-                  borderRadius: '8px',
-                  border: '1px solid #c3e6cb'
-                }}>
-                  <div style={{ fontSize: '0.875rem', color: '#155724', marginBottom: '0.5rem' }}>
-                    Active Sessions
+                    <Card variant="outlined" className="p-6 bg-success-50 border-success-200">
+                      <div className="text-sm text-success-700 mb-2">Active Sessions</div>
+                      <div className="text-3xl font-bold text-success-700">{stats.sessions.active}</div>
+                    </Card>
                   </div>
-                  <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#155724' }}>
-                    {stats.sessions.active}
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* All Users Tab (Admin Only) */}
-          {activeTab === 'users' && isAdmin && (
-            <div>
-              <h2 style={{ marginBottom: '1rem' }}>All Users</h2>
-              <p style={{ color: '#6c757d', marginBottom: '1.5rem' }}>
-                Manage all users in the system. You can change user roles or delete users.
-              </p>
-              <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                  <thead>
-                    <tr style={{ borderBottom: '2px solid #dee2e6' }}>
-                      <th style={{ textAlign: 'left', padding: '0.75rem', fontWeight: 600 }}>Username</th>
-                      <th style={{ textAlign: 'left', padding: '0.75rem', fontWeight: 600 }}>Role</th>
-                      <th style={{ textAlign: 'left', padding: '0.75rem', fontWeight: 600 }}>Created</th>
-                      <th style={{ textAlign: 'right', padding: '0.75rem', fontWeight: 600 }}>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {allUsers.map((u) => (
-                      <tr key={u.id} style={{ borderBottom: '1px solid #dee2e6' }}>
-                        <td style={{ padding: '0.75rem' }}>{u.displayName || u.email}</td>
-                        <td style={{ padding: '0.75rem' }}>
-                          <span style={{
-                            display: 'inline-block',
-                            padding: '0.25rem 0.75rem',
-                            borderRadius: '12px',
-                            fontSize: '0.75rem',
-                            fontWeight: 500,
-                            backgroundColor: getRoleBadgeColor(u.role) + '20',
-                            color: getRoleBadgeColor(u.role),
-                            textTransform: 'capitalize'
-                          }}>
-                            {u.role}
-                          </span>
-                        </td>
-                        <td style={{ padding: '0.75rem', color: '#6c757d', fontSize: '0.875rem' }}>
-                          {new Date(u.createdAt).toLocaleDateString()}
-                        </td>
-                        <td style={{ padding: '0.75rem', textAlign: 'right' }}>
-                          {u.id !== user?.id && (
-                            <select
-                              value={u.role}
-                              onChange={(e) => handleChangeRole(u.id, e.target.value as UserRole)}
-                              disabled={roleChangeLoading === u.id}
-                              style={{
-                                marginRight: '0.5rem',
-                                padding: '0.25rem 0.5rem',
-                                borderRadius: '4px',
-                                border: '1px solid #dee2e6',
-                                fontSize: '0.875rem',
-                                cursor: roleChangeLoading === u.id ? 'not-allowed' : 'pointer'
-                              }}
-                            >
-                              <option value="student">Student</option>
-                              <option value="instructor">Instructor</option>
-                              <option value="namespace-admin">Namespace Admin</option>
-                              <option value="system-admin">System Admin</option>
-                            </select>
-                          )}
-                          {u.id === user?.id && (
-                            <span style={{ fontSize: '0.875rem', color: '#6c757d' }}>
-                              (You)
-                            </span>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          {/* Instructors Tab */}
-          {activeTab === 'instructors' && (
-            <div>
-              {/* Invitation UI for namespace admins */}
-              {isAdmin && (
-                <div style={{ marginBottom: '2rem' }}>
-                  <InviteInstructorForm
-                    onSubmit={handleInviteInstructor}
-                    loading={invitationsLoading}
-                  />
-
-                  <h3 style={{ marginTop: '2rem', marginBottom: '1rem' }}>Pending Invitations</h3>
-                  <InstructorInvitationList
-                    invitations={invitations}
-                    loading={invitationsLoading}
-                    onRevoke={handleRevokeInvitation}
-                    onResend={handleResendInvitation}
-                  />
                 </div>
               )}
+            </Tabs.Panel>
 
-              <h2 style={{ marginBottom: '1rem' }}>Instructors</h2>
-              <UserList
-                users={instructors}
-                currentUserId={user.id}
-                onDelete={handleDeleteUser}
-                showActions={true}
-              />
-            </div>
-          )}
+            {/* All Users Tab (Admin Only) */}
+            <Tabs.Panel tabId="users">
+              {isAdmin && (
+                <div>
+                  <h2 className="text-xl font-semibold mb-2">All Users</h2>
+                  <p className="text-gray-500 mb-6">
+                    Manage all users in the system. You can change user roles or delete users.
+                  </p>
+                  <Table>
+                    <Table.Header>
+                      <Table.Row>
+                        <Table.HeaderCell>Username</Table.HeaderCell>
+                        <Table.HeaderCell>Role</Table.HeaderCell>
+                        <Table.HeaderCell>Created</Table.HeaderCell>
+                        <Table.HeaderCell align="right">Actions</Table.HeaderCell>
+                      </Table.Row>
+                    </Table.Header>
+                    <Table.Body>
+                      {allUsers.map((u) => (
+                        <Table.Row key={u.id}>
+                          <Table.Cell>{u.displayName || u.email}</Table.Cell>
+                          <Table.Cell>
+                            <Badge variant={getRoleBadgeVariant(u.role)} className="capitalize">
+                              {u.role}
+                            </Badge>
+                          </Table.Cell>
+                          <Table.Cell className="text-gray-500">
+                            {new Date(u.createdAt).toLocaleDateString()}
+                          </Table.Cell>
+                          <Table.Cell align="right">
+                            {u.id !== user?.id && (
+                              <select
+                                value={u.role}
+                                onChange={(e) => handleChangeRole(u.id, e.target.value as UserRole)}
+                                disabled={roleChangeLoading === u.id}
+                                className="mr-2 px-2 py-1 rounded border border-gray-300 text-sm cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+                              >
+                                <option value="student">Student</option>
+                                <option value="instructor">Instructor</option>
+                                <option value="namespace-admin">Namespace Admin</option>
+                                <option value="system-admin">System Admin</option>
+                              </select>
+                            )}
+                            {u.id === user?.id && (
+                              <span className="text-sm text-gray-500">(You)</span>
+                            )}
+                          </Table.Cell>
+                        </Table.Row>
+                      ))}
+                    </Table.Body>
+                  </Table>
+                </div>
+              )}
+            </Tabs.Panel>
 
-          {/* Students Tab */}
-          {activeTab === 'students' && (
-            <div>
-              <h2 style={{ marginBottom: '1rem' }}>Students</h2>
-              <p style={{ color: '#6c757d', marginBottom: '1rem' }}>
-                Students are created automatically when they sign in for the first time.
-              </p>
-              <UserList
-                users={students}
-                currentUserId={user.id}
-                showActions={false}
-              />
-            </div>
-          )}
-        </>
-      )}
+            {/* Instructors Tab */}
+            <Tabs.Panel tabId="instructors">
+              <div>
+                {/* Invitation UI for namespace admins */}
+                {isAdmin && (
+                  <div className="mb-8">
+                    <InviteInstructorForm
+                      onSubmit={handleInviteInstructor}
+                      loading={invitationsLoading}
+                    />
+
+                    <h3 className="text-lg font-semibold mt-8 mb-4">Pending Invitations</h3>
+                    <InvitationList
+                      invitations={invitations}
+                      loading={invitationsLoading}
+                      onRevoke={handleRevokeInvitation}
+                      onResend={handleResendInvitation}
+                      emptyMessage="No invitations found. Use the form above to invite instructors."
+                    />
+                  </div>
+                )}
+
+                <h2 className="text-xl font-semibold mb-4">Instructors</h2>
+                <UserList
+                  users={instructors}
+                  currentUserId={user.id}
+                  onDelete={handleDeleteUser}
+                  showActions={true}
+                />
+              </div>
+            </Tabs.Panel>
+
+            {/* Students Tab */}
+            <Tabs.Panel tabId="students">
+              <div>
+                <h2 className="text-xl font-semibold mb-2">Students</h2>
+                <p className="text-gray-500 mb-4">
+                  Students are created automatically when they sign in for the first time.
+                </p>
+                <UserList
+                  users={students}
+                  currentUserId={user.id}
+                  showActions={false}
+                />
+              </div>
+            </Tabs.Panel>
+          </>
+        )}
+      </Tabs>
     </main>
   );
 }
