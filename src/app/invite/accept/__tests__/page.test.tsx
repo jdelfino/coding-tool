@@ -444,7 +444,7 @@ describe('AcceptInvitePage', () => {
       await user.click(submitButton);
 
       await waitFor(() => {
-        expect(mockPush).toHaveBeenCalledWith('/namespace');
+        expect(mockPush).toHaveBeenCalledWith('/namespace/invitations');
       });
     });
 

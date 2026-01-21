@@ -315,7 +315,7 @@ export default function AcceptInvitePage() {
   // Redirect based on user role
   const redirectBasedOnRole = (role: string) => {
     if (role === 'namespace-admin') {
-      router.push('/namespace');
+      router.push('/namespace/invitations');
     } else if (role === 'instructor') {
       router.push('/instructor');
     } else {
