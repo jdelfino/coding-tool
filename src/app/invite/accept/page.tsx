@@ -7,10 +7,10 @@
  *
  * Flow:
  * 1. User clicks invite link in email, lands here with token in URL hash
- * 2. Page verifies token with Supabase verifyOtp
+ * 2. Page verifies token with Supabase verifyOtp (or setSession if already verified)
  * 3. On success, fetches invitation details from our API
- * 4. User fills in username to complete profile
- * 5. On submit, redirects to appropriate dashboard
+ * 4. User fills in optional display name and required password
+ * 5. On submit, creates profile and sets password, then redirects to appropriate dashboard
  */
 
 import React, { useState, useEffect, FormEvent } from 'react';
@@ -97,6 +97,8 @@ export default function AcceptInvitePage() {
   const [pageState, setPageState] = useState<PageState>({ status: 'verifying' });
   const [invitation, setInvitation] = useState<InvitationInfo | null>(null);
   const [displayName, setDisplayName] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [submitError, setSubmitError] = useState('');
 
   // Verify token and load invitation on mount
@@ -229,9 +231,25 @@ export default function AcceptInvitePage() {
 
     setSubmitError('');
     if (!invitation) return;
+
+    // Validate password
+    if (!password) {
+      setSubmitError('Password is required');
+      return;
+    }
+    if (password.length < 8) {
+      setSubmitError('Password must be at least 8 characters');
+      return;
+    }
+    if (password !== confirmPassword) {
+      setSubmitError('Passwords do not match');
+      return;
+    }
+
     setPageState({ status: 'submitting', invitation });
 
     try {
+      // First, create the user profile
       const response = await fetch('/api/auth/accept-invite', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -263,22 +281,45 @@ export default function AcceptInvitePage() {
       }
 
       const data = await response.json();
-      setPageState({ status: 'success' });
 
-      // Redirect based on role
-      if (data.user.role === 'namespace-admin') {
-        router.push('/namespace');
-      } else if (data.user.role === 'instructor') {
-        router.push('/instructor');
-      } else {
-        router.push('/');
+      // Now set the user's password
+      const supabase = getSupabaseClient();
+      const { error: passwordError } = await supabase.auth.updateUser({
+        password: password,
+      });
+
+      if (passwordError) {
+        console.error('[AcceptInvite] Password update error:', passwordError);
+        // Profile was created but password wasn't set
+        // Still redirect but warn the user
+        setSubmitError('Account created but password could not be set. You can set it via "Forgot Password" on the sign-in page.');
+        // Still transition to success after a delay so they can read the message
+        setTimeout(() => {
+          setPageState({ status: 'success' });
+          redirectBasedOnRole(data.user.role);
+        }, 3000);
+        return;
       }
+
+      setPageState({ status: 'success' });
+      redirectBasedOnRole(data.user.role);
     } catch (error) {
       console.error('[AcceptInvite] Submit error:', error);
       setSubmitError('Unable to connect. Please try again.');
       // We need to restore the ready state - but we lost the invitation info
       // So we'll show a generic error
       setPageState({ status: 'error', error: 'network_error' });
+    }
+  };
+
+  // Redirect based on user role
+  const redirectBasedOnRole = (role: string) => {
+    if (role === 'namespace-admin') {
+      router.push('/namespace');
+    } else if (role === 'instructor') {
+      router.push('/instructor');
+    } else {
+      router.push('/');
     }
   };
 
@@ -433,6 +474,42 @@ export default function AcceptInvitePage() {
                 onChange={(e) => setDisplayName(e.target.value)}
                 disabled={pageState.status === 'submitting'}
                 maxLength={100}
+              />
+            </div>
+
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+                Password <span className="text-red-500">*</span>
+              </label>
+              <input
+                id="password"
+                name="password"
+                type="password"
+                required
+                className="appearance-none rounded-lg relative block w-full px-4 py-3 border border-gray-300 placeholder-gray-400 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 sm:text-sm disabled:bg-gray-50 disabled:text-gray-500"
+                placeholder="At least 8 characters"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                disabled={pageState.status === 'submitting'}
+                minLength={8}
+              />
+            </div>
+
+            <div>
+              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
+                Confirm Password <span className="text-red-500">*</span>
+              </label>
+              <input
+                id="confirmPassword"
+                name="confirmPassword"
+                type="password"
+                required
+                className="appearance-none rounded-lg relative block w-full px-4 py-3 border border-gray-300 placeholder-gray-400 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 sm:text-sm disabled:bg-gray-50 disabled:text-gray-500"
+                placeholder="Re-enter your password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                disabled={pageState.status === 'submitting'}
+                minLength={8}
               />
             </div>
           </div>

@@ -17,10 +17,14 @@ jest.mock('next/navigation', () => ({
 
 // Mock the Supabase client
 const mockVerifyOtp = jest.fn();
+const mockSetSession = jest.fn();
+const mockUpdateUser = jest.fn();
 jest.mock('@/lib/supabase-client', () => ({
   getSupabaseClient: () => ({
     auth: {
       verifyOtp: mockVerifyOtp,
+      setSession: mockSetSession,
+      updateUser: mockUpdateUser,
     },
   }),
 }));
@@ -48,6 +52,8 @@ describe('AcceptInvitePage', () => {
     jest.clearAllMocks();
     mockPush.mockClear();
     mockVerifyOtp.mockClear();
+    mockSetSession.mockClear();
+    mockUpdateUser.mockClear();
     mockFetch.mockClear();
     mockReload.mockClear();
 
@@ -284,21 +290,21 @@ describe('AcceptInvitePage', () => {
       });
     });
 
-    it('validates username is required', async () => {
-      const user = userEvent.setup();
+    it('has required attribute on password fields', async () => {
       render(<AcceptInvitePage />);
 
       await waitFor(() => {
         expect(screen.getByText('Complete Your Profile')).toBeInTheDocument();
       });
 
-      const submitButton = screen.getByRole('button', { name: 'Complete Registration' });
-      await user.click(submitButton);
+      const passwordInput = screen.getByPlaceholderText('At least 8 characters');
+      const confirmInput = screen.getByPlaceholderText('Re-enter your password');
 
-      expect(screen.getByText('Username is required')).toBeInTheDocument();
+      expect(passwordInput).toHaveAttribute('required');
+      expect(confirmInput).toHaveAttribute('required');
     });
 
-    it('validates username minimum length', async () => {
+    it('validates password minimum length', async () => {
       const user = userEvent.setup();
       render(<AcceptInvitePage />);
 
@@ -306,16 +312,18 @@ describe('AcceptInvitePage', () => {
         expect(screen.getByText('Complete Your Profile')).toBeInTheDocument();
       });
 
-      const usernameInput = screen.getByPlaceholderText('Choose a username');
-      await user.type(usernameInput, 'ab');
+      const passwordInput = screen.getByPlaceholderText('At least 8 characters');
+      const confirmInput = screen.getByPlaceholderText('Re-enter your password');
+      await user.type(passwordInput, 'short');
+      await user.type(confirmInput, 'short');
 
       const submitButton = screen.getByRole('button', { name: 'Complete Registration' });
       await user.click(submitButton);
 
-      expect(screen.getByText('Username must be at least 3 characters')).toBeInTheDocument();
+      expect(screen.getByText('Password must be at least 8 characters')).toBeInTheDocument();
     });
 
-    it('validates username format', async () => {
+    it('validates passwords must match', async () => {
       const user = userEvent.setup();
       render(<AcceptInvitePage />);
 
@@ -323,13 +331,26 @@ describe('AcceptInvitePage', () => {
         expect(screen.getByText('Complete Your Profile')).toBeInTheDocument();
       });
 
-      const usernameInput = screen.getByPlaceholderText('Choose a username');
-      await user.type(usernameInput, 'invalid@user');
+      const passwordInput = screen.getByPlaceholderText('At least 8 characters');
+      const confirmInput = screen.getByPlaceholderText('Re-enter your password');
+      await user.type(passwordInput, 'password123');
+      await user.type(confirmInput, 'different456');
 
       const submitButton = screen.getByRole('button', { name: 'Complete Registration' });
       await user.click(submitButton);
 
-      expect(screen.getByText('Username can only contain letters, numbers, and underscores')).toBeInTheDocument();
+      expect(screen.getByText('Passwords do not match')).toBeInTheDocument();
+    });
+
+    it('renders password fields', async () => {
+      render(<AcceptInvitePage />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Complete Your Profile')).toBeInTheDocument();
+      });
+
+      expect(screen.getByPlaceholderText('At least 8 characters')).toBeInTheDocument();
+      expect(screen.getByPlaceholderText('Re-enter your password')).toBeInTheDocument();
     });
   });
 
@@ -337,9 +358,11 @@ describe('AcceptInvitePage', () => {
     beforeEach(() => {
       setLocationHash('#token_hash=test-token&type=invite');
       mockVerifyOtp.mockResolvedValue({ error: null });
+      // Default: password update succeeds
+      mockUpdateUser.mockResolvedValue({ error: null });
     });
 
-    it('submits form and redirects on success', async () => {
+    it('submits form and sets password on success', async () => {
       const user = userEvent.setup();
 
       // First call: GET invitation info
@@ -365,8 +388,10 @@ describe('AcceptInvitePage', () => {
         expect(screen.getByText('Complete Your Profile')).toBeInTheDocument();
       });
 
-      const usernameInput = screen.getByPlaceholderText('Choose a username');
-      await user.type(usernameInput, 'testuser');
+      const passwordInput = screen.getByPlaceholderText('At least 8 characters');
+      const confirmInput = screen.getByPlaceholderText('Re-enter your password');
+      await user.type(passwordInput, 'securepassword123');
+      await user.type(confirmInput, 'securepassword123');
 
       const submitButton = screen.getByRole('button', { name: 'Complete Registration' });
       await user.click(submitButton);
@@ -374,8 +399,11 @@ describe('AcceptInvitePage', () => {
       await waitFor(() => {
         expect(mockFetch).toHaveBeenCalledWith('/api/auth/accept-invite', expect.objectContaining({
           method: 'POST',
-          body: JSON.stringify({ username: 'testuser' }),
         }));
+      });
+
+      await waitFor(() => {
+        expect(mockUpdateUser).toHaveBeenCalledWith({ password: 'securepassword123' });
       });
 
       await waitFor(() => {
@@ -407,8 +435,10 @@ describe('AcceptInvitePage', () => {
         expect(screen.getByText('Complete Your Profile')).toBeInTheDocument();
       });
 
-      const usernameInput = screen.getByPlaceholderText('Choose a username');
-      await user.type(usernameInput, 'adminuser');
+      const passwordInput = screen.getByPlaceholderText('At least 8 characters');
+      const confirmInput = screen.getByPlaceholderText('Re-enter your password');
+      await user.type(passwordInput, 'adminpassword123');
+      await user.type(confirmInput, 'adminpassword123');
 
       const submitButton = screen.getByRole('button', { name: 'Complete Registration' });
       await user.click(submitButton);
@@ -418,7 +448,7 @@ describe('AcceptInvitePage', () => {
       });
     });
 
-    it('shows error for duplicate username', async () => {
+    it('shows error for API failure', async () => {
       const user = userEvent.setup();
 
       mockFetch
@@ -432,8 +462,7 @@ describe('AcceptInvitePage', () => {
         .mockResolvedValueOnce({
           ok: false,
           json: () => Promise.resolve({
-            error: 'Username taken',
-            code: 'DUPLICATE_USERNAME',
+            error: 'Something went wrong',
           }),
         });
 
@@ -443,14 +472,16 @@ describe('AcceptInvitePage', () => {
         expect(screen.getByText('Complete Your Profile')).toBeInTheDocument();
       });
 
-      const usernameInput = screen.getByPlaceholderText('Choose a username');
-      await user.type(usernameInput, 'existinguser');
+      const passwordInput = screen.getByPlaceholderText('At least 8 characters');
+      const confirmInput = screen.getByPlaceholderText('Re-enter your password');
+      await user.type(passwordInput, 'testpassword123');
+      await user.type(confirmInput, 'testpassword123');
 
       const submitButton = screen.getByRole('button', { name: 'Complete Registration' });
       await user.click(submitButton);
 
       await waitFor(() => {
-        expect(screen.getByText('This username is already taken. Please choose another.')).toBeInTheDocument();
+        expect(screen.getByText('Something went wrong')).toBeInTheDocument();
       });
     });
 
@@ -473,14 +504,59 @@ describe('AcceptInvitePage', () => {
         expect(screen.getByText('Complete Your Profile')).toBeInTheDocument();
       });
 
-      const usernameInput = screen.getByPlaceholderText('Choose a username');
-      await user.type(usernameInput, 'testuser');
+      const passwordInput = screen.getByPlaceholderText('At least 8 characters');
+      const confirmInput = screen.getByPlaceholderText('Re-enter your password');
+      await user.type(passwordInput, 'testpassword123');
+      await user.type(confirmInput, 'testpassword123');
 
       const submitButton = screen.getByRole('button', { name: 'Complete Registration' });
       await user.click(submitButton);
 
       await waitFor(() => {
         expect(screen.getByText('Creating your account...')).toBeInTheDocument();
+      });
+    });
+
+    it('includes display name in submission when provided', async () => {
+      const user = userEvent.setup();
+
+      mockFetch
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve({
+            invitation: { id: 'inv-1', email: 'test@example.com', targetRole: 'instructor' },
+            namespace: { id: 'test-ns', displayName: 'Test Org' },
+          }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve({
+            user: { id: 'user-1', role: 'instructor' },
+          }),
+        });
+
+      render(<AcceptInvitePage />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Complete Your Profile')).toBeInTheDocument();
+      });
+
+      const displayNameInput = screen.getByPlaceholderText('Your preferred display name');
+      await user.type(displayNameInput, 'John Doe');
+
+      const passwordInput = screen.getByPlaceholderText('At least 8 characters');
+      const confirmInput = screen.getByPlaceholderText('Re-enter your password');
+      await user.type(passwordInput, 'securepassword123');
+      await user.type(confirmInput, 'securepassword123');
+
+      const submitButton = screen.getByRole('button', { name: 'Complete Registration' });
+      await user.click(submitButton);
+
+      await waitFor(() => {
+        expect(mockFetch).toHaveBeenCalledWith('/api/auth/accept-invite', expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify({ displayName: 'John Doe' }),
+        }));
       });
     });
   });
