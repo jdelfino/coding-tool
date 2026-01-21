@@ -268,14 +268,15 @@ describe('ExecutionSettings Component', () => {
 
     it('should apply standard background when not in sidebar', () => {
       const { container } = render(
-        <ExecutionSettings 
-          {...defaultProps} 
+        <ExecutionSettings
+          {...defaultProps}
           inSidebar={false}
         />
       );
 
       const wrapperDiv = container.firstChild as HTMLElement;
-      expect(wrapperDiv).toHaveStyle({ backgroundColor: '#f5f5f5' });
+      // Now using Tailwind classes - bg-gray-100 for light theme when not in sidebar
+      expect(wrapperDiv).toHaveClass('bg-gray-100');
     });
 
     it('should not have top border when in sidebar', () => {
@@ -292,14 +293,15 @@ describe('ExecutionSettings Component', () => {
 
     it('should have top border when not in sidebar', () => {
       const { container } = render(
-        <ExecutionSettings 
-          {...defaultProps} 
+        <ExecutionSettings
+          {...defaultProps}
           inSidebar={false}
         />
       );
 
       const wrapperDiv = container.firstChild as HTMLElement;
-      expect(wrapperDiv).toHaveStyle({ borderTop: '1px solid #ccc' });
+      // Now using Tailwind classes - border-t for top border
+      expect(wrapperDiv).toHaveClass('border-t');
     });
   });
 

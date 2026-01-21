@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { cn } from '@/lib/utils';
 
 interface ExecutionResult {
   success: boolean;
@@ -19,34 +20,27 @@ interface OutputPanelProps {
 export default function OutputPanel({ result, isConnected = true, isRunning = false }: OutputPanelProps) {
   if (!result) {
     return (
-      <div style={{
-        padding: '1rem',
-        backgroundColor: '#f8f9fa',
-        border: '1px solid #dee2e6',
-        borderRadius: '4px',
-        marginTop: '1rem',
-        minHeight: '150px'
-      }}>
-        <h4 style={{ marginTop: 0 }}>Output</h4>
+      <div className="p-4 bg-gray-50 border border-gray-200 rounded mt-4 min-h-[150px]">
+        <h4 className="mt-0">Output</h4>
         {isRunning ? (
-          <p style={{ color: '#666', fontStyle: 'italic' }}>
+          <p className="text-gray-500 italic">
             Executing your code...
           </p>
         ) : !isConnected ? (
           <div>
-            <p style={{ color: '#dc3545', margin: '0 0 0.5rem 0' }}>
+            <p className="text-red-600 m-0 mb-2">
               Not connected to the session.
             </p>
-            <p style={{ color: '#666', fontSize: '0.9rem', margin: 0 }}>
+            <p className="text-gray-500 text-sm m-0">
               Please wait for the connection to be established before running code.
             </p>
           </div>
         ) : (
           <div>
-            <p style={{ color: '#666', fontStyle: 'italic', margin: '0 0 0.5rem 0' }}>
+            <p className="text-gray-500 italic m-0 mb-2">
               No output yet.
             </p>
-            <p style={{ color: '#888', fontSize: '0.9rem', margin: 0 }}>
+            <p className="text-gray-400 text-sm m-0">
               Click the "Run Code" button to execute your code and see the output here.
             </p>
           </div>
@@ -56,68 +50,42 @@ export default function OutputPanel({ result, isConnected = true, isRunning = fa
   }
 
   return (
-    <div style={{ 
-      padding: '1rem',
-      backgroundColor: result.success ? '#d4edda' : '#f8d7da',
-      border: `1px solid ${result.success ? '#c3e6cb' : '#f5c6cb'}`,
-      borderRadius: '4px',
-      marginTop: '1rem',
-      minHeight: '150px'
-    }}>
-      <h4 style={{ marginTop: 0 }}>Output</h4>
-      
+    <div className={cn(
+      'p-4 border rounded mt-4 min-h-[150px]',
+      result.success
+        ? 'bg-green-100 border-green-300'
+        : 'bg-red-100 border-red-300'
+    )}>
+      <h4 className="mt-0">Output</h4>
+
       {/* Display input if it was provided */}
       {result.stdin && (
-        <div style={{ marginBottom: '1rem' }}>
-          <strong style={{ color: '#666' }}>Input provided:</strong>
-          <pre style={{ 
-            margin: '0.5rem 0',
-            fontFamily: 'monospace',
-            whiteSpace: 'pre-wrap',
-            wordWrap: 'break-word',
-            backgroundColor: '#f5f5f5',
-            padding: '0.5rem',
-            borderRadius: '4px',
-            border: '1px solid #ccc',
-          }}>
+        <div className="mb-4">
+          <strong className="text-gray-500">Input provided:</strong>
+          <pre className="my-2 font-mono whitespace-pre-wrap break-words bg-gray-100 p-2 rounded border border-gray-300">
             {result.stdin}
           </pre>
         </div>
       )}
 
       {result.output && (
-        <div style={{ marginBottom: '1rem' }}>
-          <pre style={{ 
-            margin: 0,
-            fontFamily: 'monospace',
-            whiteSpace: 'pre-wrap',
-            wordWrap: 'break-word'
-          }}>
+        <div className="mb-4">
+          <pre className="m-0 font-mono whitespace-pre-wrap break-words">
             {result.output}
           </pre>
         </div>
       )}
 
       {result.error && (
-        <div style={{ marginBottom: '1rem' }}>
-          <strong style={{ color: '#721c24' }}>Error:</strong>
-          <pre style={{ 
-            margin: '0.5rem 0 0 0',
-            fontFamily: 'monospace',
-            whiteSpace: 'pre-wrap',
-            wordWrap: 'break-word',
-            color: '#721c24'
-          }}>
+        <div className="mb-4">
+          <strong className="text-red-800">Error:</strong>
+          <pre className="mt-2 mb-0 font-mono whitespace-pre-wrap break-words text-red-800">
             {result.error}
           </pre>
         </div>
       )}
 
-      <div style={{ 
-        fontSize: '0.9rem', 
-        color: '#666',
-        marginTop: '0.5rem'
-      }}>
+      <div className="text-sm text-gray-500 mt-2">
         Execution time: {result.executionTime}ms
       </div>
     </div>
