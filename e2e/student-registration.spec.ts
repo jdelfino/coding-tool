@@ -4,7 +4,7 @@
  * Tests the student registration flow where new users:
  * 1. Enter a section join code
  * 2. See section preview information
- * 3. Fill out registration form (email, password, username)
+ * 3. Fill out registration form (email, password)
  * 4. Get redirected to student dashboard
  *
  * NOTE: These tests require Supabase to be running with proper credentials.
@@ -43,7 +43,7 @@ describeE2E('Student Registration via Join Code', () => {
         namespaceId,
         `instructor-${Date.now()}`
       );
-      console.log(`Created instructor: ${instructor.username}`);
+      console.log(`Created instructor: ${instructor.displayName}`);
 
       // Navigate to student registration page
       await page.goto('/register/student');
@@ -68,13 +68,11 @@ describeE2E('Student Registration via Join Code', () => {
       await expect(page.locator(`text=${section.name}`)).toBeVisible();
       console.log('Section preview displayed correctly');
 
-      // Fill out registration form
+      // Fill out registration form (email and password only - no username)
       const studentEmail = `student_${Date.now()}@test.local`;
-      const studentUsername = `student_${Date.now()}`;
       const studentPassword = 'TestPassword123';
 
       await page.fill('input#email', studentEmail);
-      await page.fill('input#username', studentUsername);
       await page.fill('input#password', studentPassword);
       await page.fill('input#confirmPassword', studentPassword);
 
@@ -93,17 +91,21 @@ describeE2E('Student Registration via Join Code', () => {
 
       console.log('Student registration completed successfully!');
 
-      // Verify the student was created in the database
+      // Verify the student was created in the database by email
+      const { data: authUsers } = await supabase.auth.admin.listUsers();
+      const authUser = authUsers.users.find((u) => u.email === studentEmail);
+      expect(authUser).not.toBeNull();
+
       const { data: profile } = await supabase
         .from('user_profiles')
         .select('*')
-        .eq('username', studentUsername)
+        .eq('id', authUser!.id)
         .single();
 
       expect(profile).not.toBeNull();
       expect(profile.role).toBe('student');
       expect(profile.namespace_id).toBe(namespaceId);
-      console.log(`Verified student profile created: ${profile.username} with role ${profile.role}`);
+      console.log(`Verified student profile created with role ${profile.role}`);
 
       // Verify the student is enrolled in the section
       const { data: membership } = await supabase
@@ -157,13 +159,11 @@ describeE2E('Student Registration via Join Code', () => {
       await expect(page.locator(`text=${testClass.name}`)).toBeVisible();
       console.log('Section validated from URL parameter');
 
-      // Complete registration
+      // Complete registration (email and password only - no username)
       const studentEmail = `student_url_${Date.now()}@test.local`;
-      const studentUsername = `student_url_${Date.now()}`;
       const studentPassword = 'TestPassword123';
 
       await page.fill('input#email', studentEmail);
-      await page.fill('input#username', studentUsername);
       await page.fill('input#password', studentPassword);
       await page.fill('input#confirmPassword', studentPassword);
 
@@ -182,16 +182,20 @@ describeE2E('Student Registration via Join Code', () => {
 
       console.log('Student registration from URL parameter completed successfully!');
 
-      // Verify the student was created
+      // Verify the student was created by email
+      const { data: authUsers } = await supabase.auth.admin.listUsers();
+      const authUser = authUsers.users.find((u) => u.email === studentEmail);
+      expect(authUser).not.toBeNull();
+
       const { data: profile } = await supabase
         .from('user_profiles')
         .select('*')
-        .eq('username', studentUsername)
+        .eq('id', authUser!.id)
         .single();
 
       expect(profile).not.toBeNull();
       expect(profile.role).toBe('student');
-      console.log(`Verified student profile: ${profile.username}`);
+      console.log(`Verified student profile created`);
     } finally {
       await cleanupNamespace(namespaceId);
     }
@@ -240,9 +244,9 @@ describeE2E('Student Registration via Join Code', () => {
 
       await supabase.from('user_profiles').insert({
         id: existingUserId,
-        username: `existing-${Date.now()}`,
         role: 'student',
         namespace_id: namespaceId,
+        display_name: 'Existing User',
       });
 
       // Navigate to registration and enter valid code
@@ -255,7 +259,6 @@ describeE2E('Student Registration via Join Code', () => {
 
       // Try to register with existing email
       await page.fill('input#email', existingEmail);
-      await page.fill('input#username', `new_${Date.now()}`);
       await page.fill('input#password', 'TestPassword123');
       await page.fill('input#confirmPassword', 'TestPassword123');
 

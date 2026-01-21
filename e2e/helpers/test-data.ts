@@ -138,8 +138,8 @@ async function createTestAdminUser(
   namespaceId: string
 ): Promise<string> {
   const userId = uuidv4();
-  const username = `admin-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
-  const email = `${username}@test.local`;
+  const displayName = `admin-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
+  const email = `${displayName}@test.local`;
 
   // Create auth user
   const { error: authError } = await supabase.auth.admin.createUser({
@@ -147,7 +147,7 @@ async function createTestAdminUser(
     email,
     password: 'testpassword123',
     email_confirm: true,
-    user_metadata: { username },
+    user_metadata: { displayName },
   });
 
   if (authError) {
@@ -157,10 +157,9 @@ async function createTestAdminUser(
   // Create profile
   const { error: profileError } = await supabase.from('user_profiles').insert({
     id: userId,
-    username,
     role: 'namespace-admin',
     namespace_id: namespaceId,
-    display_name: username,
+    display_name: displayName,
   });
 
   if (profileError) {
@@ -229,10 +228,10 @@ export async function createInstructorForSection(
   supabase: SupabaseClient,
   sectionId: string,
   namespaceId: string,
-  username: string
-): Promise<{ id: string; username: string; email: string }> {
+  displayName: string
+): Promise<{ id: string; displayName: string; email: string }> {
   const userId = uuidv4();
-  const email = `${username}@test.local`;
+  const email = `${displayName}@test.local`;
   const password = 'testpassword123';
 
   // Create auth user
@@ -241,7 +240,7 @@ export async function createInstructorForSection(
     email,
     password,
     email_confirm: true,
-    user_metadata: { username },
+    user_metadata: { displayName },
   });
 
   if (authError) {
@@ -251,10 +250,9 @@ export async function createInstructorForSection(
   // Create profile
   const { error: profileError } = await supabase.from('user_profiles').insert({
     id: userId,
-    username,
     role: 'instructor',
     namespace_id: namespaceId,
-    display_name: username,
+    display_name: displayName,
   });
 
   if (profileError) {
@@ -272,8 +270,8 @@ export async function createInstructorForSection(
     console.warn(`Warning: Could not add instructor to section: ${sectionError.message}`);
   }
 
-  console.log(`Created instructor: ${username} for section`);
-  return { id: userId, username, email };
+  console.log(`Created instructor: ${displayName} for section`);
+  return { id: userId, displayName, email };
 }
 
 /**
