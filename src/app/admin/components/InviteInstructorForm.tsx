@@ -8,6 +8,10 @@
  */
 
 import React, { useState, FormEvent } from 'react';
+import { Card } from '@/components/ui/Card';
+import { Input } from '@/components/ui/Input';
+import { Button } from '@/components/ui/Button';
+import { Alert } from '@/components/ui/Alert';
 
 interface InviteInstructorFormProps {
   onSubmit: (email: string) => Promise<void>;
@@ -52,99 +56,61 @@ export default function InviteInstructorForm({
   };
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      style={{
-        padding: '1.5rem',
-        background: '#f8f9fa',
-        borderRadius: '8px',
-        border: '1px solid #dee2e6',
-      }}
-    >
-      <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.1rem', fontWeight: '600' }}>
-        Invite Instructor
-      </h3>
+    <Card variant="outlined" className="p-6">
+      <form onSubmit={handleSubmit}>
+        <h3 className="text-lg font-semibold mb-4">
+          Invite Instructor
+        </h3>
 
-      <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-end', flexWrap: 'wrap' }}>
-        <div style={{ flex: 1, minWidth: '200px' }}>
-          <label
-            htmlFor="invite-email"
-            style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', fontSize: '0.875rem' }}
+        <div className="flex gap-3 items-end flex-wrap">
+          <div className="flex-1 min-w-[200px]">
+            <label
+              htmlFor="invite-email"
+              className="block mb-2 font-medium text-sm"
+            >
+              Email Address
+            </label>
+            <Input
+              id="invite-email"
+              type="email"
+              value={email}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                setError('');
+                setSuccess('');
+              }}
+              placeholder="instructor@example.com"
+              disabled={loading}
+              className="py-2"
+            />
+          </div>
+
+          <Button
+            type="submit"
+            variant="primary"
+            size="md"
+            loading={loading}
           >
-            Email Address
-          </label>
-          <input
-            id="invite-email"
-            type="email"
-            value={email}
-            onChange={(e) => {
-              setEmail(e.target.value);
-              setError('');
-              setSuccess('');
-            }}
-            placeholder="instructor@example.com"
-            disabled={loading}
-            style={{
-              width: '100%',
-              padding: '0.5rem 0.75rem',
-              borderRadius: '4px',
-              border: '1px solid #ced4da',
-              fontSize: '0.875rem',
-              background: loading ? '#e9ecef' : 'white',
-            }}
-          />
+            {loading ? 'Sending...' : 'Send Invitation'}
+          </Button>
         </div>
 
-        <button
-          type="submit"
-          disabled={loading}
-          style={{
-            padding: '0.5rem 1.5rem',
-            background: loading ? '#6c757d' : '#0070f3',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: loading ? 'not-allowed' : 'pointer',
-            fontSize: '0.875rem',
-            fontWeight: '500',
-            whiteSpace: 'nowrap',
-          }}
-        >
-          {loading ? 'Sending...' : 'Send Invitation'}
-        </button>
-      </div>
+        {error && (
+          <div className="mt-4">
+            <Alert variant="error" dismissible onDismiss={() => setError('')}>
+              {error}
+            </Alert>
+          </div>
+        )}
 
-      {error && (
-        <div
-          style={{
-            marginTop: '1rem',
-            padding: '0.75rem',
-            background: '#fee',
-            border: '1px solid #fcc',
-            borderRadius: '4px',
-            color: '#c33',
-            fontSize: '0.875rem',
-          }}
-        >
-          {error}
-        </div>
-      )}
-
-      {success && (
-        <div
-          style={{
-            marginTop: '1rem',
-            padding: '0.75rem',
-            background: '#d4edda',
-            border: '1px solid #c3e6cb',
-            borderRadius: '4px',
-            color: '#155724',
-            fontSize: '0.875rem',
-          }}
-        >
-          {success}
-        </div>
-      )}
-    </form>
+        {success && (
+          <div className="mt-4">
+            <Alert variant="success" dismissible onDismiss={() => setSuccess('')}>
+              {success}
+            </Alert>
+          </div>
+        )}
+      </form>
+    </Card>
   );
 }

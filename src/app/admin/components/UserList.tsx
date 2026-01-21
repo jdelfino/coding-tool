@@ -5,6 +5,9 @@
  */
 
 import { useState } from 'react';
+import { Table } from '@/components/ui/Table';
+import { Badge } from '@/components/ui/Badge';
+import { Button } from '@/components/ui/Button';
 import type { User } from '@/server/auth/types';
 
 interface UserListProps {
@@ -34,140 +37,100 @@ export default function UserList({ users, currentUserId, onDelete, showActions =
 
   const formatDate = (date: Date | string) => {
     const d = typeof date === 'string' ? new Date(date) : date;
-    return d.toLocaleDateString('en-US', { 
-      year: 'numeric', 
-      month: 'short', 
+    return d.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
       day: 'numeric',
       hour: '2-digit',
       minute: '2-digit'
     });
   };
 
+  const getRoleBadgeVariant = (role: string): 'info' | 'success' | 'default' => {
+    if (role === 'instructor') return 'info';
+    if (role === 'student') return 'success';
+    return 'default';
+  };
+
   if (users.length === 0) {
     return (
-      <div style={{
-        padding: '2rem',
-        textAlign: 'center',
-        color: '#6c757d',
-        backgroundColor: '#f8f9fa',
-        borderRadius: '4px'
-      }}>
+      <div className="py-8 text-center text-gray-500 bg-gray-50 rounded">
         No users found
       </div>
     );
   }
 
   return (
-    <div style={{ overflowX: 'auto' }}>
-      <table style={{ 
-        width: '100%', 
-        borderCollapse: 'collapse',
-        backgroundColor: 'white',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
-      }}>
-        <thead>
-          <tr style={{ backgroundColor: '#f8f9fa', borderBottom: '2px solid #dee2e6' }}>
-            <th style={{ padding: '0.75rem', textAlign: 'left', fontWeight: 600 }}>Username</th>
-            <th style={{ padding: '0.75rem', textAlign: 'left', fontWeight: 600 }}>Role</th>
-            <th style={{ padding: '0.75rem', textAlign: 'left', fontWeight: 600 }}>Created</th>
-            <th style={{ padding: '0.75rem', textAlign: 'left', fontWeight: 600 }}>Last Login</th>
-            {showActions && <th style={{ padding: '0.75rem', textAlign: 'center', fontWeight: 600 }}>Actions</th>}
-          </tr>
-        </thead>
-        <tbody>
-          {users.map((user) => (
-            <tr key={user.id} style={{ borderBottom: '1px solid #dee2e6' }}>
-              <td style={{ padding: '0.75rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  {user.displayName || user.email}
-                  {user.id === currentUserId && (
-                    <span style={{
-                      fontSize: '0.75rem',
-                      padding: '0.125rem 0.5rem',
-                      backgroundColor: '#0070f3',
-                      color: 'white',
-                      borderRadius: '4px'
-                    }}>You</span>
-                  )}
-                </div>
-              </td>
-              <td style={{ padding: '0.75rem' }}>
-                <span style={{
-                  padding: '0.25rem 0.75rem',
-                  borderRadius: '4px',
-                  fontSize: '0.85rem',
-                  fontWeight: 500,
-                  backgroundColor: user.role === 'instructor' ? '#e7f3ff' : '#e8f5e9',
-                  color: user.role === 'instructor' ? '#0070f3' : '#28a745'
-                }}>
-                  {user.role}
-                </span>
-              </td>
-              <td style={{ padding: '0.75rem', fontSize: '0.9rem', color: '#6c757d' }}>
-                {formatDate(user.createdAt)}
-              </td>
-              <td style={{ padding: '0.75rem', fontSize: '0.9rem', color: '#6c757d' }}>
-                {user.lastLoginAt ? formatDate(user.lastLoginAt) : 'Never'}
-              </td>
-              {showActions && (
-                <td style={{ padding: '0.75rem', textAlign: 'center' }}>
-                  {user.id === currentUserId ? (
-                    <span style={{ fontSize: '0.85rem', color: '#6c757d' }}>-</span>
-                  ) : confirmDeleteId === user.id ? (
-                    <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
-                      <button
-                        onClick={() => handleDelete(user.id, user.displayName || user.email)}
-                        disabled={deletingId === user.id}
-                        style={{
-                          padding: '0.25rem 0.75rem',
-                          backgroundColor: '#dc3545',
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: '4px',
-                          cursor: 'pointer',
-                          fontSize: '0.85rem'
-                        }}
-                      >
-                        {deletingId === user.id ? 'Deleting...' : 'Confirm'}
-                      </button>
-                      <button
-                        onClick={() => setConfirmDeleteId(null)}
-                        disabled={deletingId === user.id}
-                        style={{
-                          padding: '0.25rem 0.75rem',
-                          backgroundColor: '#6c757d',
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: '4px',
-                          cursor: 'pointer',
-                          fontSize: '0.85rem'
-                        }}
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => setConfirmDeleteId(user.id)}
-                      style={{
-                        padding: '0.25rem 0.75rem',
-                        backgroundColor: 'transparent',
-                        color: '#dc3545',
-                        border: '1px solid #dc3545',
-                        borderRadius: '4px',
-                        cursor: 'pointer',
-                        fontSize: '0.85rem'
-                      }}
+    <Table className="bg-white shadow-sm">
+      <Table.Header>
+        <Table.Row>
+          <Table.HeaderCell>Username</Table.HeaderCell>
+          <Table.HeaderCell>Role</Table.HeaderCell>
+          <Table.HeaderCell>Created</Table.HeaderCell>
+          <Table.HeaderCell>Last Login</Table.HeaderCell>
+          {showActions && <Table.HeaderCell align="center">Actions</Table.HeaderCell>}
+        </Table.Row>
+      </Table.Header>
+      <Table.Body>
+        {users.map((user) => (
+          <Table.Row key={user.id}>
+            <Table.Cell>
+              <div className="flex items-center gap-2">
+                {user.displayName || user.email}
+                {user.id === currentUserId && (
+                  <Badge variant="info">You</Badge>
+                )}
+              </div>
+            </Table.Cell>
+            <Table.Cell>
+              <Badge variant={getRoleBadgeVariant(user.role)}>
+                {user.role}
+              </Badge>
+            </Table.Cell>
+            <Table.Cell className="text-sm text-gray-500">
+              {formatDate(user.createdAt)}
+            </Table.Cell>
+            <Table.Cell className="text-sm text-gray-500">
+              {user.lastLoginAt ? formatDate(user.lastLoginAt) : 'Never'}
+            </Table.Cell>
+            {showActions && (
+              <Table.Cell align="center">
+                {user.id === currentUserId ? (
+                  <span className="text-sm text-gray-500">-</span>
+                ) : confirmDeleteId === user.id ? (
+                  <div className="flex gap-2 justify-center">
+                    <Button
+                      variant="danger"
+                      size="sm"
+                      onClick={() => handleDelete(user.id, user.displayName || user.email)}
+                      loading={deletingId === user.id}
                     >
-                      Delete
-                    </button>
-                  )}
-                </td>
-              )}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+                      {deletingId === user.id ? 'Deleting...' : 'Confirm'}
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => setConfirmDeleteId(null)}
+                      disabled={deletingId === user.id}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                ) : (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setConfirmDeleteId(user.id)}
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50 border border-red-300"
+                  >
+                    Delete
+                  </Button>
+                )}
+              </Table.Cell>
+            )}
+          </Table.Row>
+        ))}
+      </Table.Body>
+    </Table>
   );
 }
