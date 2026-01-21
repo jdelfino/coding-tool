@@ -19,7 +19,7 @@ const mockLimit = jest.fn();
 const mockUpdateEq = jest.fn(); // Separate mock for update().eq()
 
 jest.mock('../../../supabase/client', () => ({
-  getClient: jest.fn(() => ({
+  getSupabaseClientWithAuth: jest.fn(() => ({
     from: mockFrom,
   })),
 }));
@@ -88,7 +88,7 @@ describe('SupabaseNamespaceRepository', () => {
       };
     });
 
-    repository = new SupabaseNamespaceRepository();
+    repository = new SupabaseNamespaceRepository('test-token');
   });
 
   describe('initialize', () => {

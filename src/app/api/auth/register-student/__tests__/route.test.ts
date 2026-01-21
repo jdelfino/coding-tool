@@ -17,17 +17,20 @@ jest.mock('@/server/invitations', () => ({
   },
 }));
 
-jest.mock('@/server/persistence', () => ({
-  getStorage: jest.fn(),
-}));
+jest.mock('@/server/persistence');
 
 jest.mock('@/server/rate-limit', () => ({
   rateLimit: jest.fn(),
 }));
 
+jest.mock('@/server/supabase/client', () => ({
+  getSupabaseClient: jest.fn(),
+}));
+
 import { getStudentRegistrationService } from '@/server/invitations';
-import { getStorage } from '@/server/persistence';
+import { createStorage } from '@/server/persistence';
 import { rateLimit } from '@/server/rate-limit';
+import { getSupabaseClient } from '@/server/supabase/client';
 
 describe('/api/auth/register-student', () => {
   // Mock data
@@ -74,6 +77,7 @@ describe('/api/auth/register-student', () => {
 
   let mockStudentRegistrationService: any;
   let mockStorage: any;
+  let mockSupabaseClient: any;
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -94,7 +98,7 @@ describe('/api/auth/register-student', () => {
         section: mockSection,
       }),
     };
-    (getStudentRegistrationService as jest.Mock).mockResolvedValue(mockStudentRegistrationService);
+    (getStudentRegistrationService as jest.Mock).mockReturnValue(mockStudentRegistrationService);
 
     // Setup storage mock
     mockStorage = {
@@ -105,7 +109,79 @@ describe('/api/auth/register-student', () => {
         getUser: jest.fn().mockResolvedValue(mockInstructor),
       },
     };
-    (getStorage as jest.Mock).mockResolvedValue(mockStorage);
+    (createStorage as jest.Mock).mockResolvedValue(mockStorage);
+
+    // Setup Supabase client mock for GET route
+    mockSupabaseClient = {
+      from: jest.fn().mockImplementation((table: string) => {
+        if (table === 'sections') {
+          return {
+            select: jest.fn().mockReturnThis(),
+            eq: jest.fn().mockReturnThis(),
+            single: jest.fn().mockResolvedValue({
+              data: {
+                id: mockSection.id,
+                name: mockSection.name,
+                semester: mockSection.semester,
+                namespace_id: mockSection.namespaceId,
+                class_id: mockSection.classId,
+                instructor_ids: mockSection.instructorIds,
+                join_code: mockSection.joinCode,
+                active: mockSection.active,
+              },
+              error: null,
+            }),
+          };
+        }
+        if (table === 'namespaces') {
+          return {
+            select: jest.fn().mockReturnThis(),
+            eq: jest.fn().mockReturnThis(),
+            single: jest.fn().mockResolvedValue({
+              data: {
+                id: mockNamespace.id,
+                display_name: mockNamespace.displayName,
+                max_students: null,
+              },
+              error: null,
+            }),
+          };
+        }
+        if (table === 'classes') {
+          return {
+            select: jest.fn().mockReturnThis(),
+            eq: jest.fn().mockReturnThis(),
+            single: jest.fn().mockResolvedValue({
+              data: {
+                id: mockClass.id,
+                name: mockClass.name,
+                description: mockClass.description,
+              },
+              error: null,
+            }),
+          };
+        }
+        if (table === 'user_profiles') {
+          return {
+            select: jest.fn().mockReturnThis(),
+            eq: jest.fn().mockReturnThis(),
+            single: jest.fn().mockResolvedValue({
+              data: {
+                id: mockInstructor.id,
+                display_name: mockInstructor.displayName,
+              },
+              error: null,
+            }),
+          };
+        }
+        return {
+          select: jest.fn().mockReturnThis(),
+          eq: jest.fn().mockReturnThis(),
+          single: jest.fn().mockResolvedValue({ data: null, error: null }),
+        };
+      }),
+    };
+    (getSupabaseClient as jest.Mock).mockReturnValue(mockSupabaseClient);
   });
 
   describe('GET /api/auth/register-student', () => {
@@ -142,9 +218,19 @@ describe('/api/auth/register-student', () => {
     });
 
     it('returns 400 for invalid code', async () => {
-      mockStudentRegistrationService.validateSectionCode.mockResolvedValue({
-        valid: false,
-        error: 'INVALID_CODE',
+      // Override Supabase mock to return no section
+      mockSupabaseClient.from = jest.fn().mockImplementation((table: string) => {
+        if (table === 'sections') {
+          return {
+            select: jest.fn().mockReturnThis(),
+            eq: jest.fn().mockReturnThis(),
+            single: jest.fn().mockResolvedValue({
+              data: null,
+              error: { message: 'Not found' },
+            }),
+          };
+        }
+        return { select: jest.fn().mockReturnThis(), eq: jest.fn().mockReturnThis(), single: jest.fn().mockResolvedValue({ data: null, error: null }) };
       });
 
       const request = new NextRequest('http://localhost/api/auth/register-student?code=INVALID');
@@ -157,9 +243,28 @@ describe('/api/auth/register-student', () => {
     });
 
     it('returns 400 for inactive section', async () => {
-      mockStudentRegistrationService.validateSectionCode.mockResolvedValue({
-        valid: false,
-        error: 'SECTION_INACTIVE',
+      // Override Supabase mock to return an inactive section
+      mockSupabaseClient.from = jest.fn().mockImplementation((table: string) => {
+        if (table === 'sections') {
+          return {
+            select: jest.fn().mockReturnThis(),
+            eq: jest.fn().mockReturnThis(),
+            single: jest.fn().mockResolvedValue({
+              data: {
+                id: mockSection.id,
+                name: mockSection.name,
+                semester: mockSection.semester,
+                namespace_id: mockSection.namespaceId,
+                class_id: mockSection.classId,
+                instructor_ids: mockSection.instructorIds,
+                join_code: mockSection.joinCode,
+                active: false, // Inactive
+              },
+              error: null,
+            }),
+          };
+        }
+        return { select: jest.fn().mockReturnThis(), eq: jest.fn().mockReturnThis(), single: jest.fn().mockResolvedValue({ data: null, error: null }) };
       });
 
       const request = new NextRequest('http://localhost/api/auth/register-student?code=ABC-123-XYZ');
@@ -172,15 +277,75 @@ describe('/api/auth/register-student', () => {
     });
 
     it('returns section/class info for valid code', async () => {
-      // Mock different instructors for each ID
-      mockStorage.users.getUser.mockImplementation((id: string) => {
-        if (id === 'instructor-1') {
-          return Promise.resolve({ id: 'instructor-1', username: 'prof_smith', displayName: 'Professor Smith' });
+      // Override mock to return different instructors
+      let instructorCallIndex = 0;
+      const instructorData = [
+        { id: 'instructor-1', display_name: 'Professor Smith' },
+        { id: 'instructor-2', display_name: 'Professor Jones' },
+      ];
+
+      mockSupabaseClient.from = jest.fn().mockImplementation((table: string) => {
+        if (table === 'sections') {
+          return {
+            select: jest.fn().mockReturnThis(),
+            eq: jest.fn().mockReturnThis(),
+            single: jest.fn().mockResolvedValue({
+              data: {
+                id: mockSection.id,
+                name: mockSection.name,
+                semester: mockSection.semester,
+                namespace_id: mockSection.namespaceId,
+                class_id: mockSection.classId,
+                instructor_ids: mockSection.instructorIds,
+                join_code: mockSection.joinCode,
+                active: mockSection.active,
+              },
+              error: null,
+            }),
+          };
         }
-        if (id === 'instructor-2') {
-          return Promise.resolve({ id: 'instructor-2', username: 'prof_jones', displayName: 'Professor Jones' });
+        if (table === 'namespaces') {
+          return {
+            select: jest.fn().mockReturnThis(),
+            eq: jest.fn().mockReturnThis(),
+            single: jest.fn().mockResolvedValue({
+              data: {
+                id: mockNamespace.id,
+                display_name: mockNamespace.displayName,
+                max_students: null,
+              },
+              error: null,
+            }),
+          };
         }
-        return Promise.resolve(null);
+        if (table === 'classes') {
+          return {
+            select: jest.fn().mockReturnThis(),
+            eq: jest.fn().mockReturnThis(),
+            single: jest.fn().mockResolvedValue({
+              data: {
+                id: mockClass.id,
+                name: mockClass.name,
+                description: mockClass.description,
+              },
+              error: null,
+            }),
+          };
+        }
+        if (table === 'user_profiles') {
+          return {
+            select: jest.fn().mockImplementation(() => ({
+              eq: jest.fn().mockReturnThis(),
+              single: jest.fn().mockImplementation(() => {
+                const data = instructorCallIndex < instructorData.length
+                  ? instructorData[instructorCallIndex++]
+                  : null;
+                return Promise.resolve({ data, error: null });
+              }),
+            })),
+          };
+        }
+        return { select: jest.fn().mockReturnThis(), eq: jest.fn().mockReturnThis(), single: jest.fn().mockResolvedValue({ data: null, error: null }) };
       });
 
       const request = new NextRequest('http://localhost/api/auth/register-student?code=ABC-123-XYZ');
@@ -210,7 +375,63 @@ describe('/api/auth/register-student', () => {
     });
 
     it('handles missing class gracefully', async () => {
-      mockStorage.classes.getClass.mockResolvedValue(null);
+      // Override mock to return null for class
+      mockSupabaseClient.from = jest.fn().mockImplementation((table: string) => {
+        if (table === 'sections') {
+          return {
+            select: jest.fn().mockReturnThis(),
+            eq: jest.fn().mockReturnThis(),
+            single: jest.fn().mockResolvedValue({
+              data: {
+                id: mockSection.id,
+                name: mockSection.name,
+                semester: mockSection.semester,
+                namespace_id: mockSection.namespaceId,
+                class_id: mockSection.classId,
+                instructor_ids: [],
+                join_code: mockSection.joinCode,
+                active: true,
+              },
+              error: null,
+            }),
+          };
+        }
+        if (table === 'namespaces') {
+          return {
+            select: jest.fn().mockReturnThis(),
+            eq: jest.fn().mockReturnThis(),
+            single: jest.fn().mockResolvedValue({
+              data: {
+                id: mockNamespace.id,
+                display_name: mockNamespace.displayName,
+                max_students: null,
+              },
+              error: null,
+            }),
+          };
+        }
+        if (table === 'classes') {
+          return {
+            select: jest.fn().mockReturnThis(),
+            eq: jest.fn().mockReturnThis(),
+            single: jest.fn().mockResolvedValue({
+              data: null,
+              error: { message: 'Not found' },
+            }),
+          };
+        }
+        if (table === 'user_profiles') {
+          return {
+            select: jest.fn().mockImplementation(() => ({
+              eq: jest.fn().mockReturnThis(),
+              single: jest.fn().mockResolvedValue({ data: null, error: null }),
+              count: 'exact',
+              head: true,
+            })),
+          };
+        }
+        return { select: jest.fn().mockReturnThis(), eq: jest.fn().mockReturnThis(), single: jest.fn().mockResolvedValue({ data: null, error: null }) };
+      });
 
       const request = new NextRequest('http://localhost/api/auth/register-student?code=ABC-123-XYZ');
       const response = await GET(request);
@@ -221,11 +442,73 @@ describe('/api/auth/register-student', () => {
     });
 
     it('shows capacity available as false when at limit', async () => {
-      mockStudentRegistrationService.validateSectionCode.mockResolvedValue({
-        valid: true,
-        section: mockSection,
-        namespace: mockNamespace,
-        capacityAvailable: false,
+      // Override mock to return namespace at capacity
+      mockSupabaseClient.from = jest.fn().mockImplementation((table: string) => {
+        if (table === 'sections') {
+          return {
+            select: jest.fn().mockReturnThis(),
+            eq: jest.fn().mockReturnThis(),
+            single: jest.fn().mockResolvedValue({
+              data: {
+                id: mockSection.id,
+                name: mockSection.name,
+                semester: mockSection.semester,
+                namespace_id: mockSection.namespaceId,
+                class_id: mockSection.classId,
+                instructor_ids: [],
+                join_code: mockSection.joinCode,
+                active: true,
+              },
+              error: null,
+            }),
+          };
+        }
+        if (table === 'namespaces') {
+          return {
+            select: jest.fn().mockReturnThis(),
+            eq: jest.fn().mockReturnThis(),
+            single: jest.fn().mockResolvedValue({
+              data: {
+                id: mockNamespace.id,
+                display_name: mockNamespace.displayName,
+                max_students: 10, // Set a limit
+              },
+              error: null,
+            }),
+          };
+        }
+        if (table === 'classes') {
+          return {
+            select: jest.fn().mockReturnThis(),
+            eq: jest.fn().mockReturnThis(),
+            single: jest.fn().mockResolvedValue({
+              data: {
+                id: mockClass.id,
+                name: mockClass.name,
+                description: mockClass.description,
+              },
+              error: null,
+            }),
+          };
+        }
+        if (table === 'user_profiles') {
+          return {
+            select: jest.fn().mockImplementation((_cols: string, opts?: { count?: string; head?: boolean }) => {
+              if (opts?.count === 'exact') {
+                // Return count at limit
+                return {
+                  eq: jest.fn().mockReturnThis(),
+                  then: jest.fn((cb: any) => cb({ count: 10, error: null })),
+                };
+              }
+              return {
+                eq: jest.fn().mockReturnThis(),
+                single: jest.fn().mockResolvedValue({ data: null, error: null }),
+              };
+            }),
+          };
+        }
+        return { select: jest.fn().mockReturnThis(), eq: jest.fn().mockReturnThis(), single: jest.fn().mockResolvedValue({ data: null, error: null }) };
       });
 
       const request = new NextRequest('http://localhost/api/auth/register-student?code=ABC-123-XYZ');

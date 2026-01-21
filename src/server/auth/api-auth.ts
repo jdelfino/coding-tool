@@ -28,6 +28,30 @@ export async function getAuthenticatedUser(request: NextRequest): Promise<User> 
 }
 
 /**
+ * Extract authenticated user and accessToken from Next.js request.
+ * Throws AuthenticationError if user is not authenticated.
+ *
+ * @param request - Next.js request object
+ * @returns Promise<{ user: User, accessToken: string }> - Authenticated user and token
+ * @throws AuthenticationError if not authenticated or session expired
+ */
+export async function getAuthenticatedUserWithToken(
+  request: NextRequest
+): Promise<{ user: User; accessToken: string }> {
+  const authProvider = await getAuthProvider();
+  const session = await authProvider.getSessionFromRequest(request);
+
+  if (!session || !session.user) {
+    throw new AuthenticationError('Not authenticated');
+  }
+
+  return {
+    user: session.user,
+    accessToken: session.sessionId,
+  };
+}
+
+/**
  * Check if a user has a specific permission.
  * Uses the RBAC service to verify permissions.
  *

@@ -40,7 +40,7 @@ const createChainMock = () => {
 const mockFrom = jest.fn();
 
 jest.mock('../../../supabase/client', () => ({
-  getClient: jest.fn(() => ({
+  getSupabaseClientWithAuth: jest.fn(() => ({
     from: mockFrom,
   })),
 }));
@@ -68,7 +68,7 @@ describe('SupabaseInvitationRepository', () => {
     // Reset chain mock setup for each test
     mockFrom.mockImplementation(() => createChainMock());
 
-    repository = new SupabaseInvitationRepository();
+    repository = new SupabaseInvitationRepository('test-token');
   });
 
   describe('initialize', () => {

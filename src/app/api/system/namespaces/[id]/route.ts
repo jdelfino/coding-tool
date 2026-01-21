@@ -27,7 +27,7 @@ export async function GET(
       return auth;
     }
 
-    const { user } = auth;
+    const { user, accessToken } = auth;
     const { id: namespaceId } = await params;
 
     // Non-system-admin users can only access their own namespace
@@ -38,7 +38,7 @@ export async function GET(
       );
     }
 
-    const namespaceRepo = await getNamespaceRepository();
+    const namespaceRepo = getNamespaceRepository(accessToken);
     const namespace = await namespaceRepo.getNamespace(namespaceId);
 
     if (!namespace) {
@@ -51,7 +51,7 @@ export async function GET(
     // Get user count for this namespace (system-admin only)
     let userCount: number | undefined;
     if (user.role === 'system-admin') {
-      const userRepo = await getUserRepository();
+      const userRepo = getUserRepository(accessToken);
       const allUsers = await userRepo.listUsers();
       userCount = allUsers.filter(u => u.namespaceId === namespaceId).length;
     }
@@ -93,6 +93,7 @@ export async function PUT(
       return permissionCheck;
     }
 
+    const { accessToken } = permissionCheck;
     const { id: namespaceId } = await params;
     const body = await request.json();
     const { displayName, active } = body;
@@ -126,7 +127,7 @@ export async function PUT(
       updates.active = active;
     }
 
-    const namespaceRepo = await getNamespaceRepository();
+    const namespaceRepo = getNamespaceRepository(accessToken);
 
     // Check if namespace exists
     const exists = await namespaceRepo.namespaceExists(namespaceId);
@@ -175,8 +176,9 @@ export async function DELETE(
       return permissionCheck;
     }
 
+    const { accessToken } = permissionCheck;
     const { id: namespaceId } = await params;
-    const namespaceRepo = await getNamespaceRepository();
+    const namespaceRepo = getNamespaceRepository(accessToken);
 
     // Check if namespace exists
     const exists = await namespaceRepo.namespaceExists(namespaceId);

@@ -15,7 +15,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { GET, POST } from '../route';
-import { getStorage } from '@/server/persistence';
+import { createStorage } from '@/server/persistence';
 
 // Mock dependencies
 jest.mock('@/server/persistence');
@@ -30,7 +30,7 @@ import { requireAuth, getNamespaceContext } from '@/server/auth/api-helpers';
 import type { User } from '@/server/auth/types';
 import { RBACService } from '@/server/auth/rbac';
 
-const mockGetStorage = getStorage as jest.MockedFunction<typeof getStorage>;
+const mockCreateStorage = createStorage as jest.MockedFunction<typeof createStorage>;
 
 // Test helper to create mock auth context
 function createAuthContext(user: User) {
@@ -122,7 +122,7 @@ describe('/api/problems', () => {
       (requireAuth as jest.Mock).mockResolvedValue(createAuthContext(mockInstructorUser));
 
       const getAllMock = jest.fn().mockResolvedValue(mockProblems);
-      mockGetStorage.mockResolvedValue({
+      mockCreateStorage.mockResolvedValue({
         problems: {
           getAll: getAllMock,
         },
@@ -148,7 +148,7 @@ describe('/api/problems', () => {
 
       const filteredProblems = mockProblems.filter(p => p.authorId === 'user-1');
       const getAllMock = jest.fn().mockResolvedValue(filteredProblems);
-      mockGetStorage.mockResolvedValue({
+      mockCreateStorage.mockResolvedValue({
         problems: {
           getAll: getAllMock,
         },
@@ -175,7 +175,7 @@ describe('/api/problems', () => {
 
       const filteredProblems = mockProblems.filter(p => p.classId === 'class-1');
       const getAllMock = jest.fn().mockResolvedValue(filteredProblems);
-      mockGetStorage.mockResolvedValue({
+      mockCreateStorage.mockResolvedValue({
         problems: {
           getAll: getAllMock,
         },
@@ -201,7 +201,7 @@ describe('/api/problems', () => {
       (requireAuth as jest.Mock).mockResolvedValue(createAuthContext(mockInstructorUser));
 
       const getAllMock = jest.fn().mockResolvedValue(mockProblems);
-      mockGetStorage.mockResolvedValue({
+      mockCreateStorage.mockResolvedValue({
         problems: {
           getAll: getAllMock,
         },
@@ -224,7 +224,7 @@ describe('/api/problems', () => {
       (requireAuth as jest.Mock).mockResolvedValue(createAuthContext(mockInstructorUser));
 
       const getAllMock = jest.fn().mockResolvedValue(mockProblems);
-      mockGetStorage.mockResolvedValue({
+      mockCreateStorage.mockResolvedValue({
         problems: {
           getAll: getAllMock,
         },
@@ -246,7 +246,7 @@ describe('/api/problems', () => {
     it('should return empty array when no problems exist', async () => {
       (requireAuth as jest.Mock).mockResolvedValue(createAuthContext(mockInstructorUser));
 
-      mockGetStorage.mockResolvedValue({
+      mockCreateStorage.mockResolvedValue({
         problems: {
           getAll: jest.fn().mockResolvedValue([]),
         },
@@ -266,7 +266,7 @@ describe('/api/problems', () => {
     it('should handle server errors gracefully', async () => {
       (requireAuth as jest.Mock).mockResolvedValue(createAuthContext(mockInstructorUser));
 
-      mockGetStorage.mockResolvedValue({
+      mockCreateStorage.mockResolvedValue({
         problems: {
           getAll: jest.fn().mockRejectedValue(new Error('Database error')),
         },
@@ -357,7 +357,7 @@ describe('/api/problems', () => {
       };
 
       const createMock = jest.fn().mockResolvedValue(createdProblem);
-      mockGetStorage.mockResolvedValue({
+      mockCreateStorage.mockResolvedValue({
         problems: {
           create: createMock,
         },
@@ -403,7 +403,7 @@ describe('/api/problems', () => {
         updatedAt: new Date(),
       };
 
-      mockGetStorage.mockResolvedValue({
+      mockCreateStorage.mockResolvedValue({
         problems: {
           create: jest.fn().mockResolvedValue(createdProblem),
         },
@@ -432,7 +432,7 @@ describe('/api/problems', () => {
         details: { field: 'title' },
       };
 
-      mockGetStorage.mockResolvedValue({
+      mockCreateStorage.mockResolvedValue({
         problems: {
           create: jest.fn().mockRejectedValue(validationError),
         },
@@ -455,7 +455,7 @@ describe('/api/problems', () => {
     it('should handle server errors', async () => {
       (requireAuth as jest.Mock).mockResolvedValue(createAuthContext(mockInstructorUser));
 
-      mockGetStorage.mockResolvedValue({
+      mockCreateStorage.mockResolvedValue({
         problems: {
           create: jest.fn().mockRejectedValue(new Error('Database error')),
         },
@@ -494,7 +494,7 @@ describe('/api/problems', () => {
       (requireAuth as jest.Mock).mockResolvedValue(createAuthContext(mockInstructorUser));
 
       let capturedInput: any;
-      mockGetStorage.mockResolvedValue({
+      mockCreateStorage.mockResolvedValue({
         problems: {
           create: jest.fn().mockImplementation((input) => {
             capturedInput = input;
@@ -539,7 +539,7 @@ describe('/api/problems', () => {
         updatedAt: new Date(),
       };
 
-      mockGetStorage.mockResolvedValue({
+      mockCreateStorage.mockResolvedValue({
         problems: {
           create: jest.fn().mockResolvedValue(createdProblem),
         },
@@ -574,7 +574,7 @@ describe('/api/problems', () => {
       };
 
       let capturedInput: any;
-      mockGetStorage.mockResolvedValue({
+      mockCreateStorage.mockResolvedValue({
         problems: {
           create: jest.fn().mockImplementation((input) => {
             capturedInput = input;

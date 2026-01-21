@@ -4,7 +4,7 @@
 
 import { NextRequest } from 'next/server';
 import { POST } from '../route';
-import { getAuthenticatedUser } from '@/server/auth/api-auth';
+import { getAuthenticatedUserWithToken } from '@/server/auth/api-auth';
 import { getExecutorService } from '@/server/code-execution';
 import { TRACE_MAX_STEPS } from '@/server/code-execution/utils';
 import { Session, ExecutionTrace } from '@/server/types';
@@ -12,15 +12,13 @@ import { Problem } from '@/server/types/problem';
 
 // Mock dependencies
 jest.mock('@/server/auth/api-auth');
-jest.mock('@/server/persistence', () => ({
-  getStorage: jest.fn(),
-}));
+jest.mock('@/server/persistence');
 jest.mock('@/server/code-execution');
 
-import { getStorage } from '@/server/persistence';
+import { createStorage } from '@/server/persistence';
 
-const mockGetAuthenticatedUser = getAuthenticatedUser as jest.MockedFunction<typeof getAuthenticatedUser>;
-const mockGetStorage = getStorage as jest.MockedFunction<typeof getStorage>;
+const mockGetAuthenticatedUserWithToken = getAuthenticatedUserWithToken as jest.MockedFunction<typeof getAuthenticatedUserWithToken>;
+const mockCreateStorage = createStorage as jest.MockedFunction<typeof createStorage>;
 const mockTraceExecution = jest.fn();
 const mockGetExecutorService = getExecutorService as jest.MockedFunction<typeof getExecutorService>;
 mockGetExecutorService.mockReturnValue({ traceExecution: mockTraceExecution } as any);
@@ -97,11 +95,11 @@ describe('POST /api/sessions/[id]/trace', () => {
         getSession: jest.fn(),
       },
     };
-    mockGetStorage.mockResolvedValue(mockStorage);
+    mockCreateStorage.mockResolvedValue(mockStorage);
   });
 
   it('should successfully trace code execution', async () => {
-    mockGetAuthenticatedUser.mockResolvedValue(mockUser);
+    mockGetAuthenticatedUserWithToken.mockResolvedValue({ user: mockUser, accessToken: 'test-token' });
     mockStorage.sessions.getSession.mockResolvedValue(mockSession);
     mockTraceExecution.mockResolvedValue(mockTrace);
 
@@ -129,7 +127,7 @@ describe('POST /api/sessions/[id]/trace', () => {
   });
 
   it('should pass stdin and maxSteps to trace execution', async () => {
-    mockGetAuthenticatedUser.mockResolvedValue(mockUser);
+    mockGetAuthenticatedUserWithToken.mockResolvedValue({ user: mockUser, accessToken: 'test-token' });
     mockStorage.sessions.getSession.mockResolvedValue(mockSession);
     mockTraceExecution.mockResolvedValue(mockTrace);
 
@@ -157,7 +155,7 @@ describe('POST /api/sessions/[id]/trace', () => {
   });
 
   it('should return 401 when not authenticated', async () => {
-    mockGetAuthenticatedUser.mockRejectedValue(new Error('Not authenticated'));
+    mockGetAuthenticatedUserWithToken.mockRejectedValue(new Error('Not authenticated'));
 
     const request = new NextRequest('http://localhost:3000/api/sessions/session-1/trace', {
       method: 'POST',
@@ -175,7 +173,7 @@ describe('POST /api/sessions/[id]/trace', () => {
   });
 
   it('should return 400 when code is missing', async () => {
-    mockGetAuthenticatedUser.mockResolvedValue(mockUser);
+    mockGetAuthenticatedUserWithToken.mockResolvedValue({ user: mockUser, accessToken: 'test-token' });
 
     const request = new NextRequest('http://localhost:3000/api/sessions/session-1/trace', {
       method: 'POST',
@@ -191,7 +189,7 @@ describe('POST /api/sessions/[id]/trace', () => {
   });
 
   it('should return 400 when code is not a string', async () => {
-    mockGetAuthenticatedUser.mockResolvedValue(mockUser);
+    mockGetAuthenticatedUserWithToken.mockResolvedValue({ user: mockUser, accessToken: 'test-token' });
 
     const request = new NextRequest('http://localhost:3000/api/sessions/session-1/trace', {
       method: 'POST',
@@ -209,7 +207,7 @@ describe('POST /api/sessions/[id]/trace', () => {
   });
 
   it('should return 404 when session not found', async () => {
-    mockGetAuthenticatedUser.mockResolvedValue(mockUser);
+    mockGetAuthenticatedUserWithToken.mockResolvedValue({ user: mockUser, accessToken: 'test-token' });
     mockStorage.sessions.getSession.mockResolvedValue(null);
 
     const request = new NextRequest('http://localhost:3000/api/sessions/session-1/trace', {
@@ -228,7 +226,7 @@ describe('POST /api/sessions/[id]/trace', () => {
   });
 
   it('should return 400 when session is closed', async () => {
-    mockGetAuthenticatedUser.mockResolvedValue(mockUser);
+    mockGetAuthenticatedUserWithToken.mockResolvedValue({ user: mockUser, accessToken: 'test-token' });
     mockStorage.sessions.getSession.mockResolvedValue({
       ...mockSession,
       status: 'completed',
@@ -251,7 +249,7 @@ describe('POST /api/sessions/[id]/trace', () => {
   });
 
   it('should return 500 on trace execution error', async () => {
-    mockGetAuthenticatedUser.mockResolvedValue(mockUser);
+    mockGetAuthenticatedUserWithToken.mockResolvedValue({ user: mockUser, accessToken: 'test-token' });
     mockStorage.sessions.getSession.mockResolvedValue(mockSession);
     mockTraceExecution.mockRejectedValue(new Error('Trace execution failed'));
 
@@ -271,7 +269,7 @@ describe('POST /api/sessions/[id]/trace', () => {
   });
 
   it('should return trace with error when code has syntax error', async () => {
-    mockGetAuthenticatedUser.mockResolvedValue(mockUser);
+    mockGetAuthenticatedUserWithToken.mockResolvedValue({ user: mockUser, accessToken: 'test-token' });
     mockStorage.sessions.getSession.mockResolvedValue(mockSession);
 
     const errorTrace: ExecutionTrace = {
@@ -300,7 +298,7 @@ describe('POST /api/sessions/[id]/trace', () => {
   });
 
   it('should return truncated trace when maxSteps is exceeded', async () => {
-    mockGetAuthenticatedUser.mockResolvedValue(mockUser);
+    mockGetAuthenticatedUserWithToken.mockResolvedValue({ user: mockUser, accessToken: 'test-token' });
     mockStorage.sessions.getSession.mockResolvedValue(mockSession);
 
     const truncatedTrace: ExecutionTrace = {
@@ -333,7 +331,7 @@ describe('POST /api/sessions/[id]/trace', () => {
         ...mockUser,
         id: 'other-user-id',
       };
-      mockGetAuthenticatedUser.mockResolvedValue(nonParticipantUser);
+      mockGetAuthenticatedUserWithToken.mockResolvedValue({ user: nonParticipantUser, accessToken: 'test-token' });
 
       // Session where user is neither creator nor participant
       const restrictedSession = {
@@ -364,7 +362,7 @@ describe('POST /api/sessions/[id]/trace', () => {
         ...mockUser,
         id: 'instructor-1',
       };
-      mockGetAuthenticatedUser.mockResolvedValue(creatorUser);
+      mockGetAuthenticatedUserWithToken.mockResolvedValue({ user: creatorUser, accessToken: 'test-token' });
 
       // Session where user is the creator but not in participants list
       const creatorSession = {
@@ -394,7 +392,7 @@ describe('POST /api/sessions/[id]/trace', () => {
         ...mockUser,
         id: 'student-2',
       };
-      mockGetAuthenticatedUser.mockResolvedValue(participantUser);
+      mockGetAuthenticatedUserWithToken.mockResolvedValue({ user: participantUser, accessToken: 'test-token' });
 
       // Session where user is a participant but not creator
       const participantSession = {

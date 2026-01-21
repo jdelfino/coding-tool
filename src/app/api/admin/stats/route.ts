@@ -10,7 +10,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAuthProvider } from '@/server/auth/instance';
 import { getSectionRepository } from '@/server/classes';
 import { getMembershipRepository } from '@/server/classes';
-import { getStorage } from '@/server/persistence';
+import { createStorage } from '@/server/persistence';
 import { requirePermission } from '@/server/auth/api-helpers';
 
 export async function GET(request: NextRequest) {
@@ -21,13 +21,15 @@ export async function GET(request: NextRequest) {
       return auth; // Return 401/403 error response
     }
 
+    const { accessToken } = auth;
+
     // Get auth provider for user queries
     const authProvider = await getAuthProvider();
 
     // Get repositories
-    const sectionRepo = await getSectionRepository();
-    const membershipRepo = await getMembershipRepository();
-    const storage = await getStorage();
+    const sectionRepo = getSectionRepository(accessToken);
+    const membershipRepo = getMembershipRepository(accessToken);
+    const storage = await createStorage(accessToken);
 
     // Get all users
     const users = await authProvider.getAllUsers();

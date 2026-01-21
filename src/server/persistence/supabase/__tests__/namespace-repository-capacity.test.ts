@@ -23,7 +23,7 @@ const createChainMock = () => {
 const mockFrom = jest.fn();
 
 jest.mock('../../../supabase/client', () => ({
-  getClient: jest.fn(() => ({
+  getSupabaseClientWithAuth: jest.fn(() => ({
     from: mockFrom,
   })),
 }));
@@ -45,7 +45,7 @@ describe('SupabaseNamespaceRepository - Capacity Methods', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockFrom.mockImplementation(() => createChainMock());
-    repository = new SupabaseNamespaceRepository();
+    repository = new SupabaseNamespaceRepository('test-token');
   });
 
   describe('getCapacityUsage', () => {

@@ -13,7 +13,7 @@ import {
   getStudentRegistrationService,
   StudentRegistrationError,
 } from '@/server/invitations';
-import { getStorage } from '@/server/persistence';
+import { getSupabaseClient } from '@/server/supabase/client';
 import { rateLimit } from '@/server/rate-limit';
 
 /**
@@ -44,46 +44,83 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const studentRegistrationService = await getStudentRegistrationService();
-    const result = await studentRegistrationService.validateSectionCode(code);
+    // Use service_role for public endpoint (no authenticated user yet)
+    const supabase = getSupabaseClient();
 
-    if (!result.valid) {
-      const errorMessages: Record<string, string> = {
-        INVALID_CODE: 'Invalid join code',
-        SECTION_INACTIVE: 'This section is no longer accepting new students',
-        NAMESPACE_NOT_FOUND: 'Organization not found',
-      };
+    // Validate join code by looking up section
+    const { data: section, error: sectionError } = await supabase
+      .from('sections')
+      .select('*')
+      .eq('join_code', code)
+      .single();
 
+    if (sectionError || !section) {
       return NextResponse.json(
-        {
-          error: errorMessages[result.error!] || 'Validation failed',
-          code: result.error,
-        },
+        { error: 'Invalid join code', code: 'INVALID_CODE' },
+        { status: 400 }
+      );
+    }
+
+    if (!section.active) {
+      return NextResponse.json(
+        { error: 'This section is no longer accepting new students', code: 'SECTION_INACTIVE' },
+        { status: 400 }
+      );
+    }
+
+    // Get namespace info
+    const { data: namespace, error: namespaceError } = await supabase
+      .from('namespaces')
+      .select('*')
+      .eq('id', section.namespace_id)
+      .single();
+
+    if (namespaceError || !namespace) {
+      return NextResponse.json(
+        { error: 'Organization not found', code: 'NAMESPACE_NOT_FOUND' },
         { status: 400 }
       );
     }
 
     // Get class info for the section
-    const storage = await getStorage();
-    const classInfo = await storage.classes.getClass(result.section!.classId);
+    const { data: classInfo } = await supabase
+      .from('classes')
+      .select('*')
+      .eq('id', section.class_id)
+      .single();
 
     // Get instructor info for display
+    const instructorIds = section.instructor_ids || [];
     const instructors = [];
-    for (const instructorId of result.section!.instructorIds.slice(0, 3)) {
-      const user = await storage.users.getUser(instructorId);
-      if (user) {
+    for (const instructorId of instructorIds.slice(0, 3)) {
+      const { data: profile } = await supabase
+        .from('user_profiles')
+        .select('id, display_name')
+        .eq('id', instructorId)
+        .single();
+      if (profile) {
         instructors.push({
-          id: user.id,
-          displayName: user.displayName || user.email,
+          id: profile.id,
+          displayName: profile.display_name || 'Instructor',
         });
       }
     }
 
+    // Check capacity (simplified - just count students in namespace)
+    const { count: studentCount } = await supabase
+      .from('user_profiles')
+      .select('*', { count: 'exact', head: true })
+      .eq('namespace_id', section.namespace_id)
+      .eq('role', 'student');
+
+    const capacityAvailable = namespace.max_students === null ||
+      (studentCount ?? 0) < namespace.max_students;
+
     return NextResponse.json({
       section: {
-        id: result.section!.id,
-        name: result.section!.name,
-        semester: result.section!.semester,
+        id: section.id,
+        name: section.name,
+        semester: section.semester,
       },
       class: classInfo ? {
         id: classInfo.id,
@@ -91,11 +128,11 @@ export async function GET(request: NextRequest) {
         description: classInfo.description,
       } : null,
       namespace: {
-        id: result.namespace!.id,
-        displayName: result.namespace!.displayName,
+        id: namespace.id,
+        displayName: namespace.display_name,
       },
       instructors,
-      capacityAvailable: result.capacityAvailable,
+      capacityAvailable,
     });
   } catch (error: any) {
     console.error('[API] Register student GET error:', error);

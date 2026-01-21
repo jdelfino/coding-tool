@@ -7,18 +7,18 @@
 
 import { NextRequest } from 'next/server';
 import { GET } from '../route';
-import { getAuthenticatedUser, checkPermission } from '@/server/auth/api-auth';
-import { getStorage } from '@/server/persistence';
+import { getAuthenticatedUserWithToken, checkPermission } from '@/server/auth/api-auth';
+import { createStorage } from '@/server/persistence';
 import { Session } from '@/server/types';
 import { Problem } from '@/server/types/problem';
 
 jest.mock('@/server/auth/api-auth');
 jest.mock('@/server/persistence');
 
-const mockGetAuthenticatedUser = getAuthenticatedUser as jest.MockedFunction<typeof getAuthenticatedUser>;
+const mockGetAuthenticatedUserWithToken = getAuthenticatedUserWithToken as jest.MockedFunction<typeof getAuthenticatedUserWithToken>;
 const mockCheckPermission = checkPermission as jest.MockedFunction<typeof checkPermission>;
 
-const mockGetStorage = getStorage as jest.MockedFunction<typeof getStorage>;
+const mockCreateStorage = createStorage as jest.MockedFunction<typeof createStorage>;
 
 describe('GET /api/sessions/[id]/public-state', () => {
   const mockUser = {
@@ -74,7 +74,7 @@ describe('GET /api/sessions/[id]/public-state', () => {
   beforeEach(() => {
     jest.clearAllMocks();
 
-    mockGetAuthenticatedUser.mockResolvedValue(mockUser);
+    mockGetAuthenticatedUserWithToken.mockResolvedValue({ user: mockUser, accessToken: 'test-token' });
     mockCheckPermission.mockReturnValue(true);
 
     mockStorage = {
@@ -86,7 +86,7 @@ describe('GET /api/sessions/[id]/public-state', () => {
       },
     };
 
-    mockGetStorage.mockResolvedValue(mockStorage);
+    mockCreateStorage.mockResolvedValue(mockStorage);
   });
 
   it('returns session state for authenticated instructor', async () => {
@@ -200,7 +200,7 @@ describe('GET /api/sessions/[id]/public-state', () => {
   });
 
   it('returns 401 when not authenticated', async () => {
-    mockGetAuthenticatedUser.mockRejectedValue(new Error('Not authenticated'));
+    mockGetAuthenticatedUserWithToken.mockRejectedValue(new Error('Not authenticated'));
 
     const request = new NextRequest('http://localhost:3000/api/sessions/session-1/public-state');
     const params = Promise.resolve({ id: 'session-1' });

@@ -6,7 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getStorage } from '@/server/persistence';
+import { createStorage } from '@/server/persistence';
 import { requireAuth, getNamespaceContext } from '@/server/auth/api-helpers';
 import { rateLimit } from '@/server/rate-limit';
 import type { ProblemInput } from '@/server/types/problem';
@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
       return auth; // Return 401 error response
     }
 
-    const { user } = auth;
+    const { user, accessToken } = auth;
 
     // Rate limit by user ID (read operation)
     const limited = await rateLimit('read', request, user.id);
@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
     const sortBy = (searchParams.get('sortBy') || 'created') as 'title' | 'created' | 'updated';
     const sortOrder = (searchParams.get('sortOrder') || 'desc') as 'asc' | 'desc';
 
-    const storage = await getStorage();
+    const storage = await createStorage(accessToken);
     const problems = await storage.problems.getAll({
       authorId,
       classId,
@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
       return auth; // Return 401 error response
     }
 
-    const { user } = auth;
+    const { user, accessToken } = auth;
 
     // Rate limit by user ID (write operation)
     const limited = await rateLimit('write', request, user.id);
@@ -105,7 +105,7 @@ export async function POST(request: NextRequest) {
       namespaceId: user.namespaceId!,
     };
 
-    const storage = await getStorage();
+    const storage = await createStorage(accessToken);
     const problem = await storage.problems.create(problemInput);
 
     return NextResponse.json({ problem }, { status: 201 });

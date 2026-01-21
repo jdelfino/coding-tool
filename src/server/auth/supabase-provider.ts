@@ -14,19 +14,24 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 
 import { IAuthProvider, IUserRepository } from './interfaces';
 import { User, UserRole, AuthSession } from './types';
-import { SupabaseUserRepository } from '../persistence/supabase/user-repository';
+import { getSupabaseClient } from '../supabase/client';
 
 /**
  * Supabase Auth provider implementation.
  * Manages authentication via Supabase Auth and user profiles in user_profiles table.
+ *
+ * Note: This provider uses service_role for all operations since it's trusted
+ * internal auth code. RLS enforcement happens at the API route level through
+ * repositories that accept accessToken.
  */
 export class SupabaseAuthProvider implements IAuthProvider {
   readonly userRepository: IUserRepository;
   private serviceRoleClient: SupabaseClient;
 
   constructor() {
-    // Initialize user repository
-    this.userRepository = new SupabaseUserRepository();
+    // Internal user repository for auth operations (uses service_role)
+    // This is safe since auth provider is trusted code
+    this.userRepository = new ServiceRoleUserRepository();
 
     // Secret key client for admin operations (bypasses RLS)
     this.serviceRoleClient = createClient(
@@ -300,6 +305,123 @@ export class SupabaseAuthProvider implements IAuthProvider {
       createdAt: new Date(authUser.created_at),
       lastLoginAt: profile.last_login_at ? new Date(profile.last_login_at) : undefined,
       emailConfirmed: authUser.email_confirmed_at != null,
+    };
+  }
+}
+
+/**
+ * Internal user repository for auth provider that uses service_role.
+ * This is only used internally by SupabaseAuthProvider for auth operations.
+ */
+class ServiceRoleUserRepository implements IUserRepository {
+  private supabase = getSupabaseClient();
+
+  async initialize(): Promise<void> {
+    // No initialization needed
+  }
+
+  async getUser(userId: string): Promise<User | null> {
+    const { data, error } = await this.supabase
+      .from('user_profiles')
+      .select('*')
+      .eq('id', userId)
+      .single();
+
+    if (error || !data) {
+      if (error?.code === 'PGRST116') return null;
+      return null;
+    }
+
+    return this.mapRowToUser(data);
+  }
+
+  async getUserByEmail(email: string): Promise<User | null> {
+    const { data, error } = await this.supabase
+      .from('user_profiles')
+      .select('*')
+      .eq('email', email)
+      .single();
+
+    if (error || !data) {
+      if (error?.code === 'PGRST116') return null;
+      return null;
+    }
+
+    return this.mapRowToUser(data);
+  }
+
+  async listUsers(role?: UserRole, namespaceId?: string | null): Promise<User[]> {
+    let query = this.supabase.from('user_profiles').select('*');
+
+    if (role) {
+      query = query.eq('role', role);
+    }
+    if (namespaceId !== undefined) {
+      if (namespaceId === null) {
+        query = query.is('namespace_id', null);
+      } else {
+        query = query.eq('namespace_id', namespaceId);
+      }
+    }
+
+    const { data, error } = await query;
+    if (error || !data) return [];
+
+    return data.map(this.mapRowToUser);
+  }
+
+  async saveUser(user: User): Promise<void> {
+    const userData = {
+      id: user.id,
+      role: user.role,
+      namespace_id: user.namespaceId,
+      display_name: user.displayName || null,
+      created_at: user.createdAt.toISOString(),
+      last_login_at: user.lastLoginAt?.toISOString() || null,
+    };
+
+    await this.supabase.from('user_profiles').upsert(userData as any, { onConflict: 'id' });
+  }
+
+  async updateUser(userId: string, updates: Partial<User>): Promise<void> {
+    const dbUpdates: any = {};
+    if (updates.role !== undefined) dbUpdates.role = updates.role;
+    if (updates.namespaceId !== undefined) dbUpdates.namespace_id = updates.namespaceId;
+    if (updates.displayName !== undefined) dbUpdates.display_name = updates.displayName;
+    if (updates.lastLoginAt !== undefined) {
+      dbUpdates.last_login_at = updates.lastLoginAt?.toISOString() || null;
+    }
+
+    await this.supabase.from('user_profiles').update(dbUpdates).eq('id', userId);
+  }
+
+  async deleteUser(userId: string): Promise<void> {
+    await this.supabase.from('user_profiles').delete().eq('id', userId);
+  }
+
+  async getUsersByNamespace(namespaceId: string): Promise<User[]> {
+    return this.listUsers(undefined, namespaceId);
+  }
+
+  async health(): Promise<boolean> {
+    const { error } = await this.supabase.from('user_profiles').select('id').limit(1);
+    return !error;
+  }
+
+  async shutdown(): Promise<void> {
+    // No cleanup needed
+  }
+
+  private mapRowToUser(row: any): User {
+    return {
+      id: row.id,
+      email: row.email,
+      role: row.role as UserRole,
+      namespaceId: row.namespace_id,
+      displayName: row.display_name || undefined,
+      createdAt: new Date(row.created_at),
+      lastLoginAt: row.last_login_at ? new Date(row.last_login_at) : undefined,
+      emailConfirmed: row.email_confirmed,
     };
   }
 }

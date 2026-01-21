@@ -53,7 +53,7 @@ describe('Namespace Capacity API', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mockGetNamespaceRepository.mockResolvedValue(mockNamespaceRepo as any);
+    mockGetNamespaceRepository.mockReturnValue(mockNamespaceRepo as any);
   });
 
   const mockAuthForUser = (user: any | null) => {

@@ -4,8 +4,8 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getAuthenticatedUser, checkPermission } from '@/server/auth/api-auth';
-import { getStorage } from '@/server/persistence';
+import { getAuthenticatedUserWithToken, checkPermission } from '@/server/auth/api-auth';
+import { createStorage } from '@/server/persistence';
 import { getGeminiService } from '@/server/services/gemini-analysis-service';
 import { AnalysisInput } from '@/server/types/analysis';
 import { rateLimit, checkAnalyzeDailyLimits } from '@/server/rate-limit';
@@ -16,7 +16,7 @@ export async function POST(
 ) {
   try {
     // Authenticate user
-    const user = await getAuthenticatedUser(request);
+    const { user, accessToken } = await getAuthenticatedUserWithToken(request);
 
     // Rate limit by user ID (per-minute limit)
     const limited = await rateLimit('analyze', request, user.id);
@@ -47,7 +47,7 @@ export async function POST(
     }
 
     // Get session with all student code
-    const storage = await getStorage();
+    const storage = await createStorage(accessToken);
     const session = await storage.sessions.getSession(sessionId);
 
     if (!session) {

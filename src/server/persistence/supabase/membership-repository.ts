@@ -10,7 +10,7 @@
 import { SectionMembership, SectionWithClass } from '../../classes/types';
 import { IMembershipRepository } from '../../classes/interfaces';
 import { User } from '../../auth/types';
-import { getClient } from '../../supabase/client';
+import { getSupabaseClientWithAuth } from '../../supabase/client';
 
 /**
  * Maps a database row to a SectionMembership domain object
@@ -67,9 +67,9 @@ function mapRowToUser(row: any): User {
  */
 export class SupabaseMembershipRepository implements IMembershipRepository {
   private initialized = false;
-  private readonly accessToken?: string;
+  private readonly accessToken: string;
 
-  constructor(accessToken?: string) {
+  constructor(accessToken: string) {
     this.accessToken = accessToken;
   }
 
@@ -77,7 +77,7 @@ export class SupabaseMembershipRepository implements IMembershipRepository {
     if (this.initialized) return;
 
     // Test connection
-    const supabase = getClient(this.accessToken);
+    const supabase = getSupabaseClientWithAuth(this.accessToken);
     const { error } = await supabase.from('section_memberships').select('id').limit(1);
 
     if (error) {
@@ -94,7 +94,7 @@ export class SupabaseMembershipRepository implements IMembershipRepository {
 
   async health(): Promise<boolean> {
     try {
-      const supabase = getClient(this.accessToken);
+      const supabase = getSupabaseClientWithAuth(this.accessToken);
       const { error } = await supabase.from('section_memberships').select('id').limit(1);
       return !error;
     } catch {
@@ -103,7 +103,7 @@ export class SupabaseMembershipRepository implements IMembershipRepository {
   }
 
   async addMembership(membershipData: Omit<SectionMembership, 'id' | 'joinedAt'>): Promise<SectionMembership> {
-    const supabase = getClient(this.accessToken);
+    const supabase = getSupabaseClientWithAuth(this.accessToken);
 
     const now = new Date();
     const id = crypto.randomUUID();
@@ -134,7 +134,7 @@ export class SupabaseMembershipRepository implements IMembershipRepository {
   }
 
   async removeMembership(userId: string, sectionId: string): Promise<void> {
-    const supabase = getClient(this.accessToken);
+    const supabase = getSupabaseClientWithAuth(this.accessToken);
 
     const result = await supabase
       .from('section_memberships')
@@ -148,7 +148,7 @@ export class SupabaseMembershipRepository implements IMembershipRepository {
   }
 
   async getUserSections(userId: string, namespaceId?: string, role?: 'instructor' | 'student'): Promise<SectionWithClass[]> {
-    const supabase = getClient(this.accessToken);
+    const supabase = getSupabaseClientWithAuth(this.accessToken);
 
     // Join memberships → sections → classes
     let query = supabase
@@ -201,7 +201,7 @@ export class SupabaseMembershipRepository implements IMembershipRepository {
   }
 
   async getSectionMembers(sectionId: string, role?: 'instructor' | 'student'): Promise<User[]> {
-    const supabase = getClient(this.accessToken);
+    const supabase = getSupabaseClientWithAuth(this.accessToken);
 
     // Join memberships → user_profiles
     let query = supabase
@@ -236,7 +236,7 @@ export class SupabaseMembershipRepository implements IMembershipRepository {
   }
 
   async isMember(userId: string, sectionId: string): Promise<boolean> {
-    const supabase = getClient(this.accessToken);
+    const supabase = getSupabaseClientWithAuth(this.accessToken);
 
     const { data, error } = await supabase
       .from('section_memberships')
@@ -257,7 +257,7 @@ export class SupabaseMembershipRepository implements IMembershipRepository {
   }
 
   async getMembership(userId: string, sectionId: string): Promise<SectionMembership | null> {
-    const supabase = getClient(this.accessToken);
+    const supabase = getSupabaseClientWithAuth(this.accessToken);
 
     const { data, error } = await supabase
       .from('section_memberships')

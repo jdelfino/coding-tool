@@ -80,13 +80,13 @@ describe('/api/auth/accept-invite', () => {
     mockInvitationRepository = {
       getInvitationBySupabaseUserId: jest.fn().mockResolvedValue(mockInvitation),
     };
-    (getInvitationRepository as jest.Mock).mockResolvedValue(mockInvitationRepository);
+    (getInvitationRepository as jest.Mock).mockReturnValue(mockInvitationRepository);
 
     // Setup invitation service mock
     mockInvitationService = {
       consumeInvitation: jest.fn().mockResolvedValue(undefined),
     };
-    (getInvitationService as jest.Mock).mockResolvedValue(mockInvitationService);
+    (getInvitationService as jest.Mock).mockReturnValue(mockInvitationService);
 
     // Setup auth provider mock
     mockAuthProvider = {
@@ -108,7 +108,7 @@ describe('/api/auth/accept-invite', () => {
     mockNamespaceRepository = {
       getNamespace: jest.fn().mockResolvedValue(mockNamespace),
     };
-    (getNamespaceRepository as jest.Mock).mockResolvedValue(mockNamespaceRepository);
+    (getNamespaceRepository as jest.Mock).mockReturnValue(mockNamespaceRepository);
 
     // Default status: pending
     (getInvitationStatus as jest.Mock).mockReturnValue('pending');

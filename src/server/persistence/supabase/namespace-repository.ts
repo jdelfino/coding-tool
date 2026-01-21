@@ -9,7 +9,7 @@
 
 import { Namespace, NamespaceCapacityUsage, CapacityLimitsUpdate } from '../../auth/types';
 import { INamespaceRepository } from '../../auth/interfaces';
-import { getClient } from '../../supabase/client';
+import { getSupabaseClientWithAuth } from '../../supabase/client';
 
 /**
  * Validates a namespace ID format.
@@ -68,9 +68,9 @@ function mapRowToNamespace(row: any): Namespace {
  */
 export class SupabaseNamespaceRepository implements INamespaceRepository {
   private initialized = false;
-  private readonly accessToken?: string;
+  private readonly accessToken: string;
 
-  constructor(accessToken?: string) {
+  constructor(accessToken: string) {
     this.accessToken = accessToken;
   }
 
@@ -78,7 +78,7 @@ export class SupabaseNamespaceRepository implements INamespaceRepository {
     if (this.initialized) return;
 
     // Test connection
-    const supabase = getClient(this.accessToken);
+    const supabase = getSupabaseClientWithAuth(this.accessToken);
     const { error } = await supabase.from('namespaces').select('id').limit(1);
 
     if (error) {
@@ -95,7 +95,7 @@ export class SupabaseNamespaceRepository implements INamespaceRepository {
       );
     }
 
-    const supabase = getClient(this.accessToken);
+    const supabase = getSupabaseClientWithAuth(this.accessToken);
 
     const now = new Date();
     const namespaceData = {
@@ -124,7 +124,7 @@ export class SupabaseNamespaceRepository implements INamespaceRepository {
   }
 
   async getNamespace(id: string): Promise<Namespace | null> {
-    const supabase = getClient(this.accessToken);
+    const supabase = getSupabaseClientWithAuth(this.accessToken);
 
     const { data, error } = await supabase
       .from('namespaces')
@@ -143,7 +143,7 @@ export class SupabaseNamespaceRepository implements INamespaceRepository {
   }
 
   async listNamespaces(includeInactive = false): Promise<Namespace[]> {
-    const supabase = getClient(this.accessToken);
+    const supabase = getSupabaseClientWithAuth(this.accessToken);
 
     let query = supabase.from('namespaces').select('*');
 
@@ -161,7 +161,7 @@ export class SupabaseNamespaceRepository implements INamespaceRepository {
   }
 
   async updateNamespace(id: string, updates: Partial<Namespace>): Promise<void> {
-    const supabase = getClient(this.accessToken);
+    const supabase = getSupabaseClientWithAuth(this.accessToken);
 
     // Map domain fields to database columns
     const updateData: any = {
@@ -189,7 +189,7 @@ export class SupabaseNamespaceRepository implements INamespaceRepository {
   }
 
   async deleteNamespace(id: string): Promise<void> {
-    const supabase = getClient(this.accessToken);
+    const supabase = getSupabaseClientWithAuth(this.accessToken);
 
     // Soft delete: set active = false
     const { error } = await supabase
@@ -211,7 +211,7 @@ export class SupabaseNamespaceRepository implements INamespaceRepository {
   }
 
   async getCapacityUsage(id: string): Promise<NamespaceCapacityUsage | null> {
-    const supabase = getClient(this.accessToken);
+    const supabase = getSupabaseClientWithAuth(this.accessToken);
 
     // First get the namespace to check if it exists and get limits
     const namespace = await this.getNamespace(id);
@@ -250,7 +250,7 @@ export class SupabaseNamespaceRepository implements INamespaceRepository {
   }
 
   async updateCapacityLimits(id: string, limits: CapacityLimitsUpdate): Promise<void> {
-    const supabase = getClient(this.accessToken);
+    const supabase = getSupabaseClientWithAuth(this.accessToken);
 
     // Build update object only with provided values
     const updateData: Record<string, number | null | string> = {

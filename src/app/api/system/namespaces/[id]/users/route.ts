@@ -24,10 +24,11 @@ export async function GET(
       return permissionCheck;
     }
 
+    const { accessToken } = permissionCheck;
     const { id: namespaceId } = await params;
 
     // Verify namespace exists
-    const namespaceRepo = await getNamespaceRepository();
+    const namespaceRepo = getNamespaceRepository(accessToken);
     const namespace = await namespaceRepo.getNamespace(namespaceId);
     if (!namespace) {
       return NextResponse.json(
@@ -37,7 +38,7 @@ export async function GET(
     }
 
     // Get all users in this namespace
-    const userRepo = await getUserRepository();
+    const userRepo = getUserRepository(accessToken);
     const allUsers = await userRepo.listUsers();
     const namespaceUsers = allUsers.filter(u => u.namespaceId === namespaceId);
 

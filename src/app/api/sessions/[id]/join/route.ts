@@ -4,8 +4,8 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getAuthenticatedUser } from '@/server/auth/api-auth';
-import { getStorage } from '@/server/persistence';
+import { getAuthenticatedUserWithToken } from '@/server/auth/api-auth';
+import { createStorage } from '@/server/persistence';
 import * as SessionService from '@/server/services/session-service';
 import { rateLimit } from '@/server/rate-limit';
 
@@ -24,7 +24,7 @@ export async function POST(
 
   try {
     // Authenticate user
-    const user = await getAuthenticatedUser(request);
+    const { user, accessToken } = await getAuthenticatedUserWithToken(request);
 
     // Get session ID from params
     const { id: sessionId } = await params;
@@ -52,7 +52,7 @@ export async function POST(
     const studentId = body.studentId || user.id;
 
     // Get session
-    const storage = await getStorage();
+    const storage = await createStorage(accessToken);
     const session = await storage.sessions.getSession(sessionId);
 
     if (!session) {

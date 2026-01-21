@@ -5,7 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthProvider } from '@/server/auth';
-import { getStorage } from '@/server/persistence';
+import { createStorage } from '@/server/persistence';
 import { Problem } from '@/server/types/problem';
 import * as SessionService from '@/server/services/session-service';
 import { rateLimit } from '@/server/rate-limit';
@@ -73,8 +73,10 @@ export async function POST(
       );
     }
 
+    const accessToken = authSession.sessionId;
+
     // Verify session exists
-    const storage = await getStorage();
+    const storage = await createStorage(accessToken);
     const session = await storage.sessions.getSession(sessionId);
     if (!session) {
       return NextResponse.json(

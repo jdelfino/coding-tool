@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
       return auth; // Return 401 error response
     }
 
-    const { user } = auth;
+    const { user, accessToken } = auth;
 
     const body = await request.json();
     const { joinCode } = body;
@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Find section by join code (join codes are globally unique)
-    const sectionRepo = await getSectionRepository();
+    const sectionRepo = getSectionRepository(accessToken);
     const section = await sectionRepo.getSectionByJoinCode(normalizedCode);
 
     if (!section) {
@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if already a member
-    const membershipRepo = await getMembershipRepository();
+    const membershipRepo = getMembershipRepository(accessToken);
     const existingMembership = await membershipRepo.getMembership(user.id, section.id);
 
     if (existingMembership) {

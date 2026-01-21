@@ -36,9 +36,10 @@ export async function GET(request: NextRequest, context: RouteContext) {
     }
 
     const { id } = await context.params;
+    const { accessToken } = auth;
     const namespaceId = getNamespaceContext(request, auth.user);
 
-    const invitationRepository = await getInvitationRepository();
+    const invitationRepository = getInvitationRepository(accessToken);
     const invitation = await invitationRepository.getInvitation(id);
 
     if (!invitation) {
@@ -98,10 +99,11 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
     }
 
     const { id } = await context.params;
+    const { accessToken } = auth;
     const namespaceId = getNamespaceContext(request, auth.user);
 
     // First verify the invitation exists and belongs to user's namespace
-    const invitationRepository = await getInvitationRepository();
+    const invitationRepository = getInvitationRepository(accessToken);
     const existingInvitation = await invitationRepository.getInvitation(id);
 
     if (!existingInvitation) {
@@ -119,7 +121,7 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
       );
     }
 
-    const invitationService = await getInvitationService();
+    const invitationService = getInvitationService(accessToken);
 
     try {
       await invitationService.revokeInvitation(id);

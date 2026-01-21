@@ -24,7 +24,7 @@ const mockOrder = jest.fn();
 const mockRange = jest.fn();
 
 jest.mock('../../../supabase/client', () => ({
-  getClient: jest.fn(() => ({
+  getSupabaseClientWithAuth: jest.fn(() => ({
     from: mockFrom,
   })),
 }));
@@ -121,7 +121,7 @@ describe('SupabaseSessionRepository', () => {
       }),
     }));
 
-    repository = new SupabaseSessionRepository();
+    repository = new SupabaseSessionRepository('test-token');
   });
 
   describe('initialize', () => {

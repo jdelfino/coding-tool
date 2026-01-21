@@ -13,6 +13,8 @@ import {
   SupabaseClassRepository,
   SupabaseSectionRepository,
   SupabaseMembershipRepository,
+  SupabaseNamespaceRepository,
+  SupabaseInvitationRepository,
 } from './supabase';
 import {
   ISessionRepository,
@@ -22,13 +24,15 @@ import {
   IStorageRepository,
 } from './interfaces';
 import type { IClassRepository, ISectionRepository, IMembershipRepository } from '../classes/interfaces';
+import type { INamespaceRepository } from '../auth/interfaces';
+import type { IInvitationRepository } from '../invitations/interfaces';
 import { StorageConfig } from './types';
 
 /**
  * Supabase storage backend implementation
  *
  * Uses Supabase repositories for all data persistence operations.
- * Supports real transactions via Supabase's transaction API.
+ * All repositories use RLS-backed access control via the provided accessToken.
  */
 export class StorageBackend implements IStorageRepository {
   public readonly sessions: ISessionRepository;
@@ -39,15 +43,15 @@ export class StorageBackend implements IStorageRepository {
   public readonly sections: ISectionRepository;
   public readonly memberships: IMembershipRepository;
 
-  constructor() {
-    // Create Supabase repository instances
-    this.sessions = new SupabaseSessionRepository();
-    this.revisions = new SupabaseRevisionRepository();
-    this.users = new SupabaseUserRepository();
-    this.problems = new SupabaseProblemRepository();
-    this.classes = new SupabaseClassRepository();
-    this.sections = new SupabaseSectionRepository();
-    this.memberships = new SupabaseMembershipRepository();
+  constructor(accessToken: string) {
+    // Create Supabase repository instances with RLS-backed access control
+    this.sessions = new SupabaseSessionRepository(accessToken);
+    this.revisions = new SupabaseRevisionRepository(accessToken);
+    this.users = new SupabaseUserRepository(accessToken);
+    this.problems = new SupabaseProblemRepository(accessToken);
+    this.classes = new SupabaseClassRepository(accessToken);
+    this.sections = new SupabaseSectionRepository(accessToken);
+    this.memberships = new SupabaseMembershipRepository(accessToken);
   }
 
   async initialize(): Promise<void> {
@@ -162,14 +166,12 @@ export class StorageBackend implements IStorageRepository {
 /**
  * Factory function to create and initialize a storage backend
  *
- * @param config - Storage configuration
- * @returns Initialized storage backend
+ * @param accessToken - JWT access token for RLS policies (required)
+ * @returns Initialized storage backend with RLS-backed access control
  *
  * @example
  * ```typescript
- * const storage = await createStorage({
- *   type: 'supabase'
- * });
+ * const storage = await createStorage(auth.accessToken);
  *
  * // Use storage
  * const session = await storage.sessions.getSession('session-123');
@@ -178,37 +180,64 @@ export class StorageBackend implements IStorageRepository {
  * await storage.shutdown();
  * ```
  */
-export async function createStorage(config: StorageConfig): Promise<IStorageRepository> {
-  const storage = new StorageBackend();
+export async function createStorage(accessToken: string): Promise<IStorageRepository> {
+  const storage = new StorageBackend(accessToken);
   await storage.initialize();
   return storage;
 }
 
+// ============================================================================
+// Individual Repository Factory Functions
+// ============================================================================
+// These provide direct access to specific repositories without the full
+// StorageBackend. Prefer these for most API routes.
+
 /**
- * Create storage with default configuration
- *
- * Uses Supabase for all data persistence.
+ * Get session repository with RLS-backed access control.
+ * @param accessToken - JWT access token for RLS policies (required)
  */
-export async function createDefaultStorage(): Promise<IStorageRepository> {
-  return createStorage({ type: 'supabase' });
+export function getSessionRepository(accessToken: string): ISessionRepository {
+  return new SupabaseSessionRepository(accessToken);
 }
 
-// Mutable singleton instance holder
-// Will be set in index.ts with a properly initialized instance
-// Or auto-initialized on first access for API routes
-export const storageHolder = {
-  instance: null as IStorageRepository | null,
-};
+/**
+ * Get revision repository with RLS-backed access control.
+ * @param accessToken - JWT access token for RLS policies (required)
+ */
+export function getRevisionRepository(accessToken: string): IRevisionRepository {
+  return new SupabaseRevisionRepository(accessToken);
+}
 
 /**
- * Get or initialize the storage instance
- * Lazy initialization for API routes that run in separate process
+ * Get user repository with RLS-backed access control.
+ * @param accessToken - JWT access token for RLS policies (required)
  */
-export async function getStorage(): Promise<IStorageRepository> {
-  if (!storageHolder.instance) {
-    storageHolder.instance = await createDefaultStorage();
-  }
-  return storageHolder.instance;
+export function getUserRepository(accessToken: string): IUserRepository {
+  return new SupabaseUserRepository(accessToken);
+}
+
+/**
+ * Get problem repository with RLS-backed access control.
+ * @param accessToken - JWT access token for RLS policies (required)
+ */
+export function getProblemRepository(accessToken: string): IProblemRepository {
+  return new SupabaseProblemRepository(accessToken);
+}
+
+/**
+ * Get namespace repository with RLS-backed access control.
+ * @param accessToken - JWT access token for RLS policies (required)
+ */
+export function getNamespaceRepository(accessToken: string): INamespaceRepository {
+  return new SupabaseNamespaceRepository(accessToken);
+}
+
+/**
+ * Get invitation repository with RLS-backed access control.
+ * @param accessToken - JWT access token for RLS policies (required)
+ */
+export function getInvitationRepository(accessToken: string): IInvitationRepository {
+  return new SupabaseInvitationRepository(accessToken);
 }
 
 // Re-export all types and interfaces for convenience

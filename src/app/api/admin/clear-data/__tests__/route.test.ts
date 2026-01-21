@@ -7,7 +7,7 @@
 import { NextRequest } from 'next/server';
 import { POST } from '../route';
 import { getAuthProvider } from '@/server/auth';
-import { getStorage } from '@/server/persistence';
+import { createStorage } from '@/server/persistence';
 import * as SessionService from '@/server/services/session-service';
 
 jest.mock('@/server/auth', () => ({
@@ -17,7 +17,7 @@ jest.mock('@/server/persistence');
 jest.mock('@/server/services/session-service');
 
 const mockGetAuthProvider = getAuthProvider as jest.MockedFunction<typeof getAuthProvider>;
-const mockGetStorage = getStorage as jest.MockedFunction<typeof getStorage>;
+const mockCreateStorage = createStorage as jest.MockedFunction<typeof createStorage>;
 
 describe('POST /api/admin/clear-data', () => {
   const createUser = (role: 'system-admin' | 'namespace-admin' | 'instructor' | 'student', id = 'user-1') => ({
@@ -62,7 +62,7 @@ describe('POST /api/admin/clear-data', () => {
         clear: jest.fn().mockResolvedValue(undefined),
       },
     };
-    mockGetStorage.mockResolvedValue(mockStorage);
+    mockCreateStorage.mockResolvedValue(mockStorage);
 
     (SessionService.endSession as jest.Mock).mockResolvedValue(undefined);
   });

@@ -64,8 +64,8 @@ describe('DELETE /api/sections/[id]/leave', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     (getAuthProvider as jest.Mock).mockResolvedValue(mockAuthProvider);
-    (getSectionRepository as jest.Mock).mockResolvedValue(mockSectionRepo);
-    (getMembershipRepository as jest.Mock).mockResolvedValue(mockMembershipRepo);
+    (getSectionRepository as jest.Mock).mockReturnValue(mockSectionRepo);
+    (getMembershipRepository as jest.Mock).mockReturnValue(mockMembershipRepo);
   });
 
   it('should return 401 if not authenticated', async () => {

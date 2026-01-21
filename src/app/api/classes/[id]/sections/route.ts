@@ -21,7 +21,7 @@ export async function GET(
       return auth; // Return 401 error response
     }
 
-    const { user } = auth;
+    const { user, accessToken } = auth;
 
     // Rate limit by user ID (read operation)
     const limited = await rateLimit('read', request, user.id);
@@ -30,7 +30,7 @@ export async function GET(
     const namespaceId = getNamespaceContext(request, user);
 
     // Verify class exists
-    const classRepo = await getClassRepository();
+    const classRepo = getClassRepository(accessToken);
     const classData = await classRepo.getClass(classId, namespaceId);
 
     if (!classData) {
@@ -41,12 +41,12 @@ export async function GET(
     }
 
     // Get sections for this class
-    const sectionRepo = await getSectionRepository();
+    const sectionRepo = getSectionRepository(accessToken);
     const allSections = await sectionRepo.listSections({ classId, namespaceId });
 
     // For users with viewAll permission, add student count and active session count
     if (auth.rbac.hasPermission(user, 'session.viewAll')) {
-      const membershipRepo = await getMembershipRepository();
+      const membershipRepo = getMembershipRepository(accessToken);
       const sectionsWithCounts = await Promise.all(
         allSections.map(async (section) => {
           const students = await membershipRepo.getSectionMembers(section.id, 'student');
@@ -98,14 +98,14 @@ export async function POST(
       return auth; // Return 401/403 error response
     }
 
-    const { user } = auth;
+    const { user, accessToken } = auth;
 
     // Rate limit by user ID (write operation)
     const limited = await rateLimit('write', request, user.id);
     if (limited) return limited;
     const namespaceId = getNamespaceContext(request, user);
 
-    const classRepo = await getClassRepository();
+    const classRepo = getClassRepository(accessToken);
     const classData = await classRepo.getClass(classId, namespaceId);
 
     if (!classData) {
@@ -125,7 +125,7 @@ export async function POST(
       );
     }
 
-    const sectionRepo = await getSectionRepository();
+    const sectionRepo = getSectionRepository(accessToken);
     const newSection = await sectionRepo.createSection({
       classId,
       name: name.trim(),

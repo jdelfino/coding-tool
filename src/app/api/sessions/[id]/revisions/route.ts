@@ -5,7 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthProvider } from '@/server/auth';
-import { getStorage } from '@/server/persistence';
+import { createStorage } from '@/server/persistence';
 import * as DiffMatchPatch from 'diff-match-patch';
 import { rateLimit } from '@/server/rate-limit';
 
@@ -70,8 +70,10 @@ export async function GET(
       );
     }
 
+    const accessToken = authSession.sessionId;
+
     // Fetch revisions from storage
-    const storage = await getStorage();
+    const storage = await createStorage(accessToken);
     const storedRevisions = await storage.revisions.getRevisions(sessionId, studentId);
 
     // Reconstruct full code for each revision from diffs

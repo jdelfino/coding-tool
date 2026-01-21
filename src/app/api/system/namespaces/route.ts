@@ -25,14 +25,15 @@ export async function GET(request: NextRequest) {
       return permissionCheck;
     }
 
+    const { accessToken } = permissionCheck;
     const { searchParams } = new URL(request.url);
     const includeInactive = searchParams.get('includeInactive') === 'true';
 
-    const namespaceRepo = await getNamespaceRepository();
+    const namespaceRepo = getNamespaceRepository(accessToken);
     const namespaces = await namespaceRepo.listNamespaces(includeInactive);
 
     // Get user counts for each namespace
-    const userRepo = await getUserRepository();
+    const userRepo = getUserRepository(accessToken);
     const allUsers = await userRepo.listUsers();
 
     const namespacesWithStats = namespaces.map((namespace: any) => {
@@ -78,7 +79,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Use user from permissionCheck - no need to call requireAuth again
-    const { user } = permissionCheck;
+    const { user, accessToken } = permissionCheck;
     const body = await request.json();
     const { id, displayName } = body;
 
@@ -107,7 +108,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if namespace already exists
-    const namespaceRepo = await getNamespaceRepository();
+    const namespaceRepo = getNamespaceRepository(accessToken);
     const exists = await namespaceRepo.namespaceExists(id);
     if (exists) {
       return NextResponse.json(

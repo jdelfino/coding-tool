@@ -59,15 +59,30 @@ export function getSupabaseClient(): SupabaseClient<Database> {
 }
 
 /**
+ * Special marker token that indicates service_role should be used instead of RLS.
+ * Use this for internal system operations that don't have an authenticated user context.
+ */
+export const SERVICE_ROLE_MARKER = '__service_role__';
+
+/**
  * Get a Supabase client that respects RLS for a specific user
  *
  * Use this when you want RLS policies to be applied based on a user's JWT.
  * This is useful for API routes that should respect user permissions.
  *
- * @param accessToken - User's JWT access token
- * @returns Typed Supabase client with user context
+ * Special case: If accessToken is SERVICE_ROLE_MARKER ('__service_role__'),
+ * returns the service_role client instead. This is for internal operations
+ * like student registration that require admin access without a user context.
+ *
+ * @param accessToken - User's JWT access token, or SERVICE_ROLE_MARKER for admin access
+ * @returns Typed Supabase client with appropriate context
  */
 export function getSupabaseClientWithAuth(accessToken: string): SupabaseClient<Database> {
+  // Special case: use service_role for internal operations without user context
+  if (accessToken === SERVICE_ROLE_MARKER) {
+    return getSupabaseClient();
+  }
+
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabasePublishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 

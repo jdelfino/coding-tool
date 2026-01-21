@@ -17,13 +17,11 @@ jest.mock('@/server/classes', () => ({
   getMembershipRepository: jest.fn(),
 }));
 
-jest.mock('@/server/persistence', () => ({
-  getStorage: jest.fn(),
-}));
+jest.mock('@/server/persistence');
 
 import { getAuthProvider } from '@/server/auth';
 import { getSectionRepository, getMembershipRepository } from '@/server/classes';
-import { getStorage } from '@/server/persistence';
+import { createStorage } from '@/server/persistence';
 
 // Test fixture factory
 function createTestUser(overrides: Partial<User> = {}): User {
@@ -86,9 +84,9 @@ describe('GET /api/sections/[id]/sessions', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     (getAuthProvider as jest.Mock).mockResolvedValue(mockAuthProvider);
-    (getSectionRepository as jest.Mock).mockResolvedValue(mockSectionRepo);
-    (getMembershipRepository as jest.Mock).mockResolvedValue(mockMembershipRepo);
-    (getStorage as jest.Mock).mockResolvedValue(mockStorage);
+    (getSectionRepository as jest.Mock).mockReturnValue(mockSectionRepo);
+    (getMembershipRepository as jest.Mock).mockReturnValue(mockMembershipRepo);
+    (createStorage as jest.Mock).mockResolvedValue(mockStorage);
   });
 
   it('should return 401 if not authenticated', async () => {

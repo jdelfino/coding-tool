@@ -25,11 +25,13 @@ export async function POST(
       );
     }
 
+    const accessToken = session.sessionId;
+
     // Rate limit by user ID (write operation)
     const limited = await rateLimit('write', request, session.user.id);
     if (limited) return limited;
 
-    const sectionRepo = await getSectionRepository();
+    const sectionRepo = getSectionRepository(accessToken);
     const section = await sectionRepo.getSection(id);
 
     if (!section) {

@@ -15,7 +15,7 @@ import {
   getInvitationStatus,
 } from '../../invitations/types';
 import { IInvitationRepository } from '../../invitations/interfaces';
-import { getClient } from '../../supabase/client';
+import { getSupabaseClientWithAuth } from '../../supabase/client';
 
 /**
  * Database row type for invitations table
@@ -63,9 +63,9 @@ const DEFAULT_EXPIRY_DAYS = 7;
  */
 export class SupabaseInvitationRepository implements IInvitationRepository {
   private initialized = false;
-  private readonly accessToken?: string;
+  private readonly accessToken: string;
 
-  constructor(accessToken?: string) {
+  constructor(accessToken: string) {
     this.accessToken = accessToken;
   }
 
@@ -73,7 +73,7 @@ export class SupabaseInvitationRepository implements IInvitationRepository {
     if (this.initialized) return;
 
     // Test connection
-    const supabase = getClient(this.accessToken);
+    const supabase = getSupabaseClientWithAuth(this.accessToken);
     const { error } = await supabase.from('invitations').select('id').limit(1);
 
     if (error) {
@@ -84,7 +84,7 @@ export class SupabaseInvitationRepository implements IInvitationRepository {
   }
 
   async createInvitation(data: CreateInvitationData): Promise<Invitation> {
-    const supabase = getClient(this.accessToken);
+    const supabase = getSupabaseClientWithAuth(this.accessToken);
 
     const now = new Date();
     const expiresAt = data.expiresAt ?? new Date(now.getTime() + DEFAULT_EXPIRY_DAYS * 24 * 60 * 60 * 1000);
@@ -112,7 +112,7 @@ export class SupabaseInvitationRepository implements IInvitationRepository {
   }
 
   async getInvitation(id: string): Promise<Invitation | null> {
-    const supabase = getClient(this.accessToken);
+    const supabase = getSupabaseClientWithAuth(this.accessToken);
 
     const { data, error } = await supabase
       .from('invitations')
@@ -131,7 +131,7 @@ export class SupabaseInvitationRepository implements IInvitationRepository {
   }
 
   async getInvitationBySupabaseUserId(supabaseUserId: string): Promise<Invitation | null> {
-    const supabase = getClient(this.accessToken);
+    const supabase = getSupabaseClientWithAuth(this.accessToken);
 
     const { data, error } = await supabase
       .from('invitations')
@@ -150,7 +150,7 @@ export class SupabaseInvitationRepository implements IInvitationRepository {
   }
 
   async getPendingInvitationByEmail(email: string, namespaceId: string): Promise<Invitation | null> {
-    const supabase = getClient(this.accessToken);
+    const supabase = getSupabaseClientWithAuth(this.accessToken);
 
     const { data, error } = await supabase
       .from('invitations')
@@ -181,7 +181,7 @@ export class SupabaseInvitationRepository implements IInvitationRepository {
   }
 
   async listInvitations(filters?: InvitationFilters): Promise<Invitation[]> {
-    const supabase = getClient(this.accessToken);
+    const supabase = getSupabaseClientWithAuth(this.accessToken);
 
     let query = supabase.from('invitations').select('*');
 
@@ -235,7 +235,7 @@ export class SupabaseInvitationRepository implements IInvitationRepository {
   }
 
   async updateInvitation(id: string, data: Partial<Invitation>): Promise<Invitation> {
-    const supabase = getClient(this.accessToken);
+    const supabase = getSupabaseClientWithAuth(this.accessToken);
 
     // Map domain fields to database columns
     const updateData: Record<string, string | null> = {};
@@ -327,7 +327,7 @@ export class SupabaseInvitationRepository implements IInvitationRepository {
     namespaceId: string,
     targetRole: 'namespace-admin' | 'instructor'
   ): Promise<number> {
-    const supabase = getClient(this.accessToken);
+    const supabase = getSupabaseClientWithAuth(this.accessToken);
     const now = new Date().toISOString();
 
     const { count, error } = await supabase

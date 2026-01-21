@@ -70,12 +70,12 @@ describe('/api/system/invitations', () => {
     mockInvitationRepository = {
       listInvitations: jest.fn().mockResolvedValue([mockInvitation]),
     };
-    (getInvitationRepository as jest.Mock).mockResolvedValue(mockInvitationRepository);
+    (getInvitationRepository as jest.Mock).mockReturnValue(mockInvitationRepository);
 
     mockInvitationService = {
       createInvitation: jest.fn().mockResolvedValue(mockInvitation),
     };
-    (getInvitationService as jest.Mock).mockResolvedValue(mockInvitationService);
+    (getInvitationService as jest.Mock).mockReturnValue(mockInvitationService);
   });
 
   describe('GET /api/system/invitations', () => {

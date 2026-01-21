@@ -4,8 +4,8 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getAuthenticatedUser } from '@/server/auth/api-auth';
-import { getStorage } from '@/server/persistence';
+import { getAuthenticatedUserWithToken } from '@/server/auth/api-auth';
+import { createStorage } from '@/server/persistence';
 import { getExecutorService } from '@/server/code-execution';
 import { validateCodeSize, validateStdinSize } from '@/server/code-execution/utils';
 import { ExecutionSettings } from '@/server/types/problem';
@@ -24,7 +24,7 @@ export async function POST(
 ) {
   try {
     // Authenticate user
-    const user = await getAuthenticatedUser(request);
+    const { user, accessToken } = await getAuthenticatedUserWithToken(request);
 
     // Rate limit by user ID (resource intensive operation)
     const limited = await rateLimit('execute', request, user.id);
@@ -64,7 +64,7 @@ export async function POST(
     }
 
     // Get session from storage
-    const storage = await getStorage();
+    const storage = await createStorage(accessToken);
     const session = await storage.sessions.getSession(sessionId);
 
     if (!session) {

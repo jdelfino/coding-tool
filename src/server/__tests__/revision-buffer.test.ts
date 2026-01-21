@@ -13,7 +13,7 @@ describe('RevisionBuffer', () => {
 
   beforeEach(() => {
     storage = createFakeStorage();
-    buffer = new RevisionBuffer(storage);
+    buffer = new RevisionBuffer(storage.revisions);
   });
 
   afterEach(async () => {

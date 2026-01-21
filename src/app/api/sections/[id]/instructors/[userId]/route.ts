@@ -25,11 +25,13 @@ export async function DELETE(
       );
     }
 
+    const accessToken = session.sessionId;
+
     // Rate limit by user ID (write operation)
     const limited = await rateLimit('write', request, session.user.id);
     if (limited) return limited;
 
-    const sectionRepo = await getSectionRepository();
+    const sectionRepo = getSectionRepository(accessToken);
     const section = await sectionRepo.getSection(sectionId);
 
     if (!section) {
@@ -56,7 +58,7 @@ export async function DELETE(
     }
 
     // Remove instructor from section
-    const membershipRepo = await getMembershipRepository();
+    const membershipRepo = getMembershipRepository(accessToken);
     await membershipRepo.removeMembership(userId, sectionId);
 
     // Update section instructorIds

@@ -5,7 +5,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthProvider } from '@/server/auth';
 import { getSectionRepository, getMembershipRepository } from '@/server/classes';
-import { getStorage } from '@/server/persistence';
+import { createStorage } from '@/server/persistence';
 
 export async function GET(
   request: NextRequest,
@@ -25,7 +25,8 @@ export async function GET(
       );
     }
 
-    const sectionRepo = await getSectionRepository();
+    const accessToken = authSession.sessionId;
+    const sectionRepo = getSectionRepository(accessToken);
     const section = await sectionRepo.getSection(id);
 
     if (!section) {
@@ -40,7 +41,7 @@ export async function GET(
     const isInstructor = section.instructorIds.includes(authSession.user.id);
 
     if (!isInstructor) {
-      const membershipRepo = await getMembershipRepository();
+      const membershipRepo = getMembershipRepository(accessToken);
       const membership = await membershipRepo.getMembership(authSession.user.id, id);
 
       if (!membership) {
@@ -52,7 +53,7 @@ export async function GET(
     }
 
     // Get sessions for this section from storage (filter at DB level for performance)
-    const storage = await getStorage();
+    const storage = await createStorage(accessToken);
     const sessions = await storage.sessions.listAllSessions({ sectionId: id });
 
     return NextResponse.json({ sessions });

@@ -4,7 +4,7 @@
 
 import { NextRequest } from 'next/server';
 import { DELETE } from '../route';
-import { getAuthenticatedUser } from '@/server/auth/api-auth';
+import { getAuthenticatedUserWithToken } from '@/server/auth/api-auth';
 import * as SessionService from '@/server/services/session-service';
 import { getExecutorService } from '@/server/code-execution';
 import { Session } from '@/server/types';
@@ -13,15 +13,15 @@ import { Problem } from '@/server/types/problem';
 // Mock dependencies
 jest.mock('@/server/auth/api-auth');
 jest.mock('@/server/persistence', () => ({
-  getStorage: jest.fn(),
+  createStorage: jest.fn(),
 }));
 jest.mock('@/server/services/session-service');
 jest.mock('@/server/code-execution');
 
-import { getStorage } from '@/server/persistence';
+import { createStorage } from '@/server/persistence';
 
-const mockGetAuthenticatedUser = getAuthenticatedUser as jest.MockedFunction<typeof getAuthenticatedUser>;
-const mockGetStorage = getStorage as jest.MockedFunction<typeof getStorage>;
+const mockGetAuthenticatedUserWithToken = getAuthenticatedUserWithToken as jest.MockedFunction<typeof getAuthenticatedUserWithToken>;
+const mockCreateStorage = createStorage as jest.MockedFunction<typeof createStorage>;
 const mockEndSession = SessionService.endSession as jest.MockedFunction<typeof SessionService.endSession>;
 const mockCleanupSession = jest.fn();
 const mockGetExecutorService = getExecutorService as jest.MockedFunction<typeof getExecutorService>;
@@ -79,12 +79,12 @@ describe('DELETE /api/sessions/[id]', () => {
         getSession: jest.fn(),
       },
     };
-    mockGetStorage.mockResolvedValue(mockStorage as unknown as ReturnType<typeof getStorage>);
+    mockCreateStorage.mockResolvedValue(mockStorage as any);
     mockCleanupSession.mockResolvedValue(undefined);
   });
 
   it('should successfully end session and cleanup sandbox', async () => {
-    mockGetAuthenticatedUser.mockResolvedValue(mockUser);
+    mockGetAuthenticatedUserWithToken.mockResolvedValue({ user: mockUser, accessToken: 'test-token' });
     mockStorage.sessions.getSession.mockResolvedValue(mockSession);
     mockEndSession.mockResolvedValue(undefined);
 
@@ -103,7 +103,7 @@ describe('DELETE /api/sessions/[id]', () => {
   });
 
   it('should call cleanupSession after endSession', async () => {
-    mockGetAuthenticatedUser.mockResolvedValue(mockUser);
+    mockGetAuthenticatedUserWithToken.mockResolvedValue({ user: mockUser, accessToken: 'test-token' });
     mockStorage.sessions.getSession.mockResolvedValue(mockSession);
 
     const callOrder: string[] = [];
@@ -125,7 +125,7 @@ describe('DELETE /api/sessions/[id]', () => {
   });
 
   it('should return 401 when not authenticated', async () => {
-    mockGetAuthenticatedUser.mockRejectedValue(new Error('Not authenticated'));
+    mockGetAuthenticatedUserWithToken.mockRejectedValue(new Error('Not authenticated'));
 
     const request = new NextRequest('http://localhost:3000/api/sessions/session-1', {
       method: 'DELETE',
@@ -141,7 +141,7 @@ describe('DELETE /api/sessions/[id]', () => {
   });
 
   it('should return 404 when session not found', async () => {
-    mockGetAuthenticatedUser.mockResolvedValue(mockUser);
+    mockGetAuthenticatedUserWithToken.mockResolvedValue({ user: mockUser, accessToken: 'test-token' });
     mockStorage.sessions.getSession.mockResolvedValue(null);
 
     const request = new NextRequest('http://localhost:3000/api/sessions/session-1', {
@@ -163,7 +163,7 @@ describe('DELETE /api/sessions/[id]', () => {
       id: 'other-user',
       role: 'instructor' as const,
     };
-    mockGetAuthenticatedUser.mockResolvedValue(otherUser);
+    mockGetAuthenticatedUserWithToken.mockResolvedValue({ user: otherUser, accessToken: 'test-token' });
     mockStorage.sessions.getSession.mockResolvedValue(mockSession);
 
     const request = new NextRequest('http://localhost:3000/api/sessions/session-1', {
@@ -185,7 +185,7 @@ describe('DELETE /api/sessions/[id]', () => {
       id: 'admin-1',
       role: 'namespace-admin' as const,
     };
-    mockGetAuthenticatedUser.mockResolvedValue(adminUser);
+    mockGetAuthenticatedUserWithToken.mockResolvedValue({ user: adminUser, accessToken: 'test-token' });
     mockStorage.sessions.getSession.mockResolvedValue(mockSession);
     mockEndSession.mockResolvedValue(undefined);
 
@@ -207,7 +207,7 @@ describe('DELETE /api/sessions/[id]', () => {
       id: 'admin-1',
       role: 'system-admin' as const,
     };
-    mockGetAuthenticatedUser.mockResolvedValue(adminUser);
+    mockGetAuthenticatedUserWithToken.mockResolvedValue({ user: adminUser, accessToken: 'test-token' });
     mockStorage.sessions.getSession.mockResolvedValue(mockSession);
     mockEndSession.mockResolvedValue(undefined);
 
@@ -225,7 +225,7 @@ describe('DELETE /api/sessions/[id]', () => {
 
   it('should succeed even if cleanupSession is skipped locally', async () => {
     // In local development, cleanupSession is a no-op
-    mockGetAuthenticatedUser.mockResolvedValue(mockUser);
+    mockGetAuthenticatedUserWithToken.mockResolvedValue({ user: mockUser, accessToken: 'test-token' });
     mockStorage.sessions.getSession.mockResolvedValue(mockSession);
     mockEndSession.mockResolvedValue(undefined);
     mockCleanupSession.mockResolvedValue(undefined);
