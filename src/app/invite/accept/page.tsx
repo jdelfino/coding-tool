@@ -117,7 +117,9 @@ export default function AcceptInvitePage() {
         const accessToken = params.get('access_token');
         const type = params.get('type');
 
-        if (type !== 'invite') {
+        // Accept both invite and magiclink types
+        // magiclink is used when resending to a user who already exists in auth.users
+        if (type !== 'invite' && type !== 'magiclink') {
           setPageState({ status: 'error', error: 'otp_invalid' });
           return;
         }
@@ -140,9 +142,10 @@ export default function AcceptInvitePage() {
         // Case 2: Needs verification (token_hash in URL)
         else if (tokenHash) {
           // Verify the token with Supabase
+          // Use the type from URL (invite or magiclink)
           const { error: verifyError } = await supabase.auth.verifyOtp({
             token_hash: tokenHash,
-            type: 'invite',
+            type: type as 'invite' | 'magiclink',
           });
 
           if (verifyError) {

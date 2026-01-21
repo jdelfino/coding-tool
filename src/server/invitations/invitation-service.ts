@@ -230,6 +230,10 @@ export class InvitationService {
    * with a fresh token. Supabase tokens expire in 24h, so this is needed
    * if the user didn't click the link in time.
    *
+   * If the user already exists in auth.users (e.g., email scanner clicked
+   * the link first, or user clicked but didn't complete profile), falls back
+   * to sending a magic link sign-in instead.
+   *
    * @param invitationId - The invitation ID
    * @returns The updated invitation
    * @throws InvitationError if invitation not found, consumed, or revoked
@@ -254,7 +258,7 @@ export class InvitationService {
     // Note: We resend even for expired invitations - the user may want to extend the window
     // by resending and updating the expiry
 
-    // Call Supabase to send a new invite email
+    // Try to send invite email
     const { data, error } = await this.supabaseAdmin.auth.admin.inviteUserByEmail(
       invitation.email,
       {
@@ -266,6 +270,51 @@ export class InvitationService {
         },
       }
     );
+
+    // If user already exists (e.g., scanner clicked link, or user clicked but didn't complete profile),
+    // delete the orphaned auth user and retry the invite
+    if (error?.message?.includes('already been registered')) {
+      // Find and delete the orphaned user
+      if (invitation.supabaseUserId) {
+        const { error: deleteError } = await this.supabaseAdmin.auth.admin.deleteUser(
+          invitation.supabaseUserId
+        );
+
+        if (deleteError) {
+          throw new Error(`Failed to clean up orphaned user: ${deleteError.message}`);
+        }
+
+        // Retry the invite
+        const { data: retryData, error: retryError } = await this.supabaseAdmin.auth.admin.inviteUserByEmail(
+          invitation.email,
+          {
+            redirectTo: `${this.appUrl}/invite/accept`,
+            data: {
+              invitationId: invitation.id,
+              targetRole: invitation.targetRole,
+              namespaceId: invitation.namespaceId,
+            },
+          }
+        );
+
+        if (retryError) {
+          throw new Error(`Failed to resend invitation email: ${retryError.message}`);
+        }
+
+        // Update Supabase user ID
+        if (retryData?.user?.id) {
+          await this.invitationRepository.updateInvitation(invitation.id, {
+            supabaseUserId: retryData.user.id,
+          });
+          invitation.supabaseUserId = retryData.user.id;
+        }
+
+        return invitation;
+      }
+
+      // No supabaseUserId stored - can't clean up automatically
+      throw new Error('User already exists but cannot be cleaned up automatically. Please contact support.');
+    }
 
     if (error) {
       throw new Error(`Failed to resend invitation email: ${error.message}`);
