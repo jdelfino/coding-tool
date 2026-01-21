@@ -7,6 +7,7 @@ import { requireAuth } from '@/server/auth/api-helpers';
 import { getSectionRepository, getMembershipRepository } from '@/server/classes';
 import { normalizeJoinCode } from '@/server/classes/join-code-service';
 import { rateLimit } from '@/server/rate-limit';
+import { SERVICE_ROLE_MARKER } from '@/server/supabase/client';
 
 export async function POST(request: NextRequest) {
   // Rate limit by IP to prevent join code brute force attacks
@@ -40,8 +41,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Find section by join code (join codes are globally unique)
-    const sectionRepo = getSectionRepository(accessToken);
+    // Find section by join code using service role (bypasses RLS)
+    // RLS policy requires students to be members to see sections, but we need
+    // to look up the section first to join it. We validate namespace manually below.
+    const sectionRepo = getSectionRepository(SERVICE_ROLE_MARKER);
     const section = await sectionRepo.getSectionByJoinCode(normalizedCode);
 
     if (!section) {
