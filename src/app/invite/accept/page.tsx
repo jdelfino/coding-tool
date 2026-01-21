@@ -107,39 +107,66 @@ export default function AcceptInvitePage() {
       try {
         const supabase = getSupabaseClient();
 
-        // Extract token from URL hash
-        // Supabase puts it in the hash like: #access_token=...&token_hash=...&type=invite
+        // Extract tokens from URL hash
+        // Supabase redirects with either:
+        // - #token_hash=...&type=invite (needs client-side verification)
+        // - #access_token=...&type=invite (already verified server-side)
         const hash = locationHash.substring(1);
         const params = new URLSearchParams(hash);
         const tokenHash = params.get('token_hash');
+        const accessToken = params.get('access_token');
         const type = params.get('type');
 
-        if (!tokenHash || type !== 'invite') {
+        if (type !== 'invite') {
           setPageState({ status: 'error', error: 'otp_invalid' });
           return;
         }
 
-        // Verify the token with Supabase
-        const { error: verifyError } = await supabase.auth.verifyOtp({
-          token_hash: tokenHash,
-          type: 'invite',
-        });
+        // Case 1: Already verified (access_token in URL)
+        // Supabase verified server-side and redirected with tokens
+        if (accessToken) {
+          // The Supabase client auto-detects tokens in URL hash and establishes session
+          // Just verify we have a valid session
+          const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
-        if (verifyError) {
-          console.error('[AcceptInvite] Verify OTP error:', verifyError);
-
-          // Map Supabase errors to our error types
-          if (verifyError.message.includes('expired')) {
-            setPageState({ status: 'error', error: 'otp_expired' });
-          } else if (verifyError.message.includes('already') || verifyError.message.includes('registered')) {
-            setPageState({ status: 'error', error: 'user_already_exists' });
-          } else {
+          if (sessionError || !session) {
+            console.error('[AcceptInvite] Session error:', sessionError);
             setPageState({ status: 'error', error: 'otp_invalid' });
+            return;
           }
+
+          // Session established, proceed to fetch invitation
+        }
+        // Case 2: Needs verification (token_hash in URL)
+        else if (tokenHash) {
+          // Verify the token with Supabase
+          const { error: verifyError } = await supabase.auth.verifyOtp({
+            token_hash: tokenHash,
+            type: 'invite',
+          });
+
+          if (verifyError) {
+            console.error('[AcceptInvite] Verify OTP error:', verifyError);
+
+            // Map Supabase errors to our error types
+            if (verifyError.message.includes('expired')) {
+              setPageState({ status: 'error', error: 'otp_expired' });
+            } else if (verifyError.message.includes('already') || verifyError.message.includes('registered')) {
+              setPageState({ status: 'error', error: 'user_already_exists' });
+            } else {
+              setPageState({ status: 'error', error: 'otp_invalid' });
+            }
+            return;
+          }
+          // Token verified, proceed to fetch invitation
+        }
+        // Case 3: No valid token
+        else {
+          setPageState({ status: 'error', error: 'otp_invalid' });
           return;
         }
 
-        // Token verified, now fetch invitation details
+        // Session established, now fetch invitation details
         setPageState({ status: 'loading-invitation' });
 
         const response = await fetch('/api/auth/accept-invite', {
