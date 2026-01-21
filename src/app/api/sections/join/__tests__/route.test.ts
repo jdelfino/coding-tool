@@ -66,7 +66,6 @@ describe('POST /api/sections/join', () => {
   it('should return 400 if join code is missing', async () => {
     const user: User = {
       id: 'student-1',
-      username: 'bob@example.com',
         email: "test@example.com",
       role: 'student',
       namespaceId: 'default',
@@ -90,7 +89,6 @@ describe('POST /api/sections/join', () => {
   it('should return 404 if join code is invalid', async () => {
     const user: User = {
       id: 'student-1',
-      username: 'bob@example.com',
       email: 'test@example.com',
       role: 'student',
       namespaceId: 'default',
@@ -115,7 +113,6 @@ describe('POST /api/sections/join', () => {
   it('should return 400 if already enrolled', async () => {
     const user: User = {
       id: 'student-1',
-      username: 'bob@example.com',
       email: 'test@example.com',
       role: 'student',
       namespaceId: 'default',
@@ -159,7 +156,6 @@ describe('POST /api/sections/join', () => {
   it('should successfully join section with valid code', async () => {
     const user: User = {
       id: 'student-1',
-      username: 'bob@example.com',
       email: 'test@example.com',
       role: 'student',
       namespaceId: 'default',

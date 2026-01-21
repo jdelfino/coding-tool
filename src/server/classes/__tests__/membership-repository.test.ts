@@ -17,8 +17,7 @@ describe('MembershipRepository', () => {
   // Mock data
   const mockUser1: User = {
     id: 'user-1',
-    username: 'student1',
-    email: "test@example.com",
+    email: 'student1@example.com',
     role: 'student',
     namespaceId: 'default',
     createdAt: new Date(),
@@ -26,8 +25,7 @@ describe('MembershipRepository', () => {
 
   const mockUser2: User = {
     id: 'user-2',
-    username: 'student2',
-    email: "test@example.com",
+    email: 'student2@example.com',
     role: 'student',
     namespaceId: 'default',
     createdAt: new Date(),
@@ -35,8 +33,7 @@ describe('MembershipRepository', () => {
 
   const mockInstructor: User = {
     id: 'instructor-1',
-    username: 'instructor',
-    email: "test@example.com",
+    email: 'instructor@example.com',
     role: 'instructor',
     namespaceId: 'default',
     createdAt: new Date(),
@@ -306,7 +303,7 @@ describe('MembershipRepository', () => {
 
       expect(members).toHaveLength(3);
       expect(members[0]).toHaveProperty('id');
-      expect(members[0]).toHaveProperty('username');
+      expect(members[0]).toHaveProperty('email');
       expect(members[0]).toHaveProperty('role');
     });
 
@@ -334,11 +331,11 @@ describe('MembershipRepository', () => {
       expect(members).toEqual([]);
     });
 
-    it('should sort members by username', async () => {
+    it('should sort members by email', async () => {
       const members = await repository.getSectionMembers(mockSection1.id, 'student');
 
-      expect(members[0].username).toBe('student1');
-      expect(members[1].username).toBe('student2');
+      expect(members[0].email).toBe('student1@example.com');
+      expect(members[1].email).toBe('student2@example.com');
     });
 
     it('should throw error if user repository not configured', async () => {

@@ -20,7 +20,6 @@ const mockGetUserRepository = getUserRepository as jest.MockedFunction<typeof ge
 describe('Namespace Users API', () => {
   const mockSystemAdmin = {
     id: 'admin-123',
-    username: 'sysadmin',
     email: 'sysadmin@example.com',
     role: 'system-admin' as const,
     namespaceId: null,
@@ -30,7 +29,6 @@ describe('Namespace Users API', () => {
 
   const mockInstructor = {
     id: 'instructor-123',
-    username: 'teacher',
     email: 'teacher@example.com',
     role: 'instructor' as const,
     namespaceId: 'test-namespace',
@@ -61,7 +59,6 @@ describe('Namespace Users API', () => {
 
   const mockUserRepo = {
     listUsers: jest.fn(),
-    getUserByUsername: jest.fn(),
     getUser: jest.fn(),
     saveUser: jest.fn(),
     updateUser: jest.fn(),
@@ -174,13 +171,13 @@ describe('Namespace Users API', () => {
       mockNamespaceRepo.getNamespace.mockResolvedValue(mockNamespace);
 
       const mockUsers = [
-        { id: 'u1', username: 'user1', role: 'instructor' as const, namespaceId: 'test-namespace', createdAt: new Date(), lastLoginAt: new Date() },
-        { id: 'u2', username: 'user2', role: 'student' as const, namespaceId: 'test-namespace', createdAt: new Date(), lastLoginAt: new Date() },
+        { id: 'u1', email: 'user1@example.com', role: 'instructor' as const, namespaceId: 'test-namespace', createdAt: new Date(), lastLoginAt: new Date() },
+        { id: 'u2', email: 'user2@example.com', role: 'student' as const, namespaceId: 'test-namespace', createdAt: new Date(), lastLoginAt: new Date() },
       ];
 
       mockUserRepo.listUsers.mockResolvedValue([
         ...mockUsers,
-        { id: 'u3', username: 'other', role: 'instructor' as const, namespaceId: 'other-namespace', createdAt: new Date(), lastLoginAt: new Date() },
+        { id: 'u3', email: 'other@example.com', role: 'instructor' as const, namespaceId: 'other-namespace', createdAt: new Date(), lastLoginAt: new Date() },
       ]);
 
       const request = createMockRequest('GET');

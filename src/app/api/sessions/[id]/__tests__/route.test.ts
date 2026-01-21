@@ -31,7 +31,6 @@ describe('DELETE /api/sessions/[id]', () => {
   const mockUser = {
     id: 'instructor-1',
     email: 'instructor@example.com',
-    username: 'instructor',
     role: 'instructor' as const,
     namespaceId: 'default',
     createdAt: new Date(),

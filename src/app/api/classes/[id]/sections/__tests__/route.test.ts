@@ -97,7 +97,6 @@ describe('/api/classes/[id]/sections', () => {
     it('should return 404 if class not found', async () => {
       const user: User = {
         id: 'user-1',
-        username: 'instructor',
         email: "test@example.com",
         role: 'instructor',
         namespaceId: 'default',
@@ -122,7 +121,6 @@ describe('/api/classes/[id]/sections', () => {
     it('should return empty array for class with no sections', async () => {
       const user: User = {
         id: 'user-1',
-        username: 'instructor',
         email: 'test@example.com',
         role: 'instructor',
         namespaceId: 'default',
@@ -151,7 +149,6 @@ describe('/api/classes/[id]/sections', () => {
     it('should return sections with counts for instructors', async () => {
       const instructor: User = {
         id: 'user-1',
-        username: 'instructor',
         email: 'test@example.com',
         role: 'instructor',
         namespaceId: 'default',
@@ -217,7 +214,6 @@ describe('/api/classes/[id]/sections', () => {
     it('should return basic section info for students', async () => {
       const student: User = {
         id: 'user-1',
-        username: 'student',
         email: 'test@example.com',
         role: 'student',
         namespaceId: 'default',
@@ -262,7 +258,6 @@ describe('/api/classes/[id]/sections', () => {
     it('should create a section successfully', async () => {
       const instructor: User = {
         id: 'user-1',
-        username: 'instructor',
         email: 'test@example.com',
         role: 'instructor',
         namespaceId: 'default',

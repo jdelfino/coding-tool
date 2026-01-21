@@ -23,7 +23,6 @@ describe('POST /api/admin/clear-data', () => {
   const createUser = (role: 'system-admin' | 'namespace-admin' | 'instructor' | 'student', id = 'user-1') => ({
     id,
     email: `${role}@example.com`,
-    username: role,
     role,
     namespaceId: 'default',
     createdAt: new Date(),

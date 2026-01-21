@@ -74,7 +74,7 @@ export async function GET(request: NextRequest) {
       if (user) {
         instructors.push({
           id: user.id,
-          displayName: user.displayName || user.username,
+          displayName: user.displayName || user.email,
         });
       }
     }
@@ -115,7 +115,7 @@ export async function GET(request: NextRequest) {
  * - code: Section join code (required)
  * - email: Student email (required)
  * - password: Account password (required)
- * - username: Display username (required)
+ * - displayName: Optional display name
  *
  * Response:
  * - 201: { user, section }
@@ -124,7 +124,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { code, email, password, username } = body;
+    const { code, email, password, displayName } = body;
 
     // Validate required fields
     const errors: string[] = [];
@@ -137,9 +137,6 @@ export async function POST(request: NextRequest) {
     }
     if (!password || typeof password !== 'string') {
       errors.push('Password is required');
-    }
-    if (!username || typeof username !== 'string') {
-      errors.push('Username is required');
     }
 
     if (errors.length > 0) {
@@ -167,25 +164,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate username format
-    const trimmedUsername = username.trim();
-    if (trimmedUsername.length < 3 || trimmedUsername.length > 30) {
-      return NextResponse.json(
-        { error: 'Username must be between 3 and 30 characters', code: 'INVALID_USERNAME' },
-        { status: 400 }
-      );
-    }
-
-    if (!/^[a-zA-Z0-9_]+$/.test(trimmedUsername)) {
-      return NextResponse.json(
-        {
-          error: 'Username can only contain letters, numbers, and underscores',
-          code: 'INVALID_USERNAME',
-        },
-        { status: 400 }
-      );
-    }
-
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email.trim())) {
@@ -201,7 +179,7 @@ export async function POST(request: NextRequest) {
       code,
       email.trim(),
       password,
-      trimmedUsername
+      displayName?.trim()
     );
 
     return NextResponse.json(
@@ -228,7 +206,6 @@ export async function POST(request: NextRequest) {
         NAMESPACE_NOT_FOUND: 'Organization not found',
         NAMESPACE_AT_CAPACITY: 'This class has reached its student limit',
         INVALID_EMAIL: 'Invalid email format',
-        INVALID_USERNAME: 'Invalid username',
         INVALID_PASSWORD: 'Invalid password',
         USER_CREATION_FAILED: 'Failed to create account (email may already be in use)',
         MEMBERSHIP_FAILED: 'Failed to enroll in section',

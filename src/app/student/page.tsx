@@ -59,7 +59,7 @@ function StudentPage() {
   } = useRealtimeSession({
     sessionId: sessionIdFromUrl || '',
     userId: user?.id,
-    userName: user?.username,
+    userName: user?.displayName || user?.email,
   });
 
   // Debugger state - uses API-based trace requests
@@ -95,7 +95,7 @@ function StudentPage() {
       joinAttemptedRef.current = sessionIdFromUrl;
       setIsJoining(true);
 
-      joinSession(user.id, user.username || 'Student')
+      joinSession(user.id, user.displayName || user.email || 'Student')
         .then(() => {
           setJoined(true);
           setStudentId(user.id);
@@ -107,7 +107,7 @@ function StudentPage() {
           setIsJoining(false);
         });
     }
-  }, [sessionIdFromUrl, user?.id, user?.username, joined, isJoining, isConnected, session, joinSession]);
+  }, [sessionIdFromUrl, user?.id, user?.email, user?.displayName, joined, isJoining, isConnected, session, joinSession]);
 
   // Update problem when session loads
   useEffect(() => {
@@ -333,7 +333,7 @@ function StudentPage() {
             border: '1px solid #dee2e6'
           }}>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-              <span style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>{user?.username}</span>
+              <span style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>{user?.displayName || user?.email}</span>
               <span style={{
                 fontSize: '0.75rem',
                 color: '#28a745',

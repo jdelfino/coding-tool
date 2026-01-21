@@ -7,7 +7,7 @@
  *
  * Flow:
  * 1. Student gets join code from instructor
- * 2. Student provides: join code, email, password, username
+ * 2. Student provides: join code, email, password (and optional displayName)
  * 3. Service validates join code and capacity
  * 4. Creates user with role='student' and namespaceId from section
  * 5. Adds user to section membership
@@ -29,7 +29,6 @@ export type StudentRegistrationErrorCode =
   | 'NAMESPACE_NOT_FOUND'
   | 'NAMESPACE_AT_CAPACITY'
   | 'INVALID_EMAIL'
-  | 'INVALID_USERNAME'
   | 'INVALID_PASSWORD'
   | 'USER_CREATION_FAILED'
   | 'MEMBERSHIP_FAILED';
@@ -71,9 +70,9 @@ export interface RegisterStudentResult {
   user: {
     id: string;
     email: string;
-    username: string;
     role: 'student';
     namespaceId: string;
+    displayName?: string;
     createdAt: Date;
   };
   /** The section the student was enrolled in */
@@ -162,7 +161,7 @@ export class StudentRegistrationService {
    * @param sectionJoinCode - The section join code
    * @param email - Student's email address
    * @param password - Student's password
-   * @param username - Student's display username
+   * @param displayName - Optional display name for the student
    * @returns The created user and section
    * @throws StudentRegistrationError for validation or creation failures
    */
@@ -170,20 +169,14 @@ export class StudentRegistrationService {
     sectionJoinCode: string,
     email: string,
     password: string,
-    username: string
+    displayName?: string
   ): Promise<RegisterStudentResult> {
     // Validate and normalize inputs
     const normalizedEmail = email.trim().toLowerCase();
-    const trimmedUsername = username.trim();
 
     // Validate email format
     if (!isValidEmail(normalizedEmail)) {
       throw new StudentRegistrationError('Invalid email format', 'INVALID_EMAIL');
-    }
-
-    // Validate username
-    if (!trimmedUsername) {
-      throw new StudentRegistrationError('Username is required', 'INVALID_USERNAME');
     }
 
     // Validate password
@@ -223,10 +216,15 @@ export class StudentRegistrationService {
       user = await this.authProvider.signUp(
         normalizedEmail,
         password,
-        trimmedUsername,
         'student',
         namespaceId
       );
+
+      // Update display name if provided
+      if (displayName?.trim()) {
+        await this.authProvider.updateUser(user.id, { displayName: displayName.trim() });
+        user.displayName = displayName.trim();
+      }
     } catch (error) {
       throw new StudentRegistrationError(
         `Failed to create user account: ${(error as Error).message}`,
@@ -255,9 +253,9 @@ export class StudentRegistrationService {
       user: {
         id: user.id,
         email: user.email,
-        username: user.username,
         role: 'student',
         namespaceId: user.namespaceId!,
+        displayName: user.displayName,
         createdAt: user.createdAt,
       },
       section,
@@ -279,8 +277,6 @@ export class StudentRegistrationService {
         return 'Organization is at capacity for students';
       case 'INVALID_EMAIL':
         return 'Invalid email format';
-      case 'INVALID_USERNAME':
-        return 'Username is required';
       case 'INVALID_PASSWORD':
         return 'Password is required';
       case 'USER_CREATION_FAILED':

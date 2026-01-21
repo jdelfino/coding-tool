@@ -22,7 +22,6 @@ describe('GET /api/sessions/[id]/state', () => {
   const mockUser = {
     id: 'user-1',
     email: 'instructor@example.com',
-    username: 'instructor',
     role: 'instructor' as const,
     namespaceId: 'default',
     createdAt: new Date(),

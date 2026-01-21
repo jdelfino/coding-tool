@@ -54,7 +54,6 @@ describe('StudentRegistrationService', () => {
     return {
       id: 'user-789',
       email: 'student@example.com',
-      username: 'newstudent',
       role: 'student',
       namespaceId: 'test-namespace',
       createdAt: new Date(),
@@ -104,7 +103,6 @@ describe('StudentRegistrationService', () => {
     mockAuthProvider = {
       signUp: jest.fn(),
       getUser: jest.fn(),
-      getUserByUsername: jest.fn(),
       authenticateWithPassword: jest.fn(),
       updateUser: jest.fn(),
       deleteUser: jest.fn(),
@@ -250,7 +248,6 @@ describe('StudentRegistrationService', () => {
       expect(mockAuthProvider.signUp).toHaveBeenCalledWith(
         'student@example.com',
         'SecurePassword123!',
-        'newstudent',
         'student',
         'test-namespace'
       );
@@ -385,7 +382,6 @@ describe('StudentRegistrationService', () => {
       expect(mockAuthProvider.signUp).toHaveBeenCalledWith(
         'student@example.com',
         'SecurePassword123!',
-        'newstudent',
         'student',
         'test-namespace'
       );
@@ -402,7 +398,6 @@ describe('StudentRegistrationService', () => {
       expect(mockAuthProvider.signUp).toHaveBeenCalledWith(
         'student@example.com',
         'SecurePassword123!',
-        'newstudent',
         'student',
         'test-namespace'
       );
@@ -427,50 +422,6 @@ describe('StudentRegistrationService', () => {
         );
       } catch (error) {
         expect((error as StudentRegistrationError).code).toBe('INVALID_EMAIL');
-      }
-    });
-
-    it('throws error for empty username', async () => {
-      await expect(
-        service.registerStudent(
-          'ABC-123-XYZ',
-          'student@example.com',
-          'SecurePassword123!',
-          ''
-        )
-      ).rejects.toThrow(StudentRegistrationError);
-
-      try {
-        await service.registerStudent(
-          'ABC-123-XYZ',
-          'student@example.com',
-          'SecurePassword123!',
-          ''
-        );
-      } catch (error) {
-        expect((error as StudentRegistrationError).code).toBe('INVALID_USERNAME');
-      }
-    });
-
-    it('throws error for whitespace-only username', async () => {
-      await expect(
-        service.registerStudent(
-          'ABC-123-XYZ',
-          'student@example.com',
-          'SecurePassword123!',
-          '   '
-        )
-      ).rejects.toThrow(StudentRegistrationError);
-
-      try {
-        await service.registerStudent(
-          'ABC-123-XYZ',
-          'student@example.com',
-          'SecurePassword123!',
-          '   '
-        );
-      } catch (error) {
-        expect((error as StudentRegistrationError).code).toBe('INVALID_USERNAME');
       }
     });
 

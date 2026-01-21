@@ -408,7 +408,7 @@ export class FakeMembershipRepository implements IMembershipRepository {
       }
     }
 
-    users.sort((a, b) => a.username.localeCompare(b.username));
+    users.sort((a, b) => a.email.localeCompare(b.email));
     return users;
   }
 

@@ -94,7 +94,6 @@ describe('/api/auth/accept-invite', () => {
       getUser: jest.fn().mockResolvedValue({
         id: 'supabase-user-123',
         email: 'test@example.com',
-        username: 'testuser',
         role: 'instructor',
         namespaceId: 'test-namespace',
         createdAt: new Date(),
@@ -226,69 +225,12 @@ describe('/api/auth/accept-invite', () => {
       expect(response.status).toBe(401);
     });
 
-    it('returns 400 for missing username', async () => {
-      const request = new NextRequest('http://localhost/api/auth/accept-invite', {
-        method: 'POST',
-        body: JSON.stringify({}),
-      });
-      const response = await POST(request);
-
-      expect(response.status).toBe(400);
-      const data = await response.json();
-      expect(data.error).toBe('Username is required');
-      expect(data.code).toBe('MISSING_USERNAME');
-    });
-
-    it('returns 400 for username too short', async () => {
-      const request = new NextRequest('http://localhost/api/auth/accept-invite', {
-        method: 'POST',
-        body: JSON.stringify({ username: 'ab' }),
-      });
-      const response = await POST(request);
-
-      expect(response.status).toBe(400);
-      const data = await response.json();
-      expect(data.error).toContain('between 3 and 30');
-      expect(data.code).toBe('INVALID_USERNAME');
-    });
-
-    it('returns 400 for invalid username characters', async () => {
-      const request = new NextRequest('http://localhost/api/auth/accept-invite', {
-        method: 'POST',
-        body: JSON.stringify({ username: 'test@user!' }),
-      });
-      const response = await POST(request);
-
-      expect(response.status).toBe(400);
-      const data = await response.json();
-      expect(data.error).toContain('letters, numbers, and underscores');
-      expect(data.code).toBe('INVALID_USERNAME');
-    });
-
-    it('returns 400 for duplicate username', async () => {
-      mockAuthProvider.getUserByUsername.mockResolvedValue({
-        id: 'other-user',
-        username: 'testuser',
-      });
-
-      const request = new NextRequest('http://localhost/api/auth/accept-invite', {
-        method: 'POST',
-        body: JSON.stringify({ username: 'testuser' }),
-      });
-      const response = await POST(request);
-
-      expect(response.status).toBe(400);
-      const data = await response.json();
-      expect(data.error).toBe('Username is already taken');
-      expect(data.code).toBe('DUPLICATE_USERNAME');
-    });
-
     it('returns 404 when no invitation found', async () => {
       mockInvitationRepository.getInvitationBySupabaseUserId.mockResolvedValue(null);
 
       const request = new NextRequest('http://localhost/api/auth/accept-invite', {
         method: 'POST',
-        body: JSON.stringify({ username: 'testuser' }),
+        body: JSON.stringify({}),
       });
       const response = await POST(request);
 
@@ -302,7 +244,7 @@ describe('/api/auth/accept-invite', () => {
 
       const request = new NextRequest('http://localhost/api/auth/accept-invite', {
         method: 'POST',
-        body: JSON.stringify({ username: 'testuser' }),
+        body: JSON.stringify({}),
       });
       const response = await POST(request);
 
@@ -314,7 +256,7 @@ describe('/api/auth/accept-invite', () => {
     it('creates user profile and marks invitation as consumed', async () => {
       const request = new NextRequest('http://localhost/api/auth/accept-invite', {
         method: 'POST',
-        body: JSON.stringify({ username: 'testuser', displayName: 'Test User' }),
+        body: JSON.stringify({ displayName: 'Test User' }),
       });
       const response = await POST(request);
 
@@ -325,7 +267,6 @@ describe('/api/auth/accept-invite', () => {
         expect.objectContaining({
           id: 'supabase-user-123',
           email: 'test@example.com',
-          username: 'testuser',
           role: 'instructor',
           namespaceId: 'test-namespace',
           displayName: 'Test User',
@@ -345,17 +286,17 @@ describe('/api/auth/accept-invite', () => {
       expect(data.user.id).toBe('supabase-user-123');
     });
 
-    it('uses username as displayName when not provided', async () => {
+    it('accepts request without displayName', async () => {
       const request = new NextRequest('http://localhost/api/auth/accept-invite', {
         method: 'POST',
-        body: JSON.stringify({ username: 'testuser' }),
+        body: JSON.stringify({}),
       });
-      await POST(request);
+      const response = await POST(request);
 
+      expect(response.status).toBe(200);
       expect(mockAuthProvider.userRepository.saveUser).toHaveBeenCalledWith(
         expect.objectContaining({
-          username: 'testuser',
-          displayName: 'testuser',
+          displayName: undefined,
         })
       );
     });
@@ -365,7 +306,7 @@ describe('/api/auth/accept-invite', () => {
 
       const request = new NextRequest('http://localhost/api/auth/accept-invite', {
         method: 'POST',
-        body: JSON.stringify({ username: 'testuser' }),
+        body: JSON.stringify({}),
       });
       const response = await POST(request);
 

@@ -80,10 +80,10 @@ export async function PUT(
     await auditRepo.createEntry({
       action: 'role_change',
       actorId: actor.id,
-      actorUsername: actor.username,
+      actorUsername: actor.email,
       actorRole: actor.role,
       targetId: target.id,
-      targetUsername: target.username,
+      targetUsername: target.email,
       details: {
         action: 'role_change',
         oldRole,

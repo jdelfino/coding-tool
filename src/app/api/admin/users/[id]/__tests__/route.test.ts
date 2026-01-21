@@ -118,7 +118,6 @@ describe('DELETE /api/admin/users/[id]', () => {
     it('should allow instructors to delete users', async () => {
       const instructor: User = {
         id: 'instructor1',
-        username: 'instructor',
         email: "test@example.com",
         role: 'instructor',
         namespaceId: 'default',
@@ -131,7 +130,6 @@ describe('DELETE /api/admin/users/[id]', () => {
 
       mockUserRepository.getUser.mockResolvedValue({
         id: 'user123',
-        username: 'student',
         role: 'student',
         namespaceId: 'default',
         createdAt: new Date(),
@@ -151,7 +149,6 @@ describe('DELETE /api/admin/users/[id]', () => {
     it('should allow admins to delete users', async () => {
       const admin: User = {
         id: 'admin1',
-        username: 'admin',
         email: "test@example.com",
         role: 'namespace-admin',
         namespaceId: 'default',
@@ -164,7 +161,6 @@ describe('DELETE /api/admin/users/[id]', () => {
 
       mockUserRepository.getUser.mockResolvedValue({
         id: 'user123',
-        username: 'student',
         role: 'student',
         namespaceId: 'default',
         createdAt: new Date(),
@@ -200,7 +196,6 @@ describe('DELETE /api/admin/users/[id]', () => {
     it('should prevent users from deleting themselves', async () => {
       const instructor: User = {
         id: 'instructor1',
-        username: 'instructor',
         email: "test@example.com",
         role: 'instructor',
         namespaceId: 'default',
@@ -224,7 +219,6 @@ describe('DELETE /api/admin/users/[id]', () => {
     it('should prevent deletion of the last admin', async () => {
       const admin: User = {
         id: 'admin1',
-        username: 'admin',
         email: "test@example.com",
         role: 'system-admin',
         namespaceId: 'default',
@@ -237,7 +231,6 @@ describe('DELETE /api/admin/users/[id]', () => {
 
       mockUserRepository.getUser.mockResolvedValue({
         id: 'admin2',
-        username: 'admin2',
         role: 'namespace-admin',
         namespaceId: 'default',
         createdAt: new Date(),
@@ -258,7 +251,6 @@ describe('DELETE /api/admin/users/[id]', () => {
     it('should allow deletion when multiple admins exist', async () => {
       const admin: User = {
         id: 'admin1',
-        username: 'admin',
         email: "test@example.com",
         role: 'system-admin',
         namespaceId: 'default',
@@ -271,7 +263,6 @@ describe('DELETE /api/admin/users/[id]', () => {
 
       mockUserRepository.getUser.mockResolvedValue({
         id: 'admin2',
-        username: 'admin2',
         role: 'namespace-admin',
         namespaceId: 'default',
         createdAt: new Date(),
@@ -292,7 +283,6 @@ describe('DELETE /api/admin/users/[id]', () => {
     it('should allow deletion of instructors freely', async () => {
       const admin: User = {
         id: 'admin1',
-        username: 'admin',
         email: "test@example.com",
         role: 'namespace-admin',
         namespaceId: 'default',
@@ -305,7 +295,6 @@ describe('DELETE /api/admin/users/[id]', () => {
 
       mockUserRepository.getUser.mockResolvedValue({
         id: 'instructor1',
-        username: 'instructor1',
         role: 'instructor',
         namespaceId: 'default',
         createdAt: new Date(),
@@ -325,7 +314,6 @@ describe('DELETE /api/admin/users/[id]', () => {
     beforeEach(() => {
       const instructor: User = {
         id: 'instructor1',
-        username: 'instructor',
         email: "test@example.com",
         role: 'instructor',
         namespaceId: 'default',

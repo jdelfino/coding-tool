@@ -87,7 +87,6 @@ describe('SupabaseAuthProvider Security', () => {
       // Mock profile fetch
       mockFromSelect.mockResolvedValue({
         data: {
-          username: 'testuser',
           role: 'student',
           namespace_id: 'default',
           display_name: 'Test User',
@@ -199,7 +198,6 @@ describe('SupabaseAuthProvider Security', () => {
       // Mock profile fetch
       mockFromSelect.mockResolvedValue({
         data: {
-          username: 'verifieduser',
           role: 'instructor',
           namespace_id: 'default',
           display_name: 'Verified User',

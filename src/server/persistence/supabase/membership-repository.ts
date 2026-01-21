@@ -53,9 +53,9 @@ function mapRowToUser(row: any): User {
   return {
     id: row.id,
     email: row.email,
-    username: row.username,
     namespaceId: row.namespace_id,
     role: row.role,
+    displayName: row.display_name || undefined,
     createdAt: new Date(row.created_at),
   };
 }
@@ -202,9 +202,9 @@ export class SupabaseMembershipRepository implements IMembershipRepository {
       .select(`
         user_profiles!inner (
           id,
-          username,
           namespace_id,
           role,
+          display_name,
           created_at
         )
       `)

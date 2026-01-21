@@ -20,7 +20,6 @@ describe('api-auth', () => {
       const mockUser: User = {
         id: 'user-1',
         email: 'testuser@example.com',
-        username: 'testuser',
         role: 'instructor',
         namespaceId: 'default',
         createdAt: new Date(),
@@ -96,7 +95,6 @@ describe('api-auth', () => {
       const user: User = {
         id: 'user-1',
         email: 'instructor@example.com',
-        username: 'instructor',
         role: 'instructor',
         namespaceId: 'default',
         createdAt: new Date(),
@@ -112,7 +110,6 @@ describe('api-auth', () => {
       const user: User = {
         id: 'user-1',
         email: 'student@example.com',
-        username: 'student',
         role: 'student',
         namespaceId: 'default',
         createdAt: new Date(),
@@ -128,7 +125,6 @@ describe('api-auth', () => {
       const user: User = {
         id: 'user-1',
         email: 'admin@example.com',
-        username: 'admin',
         role: 'system-admin',
         namespaceId: null,
         createdAt: new Date(),
@@ -143,7 +139,6 @@ describe('api-auth', () => {
       const user: User = {
         id: 'user-1',
         email: 'instructor2@example.com',
-        username: 'instructor',
         role: 'instructor',
         namespaceId: 'default',
         createdAt: new Date(),

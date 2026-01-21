@@ -120,7 +120,7 @@ export async function POST(request: NextRequest) {
       preserved: {
         admin: {
           id: session.user.id,
-          username: session.user.username,
+          email: session.user.email,
         },
       },
     });

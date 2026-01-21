@@ -33,7 +33,6 @@ describe('POST /api/auth/register', () => {
         body: JSON.stringify({
           email: 'user@example.com',
           password: 'password123',
-          username: 'testuser',
           namespaceId: 'test-namespace',
         }),
       });
@@ -52,7 +51,6 @@ describe('POST /api/auth/register', () => {
         body: JSON.stringify({
           email: 'student@example.com',
           password: 'securepass123',
-          username: 'student',
           namespaceId: 'valid-namespace',
         }),
       });
@@ -71,7 +69,6 @@ describe('POST /api/auth/register', () => {
       const mockUser = {
         id: 'admin-1',
         email: 'admin@example.com',
-        username: 'admin',
         role: 'system-admin' as const,
         namespaceId: null,
         createdAt: new Date(),
@@ -88,7 +85,6 @@ describe('POST /api/auth/register', () => {
         body: JSON.stringify({
           email: 'admin@example.com',
           password: 'adminpass123',
-          username: 'admin',
         }),
       });
 
@@ -101,7 +97,6 @@ describe('POST /api/auth/register', () => {
       expect(mockAuthProvider.signUp).toHaveBeenCalledWith(
         'admin@example.com',
         'adminpass123',
-        'admin',
         'system-admin',
         null
       );
@@ -112,7 +107,6 @@ describe('POST /api/auth/register', () => {
         method: 'POST',
         body: JSON.stringify({
           password: 'adminpass123',
-          username: 'admin',
         }),
       });
 
@@ -120,7 +114,7 @@ describe('POST /api/auth/register', () => {
       const data = await response.json();
 
       expect(response.status).toBe(400);
-      expect(data.error).toBe('Email, password, and username are required');
+      expect(data.error).toBe('Email and password are required');
     });
 
     it('returns 400 when password is missing for system-admin', async () => {
@@ -130,7 +124,6 @@ describe('POST /api/auth/register', () => {
         method: 'POST',
         body: JSON.stringify({
           email: 'admin@example.com',
-          username: 'admin',
         }),
       });
 
@@ -138,25 +131,7 @@ describe('POST /api/auth/register', () => {
       const data = await response.json();
 
       expect(response.status).toBe(400);
-      expect(data.error).toBe('Email, password, and username are required');
-    });
-
-    it('returns 400 when username is missing for system-admin', async () => {
-      process.env.SYSTEM_ADMIN_EMAIL = 'admin@example.com';
-
-      const request = new NextRequest('http://localhost:3000/api/auth/register', {
-        method: 'POST',
-        body: JSON.stringify({
-          email: 'admin@example.com',
-          password: 'adminpass123',
-        }),
-      });
-
-      const response = await POST(request);
-      const data = await response.json();
-
-      expect(response.status).toBe(400);
-      expect(data.error).toBe('Email, password, and username are required');
+      expect(data.error).toBe('Email and password are required');
     });
 
     it('returns 409 when system-admin already exists', async () => {
@@ -171,7 +146,6 @@ describe('POST /api/auth/register', () => {
         body: JSON.stringify({
           email: 'admin@example.com',
           password: 'adminpass123',
-          username: 'admin',
         }),
       });
 
@@ -194,7 +168,6 @@ describe('POST /api/auth/register', () => {
         body: JSON.stringify({
           email: 'admin@example.com',
           password: 'adminpass123',
-          username: 'admin',
         }),
       });
 
@@ -217,7 +190,6 @@ describe('POST /api/auth/register', () => {
         body: JSON.stringify({
           email: 'admin@example.com',
           password: 'short',
-          username: 'admin',
         }),
       });
 
@@ -240,7 +212,6 @@ describe('POST /api/auth/register', () => {
         body: JSON.stringify({
           email: 'admin@example.com',
           password: '12345678',
-          username: 'admin',
         }),
       });
 

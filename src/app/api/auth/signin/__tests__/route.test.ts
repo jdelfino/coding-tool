@@ -111,7 +111,6 @@ describe('POST /api/auth/signin', () => {
       const mockUser = {
         id: 'user-1',
         email: 'user@example.com',
-        username: 'testuser',
         role: 'student' as const,
         namespaceId: 'test-namespace',
         createdAt: new Date(),
@@ -134,7 +133,6 @@ describe('POST /api/auth/signin', () => {
       const mockUser = {
         id: 'user-1',
         email: 'student@example.com',
-        username: 'student',
         role: 'student' as const,
         namespaceId: 'test-namespace',
         createdAt: new Date(),
@@ -164,7 +162,6 @@ describe('POST /api/auth/signin', () => {
       const mockUser = {
         id: 'user-2',
         email: 'instructor@example.com',
-        username: 'instructor',
         role: 'instructor' as const,
         namespaceId: 'test-namespace',
         createdAt: new Date(),
@@ -193,7 +190,6 @@ describe('POST /api/auth/signin', () => {
       const mockUser = {
         id: 'user-3',
         email: 'admin@example.com',
-        username: 'nsadmin',
         role: 'namespace-admin' as const,
         namespaceId: 'test-namespace',
         createdAt: new Date(),
@@ -222,7 +218,6 @@ describe('POST /api/auth/signin', () => {
     const mockSystemAdmin = {
       id: 'admin-1',
       email: 'sysadmin@example.com',
-      username: 'sysadmin',
       role: 'system-admin' as const,
       namespaceId: null,
       createdAt: new Date(),

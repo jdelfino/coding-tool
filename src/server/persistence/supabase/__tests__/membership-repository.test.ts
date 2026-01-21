@@ -323,7 +323,6 @@ describe('SupabaseMembershipRepository', () => {
   describe('getSectionMembers', () => {
     const mockUser: User = {
       id: 'user-456',
-      username: 'alice',
       email: "test@example.com",
       namespaceId: 'stanford',
       role: 'student',
@@ -338,7 +337,7 @@ describe('SupabaseMembershipRepository', () => {
               {
                 user_profiles: {
                   id: mockUser.id,
-                  username: mockUser.username,
+                  email: mockUser.email,
                   namespace_id: mockUser.namespaceId,
                   role: mockUser.role,
                   created_at: mockUser.createdAt.toISOString(),
@@ -354,7 +353,7 @@ describe('SupabaseMembershipRepository', () => {
 
       expect(result).toHaveLength(1);
       expect(result[0].id).toBe(mockUser.id);
-      expect(result[0].username).toBe('alice');
+      expect(result[0].email).toBe(mockUser.email);
     });
 
     it('should filter members by role', async () => {

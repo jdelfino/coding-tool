@@ -24,7 +24,6 @@ import { getSectionRepository, getMembershipRepository } from '@/server/classes'
 function createTestUser(overrides: Partial<User> = {}): User {
   return {
     id: 'student-1',
-    username: 'student@example.com',
     email: 'student@example.com',
     role: 'student',
     namespaceId: 'default',

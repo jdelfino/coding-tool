@@ -24,7 +24,6 @@ describe('POST /api/sessions/[id]/join', () => {
   const mockUser = {
     id: 'user-1',
     email: 'student@example.com',
-    username: 'student',
     role: 'student' as const,
     namespaceId: 'default',
     createdAt: new Date(),

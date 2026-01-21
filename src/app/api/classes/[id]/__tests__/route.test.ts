@@ -28,7 +28,6 @@ import { RBACService } from '@/server/auth/rbac';
 // Test users
 const instructorA: User = {
   id: 'instructor-a',
-  username: 'alice@example.com',
   email: 'alice@example.com',
   role: 'instructor',
   namespaceId: 'default',
@@ -37,7 +36,6 @@ const instructorA: User = {
 
 const instructorB: User = {
   id: 'instructor-b',
-  username: 'bob@example.com',
   email: 'bob@example.com',
   role: 'instructor',
   namespaceId: 'default',
@@ -46,7 +44,6 @@ const instructorB: User = {
 
 const studentUser: User = {
   id: 'student-1',
-  username: 'student@example.com',
   email: 'student@example.com',
   role: 'student',
   namespaceId: 'default',

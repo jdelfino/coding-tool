@@ -32,7 +32,6 @@ describe('/api/auth/complete-mfa', () => {
   const mockUser = {
     id: 'user-123',
     email: 'test@example.com',
-    username: 'testuser',
     role: 'instructor' as const,
     namespaceId: 'test-namespace',
     displayName: 'Test User',
@@ -189,7 +188,6 @@ describe('/api/auth/complete-mfa', () => {
       expect(data.user).toEqual(expect.objectContaining({
         id: 'user-123',
         email: 'test@example.com',
-        username: 'testuser',
         role: 'instructor',
       }));
     });
@@ -252,7 +250,6 @@ describe('/api/auth/complete-mfa', () => {
       const studentUser = {
         ...mockUser,
         role: 'student' as const,
-        username: 'studentuser',
       };
       mockUserRepository.getUser.mockResolvedValue(studentUser);
 

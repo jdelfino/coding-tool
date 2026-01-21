@@ -155,12 +155,12 @@ WHERE id IN (
 -- Update namespace created_by now that we have an admin user
 UPDATE namespaces SET created_by = '00000000-0000-0000-0000-000000000001' WHERE id = 'test-school';
 
-INSERT INTO user_profiles (id, username, role, namespace_id, display_name)
+INSERT INTO user_profiles (id, role, namespace_id, display_name)
 VALUES
-  ('00000000-0000-0000-0000-000000000001', 'admin', 'system-admin', NULL, 'System Admin'),
-  ('00000000-0000-0000-0000-000000000002', 'instructor', 'instructor', 'test-school', 'Test Instructor'),
-  ('00000000-0000-0000-0000-000000000003', 'alice', 'student', 'test-school', 'Alice Student'),
-  ('00000000-0000-0000-0000-000000000004', 'bob', 'student', 'test-school', 'Bob Student');
+  ('00000000-0000-0000-0000-000000000001', 'system-admin', NULL, 'System Admin'),
+  ('00000000-0000-0000-0000-000000000002', 'instructor', 'test-school', 'Test Instructor'),
+  ('00000000-0000-0000-0000-000000000003', 'student', 'test-school', 'Alice Student'),
+  ('00000000-0000-0000-0000-000000000004', 'student', 'test-school', 'Bob Student');
 
 -- ============================================================================
 -- CLASSES
@@ -280,12 +280,12 @@ VALUES
 -- TEST CREDENTIALS SUMMARY
 -- ============================================================================
 --
--- Email                    | Password      | Role          | Username
--- -------------------------+---------------+---------------+------------
--- admin@test.local         | password123   | system-admin  | admin
--- instructor@test.local    | password123   | instructor    | instructor
--- student1@test.local      | password123   | student       | alice
--- student2@test.local      | password123   | student       | bob
+-- Email                    | Password      | Role
+-- -------------------------+---------------+---------------
+-- admin@test.local         | password123   | system-admin
+-- instructor@test.local    | password123   | instructor
+-- student1@test.local      | password123   | student
+-- student2@test.local      | password123   | student
 --
 -- Join Code: ABC-123-XYZ (for Section A of CS 101)
 -- ============================================================================

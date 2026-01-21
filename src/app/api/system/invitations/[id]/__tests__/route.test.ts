@@ -33,7 +33,6 @@ describe('/api/system/invitations/[id]', () => {
   const mockSystemAdmin = {
     id: 'admin-123',
     email: 'admin@example.com',
-    username: 'admin',
     role: 'system-admin' as const,
     namespaceId: null,
     createdAt: new Date('2024-01-01'),

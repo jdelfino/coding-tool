@@ -110,7 +110,7 @@ export class RBACService implements IRBACService {
   assertPermission(user: User, permission: string): void {
     if (!this.hasPermission(user, permission)) {
       throw new AuthorizationError(
-        `User ${user.username} (${user.role}) lacks permission: ${permission}`
+        `User ${user.email} (${user.role}) lacks permission: ${permission}`
       );
     }
   }
@@ -122,7 +122,7 @@ export class RBACService implements IRBACService {
     const canAccess = await this.canAccessSession(user, sessionId);
     if (!canAccess) {
       throw new AuthorizationError(
-        `User ${user.username} cannot access session: ${sessionId}`
+        `User ${user.email} cannot access session: ${sessionId}`
       );
     }
   }
@@ -133,7 +133,7 @@ export class RBACService implements IRBACService {
   assertCanManageUser(actor: User, target: User): void {
     if (!this.canManageUser(actor, target)) {
       throw new AuthorizationError(
-        `User ${actor.username} (${actor.role}) cannot manage user ${target.username}`
+        `User ${actor.email} (${actor.role}) cannot manage user ${target.email}`
       );
     }
   }

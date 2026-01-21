@@ -38,7 +38,6 @@ describe('/api/namespace/invitations', () => {
   const mockNamespaceAdmin = {
     id: 'admin-123',
     email: 'admin@example.com',
-    username: 'admin',
     role: 'namespace-admin' as const,
     namespaceId: 'test-namespace',
     createdAt: new Date('2024-01-01'),
@@ -47,7 +46,6 @@ describe('/api/namespace/invitations', () => {
   const mockInstructor = {
     id: 'instructor-123',
     email: 'instructor@example.com',
-    username: 'instructor',
     role: 'instructor' as const,
     namespaceId: 'test-namespace',
     createdAt: new Date('2024-01-01'),

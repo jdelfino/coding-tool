@@ -12,7 +12,6 @@ import { RBACService } from '@/server/auth/rbac';
 // Mock user data for tests - namespace-1 users
 const namespace1Instructor: User = {
   id: 'instructor-ns1',
-  username: 'alice',
   email: 'alice@example.com',
   role: 'instructor',
   namespaceId: 'namespace-1',
@@ -21,7 +20,6 @@ const namespace1Instructor: User = {
 
 const namespace1Student: User = {
   id: 'student-ns1',
-  username: 'student1',
   email: 'student1@example.com',
   role: 'student',
   namespaceId: 'namespace-1',
@@ -30,7 +28,6 @@ const namespace1Student: User = {
 
 const namespace1Admin: User = {
   id: 'admin-ns1',
-  username: 'admin1',
   email: 'admin1@example.com',
   role: 'namespace-admin',
   namespaceId: 'namespace-1',
@@ -40,7 +37,6 @@ const namespace1Admin: User = {
 // Namespace-2 users
 const namespace2Instructor: User = {
   id: 'instructor-ns2',
-  username: 'bob',
   email: 'bob@example.com',
   role: 'instructor',
   namespaceId: 'namespace-2',
@@ -49,7 +45,6 @@ const namespace2Instructor: User = {
 
 const namespace2Student: User = {
   id: 'student-ns2',
-  username: 'student2',
   email: 'student2@example.com',
   role: 'student',
   namespaceId: 'namespace-2',
@@ -58,7 +53,6 @@ const namespace2Student: User = {
 
 const namespace2Admin: User = {
   id: 'admin-ns2',
-  username: 'admin2',
   email: 'admin2@example.com',
   role: 'namespace-admin',
   namespaceId: 'namespace-2',
@@ -68,7 +62,6 @@ const namespace2Admin: User = {
 // System admin (can access all namespaces)
 const systemAdminUser: User = {
   id: 'sys-admin',
-  username: 'sysadmin',
   email: 'sysadmin@example.com',
   role: 'system-admin',
   namespaceId: 'default',
@@ -191,7 +184,6 @@ describe('Cross-namespace user management (RBAC)', () => {
       const anotherNs1Admin: User = {
         ...namespace1Admin,
         id: 'admin-ns1-2',
-        username: 'admin1b',
       };
       const rbac = new RBACService(namespace1Admin);
       expect(rbac.canManageUser(namespace1Admin, anotherNs1Admin)).toBe(false);
@@ -214,7 +206,6 @@ describe('Cross-namespace user management (RBAC)', () => {
       const anotherNs1Instructor: User = {
         ...namespace1Instructor,
         id: 'instructor-ns1-2',
-        username: 'charlie',
       };
       expect(rbac.canManageUser(namespace1Instructor, anotherNs1Instructor)).toBe(false);
     });
@@ -235,7 +226,6 @@ describe('Cross-namespace user management (RBAC)', () => {
       const anotherSysAdmin: User = {
         ...systemAdminUser,
         id: 'sys-admin-2',
-        username: 'sysadmin2',
       };
       const rbac = new RBACService(systemAdminUser);
       expect(rbac.canManageUser(systemAdminUser, anotherSysAdmin)).toBe(true);

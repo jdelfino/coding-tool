@@ -280,7 +280,7 @@ function AdminPage() {
           border: '1px solid #dee2e6'
         }}>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-            <span style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>{user.username}</span>
+            <span style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>{user.displayName || user.email}</span>
             <span style={{
               fontSize: '0.75rem',
               color: getRoleBadgeColor(user.role),
@@ -496,7 +496,7 @@ function AdminPage() {
                   <tbody>
                     {allUsers.map((u) => (
                       <tr key={u.id} style={{ borderBottom: '1px solid #dee2e6' }}>
-                        <td style={{ padding: '0.75rem' }}>{u.username}</td>
+                        <td style={{ padding: '0.75rem' }}>{u.displayName || u.email}</td>
                         <td style={{ padding: '0.75rem' }}>
                           <span style={{
                             display: 'inline-block',

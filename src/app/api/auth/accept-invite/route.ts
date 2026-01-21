@@ -5,8 +5,8 @@
  * 1. User clicks Supabase invite link, lands on /invite/accept with token in URL hash
  * 2. Client-side verifies token with verifyOtp()
  * 3. Client calls GET /api/auth/accept-invite to get invitation info
- * 4. Client shows profile completion form
- * 5. Client calls POST /api/auth/accept-invite with username
+ * 4. Client shows profile completion form (optional displayName)
+ * 5. Client calls POST /api/auth/accept-invite
  * 6. Server creates user profile and marks invitation as consumed
  */
 
@@ -130,12 +130,11 @@ export async function GET(request: NextRequest) {
  * Accepts an invitation and creates the user profile.
  *
  * Request body:
- * - username: string (required)
  * - displayName?: string (optional)
  *
  * Response:
  * - 200: { user }
- * - 400: Missing username, duplicate username, or invalid invitation
+ * - 400: Invalid invitation
  * - 401: Not authenticated
  * - 404: Invitation not found
  */
@@ -153,30 +152,7 @@ export async function POST(request: NextRequest) {
 
     // Parse request body
     const body = await request.json();
-    const { username, displayName } = body;
-
-    // Validate username
-    if (!username || typeof username !== 'string') {
-      return NextResponse.json(
-        { error: 'Username is required', code: 'MISSING_USERNAME' },
-        { status: 400 }
-      );
-    }
-
-    const trimmedUsername = username.trim();
-    if (trimmedUsername.length < 3 || trimmedUsername.length > 30) {
-      return NextResponse.json(
-        { error: 'Username must be between 3 and 30 characters', code: 'INVALID_USERNAME' },
-        { status: 400 }
-      );
-    }
-
-    if (!/^[a-zA-Z0-9_]+$/.test(trimmedUsername)) {
-      return NextResponse.json(
-        { error: 'Username can only contain letters, numbers, and underscores', code: 'INVALID_USERNAME' },
-        { status: 400 }
-      );
-    }
+    const { displayName } = body;
 
     // Look up invitation by Supabase user ID
     const invitationRepository = await getInvitationRepository();
@@ -213,27 +189,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check for duplicate username
-    const authProvider = await getAuthProvider();
-    const existingUser = await authProvider.getUserByUsername(trimmedUsername);
-    if (existingUser) {
-      return NextResponse.json(
-        { error: 'Username is already taken', code: 'DUPLICATE_USERNAME' },
-        { status: 400 }
-      );
-    }
-
     // Create user profile
+    const authProvider = await getAuthProvider();
     const userRepository = authProvider.userRepository;
     const now = new Date();
 
     await userRepository.saveUser({
       id: supabaseUser.id,
       email: supabaseUser.email!,
-      username: trimmedUsername,
       role: invitation.targetRole,
       namespaceId: invitation.namespaceId,
-      displayName: displayName?.trim() || trimmedUsername,
+      displayName: displayName?.trim() || undefined,
       createdAt: now,
       emailConfirmed: true,
     });

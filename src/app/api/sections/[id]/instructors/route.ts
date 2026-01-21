@@ -41,7 +41,7 @@ export async function GET(
     const instructors = await Promise.all(
       section.instructorIds.map(async (instructorId) => {
         const user = await userRepo.getUser(instructorId);
-        return user ? { id: user.id, name: user.displayName || user.username, email: user.email } : null;
+        return user ? { id: user.id, name: user.displayName || user.email, email: user.email } : null;
       })
     );
 

@@ -69,7 +69,6 @@ describe('/api/problems', () => {
 
   const mockInstructorUser: User = {
     id: 'user-1',
-    username: 'instructor1',
     email: "test@example.com",
     role: 'instructor' as const,
     namespaceId: 'default',
@@ -78,7 +77,6 @@ describe('/api/problems', () => {
 
   const mockStudentUser: User = {
     id: 'user-3',
-    username: 'student1',
     email: "test@example.com",
     role: 'student' as const,
     namespaceId: 'default',
