@@ -205,7 +205,22 @@ export class SupabaseAuthProvider implements IAuthProvider {
       // Get access token from session for sessionId field
       // This is safe since we've already verified the user with getUser()
       const { data: sessionData } = await supabase.auth.getSession();
-      const accessToken = sessionData?.session?.access_token ?? data.user.id;
+      let accessToken = sessionData?.session?.access_token;
+
+      // If getSession() didn't return token, try reading from cookies directly
+      // Supabase stores session in cookies; we need the JWT for RLS
+      if (!accessToken) {
+        accessToken = this.extractAccessTokenFromCookies(request);
+      }
+
+      // If we still don't have a token, log warning but continue
+      // The user is verified, but RLS operations may fail
+      if (!accessToken) {
+        console.warn('[SupabaseAuthProvider] Could not extract access token from session or cookies');
+        // Fall back to user ID - this won't work for RLS but allows auth to complete
+        // TODO: Investigate why getSession() doesn't return access_token
+        accessToken = data.user.id;
+      }
 
       return {
         sessionId: accessToken,
@@ -290,6 +305,62 @@ export class SupabaseAuthProvider implements IAuthProvider {
    */
   async getAllUsers(): Promise<User[]> {
     return this.userRepository.listUsers();
+  }
+
+  /**
+   * Extract access token from Supabase auth cookies
+   * Supabase stores session in chunked cookies named sb-{ref}-auth-token.0, .1, etc.
+   */
+  private extractAccessTokenFromCookies(request: NextRequest): string | undefined {
+    try {
+      // Get the project reference from the URL
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+      const urlMatch = supabaseUrl.match(/https?:\/\/([^.]+)/);
+      const projectRef = urlMatch ? urlMatch[1] : '';
+
+      // For local dev, project ref is often just the host
+      // Cookie name follows pattern: sb-{project-ref}-auth-token
+      const cookiePrefix = projectRef ? `sb-${projectRef}-auth-token` : 'sb-auth-token';
+
+      // Supabase stores session in potentially chunked cookies
+      // Try to read and reassemble them
+      const cookies = request.cookies;
+      let sessionJson = '';
+
+      // First check for non-chunked cookie
+      const singleCookie = cookies.get(cookiePrefix);
+      if (singleCookie?.value) {
+        sessionJson = singleCookie.value;
+      } else {
+        // Try chunked cookies (sb-xxx-auth-token.0, .1, .2, etc.)
+        for (let i = 0; i < 10; i++) {
+          const chunk = cookies.get(`${cookiePrefix}.${i}`);
+          if (!chunk?.value) break;
+          sessionJson += chunk.value;
+        }
+      }
+
+      if (!sessionJson) {
+        return undefined;
+      }
+
+      // Try to decode and parse the session
+      // The cookie value may be base64 encoded
+      let decoded = sessionJson;
+      if (!sessionJson.startsWith('{')) {
+        try {
+          decoded = Buffer.from(sessionJson, 'base64').toString('utf-8');
+        } catch {
+          // Not base64, try as-is
+        }
+      }
+
+      const session = JSON.parse(decoded);
+      return session.access_token;
+    } catch (error) {
+      // Cookie parsing failed, return undefined
+      return undefined;
+    }
   }
 
   /**
