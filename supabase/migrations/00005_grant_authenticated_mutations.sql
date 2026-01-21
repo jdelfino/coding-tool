@@ -20,36 +20,40 @@
 -- - invitations: Namespace admins manage instructor invitations
 -- ============================================================================
 
--- namespaces: Only system-admin can modify (RLS enforced)
-GRANT INSERT, UPDATE ON namespaces TO authenticated;
+-- namespaces: Users can read own namespace, only system-admin can modify (RLS enforced)
+GRANT SELECT, INSERT, UPDATE ON namespaces TO authenticated;
 -- No DELETE - namespaces are never deleted (would cascade to all data)
 
 -- user_profiles: Users update own, admins create (RLS enforced)
+-- SELECT already granted in 00003_grant_user_profiles_select.sql
 GRANT INSERT, UPDATE ON user_profiles TO authenticated;
 -- No DELETE - user deletion goes through auth.users CASCADE
 
 -- classes: Instructors manage own classes (RLS enforced)
-GRANT INSERT, UPDATE, DELETE ON classes TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON classes TO authenticated;
 
 -- sections: Section instructors manage (RLS enforced)
-GRANT INSERT, UPDATE, DELETE ON sections TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON sections TO authenticated;
 
 -- section_memberships: Users join/leave, instructors manage (RLS enforced)
 GRANT SELECT, INSERT, DELETE ON section_memberships TO authenticated;
 -- No UPDATE - memberships are join/leave only
 
 -- problems: Authors manage own problems (RLS enforced)
-GRANT INSERT, UPDATE, DELETE ON problems TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON problems TO authenticated;
 
 -- sessions: Creators and instructors manage (RLS enforced)
+-- SELECT already granted in 00002_grant_table_permissions.sql
 GRANT INSERT, UPDATE ON sessions TO authenticated;
 -- No DELETE - sessions are ended, not deleted
 
 -- session_students: Users manage own state, instructors can update (RLS enforced)
+-- SELECT already granted in 00002_grant_table_permissions.sql
 GRANT INSERT, UPDATE ON session_students TO authenticated;
 -- DELETE handled by session CASCADE
 
 -- revisions: Users create revisions (RLS enforced)
+-- SELECT already granted in 00002_grant_table_permissions.sql
 -- Revisions are immutable history - no UPDATE or DELETE
 GRANT INSERT ON revisions TO authenticated;
 
@@ -57,7 +61,7 @@ GRANT INSERT ON revisions TO authenticated;
 -- No grants for authenticated (API manages via service_role)
 
 -- invitations: Admins manage (RLS enforced)
-GRANT INSERT, UPDATE, DELETE ON invitations TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON invitations TO authenticated;
 
 -- Grant USAGE on sequences for INSERT operations
 -- This is required for tables that use gen_random_uuid() or serial IDs
