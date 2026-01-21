@@ -18,3 +18,6 @@ export * from './permissions';
 
 // Instance
 export { getAuthProvider, getUserRepository, getNamespaceRepository } from './instance';
+
+// API helpers (including AuthContext type)
+export type { AuthContext } from './api-helpers';

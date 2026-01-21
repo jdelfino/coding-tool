@@ -92,6 +92,25 @@ export function getSupabaseClientWithAuth(accessToken: string): SupabaseClient<D
 }
 
 /**
+ * Get a Supabase client, choosing between RLS-respecting and service_role based on context.
+ *
+ * Use this in repositories to enable RLS-backed access control:
+ * - If accessToken is provided: Returns client with user's JWT (respects RLS)
+ * - If no accessToken: Returns service_role client (bypasses RLS, for admin ops)
+ *
+ * This enables defense-in-depth: even if API has authorization bugs, RLS policies
+ * enforce access control at the database level.
+ *
+ * @param accessToken - Optional JWT access token. If provided, RLS policies apply.
+ * @returns Typed Supabase client
+ */
+export function getClient(accessToken?: string): SupabaseClient<Database> {
+  return accessToken
+    ? getSupabaseClientWithAuth(accessToken)
+    : getSupabaseClient();
+}
+
+/**
  * Type helpers for database operations
  */
 export type Tables = Database['public']['Tables'];

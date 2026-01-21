@@ -24,7 +24,7 @@ const mockLimit = jest.fn();
 const mockContains = jest.fn();
 
 jest.mock('../../../supabase/client', () => ({
-  getSupabaseClient: jest.fn(() => ({
+  getClient: jest.fn(() => ({
     from: mockFrom,
   })),
 }));

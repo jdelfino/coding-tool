@@ -35,7 +35,7 @@ const mockRequireAuth = requireAuth as jest.MockedFunction<typeof requireAuth>;
 function createAuthContext(user: User) {
   return {
     user,
-    sessionId: 'test-session',
+    accessToken: 'test-access-token',
     rbac: new RBACService(user),
   };
 }

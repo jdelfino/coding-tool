@@ -20,6 +20,9 @@ jest.mock('../../supabase/client', () => ({
   getSupabaseClient: jest.fn(() => ({
     from: mockFrom,
   })),
+  getClient: jest.fn(() => ({
+    from: mockFrom,
+  })),
 }));
 
 describe('SupabaseBackendStateRepository', () => {

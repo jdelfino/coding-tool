@@ -3,12 +3,14 @@
  *
  * Implements code revision operations using Supabase as the storage backend.
  * Revisions track student code changes during coding sessions.
+ *
+ * Supports RLS-backed access control when accessToken is provided.
  */
 
 import { v4 as uuidv4 } from 'uuid';
 import { IRevisionRepository } from '../interfaces';
 import { CodeRevision, StoredRevision, StorageMetadata } from '../types';
-import { getSupabaseClient, RevisionRow } from '../../supabase/client';
+import { getClient, RevisionRow } from '../../supabase/client';
 
 /**
  * Maps a database row to a StoredRevision domain object
@@ -55,12 +57,17 @@ function mapRowToRevision(row: RevisionRow): StoredRevision {
  */
 export class SupabaseRevisionRepository implements IRevisionRepository {
   private initialized = false;
+  private readonly accessToken?: string;
+
+  constructor(accessToken?: string) {
+    this.accessToken = accessToken;
+  }
 
   async initialize(): Promise<void> {
     if (this.initialized) return;
 
     // Test connection
-    const supabase = getSupabaseClient();
+    const supabase = getClient(this.accessToken);
     const { error } = await supabase.from('revisions').select('id').limit(1);
 
     if (error) {
@@ -77,7 +84,7 @@ export class SupabaseRevisionRepository implements IRevisionRepository {
 
   async health(): Promise<boolean> {
     try {
-      const supabase = getSupabaseClient();
+      const supabase = getClient(this.accessToken);
       const { error } = await supabase.from('revisions').select('id').limit(1);
       return !error;
     } catch {
@@ -86,7 +93,7 @@ export class SupabaseRevisionRepository implements IRevisionRepository {
   }
 
   async saveRevision(revision: CodeRevision): Promise<string> {
-    const supabase = getSupabaseClient();
+    const supabase = getClient(this.accessToken);
 
     // Generate ID if not provided
     const id = revision.id || uuidv4();
@@ -125,7 +132,7 @@ export class SupabaseRevisionRepository implements IRevisionRepository {
     studentId: string,
     namespaceId?: string
   ): Promise<StoredRevision[]> {
-    const supabase = getSupabaseClient();
+    const supabase = getClient(this.accessToken);
 
     let query = supabase
       .from('revisions')
@@ -149,7 +156,7 @@ export class SupabaseRevisionRepository implements IRevisionRepository {
   }
 
   async getRevision(revisionId: string): Promise<StoredRevision | null> {
-    const supabase = getSupabaseClient();
+    const supabase = getClient(this.accessToken);
 
     const { data, error } = await supabase
       .from('revisions')
@@ -172,7 +179,7 @@ export class SupabaseRevisionRepository implements IRevisionRepository {
     sessionId: string,
     studentId: string
   ): Promise<StoredRevision | null> {
-    const supabase = getSupabaseClient();
+    const supabase = getClient(this.accessToken);
 
     const { data, error } = await supabase
       .from('revisions')
@@ -195,7 +202,7 @@ export class SupabaseRevisionRepository implements IRevisionRepository {
   }
 
   async deleteRevisions(sessionId: string, studentId?: string): Promise<void> {
-    const supabase = getSupabaseClient();
+    const supabase = getClient(this.accessToken);
 
     let query = supabase.from('revisions').delete().eq('session_id', sessionId);
 
@@ -212,7 +219,7 @@ export class SupabaseRevisionRepository implements IRevisionRepository {
   }
 
   async countRevisions(sessionId: string, studentId: string): Promise<number> {
-    const supabase = getSupabaseClient();
+    const supabase = getClient(this.accessToken);
 
     const { count, error } = await supabase
       .from('revisions')
@@ -231,7 +238,7 @@ export class SupabaseRevisionRepository implements IRevisionRepository {
     sessionId: string,
     namespaceId?: string
   ): Promise<Map<string, StoredRevision[]>> {
-    const supabase = getSupabaseClient();
+    const supabase = getClient(this.accessToken);
 
     let query = supabase
       .from('revisions')

@@ -19,7 +19,7 @@ const mockLimit = jest.fn();
 const mockUpdateEq = jest.fn(); // Separate mock for update().eq()
 
 jest.mock('../../../supabase/client', () => ({
-  getSupabaseClient: jest.fn(() => ({
+  getClient: jest.fn(() => ({
     from: mockFrom,
   })),
 }));

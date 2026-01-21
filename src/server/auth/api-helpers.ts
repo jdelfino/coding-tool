@@ -9,14 +9,26 @@ import { RBACService } from './rbac';
 import { User } from './types';
 
 /**
+ * Authentication context returned by getAuthContext.
+ * Contains the authenticated user, RBAC service, and access token for RLS queries.
+ */
+export interface AuthContext {
+  /** The authenticated user */
+  user: User;
+  /** RBAC service for permission checks */
+  rbac: RBACService;
+  /** JWT access token for RLS-backed database queries */
+  accessToken: string;
+}
+
+/**
  * Get the authenticated user and RBAC service from a request.
  * Uses Supabase session from request cookies.
  * Returns null if authentication fails.
+ *
+ * @returns AuthContext with user, RBAC service, and accessToken for RLS queries
  */
-export async function getAuthContext(request: NextRequest): Promise<{
-  user: User;
-  rbac: RBACService;
-} | null> {
+export async function getAuthContext(request: NextRequest): Promise<AuthContext | null> {
   try {
     const authProvider = await getAuthProvider();
     const session = await authProvider.getSessionFromRequest(request);
@@ -31,6 +43,8 @@ export async function getAuthContext(request: NextRequest): Promise<{
     return {
       user: session.user,
       rbac,
+      // sessionId is the JWT access token (set by SupabaseAuthProvider)
+      accessToken: session.sessionId,
     };
   } catch (error) {
     console.error('[Auth] Failed to get auth context:', error);
@@ -55,15 +69,15 @@ export async function getUserFromSessionId(sessionId: string): Promise<User | nu
 
 /**
  * Require authentication. Returns 401 response if not authenticated.
- * 
+ *
  * @param request - Next.js request object
- * @returns Auth context or 401 response
+ * @returns Auth context (with accessToken) or 401 response
  */
 export async function requireAuth(
   request: NextRequest
-): Promise<{ user: User; rbac: RBACService } | NextResponse> {
+): Promise<AuthContext | NextResponse> {
   const auth = await getAuthContext(request);
-  
+
   if (!auth) {
     return NextResponse.json(
       { error: 'Not authenticated' },
@@ -76,7 +90,7 @@ export async function requireAuth(
 
 /**
  * Require a specific permission. Returns 401 or 403 response if not authorized.
- * 
+ *
  * @param request - Next.js request object
  * @param permission - Required permission (e.g., 'user.create')
  * @returns Auth context or error response
@@ -84,9 +98,9 @@ export async function requireAuth(
 export async function requirePermission(
   request: NextRequest,
   permission: string
-): Promise<{ user: User; rbac: RBACService } | NextResponse> {
+): Promise<AuthContext | NextResponse> {
   const auth = await requireAuth(request);
-  
+
   // If requireAuth returned an error response, propagate it
   if (auth instanceof NextResponse) {
     return auth;
@@ -118,9 +132,9 @@ export function hasPermission(user: User, permission: string): boolean {
 export async function requireAllPermissions(
   request: NextRequest,
   permissions: string[]
-): Promise<{ user: User; rbac: RBACService } | NextResponse> {
+): Promise<AuthContext | NextResponse> {
   const auth = await requireAuth(request);
-  
+
   if (auth instanceof NextResponse) {
     return auth;
   }
@@ -143,14 +157,14 @@ export async function requireAllPermissions(
 export async function requireAnyPermission(
   request: NextRequest,
   permissions: string[]
-): Promise<{ user: User; rbac: RBACService } | NextResponse> {
+): Promise<AuthContext | NextResponse> {
   const auth = await requireAuth(request);
-  
+
   if (auth instanceof NextResponse) {
     return auth;
   }
 
-  const hasAny = permissions.some(permission => 
+  const hasAny = permissions.some(permission =>
     auth.rbac.hasPermission(auth.user, permission)
   );
 
@@ -166,26 +180,26 @@ export async function requireAnyPermission(
 
 /**
  * Require system-admin role. Returns 403 if user is not system-admin.
- * 
+ *
  * @param request - Next.js request object
  * @returns Auth context or error response
  */
 export async function requireSystemAdmin(
   request: NextRequest
-): Promise<{ user: User; rbac: RBACService } | NextResponse> {
+): Promise<AuthContext | NextResponse> {
   const auth = await requireAuth(request);
-  
+
   if (auth instanceof NextResponse) {
     return auth;  // Already an error response
   }
-  
+
   if (auth.user.role !== 'system-admin') {
     return NextResponse.json(
       { error: 'System admin access required' },
       { status: 403 }
     );
   }
-  
+
   return auth;
 }
 

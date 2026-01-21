@@ -74,6 +74,7 @@ describe('Namespace Capacity API', () => {
     } else {
       const authContext = {
         user,
+        accessToken: 'test-access-token',
         rbac: {
           hasPermission: jest.fn().mockReturnValue(true),
           canManageUser: jest.fn().mockReturnValue(true),

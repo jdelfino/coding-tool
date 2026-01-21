@@ -4,6 +4,8 @@
  * Implements session CRUD operations using Supabase as the storage backend.
  * Sessions are stored in the sessions table with students stored in session_students.
  * This is the most complex repository as it manages session state with multiple students.
+ *
+ * Supports RLS-backed access control when accessToken is provided.
  */
 
 import { Session, Student } from '../../types';
@@ -15,7 +17,7 @@ import {
   PersistenceError,
   PersistenceErrorCode,
 } from '../types';
-import { getSupabaseClient, SessionRow, SessionStudentRow } from '../../supabase/client';
+import { getClient, SessionRow, SessionStudentRow } from '../../supabase/client';
 
 /**
  * Maps database session and student rows to a StoredSession domain object
@@ -66,12 +68,17 @@ function mapRowsToSession(
  */
 export class SupabaseSessionRepository implements ISessionRepository {
   private initialized = false;
+  private readonly accessToken?: string;
+
+  constructor(accessToken?: string) {
+    this.accessToken = accessToken;
+  }
 
   async initialize(): Promise<void> {
     if (this.initialized) return;
 
     // Test connection
-    const supabase = getSupabaseClient();
+    const supabase = getClient(this.accessToken);
     const { error } = await supabase.from('sessions').select('id').limit(1);
 
     if (error) {
@@ -88,7 +95,7 @@ export class SupabaseSessionRepository implements ISessionRepository {
 
   async health(): Promise<boolean> {
     try {
-      const supabase = getSupabaseClient();
+      const supabase = getClient(this.accessToken);
       const { error } = await supabase.from('sessions').select('id').limit(1);
       return !error;
     } catch {
@@ -97,7 +104,7 @@ export class SupabaseSessionRepository implements ISessionRepository {
   }
 
   async createSession(session: Session): Promise<string> {
-    const supabase = getSupabaseClient();
+    const supabase = getClient(this.accessToken);
 
     // Check if session already exists
     const { data: existing } = await supabase
@@ -169,7 +176,7 @@ export class SupabaseSessionRepository implements ISessionRepository {
   }
 
   async getSession(sessionId: string): Promise<StoredSession | null> {
-    const supabase = getSupabaseClient();
+    const supabase = getClient(this.accessToken);
 
     // Fetch session
     const { data: sessionRow, error: sessionError } = await supabase
@@ -211,7 +218,7 @@ export class SupabaseSessionRepository implements ISessionRepository {
   }
 
   async updateSession(sessionId: string, updates: Partial<Session>): Promise<void> {
-    const supabase = getSupabaseClient();
+    const supabase = getClient(this.accessToken);
 
     // First check if session exists
     const { data: existing, error: existingError } = await supabase
@@ -306,7 +313,7 @@ export class SupabaseSessionRepository implements ISessionRepository {
   }
 
   async deleteSession(sessionId: string): Promise<void> {
-    const supabase = getSupabaseClient();
+    const supabase = getClient(this.accessToken);
 
     // First check if session exists
     const { data: existing, error: existingError } = await supabase
@@ -359,7 +366,7 @@ export class SupabaseSessionRepository implements ISessionRepository {
   }
 
   async listActiveSessions(namespaceId?: string): Promise<StoredSession[]> {
-    const supabase = getSupabaseClient();
+    const supabase = getClient(this.accessToken);
 
     let query = supabase.from('sessions').select('*').eq('status', 'active');
 
@@ -414,7 +421,7 @@ export class SupabaseSessionRepository implements ISessionRepository {
     options?: SessionQueryOptions,
     namespaceId?: string
   ): Promise<StoredSession[]> {
-    const supabase = getSupabaseClient();
+    const supabase = getClient(this.accessToken);
 
     let query = supabase.from('sessions').select('*');
 
@@ -505,7 +512,7 @@ export class SupabaseSessionRepository implements ISessionRepository {
   }
 
   async countSessions(options?: SessionQueryOptions): Promise<number> {
-    const supabase = getSupabaseClient();
+    const supabase = getClient(this.accessToken);
 
     let query = supabase.from('sessions').select('id', { count: 'exact', head: true });
 

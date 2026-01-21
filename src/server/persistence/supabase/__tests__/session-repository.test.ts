@@ -24,7 +24,7 @@ const mockOrder = jest.fn();
 const mockRange = jest.fn();
 
 jest.mock('../../../supabase/client', () => ({
-  getSupabaseClient: jest.fn(() => ({
+  getClient: jest.fn(() => ({
     from: mockFrom,
   })),
 }));

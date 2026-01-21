@@ -23,6 +23,9 @@ jest.mock('../../../../supabase/client', () => ({
   getSupabaseClient: jest.fn(() => ({
     from: mockFrom,
   })),
+  getClient: jest.fn(() => ({
+    from: mockFrom,
+  })),
 }));
 
 describe('Wave 1 Integration: Namespace ↔ User', () => {

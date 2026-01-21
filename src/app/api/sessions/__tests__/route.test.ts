@@ -27,7 +27,7 @@ import { requireAuth } from '@/server/auth/api-helpers';
 function createAuthContext(user: User) {
   return {
     user,
-    sessionId: 'test-session',
+    accessToken: 'test-access-token',
     rbac: new RBACService(user),
   };
 }

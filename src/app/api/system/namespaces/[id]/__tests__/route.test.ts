@@ -97,6 +97,7 @@ describe('Individual Namespace API', () => {
       if (hasPermission) {
         const authContext = {
           user,
+          accessToken: 'test-access-token',
           rbac: {
             hasPermission: jest.fn().mockReturnValue(true),
             canManageUser: jest.fn().mockReturnValue(true),

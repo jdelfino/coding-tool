@@ -3,11 +3,13 @@
  *
  * Implements problem CRUD operations using Supabase as the storage backend.
  * Problems are stored in the problems table with JSONB for execution_settings.
+ *
+ * Supports RLS-backed access control when accessToken is provided.
  */
 
 import { IProblemRepository } from '../interfaces';
 import { Problem, ProblemMetadata, ProblemFilter, ProblemInput } from '../../types/problem';
-import { getSupabaseClient } from '../../supabase/client';
+import { getClient } from '../../supabase/client';
 
 /**
  * Maps a database row to a Problem domain object
@@ -48,12 +50,17 @@ function mapRowToProblemMetadata(row: any): ProblemMetadata {
  */
 export class SupabaseProblemRepository implements IProblemRepository {
   private initialized = false;
+  private readonly accessToken?: string;
+
+  constructor(accessToken?: string) {
+    this.accessToken = accessToken;
+  }
 
   async initialize(): Promise<void> {
     if (this.initialized) return;
 
     // Test connection
-    const supabase = getSupabaseClient();
+    const supabase = getClient(this.accessToken);
     const { error } = await supabase.from('problems').select('id').limit(1);
 
     if (error) {
@@ -70,7 +77,7 @@ export class SupabaseProblemRepository implements IProblemRepository {
 
   async health(): Promise<boolean> {
     try {
-      const supabase = getSupabaseClient();
+      const supabase = getClient(this.accessToken);
       const { error } = await supabase.from('problems').select('id').limit(1);
       return !error;
     } catch {
@@ -79,7 +86,7 @@ export class SupabaseProblemRepository implements IProblemRepository {
   }
 
   async create(problem: ProblemInput): Promise<Problem> {
-    const supabase = getSupabaseClient();
+    const supabase = getClient(this.accessToken);
 
     const now = new Date();
     const id = crypto.randomUUID();
@@ -112,7 +119,7 @@ export class SupabaseProblemRepository implements IProblemRepository {
   }
 
   async getById(id: string, namespaceId?: string): Promise<Problem | null> {
-    const supabase = getSupabaseClient();
+    const supabase = getClient(this.accessToken);
 
     let query = supabase.from('problems').select('*').eq('id', id);
 
@@ -134,7 +141,7 @@ export class SupabaseProblemRepository implements IProblemRepository {
   }
 
   async getAll(filter?: ProblemFilter, namespaceId?: string): Promise<ProblemMetadata[]> {
-    const supabase = getSupabaseClient();
+    const supabase = getClient(this.accessToken);
 
     // Select fields for metadata plus test_cases for count
     let query = supabase.from('problems').select('id, namespace_id, title, test_cases, created_at, author_id, class_id');
@@ -177,7 +184,7 @@ export class SupabaseProblemRepository implements IProblemRepository {
   }
 
   async update(id: string, updates: Partial<Problem>): Promise<Problem> {
-    const supabase = getSupabaseClient();
+    const supabase = getClient(this.accessToken);
 
     // Map domain fields to database columns
     const dbUpdates: any = {
@@ -211,7 +218,7 @@ export class SupabaseProblemRepository implements IProblemRepository {
   }
 
   async delete(id: string): Promise<void> {
-    const supabase = getSupabaseClient();
+    const supabase = getClient(this.accessToken);
 
     const { error } = await supabase.from('problems').delete().eq('id', id);
 
@@ -221,7 +228,7 @@ export class SupabaseProblemRepository implements IProblemRepository {
   }
 
   async search(query: string, filter?: ProblemFilter, namespaceId?: string): Promise<ProblemMetadata[]> {
-    const supabase = getSupabaseClient();
+    const supabase = getClient(this.accessToken);
 
     // Build query with ilike search on title and description
     let dbQuery = supabase
@@ -267,7 +274,7 @@ export class SupabaseProblemRepository implements IProblemRepository {
   }
 
   async getByAuthor(authorId: string, filter?: ProblemFilter, namespaceId?: string): Promise<ProblemMetadata[]> {
-    const supabase = getSupabaseClient();
+    const supabase = getClient(this.accessToken);
 
     let query = supabase
       .from('problems')
@@ -308,7 +315,7 @@ export class SupabaseProblemRepository implements IProblemRepository {
   }
 
   async getByClass(classId: string, filter?: ProblemFilter, namespaceId?: string): Promise<ProblemMetadata[]> {
-    const supabase = getSupabaseClient();
+    const supabase = getClient(this.accessToken);
 
     let query = supabase
       .from('problems')
