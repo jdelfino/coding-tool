@@ -62,8 +62,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if already a member
-    const membershipRepo = getMembershipRepository(accessToken);
+    // Check if already a member using service role (user can't see their own membership until joined)
+    // Use service role because RLS membership_select requires being a member or instructor
+    const membershipRepo = getMembershipRepository(SERVICE_ROLE_MARKER);
     const existingMembership = await membershipRepo.getMembership(user.id, section.id);
 
     if (existingMembership) {
@@ -73,7 +74,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Add student to section
+    // Add student to section using service role
+    // RLS policy allows user_id = auth.uid() but requires a valid JWT with auth.uid()
+    // Use service role since we've already verified: user is authenticated, section exists,
+    // section is in user's namespace, and user isn't already a member
     await membershipRepo.addMembership({
       userId: user.id,
       sectionId: section.id,
