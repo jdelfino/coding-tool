@@ -68,8 +68,8 @@ describeE2E('System Admin Core Flows', () => {
       await expect(page).toHaveURL(`/system/namespaces/${namespaceId}`);
       await expect(page.locator('text=Test Organization')).toBeVisible();
 
-      // Verify the users list area is shown (will be empty for new namespace)
-      await expect(page.locator('text=Users')).toBeVisible({ timeout: 5000 });
+      // Verify the users list heading is shown (will be empty for new namespace)
+      await expect(page.getByRole('heading', { name: /Users/ })).toBeVisible({ timeout: 5000 });
 
       // Navigate back to system dashboard (BackButton renders as a link when using href)
       await page.click('a:has-text("Back to System Admin")');
