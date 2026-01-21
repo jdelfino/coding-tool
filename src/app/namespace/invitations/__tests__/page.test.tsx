@@ -4,11 +4,11 @@
  */
 
 import React from 'react';
-import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { useRouter } from 'next/navigation';
 import InvitationsPage from '../page';
 import { useAuth } from '@/contexts/AuthContext';
-import { useInvitations } from '@/hooks/useInvitations';
 
 // Mock next/navigation
 jest.mock('next/navigation', () => ({
@@ -20,24 +20,46 @@ jest.mock('@/contexts/AuthContext', () => ({
   useAuth: jest.fn(),
 }));
 
-// Mock useInvitations hook
-jest.mock('@/hooks/useInvitations', () => ({
-  useInvitations: jest.fn(),
-}));
-
 // Mock ProtectedRoute to just render children
 jest.mock('@/components/ProtectedRoute', () => ({
   ProtectedRoute: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
 
+// Mock InvitationList component
+jest.mock('@/components/InvitationList', () => ({
+  __esModule: true,
+  default: ({ invitations, loading, onRevoke, onResend, emptyMessage }: {
+    invitations: { id: string; email: string; status?: string }[];
+    loading: boolean;
+    onRevoke: (id: string) => void;
+    onResend: (id: string) => void;
+    emptyMessage?: string;
+  }) => (
+    <div data-testid="invitation-list">
+      {loading && <div>Loading invitations...</div>}
+      {!loading && invitations.length === 0 && <div>{emptyMessage}</div>}
+      {!loading && invitations.map((inv) => (
+        <div key={inv.id} data-testid={`invitation-${inv.id}`}>
+          <span>{inv.email}</span>
+          <span data-testid={`status-${inv.id}`}>{inv.status}</span>
+          {inv.status === 'pending' && (
+            <>
+              <button onClick={() => onRevoke(inv.id)}>Revoke</button>
+              <button onClick={() => onResend(inv.id)}>Resend</button>
+            </>
+          )}
+        </div>
+      ))}
+    </div>
+  ),
+}));
+
+// Mock fetch
+const mockFetch = jest.fn();
+global.fetch = mockFetch;
+
 describe('InvitationsPage', () => {
   const mockPush = jest.fn();
-  const mockFetchInvitations = jest.fn();
-  const mockCreateInvitation = jest.fn();
-  const mockRevokeInvitation = jest.fn();
-  const mockResendInvitation = jest.fn();
-  const mockSetFilter = jest.fn();
-  const mockClearError = jest.fn();
 
   const mockUser = {
     id: 'user-1',
@@ -68,521 +90,400 @@ describe('InvitationsPage', () => {
     status: 'consumed',
   };
 
-  const mockRevokedInvitation = {
-    id: 'inv-3',
-    email: 'revoked@example.com',
-    targetRole: 'instructor',
-    namespaceId: 'test-namespace',
-    createdBy: 'user-1',
-    createdAt: '2024-01-01T00:00:00Z',
-    expiresAt: '2024-01-08T00:00:00Z',
-    revokedAt: '2024-01-03T00:00:00Z',
-    status: 'revoked',
-  };
-
   beforeEach(() => {
     jest.clearAllMocks();
     (useRouter as jest.Mock).mockReturnValue({ push: mockPush });
     (useAuth as jest.Mock).mockReturnValue({ user: mockUser, isLoading: false });
-    (useInvitations as jest.Mock).mockReturnValue({
-      invitations: [],
-      loading: false,
-      error: null,
-      filter: 'all',
-      setFilter: mockSetFilter,
-      fetchInvitations: mockFetchInvitations,
-      createInvitation: mockCreateInvitation,
-      revokeInvitation: mockRevokeInvitation,
-      resendInvitation: mockResendInvitation,
-      clearError: mockClearError,
+
+    // Default: successful fetch with empty invitations
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ invitations: [] }),
     });
   });
 
   describe('Rendering', () => {
-    it('renders page title', () => {
+    it('renders page title', async () => {
       render(<InvitationsPage />);
       expect(screen.getByRole('heading', { name: /manage invitations/i })).toBeInTheDocument();
     });
 
-    it('renders loading skeleton initially', () => {
-      (useInvitations as jest.Mock).mockReturnValue({
-        invitations: [],
-        loading: true,
-        error: null,
-        filter: 'all',
-        setFilter: mockSetFilter,
-        fetchInvitations: mockFetchInvitations,
-        createInvitation: mockCreateInvitation,
-        revokeInvitation: mockRevokeInvitation,
-        resendInvitation: mockResendInvitation,
-        clearError: mockClearError,
+    it('renders status filter dropdown', async () => {
+      render(<InvitationsPage />);
+      await waitFor(() => {
+        expect(screen.getByLabelText(/status/i)).toBeInTheDocument();
       });
-
-      render(<InvitationsPage />);
-      expect(screen.getByText(/loading/i)).toBeInTheDocument();
     });
 
-    it('renders filter tabs', () => {
+    it('renders invite button', async () => {
       render(<InvitationsPage />);
-      expect(screen.getByRole('button', { name: /all/i })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /pending/i })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /accepted/i })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /revoked/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /invite instructor/i })).toBeInTheDocument();
     });
 
-    it('renders create invitation form', () => {
+    it('fetches invitations on mount', async () => {
       render(<InvitationsPage />);
-      expect(screen.getByPlaceholderText(/email address/i)).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /send invitation/i })).toBeInTheDocument();
-    });
 
-    it('calls fetchInvitations on mount', () => {
-      render(<InvitationsPage />);
-      expect(mockFetchInvitations).toHaveBeenCalled();
+      await waitFor(() => {
+        expect(mockFetch).toHaveBeenCalledWith(
+          expect.stringContaining('/api/namespace/invitations'),
+          expect.objectContaining({ credentials: 'include' })
+        );
+      });
     });
   });
 
   describe('Invitations List', () => {
-    it('displays invitations list after load', () => {
-      (useInvitations as jest.Mock).mockReturnValue({
-        invitations: [mockPendingInvitation, mockConsumedInvitation],
-        loading: false,
-        error: null,
-        filter: 'all',
-        setFilter: mockSetFilter,
-        fetchInvitations: mockFetchInvitations,
-        createInvitation: mockCreateInvitation,
-        revokeInvitation: mockRevokeInvitation,
-        resendInvitation: mockResendInvitation,
-        clearError: mockClearError,
+    it('displays invitations after load', async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({
+          invitations: [mockPendingInvitation, mockConsumedInvitation],
+        }),
       });
 
       render(<InvitationsPage />);
-
-      expect(screen.getByText('pending@example.com')).toBeInTheDocument();
-      expect(screen.getByText('consumed@example.com')).toBeInTheDocument();
-    });
-
-    it('shows empty state when no invitations', () => {
-      (useInvitations as jest.Mock).mockReturnValue({
-        invitations: [],
-        loading: false,
-        error: null,
-        filter: 'all',
-        setFilter: mockSetFilter,
-        fetchInvitations: mockFetchInvitations,
-        createInvitation: mockCreateInvitation,
-        revokeInvitation: mockRevokeInvitation,
-        resendInvitation: mockResendInvitation,
-        clearError: mockClearError,
-      });
-
-      render(<InvitationsPage />);
-
-      expect(screen.getByText(/no invitations/i)).toBeInTheDocument();
-    });
-
-    it('displays status badges correctly', () => {
-      (useInvitations as jest.Mock).mockReturnValue({
-        invitations: [mockPendingInvitation, mockConsumedInvitation, mockRevokedInvitation],
-        loading: false,
-        error: null,
-        filter: 'all',
-        setFilter: mockSetFilter,
-        fetchInvitations: mockFetchInvitations,
-        createInvitation: mockCreateInvitation,
-        revokeInvitation: mockRevokeInvitation,
-        resendInvitation: mockResendInvitation,
-        clearError: mockClearError,
-      });
-
-      render(<InvitationsPage />);
-
-      // Check for status indicators
-      const pendingBadge = screen.getByText(/pending/i, { selector: 'span' });
-      expect(pendingBadge).toBeInTheDocument();
-    });
-  });
-
-  describe('Filter Tabs', () => {
-    it('filters invitations by status', () => {
-      render(<InvitationsPage />);
-
-      const pendingTab = screen.getByRole('button', { name: /pending/i });
-      fireEvent.click(pendingTab);
-
-      expect(mockSetFilter).toHaveBeenCalledWith('pending');
-    });
-
-    it('highlights active filter tab', () => {
-      (useInvitations as jest.Mock).mockReturnValue({
-        invitations: [],
-        loading: false,
-        error: null,
-        filter: 'pending',
-        setFilter: mockSetFilter,
-        fetchInvitations: mockFetchInvitations,
-        createInvitation: mockCreateInvitation,
-        revokeInvitation: mockRevokeInvitation,
-        resendInvitation: mockResendInvitation,
-        clearError: mockClearError,
-      });
-
-      render(<InvitationsPage />);
-
-      const pendingTab = screen.getByRole('button', { name: /pending/i });
-      expect(pendingTab).toHaveStyle({ borderBottom: expect.stringContaining('#0070f3') });
-    });
-  });
-
-  describe('Create Invitation', () => {
-    it('creates new invitation', async () => {
-      mockCreateInvitation.mockResolvedValue(mockPendingInvitation);
-
-      render(<InvitationsPage />);
-
-      const emailInput = screen.getByPlaceholderText(/email address/i);
-      const submitButton = screen.getByRole('button', { name: /send invitation/i });
-
-      fireEvent.change(emailInput, { target: { value: 'new@example.com' } });
-      fireEvent.click(submitButton);
 
       await waitFor(() => {
-        expect(mockCreateInvitation).toHaveBeenCalledWith('new@example.com', 7);
+        expect(screen.getByText('pending@example.com')).toBeInTheDocument();
+        expect(screen.getByText('consumed@example.com')).toBeInTheDocument();
+      });
+    });
+
+    it('shows empty state when no invitations', async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ invitations: [] }),
+      });
+
+      render(<InvitationsPage />);
+
+      await waitFor(() => {
+        expect(screen.getByText(/no invitations yet/i)).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe('Status Filter', () => {
+    it('filters invitations by status when dropdown changes', async () => {
+      const user = userEvent.setup();
+
+      render(<InvitationsPage />);
+
+      // Wait for initial fetch
+      await waitFor(() => {
+        expect(mockFetch).toHaveBeenCalled();
+      });
+
+      // Clear mock and change filter
+      mockFetch.mockClear();
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ invitations: [mockPendingInvitation] }),
+      });
+
+      const statusSelect = screen.getByLabelText(/status/i);
+      await user.selectOptions(statusSelect, 'pending');
+
+      await waitFor(() => {
+        expect(mockFetch).toHaveBeenCalledWith(
+          expect.stringContaining('status=pending'),
+          expect.any(Object)
+        );
+      });
+    });
+
+    it('shows all invitations when "All Statuses" selected', async () => {
+      const user = userEvent.setup();
+
+      render(<InvitationsPage />);
+
+      await waitFor(() => {
+        expect(mockFetch).toHaveBeenCalled();
+      });
+
+      const statusSelect = screen.getByLabelText(/status/i);
+
+      // Change to pending then back to all
+      await user.selectOptions(statusSelect, 'pending');
+      mockFetch.mockClear();
+
+      await user.selectOptions(statusSelect, 'all');
+
+      await waitFor(() => {
+        // Should not include status param when "all" is selected
+        expect(mockFetch).toHaveBeenCalledWith(
+          expect.not.stringContaining('status='),
+          expect.any(Object)
+        );
+      });
+    });
+  });
+
+  describe('Create Invitation Form', () => {
+    it('shows form when invite button clicked', async () => {
+      const user = userEvent.setup();
+
+      render(<InvitationsPage />);
+
+      const inviteButton = screen.getByRole('button', { name: /invite instructor/i });
+      await user.click(inviteButton);
+
+      expect(screen.getByLabelText(/email address/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/expires in/i)).toBeInTheDocument();
+    });
+
+    it('hides form when cancel clicked', async () => {
+      const user = userEvent.setup();
+
+      render(<InvitationsPage />);
+
+      // Open form
+      const inviteButton = screen.getByRole('button', { name: /invite instructor/i });
+      await user.click(inviteButton);
+
+      // Click the top Cancel button (toggles form)
+      const cancelButtons = screen.getAllByRole('button', { name: /cancel/i });
+      await user.click(cancelButtons[0]); // Top action bar cancel
+
+      expect(screen.queryByLabelText(/email address/i)).not.toBeInTheDocument();
+    });
+
+    it('creates invitation on form submit', async () => {
+      const user = userEvent.setup();
+
+      mockFetch
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve({ invitations: [] }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve({ invitation: mockPendingInvitation }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve({ invitations: [mockPendingInvitation] }),
+        });
+
+      render(<InvitationsPage />);
+
+      // Open form
+      const inviteButton = screen.getByRole('button', { name: /invite instructor/i });
+      await user.click(inviteButton);
+
+      // Fill form
+      const emailInput = screen.getByLabelText(/email address/i);
+      await user.type(emailInput, 'new@example.com');
+
+      // Submit
+      const submitButton = screen.getByRole('button', { name: /send invitation/i });
+      await user.click(submitButton);
+
+      await waitFor(() => {
+        expect(mockFetch).toHaveBeenCalledWith(
+          '/api/namespace/invitations',
+          expect.objectContaining({
+            method: 'POST',
+            body: JSON.stringify({ email: 'new@example.com', expiresInDays: 7 }),
+          })
+        );
       });
     });
 
     it('shows error for invalid email', async () => {
+      const user = userEvent.setup();
+
       render(<InvitationsPage />);
 
-      const emailInput = screen.getByPlaceholderText(/email address/i);
-      const submitButton = screen.getByRole('button', { name: /send invitation/i });
+      // Open form
+      const inviteButton = screen.getByRole('button', { name: /invite instructor/i });
+      await user.click(inviteButton);
 
-      fireEvent.change(emailInput, { target: { value: 'invalid-email' } });
-      fireEvent.click(submitButton);
+      // Fill invalid email
+      const emailInput = screen.getByLabelText(/email address/i);
+      await user.type(emailInput, 'invalid-email');
+
+      // Submit the form
+      const form = emailInput.closest('form')!;
+      fireEvent.submit(form);
 
       await waitFor(() => {
         expect(screen.getByText(/valid email address/i)).toBeInTheDocument();
       });
-
-      expect(mockCreateInvitation).not.toHaveBeenCalled();
-    });
-
-    it('shows error for duplicate invitation', async () => {
-      mockCreateInvitation.mockRejectedValue(new Error('An invitation has already been sent to this email'));
-
-      render(<InvitationsPage />);
-
-      const emailInput = screen.getByPlaceholderText(/email address/i);
-      const submitButton = screen.getByRole('button', { name: /send invitation/i });
-
-      fireEvent.change(emailInput, { target: { value: 'existing@example.com' } });
-      fireEvent.click(submitButton);
-
-      await waitFor(() => {
-        expect(screen.getByText(/already been sent/i)).toBeInTheDocument();
-      });
-    });
-
-    it('clears email input after successful creation', async () => {
-      mockCreateInvitation.mockResolvedValue(mockPendingInvitation);
-
-      render(<InvitationsPage />);
-
-      const emailInput = screen.getByPlaceholderText(/email address/i) as HTMLInputElement;
-      const submitButton = screen.getByRole('button', { name: /send invitation/i });
-
-      fireEvent.change(emailInput, { target: { value: 'new@example.com' } });
-      fireEvent.click(submitButton);
-
-      await waitFor(() => {
-        expect(emailInput.value).toBe('');
-      });
     });
 
     it('shows success message after creating invitation', async () => {
-      mockCreateInvitation.mockResolvedValue(mockPendingInvitation);
+      const user = userEvent.setup();
+
+      mockFetch
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve({ invitations: [] }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve({ invitation: mockPendingInvitation }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve({ invitations: [mockPendingInvitation] }),
+        });
 
       render(<InvitationsPage />);
 
-      const emailInput = screen.getByPlaceholderText(/email address/i);
-      const submitButton = screen.getByRole('button', { name: /send invitation/i });
+      // Open form
+      const inviteButton = screen.getByRole('button', { name: /invite instructor/i });
+      await user.click(inviteButton);
 
-      fireEvent.change(emailInput, { target: { value: 'new@example.com' } });
-      fireEvent.click(submitButton);
+      // Fill form
+      const emailInput = screen.getByLabelText(/email address/i);
+      await user.type(emailInput, 'new@example.com');
+
+      // Submit
+      const submitButton = screen.getByRole('button', { name: /send invitation/i });
+      await user.click(submitButton);
 
       await waitFor(() => {
         expect(screen.getByText(/invitation sent/i)).toBeInTheDocument();
       });
     });
-  });
 
-  describe('Row Actions', () => {
-    it('shows revoke button for pending invitations', () => {
-      (useInvitations as jest.Mock).mockReturnValue({
-        invitations: [mockPendingInvitation],
-        loading: false,
-        error: null,
-        filter: 'all',
-        setFilter: mockSetFilter,
-        fetchInvitations: mockFetchInvitations,
-        createInvitation: mockCreateInvitation,
-        revokeInvitation: mockRevokeInvitation,
-        resendInvitation: mockResendInvitation,
-        clearError: mockClearError,
-      });
+    it('shows API error on failure', async () => {
+      const user = userEvent.setup();
+
+      mockFetch
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve({ invitations: [] }),
+        })
+        .mockResolvedValueOnce({
+          ok: false,
+          json: () => Promise.resolve({ error: 'Duplicate invitation' }),
+        });
 
       render(<InvitationsPage />);
 
-      // Use exact match to avoid matching the "revoked" filter tab
-      expect(screen.getByRole('button', { name: 'Revoke' })).toBeInTheDocument();
-    });
+      // Open form
+      const inviteButton = screen.getByRole('button', { name: /invite instructor/i });
+      await user.click(inviteButton);
 
-    it('shows resend button for pending invitations', () => {
-      (useInvitations as jest.Mock).mockReturnValue({
-        invitations: [mockPendingInvitation],
-        loading: false,
-        error: null,
-        filter: 'all',
-        setFilter: mockSetFilter,
-        fetchInvitations: mockFetchInvitations,
-        createInvitation: mockCreateInvitation,
-        revokeInvitation: mockRevokeInvitation,
-        resendInvitation: mockResendInvitation,
-        clearError: mockClearError,
-      });
+      // Fill form
+      const emailInput = screen.getByLabelText(/email address/i);
+      await user.type(emailInput, 'existing@example.com');
 
-      render(<InvitationsPage />);
-
-      expect(screen.getByRole('button', { name: 'Resend' })).toBeInTheDocument();
-    });
-
-    it('hides action buttons for consumed invitations', () => {
-      (useInvitations as jest.Mock).mockReturnValue({
-        invitations: [mockConsumedInvitation],
-        loading: false,
-        error: null,
-        filter: 'all',
-        setFilter: mockSetFilter,
-        fetchInvitations: mockFetchInvitations,
-        createInvitation: mockCreateInvitation,
-        revokeInvitation: mockRevokeInvitation,
-        resendInvitation: mockResendInvitation,
-        clearError: mockClearError,
-      });
-
-      render(<InvitationsPage />);
-
-      // Use exact match to avoid matching the "revoked" filter tab
-      expect(screen.queryByRole('button', { name: 'Revoke' })).not.toBeInTheDocument();
-      expect(screen.queryByRole('button', { name: 'Resend' })).not.toBeInTheDocument();
-    });
-
-    it('hides action buttons for revoked invitations', () => {
-      (useInvitations as jest.Mock).mockReturnValue({
-        invitations: [mockRevokedInvitation],
-        loading: false,
-        error: null,
-        filter: 'all',
-        setFilter: mockSetFilter,
-        fetchInvitations: mockFetchInvitations,
-        createInvitation: mockCreateInvitation,
-        revokeInvitation: mockRevokeInvitation,
-        resendInvitation: mockResendInvitation,
-        clearError: mockClearError,
-      });
-
-      render(<InvitationsPage />);
-
-      // Use exact match to avoid matching the "revoked" filter tab
-      expect(screen.queryByRole('button', { name: 'Revoke' })).not.toBeInTheDocument();
-      expect(screen.queryByRole('button', { name: 'Resend' })).not.toBeInTheDocument();
-    });
-  });
-
-  describe('Revoke Flow', () => {
-    it('shows confirmation modal when revoking', async () => {
-      (useInvitations as jest.Mock).mockReturnValue({
-        invitations: [mockPendingInvitation],
-        loading: false,
-        error: null,
-        filter: 'all',
-        setFilter: mockSetFilter,
-        fetchInvitations: mockFetchInvitations,
-        createInvitation: mockCreateInvitation,
-        revokeInvitation: mockRevokeInvitation,
-        resendInvitation: mockResendInvitation,
-        clearError: mockClearError,
-      });
-
-      render(<InvitationsPage />);
-
-      const revokeButton = screen.getByRole('button', { name: 'Revoke' });
-      fireEvent.click(revokeButton);
+      // Submit
+      const submitButton = screen.getByRole('button', { name: /send invitation/i });
+      await user.click(submitButton);
 
       await waitFor(() => {
-        expect(screen.getByText(/are you sure/i)).toBeInTheDocument();
-      });
-    });
-
-    it('revokes invitation on confirmation', async () => {
-      mockRevokeInvitation.mockResolvedValue(mockRevokedInvitation);
-
-      (useInvitations as jest.Mock).mockReturnValue({
-        invitations: [mockPendingInvitation],
-        loading: false,
-        error: null,
-        filter: 'all',
-        setFilter: mockSetFilter,
-        fetchInvitations: mockFetchInvitations,
-        createInvitation: mockCreateInvitation,
-        revokeInvitation: mockRevokeInvitation,
-        resendInvitation: mockResendInvitation,
-        clearError: mockClearError,
-      });
-
-      render(<InvitationsPage />);
-
-      const revokeButton = screen.getByRole('button', { name: 'Revoke' });
-      fireEvent.click(revokeButton);
-
-      await waitFor(() => {
-        const confirmButton = screen.getByRole('button', { name: /confirm/i });
-        fireEvent.click(confirmButton);
-      });
-
-      await waitFor(() => {
-        expect(mockRevokeInvitation).toHaveBeenCalledWith('inv-1');
-      });
-    });
-
-    it('closes modal on cancel', async () => {
-      (useInvitations as jest.Mock).mockReturnValue({
-        invitations: [mockPendingInvitation],
-        loading: false,
-        error: null,
-        filter: 'all',
-        setFilter: mockSetFilter,
-        fetchInvitations: mockFetchInvitations,
-        createInvitation: mockCreateInvitation,
-        revokeInvitation: mockRevokeInvitation,
-        resendInvitation: mockResendInvitation,
-        clearError: mockClearError,
-      });
-
-      render(<InvitationsPage />);
-
-      const revokeButton = screen.getByRole('button', { name: 'Revoke' });
-      fireEvent.click(revokeButton);
-
-      await waitFor(() => {
-        const cancelButton = screen.getByRole('button', { name: /cancel/i });
-        fireEvent.click(cancelButton);
-      });
-
-      await waitFor(() => {
-        expect(screen.queryByText(/are you sure/i)).not.toBeInTheDocument();
+        expect(screen.getByText(/duplicate invitation/i)).toBeInTheDocument();
       });
     });
   });
 
-  describe('Resend Flow', () => {
-    it('shows confirmation modal when resending', async () => {
-      (useInvitations as jest.Mock).mockReturnValue({
-        invitations: [mockPendingInvitation],
-        loading: false,
-        error: null,
-        filter: 'all',
-        setFilter: mockSetFilter,
-        fetchInvitations: mockFetchInvitations,
-        createInvitation: mockCreateInvitation,
-        revokeInvitation: mockRevokeInvitation,
-        resendInvitation: mockResendInvitation,
-        clearError: mockClearError,
-      });
+  describe('Invitation Actions', () => {
+    it('calls revoke handler', async () => {
+      const user = userEvent.setup();
+
+      mockFetch
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve({ invitations: [mockPendingInvitation] }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve({ invitation: { ...mockPendingInvitation, revokedAt: '2024-01-03T00:00:00Z' } }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve({ invitations: [] }),
+        });
 
       render(<InvitationsPage />);
+
+      await waitFor(() => {
+        expect(screen.getByText('pending@example.com')).toBeInTheDocument();
+      });
+
+      const revokeButton = screen.getByRole('button', { name: /revoke/i });
+      await user.click(revokeButton);
+
+      await waitFor(() => {
+        expect(mockFetch).toHaveBeenCalledWith(
+          '/api/namespace/invitations/inv-1',
+          expect.objectContaining({ method: 'DELETE' })
+        );
+      });
+    });
+
+    it('calls resend handler', async () => {
+      const user = userEvent.setup();
+
+      mockFetch
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve({ invitations: [mockPendingInvitation] }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve({ invitation: mockPendingInvitation }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve({ invitations: [mockPendingInvitation] }),
+        });
+
+      render(<InvitationsPage />);
+
+      await waitFor(() => {
+        expect(screen.getByText('pending@example.com')).toBeInTheDocument();
+      });
 
       const resendButton = screen.getByRole('button', { name: /resend/i });
-      fireEvent.click(resendButton);
+      await user.click(resendButton);
 
       await waitFor(() => {
-        expect(screen.getByText(/resend invitation/i)).toBeInTheDocument();
-      });
-    });
-
-    it('resends invitation on confirmation', async () => {
-      mockResendInvitation.mockResolvedValue(mockPendingInvitation);
-
-      (useInvitations as jest.Mock).mockReturnValue({
-        invitations: [mockPendingInvitation],
-        loading: false,
-        error: null,
-        filter: 'all',
-        setFilter: mockSetFilter,
-        fetchInvitations: mockFetchInvitations,
-        createInvitation: mockCreateInvitation,
-        revokeInvitation: mockRevokeInvitation,
-        resendInvitation: mockResendInvitation,
-        clearError: mockClearError,
-      });
-
-      render(<InvitationsPage />);
-
-      const resendButton = screen.getByRole('button', { name: /resend/i });
-      fireEvent.click(resendButton);
-
-      await waitFor(() => {
-        const confirmButton = screen.getByRole('button', { name: /confirm/i });
-        fireEvent.click(confirmButton);
-      });
-
-      await waitFor(() => {
-        expect(mockResendInvitation).toHaveBeenCalledWith('inv-1');
+        expect(mockFetch).toHaveBeenCalledWith(
+          '/api/namespace/invitations/inv-1/resend',
+          expect.objectContaining({ method: 'POST' })
+        );
       });
     });
   });
 
   describe('Error States', () => {
-    it('displays error message from hook', () => {
-      (useInvitations as jest.Mock).mockReturnValue({
-        invitations: [],
-        loading: false,
-        error: 'Failed to load invitations. Please refresh.',
-        filter: 'all',
-        setFilter: mockSetFilter,
-        fetchInvitations: mockFetchInvitations,
-        createInvitation: mockCreateInvitation,
-        revokeInvitation: mockRevokeInvitation,
-        resendInvitation: mockResendInvitation,
-        clearError: mockClearError,
+    it('displays fetch error', async () => {
+      mockFetch.mockResolvedValue({
+        ok: false,
+        json: () => Promise.resolve({ error: 'Failed to load invitations' }),
       });
 
       render(<InvitationsPage />);
 
-      expect(screen.getByText(/failed to load invitations/i)).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByText(/failed to load invitations/i)).toBeInTheDocument();
+      });
     });
 
-    it('allows dismissing error', () => {
-      (useInvitations as jest.Mock).mockReturnValue({
-        invitations: [],
-        loading: false,
-        error: 'Some error',
-        filter: 'all',
-        setFilter: mockSetFilter,
-        fetchInvitations: mockFetchInvitations,
-        createInvitation: mockCreateInvitation,
-        revokeInvitation: mockRevokeInvitation,
-        resendInvitation: mockResendInvitation,
-        clearError: mockClearError,
+    it('allows dismissing error', async () => {
+      const user = userEvent.setup();
+
+      mockFetch.mockResolvedValue({
+        ok: false,
+        json: () => Promise.resolve({ error: 'Some error' }),
       });
 
       render(<InvitationsPage />);
 
-      const dismissButton = screen.getByRole('button', { name: /dismiss/i });
-      fireEvent.click(dismissButton);
+      await waitFor(() => {
+        expect(screen.getByText(/some error/i)).toBeInTheDocument();
+      });
 
-      expect(mockClearError).toHaveBeenCalled();
+      // Find and click dismiss button (Alert component)
+      const dismissButton = screen.getByRole('button', { name: /dismiss/i });
+      await user.click(dismissButton);
+
+      expect(screen.queryByText(/some error/i)).not.toBeInTheDocument();
     });
   });
 
