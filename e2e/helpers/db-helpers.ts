@@ -86,18 +86,18 @@ export async function resetTestData(): Promise<void> {
  * This creates both auth.users and user_profiles rows
  *
  * @param userId - Unique identifier for the user
- * @param username - Username for the user
+ * @param displayName - Display name for the user (also used to generate email)
  * @param role - User role (system-admin, namespace-admin, instructor, student)
  * @param namespaceId - Optional namespace ID (required for non-system-admin users)
  */
 export async function createTestUser(
   userId: string,
-  username: string,
+  displayName: string,
   role: 'system-admin' | 'namespace-admin' | 'instructor' | 'student',
   namespaceId?: string
 ): Promise<void> {
   const supabase = getSupabaseClient();
-  const email = getTestUserEmail(username);
+  const email = getTestUserEmail(displayName);
   const password = getTestUserPassword();
 
   try {
@@ -107,7 +107,7 @@ export async function createTestUser(
       email,
       password,
       email_confirm: true,  // Auto-confirm for tests
-      user_metadata: { username }
+      user_metadata: { displayName }
     });
 
     if (authError) {
@@ -119,10 +119,9 @@ export async function createTestUser(
       .from('user_profiles')
       .insert({
         id: userId,
-        username,
         role,
         namespace_id: namespaceId || (role === 'system-admin' ? null : 'default'),
-        display_name: username
+        display_name: displayName
       });
 
     if (profileError) {
@@ -131,9 +130,9 @@ export async function createTestUser(
       throw new Error(`Failed to create user profile: ${profileError.message}`);
     }
 
-    console.log(`Created test user: ${username} (${email}) with role ${role}`);
+    console.log(`Created test user: ${displayName} (${email}) with role ${role}`);
   } catch (error) {
-    console.error(`Error creating test user ${username}:`, error);
+    console.error(`Error creating test user ${displayName}:`, error);
     throw error;
   }
 }
