@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import CreateSectionModal from './CreateSectionModal';
 import { formatJoinCodeForDisplay } from '@/server/classes/join-code-service';
 import { BackButton } from '@/components/ui/BackButton';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 
 interface SectionInfo {
   id: string;
@@ -49,6 +50,8 @@ export default function SectionView({
   const [error, setError] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [sectionToDelete, setSectionToDelete] = useState<{ id: string; name: string } | null>(null);
 
   useEffect(() => {
     loadSections();
@@ -78,14 +81,18 @@ export default function SectionView({
     }
   };
 
-  const handleDeleteSection = async (sectionId: string, sectionName: string) => {
-    if (!confirm(`Delete "${sectionName}"? This will also delete all sessions and memberships within this section.`)) {
-      return;
-    }
+  const handleDeleteSectionClick = (sectionId: string, sectionName: string) => {
+    setSectionToDelete({ id: sectionId, name: sectionName });
+    setShowDeleteConfirm(true);
+  };
 
-    setDeletingId(sectionId);
+  const handleConfirmDeleteSection = async () => {
+    if (!sectionToDelete) return;
+
+    setShowDeleteConfirm(false);
+    setDeletingId(sectionToDelete.id);
     try {
-      const response = await fetch(`/api/sections/${sectionId}`, {
+      const response = await fetch(`/api/sections/${sectionToDelete.id}`, {
         method: 'DELETE',
       });
 
@@ -95,7 +102,7 @@ export default function SectionView({
       }
 
       // If deleted section was selected, clear selection
-      if (selectedSection?.id === sectionId) {
+      if (selectedSection?.id === sectionToDelete.id) {
         setSelectedSection(null);
       }
 
@@ -106,6 +113,7 @@ export default function SectionView({
       alert(`Failed to delete section: ${err instanceof Error ? err.message : 'Unknown error'}`);
     } finally {
       setDeletingId(null);
+      setSectionToDelete(null);
     }
   };
 
@@ -253,7 +261,7 @@ export default function SectionView({
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    handleDeleteSection(section.id, section.name);
+                    handleDeleteSectionClick(section.id, section.name);
                   }}
                   disabled={deletingId === section.id}
                   className="absolute top-4 right-4 p-2 bg-red-600 text-white rounded-lg opacity-0 group-hover:opacity-100 hover:bg-red-700 transition-opacity duration-200 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
@@ -285,6 +293,18 @@ export default function SectionView({
             }}
           />
         )}
+        <ConfirmDialog
+          open={showDeleteConfirm}
+          title="Delete Section"
+          message={`Delete "${sectionToDelete?.name}"? This will also delete all sessions and memberships within this section.`}
+          confirmLabel="Delete"
+          variant="danger"
+          onConfirm={handleConfirmDeleteSection}
+          onCancel={() => {
+            setShowDeleteConfirm(false);
+            setSectionToDelete(null);
+          }}
+        />
       </div>
     );
   }

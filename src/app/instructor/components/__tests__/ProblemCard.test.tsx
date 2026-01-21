@@ -29,8 +29,6 @@ describe('ProblemCard', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    // Mock window.confirm
-    global.confirm = jest.fn(() => true);
   });
 
   describe('List View', () => {
@@ -89,23 +87,50 @@ describe('ProblemCard', () => {
       expect(defaultProps.onCreateSession).toHaveBeenCalledWith('problem-123');
     });
 
+    it('shows confirmation dialog when Delete button is clicked', async () => {
+      render(<ProblemCard {...defaultProps} />);
+      fireEvent.click(screen.getByText('Delete'));
+
+      await waitFor(() => {
+        expect(screen.getByRole('dialog')).toBeInTheDocument();
+        expect(screen.getByText('Delete Problem')).toBeInTheDocument();
+        expect(screen.getByText(/Delete "Test Problem"\? This action cannot be undone\./)).toBeInTheDocument();
+      });
+    });
+
     it('calls onDelete when Delete button is clicked and confirmed', async () => {
       render(<ProblemCard {...defaultProps} />);
       fireEvent.click(screen.getByText('Delete'));
-      
+
+      // Wait for dialog to appear
       await waitFor(() => {
-        expect(global.confirm).toHaveBeenCalled();
+        expect(screen.getByRole('dialog')).toBeInTheDocument();
+      });
+
+      // Click the confirm button in the dialog
+      const confirmButton = screen.getByTestId('confirm-dialog-backdrop').parentElement?.querySelector('[data-confirm-button]');
+      expect(confirmButton).toBeInTheDocument();
+      fireEvent.click(confirmButton!);
+
+      await waitFor(() => {
         expect(defaultProps.onDelete).toHaveBeenCalledWith('problem-123', 'Test Problem');
       });
     });
 
     it('does not call onDelete when delete is cancelled', async () => {
-      global.confirm = jest.fn(() => false);
       render(<ProblemCard {...defaultProps} />);
       fireEvent.click(screen.getByText('Delete'));
-      
+
+      // Wait for dialog to appear
       await waitFor(() => {
-        expect(global.confirm).toHaveBeenCalled();
+        expect(screen.getByRole('dialog')).toBeInTheDocument();
+      });
+
+      // Click the cancel button in the dialog
+      fireEvent.click(screen.getByText('Cancel'));
+
+      await waitFor(() => {
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
         expect(defaultProps.onDelete).not.toHaveBeenCalled();
       });
     });
@@ -113,9 +138,18 @@ describe('ProblemCard', () => {
     it('shows deleting state while delete is in progress', async () => {
       const slowDelete = jest.fn(() => new Promise(resolve => setTimeout(resolve, 100)));
       render(<ProblemCard {...defaultProps} onDelete={slowDelete} />);
-      
+
       fireEvent.click(screen.getByText('Delete'));
-      
+
+      // Wait for dialog to appear
+      await waitFor(() => {
+        expect(screen.getByRole('dialog')).toBeInTheDocument();
+      });
+
+      // Click the confirm button
+      const confirmButton = screen.getByTestId('confirm-dialog-backdrop').parentElement?.querySelector('[data-confirm-button]');
+      fireEvent.click(confirmButton!);
+
       await waitFor(() => {
         expect(screen.getByText('...')).toBeInTheDocument();
       });

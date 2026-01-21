@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 
 interface SessionData {
   id: string;
@@ -34,6 +35,8 @@ export default function SessionsList({ onRejoinSession, onEndSession, onViewDeta
   // Filters
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'completed'>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [showEndSessionConfirm, setShowEndSessionConfirm] = useState(false);
+  const [sessionToEnd, setSessionToEnd] = useState<string | null>(null);
 
   // Fetch sessions
   const fetchSessions = async () => {
@@ -80,24 +83,29 @@ export default function SessionsList({ onRejoinSession, onEndSession, onViewDeta
     }
   };
 
-  const handleEndSession = async (sessionId: string) => {
-    if (!confirm('Are you sure you want to end this session?')) {
-      return;
-    }
-    
+  const handleEndSessionClick = (sessionId: string) => {
+    setSessionToEnd(sessionId);
+    setShowEndSessionConfirm(true);
+  };
+
+  const handleConfirmEndSession = async () => {
+    if (!sessionToEnd) return;
+
+    setShowEndSessionConfirm(false);
     if (onEndSession) {
-      onEndSession(sessionId);
+      onEndSession(sessionToEnd);
     } else {
       // Call API to end session
       try {
         // TODO: Implement end session API endpoint
-        console.log('End session:', sessionId);
+        console.log('End session:', sessionToEnd);
         fetchSessions(); // Refresh list
       } catch (err) {
         console.error('Error ending session:', err);
         alert('Failed to end session');
       }
     }
+    setSessionToEnd(null);
   };
 
   const formatDate = (dateString: string) => {
@@ -250,7 +258,7 @@ export default function SessionsList({ onRejoinSession, onEndSession, onViewDeta
                     Rejoin
                   </button>
                   <button
-                    onClick={() => handleEndSession(session.id)}
+                    onClick={() => handleEndSessionClick(session.id)}
                     className="px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors whitespace-nowrap"
                   >
                     End Session
@@ -299,6 +307,19 @@ export default function SessionsList({ onRejoinSession, onEndSession, onViewDeta
           ))}
         </div>
       )}
+
+      <ConfirmDialog
+        open={showEndSessionConfirm}
+        title="End Session"
+        message="Are you sure you want to end this session?"
+        confirmLabel="End Session"
+        variant="danger"
+        onConfirm={handleConfirmEndSession}
+        onCancel={() => {
+          setShowEndSessionConfirm(false);
+          setSessionToEnd(null);
+        }}
+      />
     </div>
   );
 }

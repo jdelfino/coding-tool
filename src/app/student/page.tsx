@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useSearchParams } from 'next/navigation';
 import { useRealtimeSession } from '@/hooks/useRealtimeSession';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
@@ -39,6 +40,8 @@ function StudentPage() {
   const [isJoining, setIsJoining] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [sessionEnded, setSessionEnded] = useState(false);
+  const [showReplaceCodeConfirm, setShowReplaceCodeConfirm] = useState(false);
+  const [pendingStarterCode, setPendingStarterCode] = useState<string | null>(null);
 
   // Use Realtime session hook
   const {
@@ -156,42 +159,40 @@ function StudentPage() {
 
   const editorRef = useRef<any>(null);
 
+  const applyStarterCode = useCallback((starterCode: string) => {
+    // Use Monaco editor API to preserve undo history
+    if (editorRef.current) {
+      const editor = editorRef.current;
+      const model = editor.getModel();
+      if (model) {
+        const fullRange = model.getFullModelRange();
+        editor.executeEdits('load-starter-code', [{
+          range: fullRange,
+          text: starterCode,
+        }]);
+      }
+    } else {
+      setCode(starterCode);
+    }
+  }, []);
+
   const handleLoadStarterCode = useCallback((starterCode: string) => {
     if (code.trim().length > 0) {
       // Ask for confirmation if there's existing code
-      if (confirm('This will replace your current code. Are you sure?')) {
-        // Use Monaco editor API to preserve undo history
-        if (editorRef.current) {
-          const editor = editorRef.current;
-          const model = editor.getModel();
-          if (model) {
-            const fullRange = model.getFullModelRange();
-            editor.executeEdits('load-starter-code', [{
-              range: fullRange,
-              text: starterCode,
-            }]);
-          }
-        } else {
-          setCode(starterCode);
-        }
-      }
+      setPendingStarterCode(starterCode);
+      setShowReplaceCodeConfirm(true);
     } else {
-      // Use Monaco editor API to preserve undo history
-      if (editorRef.current) {
-        const editor = editorRef.current;
-        const model = editor.getModel();
-        if (model) {
-          const fullRange = model.getFullModelRange();
-          editor.executeEdits('load-starter-code', [{
-            range: fullRange,
-            text: starterCode,
-          }]);
-        }
-      } else {
-        setCode(starterCode);
-      }
+      applyStarterCode(starterCode);
     }
-  }, [code]);
+  }, [code, applyStarterCode]);
+
+  const handleConfirmReplaceCode = useCallback(() => {
+    setShowReplaceCodeConfirm(false);
+    if (pendingStarterCode) {
+      applyStarterCode(pendingStarterCode);
+      setPendingStarterCode(null);
+    }
+  }, [pendingStarterCode, applyStarterCode]);
 
   const handleRunCode = async (executionSettings: ExecutionSettings) => {
     if (!isConnected) {
@@ -411,6 +412,19 @@ function StudentPage() {
           showRunButton={!sessionEnded}
         />
       </EditorContainer>
+
+      <ConfirmDialog
+        open={showReplaceCodeConfirm}
+        title="Replace Code"
+        message="This will replace your current code. Are you sure?"
+        confirmLabel="Replace"
+        variant="danger"
+        onConfirm={handleConfirmReplaceCode}
+        onCancel={() => {
+          setShowReplaceCodeConfirm(false);
+          setPendingStarterCode(null);
+        }}
+      />
     </main>
   );
 }

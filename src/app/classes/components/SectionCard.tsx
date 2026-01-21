@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import type { Section } from '@/server/classes/types';
 import { formatJoinCodeForDisplay } from '@/server/classes/join-code-service';
 
@@ -25,6 +26,8 @@ export default function SectionCard({
   const [addingInstructor, setAddingInstructor] = useState(false);
   const [newInstructorEmail, setNewInstructorEmail] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [showRemoveInstructorConfirm, setShowRemoveInstructorConfirm] = useState(false);
+  const [instructorToRemove, setInstructorToRemove] = useState<string | null>(null);
 
   const handleRegenerateCode = async () => {
     if (!onRegenerateCode) return;
@@ -55,16 +58,22 @@ export default function SectionCard({
     }
   };
 
-  const handleRemoveInstructor = async (userId: string) => {
-    if (!onRemoveInstructor) return;
-    
-    if (!confirm('Are you sure you want to remove this instructor?')) return;
-    
+  const handleRemoveInstructorClick = (userId: string) => {
+    setInstructorToRemove(userId);
+    setShowRemoveInstructorConfirm(true);
+  };
+
+  const handleConfirmRemoveInstructor = async () => {
+    if (!onRemoveInstructor || !instructorToRemove) return;
+
+    setShowRemoveInstructorConfirm(false);
     setError(null);
     try {
-      await onRemoveInstructor(section.id, userId);
+      await onRemoveInstructor(section.id, instructorToRemove);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to remove instructor');
+    } finally {
+      setInstructorToRemove(null);
     }
   };
 
@@ -125,7 +134,7 @@ export default function SectionCard({
                 <span>{instructorEmails[instructorId] || instructorId}</span>
                 {section.instructorIds.length > 1 && (
                   <button
-                    onClick={() => handleRemoveInstructor(instructorId)}
+                    onClick={() => handleRemoveInstructorClick(instructorId)}
                     className="text-red-600 hover:text-red-700"
                   >
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -179,6 +188,19 @@ export default function SectionCard({
       <div className="border-t pt-4 text-sm text-gray-600">
         <p>Created {new Date(section.createdAt).toLocaleDateString()}</p>
       </div>
+
+      <ConfirmDialog
+        open={showRemoveInstructorConfirm}
+        title="Remove Instructor"
+        message="Are you sure you want to remove this instructor?"
+        confirmLabel="Remove"
+        variant="danger"
+        onConfirm={handleConfirmRemoveInstructor}
+        onCancel={() => {
+          setShowRemoveInstructorConfirm(false);
+          setInstructorToRemove(null);
+        }}
+      />
     </div>
   );
 }
