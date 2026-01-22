@@ -209,14 +209,12 @@ export function SessionView({
 
         {/* Problem Setup Tab - Full width for editor */}
         <Tabs.Panel tabId="problem" className="py-0">
-          <div className="bg-white rounded-b-lg border border-t-0 border-gray-200">
-            <ProblemSetupPanel
-              onUpdateProblem={onUpdateProblem}
-              initialProblem={sessionProblem}
-              initialExecutionSettings={sessionExecutionSettings}
-              isFullWidth
-            />
-          </div>
+          <ProblemSetupPanel
+            onUpdateProblem={onUpdateProblem}
+            initialProblem={sessionProblem}
+            initialExecutionSettings={sessionExecutionSettings}
+            isFullWidth
+          />
         </Tabs.Panel>
 
         {/* AI Walkthrough Tab */}

@@ -47,10 +47,24 @@ export function ProblemSetupPanel({
   isLoading = false,
   isFullWidth = false,
 }: ProblemSetupPanelProps) {
+  // Full-width mode: render editor directly without any wrappers
+  if (isFullWidth) {
+    return (
+      <PanelErrorBoundary title="Problem Setup">
+        <SessionProblemEditor
+          onUpdateProblem={onUpdateProblem}
+          initialProblem={initialProblem}
+          initialExecutionSettings={initialExecutionSettings}
+        />
+      </PanelErrorBoundary>
+    );
+  }
+
+  // Panel mode: wrap with padding and current problem indicator
   const content = (
-    <div className={isFullWidth ? 'p-6' : 'space-y-4'}>
-      {/* Show problem title when available - only in panel mode */}
-      {!isFullWidth && initialProblem?.title && (
+    <div className="space-y-4">
+      {/* Show problem title when available */}
+      {initialProblem?.title && (
         <div className="text-sm text-gray-600 pb-2 border-b border-gray-100 mb-4">
           <span className="font-medium">Current: </span>
           {initialProblem.title}
@@ -63,15 +77,6 @@ export function ProblemSetupPanel({
       />
     </div>
   );
-
-  // Full-width mode: render content directly without panel wrapper
-  if (isFullWidth) {
-    return (
-      <PanelErrorBoundary title="Problem Setup">
-        {content}
-      </PanelErrorBoundary>
-    );
-  }
 
   // Panel mode: wrap in collapsible panel
   return (
