@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useSearchParams } from 'next/navigation';
 import { useRealtimeSession } from '@/hooks/useRealtimeSession';
@@ -363,6 +363,21 @@ function StudentPage() {
   );
 }
 
+// Loading fallback for Suspense boundary
+function LoadingFallback() {
+  return (
+    <main className="p-8 text-center">
+      <h1 className="text-2xl font-bold mb-4">Live Coding Classroom</h1>
+      <p className="text-gray-600">Loading...</p>
+    </main>
+  );
+}
+
+// Page wrapper with Suspense boundary for useSearchParams
 export default function StudentPageWrapper() {
-  return <StudentPage />;
+  return (
+    <Suspense fallback={<LoadingFallback />}>
+      <StudentPage />
+    </Suspense>
+  );
 }
