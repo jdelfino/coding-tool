@@ -114,10 +114,25 @@ EOF
 )"
 ```
 
-## 6. Wait for CI
+## 6. Run E2E Tests Locally Before Pushing
+
+**IMPORTANT**: Always run and debug E2E tests locally before relying on CI. CI is slow and iterating on failures is painful.
+
+```bash
+# Run E2E tests locally
+cd ../coding-tool-<epic-name>
+npm run test:e2e
+
+# Debug specific failing test
+npx playwright test <test-file> --headed --debug
+```
+
+E2E tests require Supabase to be running locally (`npx supabase start`).
+
+## 7. Wait for CI
 
 - ALL CI checks must pass (unit tests, E2E, sandbox tests)
-- If CI fails, fix issues and push again
+- If CI fails, debug and fix locally first, then push again
 - Do NOT proceed until all checks are green
 
 Check CI status:

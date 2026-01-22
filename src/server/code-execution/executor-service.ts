@@ -141,6 +141,7 @@ export class ExecutorService {
         // Assigned backend not found in registry, fall through to select()
       }
     }
+
     return getBackendRegistry().select();
   }
 

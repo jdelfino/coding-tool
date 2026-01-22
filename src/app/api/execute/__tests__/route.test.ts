@@ -1,262 +1,279 @@
 /**
- * Tests for /api/execute route
+ * Tests for /api/execute route (instructor preview execution)
  *
  * @jest-environment node
  */
 
 import { POST } from '../route';
-import { getExecutorService } from '@/server/code-execution';
-import { getAuthProvider } from '@/server/auth';
 import { NextRequest } from 'next/server';
 
-// Mock dependencies
-jest.mock('@/server/code-execution');
-jest.mock('@/server/auth');
+// Mock auth
+const mockGetAuthenticatedUserWithToken = jest.fn();
+jest.mock('@/server/auth/api-auth', () => ({
+  getAuthenticatedUserWithToken: (...args: unknown[]) => mockGetAuthenticatedUserWithToken(...args),
+}));
 
+// Mock executor service for local dev
 const mockExecuteCode = jest.fn();
-const mockGetExecutorService = getExecutorService as jest.MockedFunction<typeof getExecutorService>;
-mockGetExecutorService.mockReturnValue({ executeCode: mockExecuteCode } as any);
+jest.mock('@/server/code-execution', () => ({
+  getExecutorService: jest.fn(() => ({
+    executeCode: mockExecuteCode,
+  })),
+}));
 
-const mockGetAuthProvider = getAuthProvider as jest.MockedFunction<typeof getAuthProvider>;
+// Mock rate limiter
+jest.mock('@/server/rate-limit', () => ({
+  rateLimit: jest.fn(() => null),
+}));
 
-// Helper to create authenticated mock auth provider
-const createMockAuthProvider = (authenticated: boolean) => ({
-  getSessionFromRequest: jest.fn().mockResolvedValue(
-    authenticated
-      ? { user: { id: 'user-123', username: 'testuser', role: 'student' } }
-      : null
-  ),
-});
+function createRequest(body: Record<string, unknown>): NextRequest {
+  return new NextRequest('http://localhost:3000/api/execute', {
+    method: 'POST',
+    body: JSON.stringify(body),
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
 
 describe('POST /api/execute', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    // Re-setup mocks after clear
-    mockGetExecutorService.mockReturnValue({ executeCode: mockExecuteCode } as any);
-    // Default to unauthenticated
-    mockGetAuthProvider.mockResolvedValue(createMockAuthProvider(false) as any);
+    // Default: not on Vercel (local dev)
+    delete process.env.VERCEL;
+    delete process.env.VERCEL_SANDBOX_ENABLED;
   });
 
-  const createMockRequest = (body: any) => {
-    return new NextRequest('http://localhost:3000/api/execute', {
-      method: 'POST',
-      body: JSON.stringify(body),
+  describe('Authentication', () => {
+    it('should return 401 when not authenticated', async () => {
+      mockGetAuthenticatedUserWithToken.mockRejectedValue(new Error('Not authenticated'));
+
+      const request = createRequest({ code: 'print("hello")' });
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(401);
+      expect(data.error).toBe('Unauthorized');
     });
-  };
-
-  it('should return 401 if user is not authenticated', async () => {
-    const request = createMockRequest({ code: 'print("hello")' });
-
-    const response = await POST(request);
-    const data = await response.json();
-
-    expect(response.status).toBe(401);
-    expect(data.error).toBe('Unauthorized');
-    expect(mockExecuteCode).not.toHaveBeenCalled();
   });
 
-  it('should return 401 if session is invalid', async () => {
-    mockGetAuthProvider.mockResolvedValue(createMockAuthProvider(false) as any);
+  describe('Authorization', () => {
+    it('should return 403 when user is a student', async () => {
+      mockGetAuthenticatedUserWithToken.mockResolvedValue({
+        user: { id: 'student-1', role: 'student' },
+        accessToken: 'token',
+      });
 
-    const request = createMockRequest({ code: 'print("hello")' });
+      const request = createRequest({ code: 'print("hello")' });
+      const response = await POST(request);
+      const data = await response.json();
 
-    const response = await POST(request);
-    const data = await response.json();
-
-    expect(response.status).toBe(401);
-    expect(data.error).toBe('Unauthorized');
-    expect(mockExecuteCode).not.toHaveBeenCalled();
-  });
-
-  it('should return 400 if code is missing', async () => {
-    mockGetAuthProvider.mockResolvedValue(createMockAuthProvider(true) as any);
-
-    const request = createMockRequest({});
-
-    const response = await POST(request);
-    const data = await response.json();
-
-    expect(response.status).toBe(400);
-    expect(data.error).toContain('Code is required');
-    expect(mockExecuteCode).not.toHaveBeenCalled();
-  });
-
-  it('should execute code and return results', async () => {
-    mockGetAuthProvider.mockResolvedValue(createMockAuthProvider(true) as any);
-
-    mockExecuteCode.mockResolvedValue({
-      success: true,
-      output: 'Hello, World!\n',
-      error: '',
-      executionTime: 125,
-      stdin: undefined,
+      expect(response.status).toBe(403);
+      expect(data.error).toContain('Only instructors');
     });
 
-    const request = createMockRequest({
-      code: 'print("Hello, World!")',
+    it('should allow instructors', async () => {
+      mockGetAuthenticatedUserWithToken.mockResolvedValue({
+        user: { id: 'instructor-1', role: 'instructor' },
+        accessToken: 'token',
+      });
+      mockExecuteCode.mockResolvedValue({
+        success: true,
+        output: 'hello\n',
+        error: '',
+        executionTime: 100,
+      });
+
+      const request = createRequest({ code: 'print("hello")' });
+      const response = await POST(request);
+
+      expect(response.status).toBe(200);
     });
 
-    const response = await POST(request);
-    const data = await response.json();
+    it('should allow namespace-admin', async () => {
+      mockGetAuthenticatedUserWithToken.mockResolvedValue({
+        user: { id: 'admin-1', role: 'namespace-admin' },
+        accessToken: 'token',
+      });
+      mockExecuteCode.mockResolvedValue({
+        success: true,
+        output: 'hello\n',
+        error: '',
+        executionTime: 100,
+      });
 
-    expect(response.status).toBe(200);
-    expect(data.success).toBe(true);
-    expect(data.output).toBe('Hello, World!\n');
-    expect(data.error).toBe('');
-    expect(mockExecuteCode).toHaveBeenCalledWith(
-      {
+      const request = createRequest({ code: 'print("hello")' });
+      const response = await POST(request);
+
+      expect(response.status).toBe(200);
+    });
+
+    it('should allow system-admin', async () => {
+      mockGetAuthenticatedUserWithToken.mockResolvedValue({
+        user: { id: 'sysadmin-1', role: 'system-admin' },
+        accessToken: 'token',
+      });
+      mockExecuteCode.mockResolvedValue({
+        success: true,
+        output: 'hello\n',
+        error: '',
+        executionTime: 100,
+      });
+
+      const request = createRequest({ code: 'print("hello")' });
+      const response = await POST(request);
+
+      expect(response.status).toBe(200);
+    });
+  });
+
+  describe('Validation', () => {
+    beforeEach(() => {
+      mockGetAuthenticatedUserWithToken.mockResolvedValue({
+        user: { id: 'instructor-1', role: 'instructor' },
+        accessToken: 'token',
+      });
+    });
+
+    it('should return 400 when code is missing', async () => {
+      const request = createRequest({});
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(400);
+      expect(data.error).toContain('Code is required');
+    });
+
+    it('should return 400 when code is not a string', async () => {
+      const request = createRequest({ code: 123 });
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(400);
+      expect(data.error).toContain('Code is required');
+    });
+  });
+
+  describe('Local development execution', () => {
+    beforeEach(() => {
+      mockGetAuthenticatedUserWithToken.mockResolvedValue({
+        user: { id: 'instructor-1', role: 'instructor' },
+        accessToken: 'token',
+      });
+    });
+
+    it('should execute code via executor service', async () => {
+      mockExecuteCode.mockResolvedValue({
+        success: true,
+        output: 'Hello, World!\n',
+        error: '',
+        executionTime: 150,
+      });
+
+      const request = createRequest({
         code: 'print("Hello, World!")',
-        executionSettings: {
-          stdin: undefined,
-          randomSeed: undefined,
-          attachedFiles: undefined,
+        stdin: 'test input',
+        randomSeed: 42,
+      });
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.success).toBe(true);
+      expect(data.output).toBe('Hello, World!\n');
+
+      expect(mockExecuteCode).toHaveBeenCalledWith(
+        {
+          code: 'print("Hello, World!")',
+          executionSettings: {
+            stdin: 'test input',
+            randomSeed: 42,
+            attachedFiles: undefined,
+          },
         },
-      },
-      undefined
-    );
-  });
-
-  it('should execute code with stdin and randomSeed', async () => {
-    mockGetAuthProvider.mockResolvedValue(createMockAuthProvider(true) as any);
-
-    mockExecuteCode.mockResolvedValue({
-      success: true,
-      output: '42\n',
-      error: '',
-      executionTime: 150,
-      stdin: 'test input',
+        undefined
+      );
     });
 
-    const request = createMockRequest({
-      code: 'import random\nprint(random.randint(1, 100))',
-      stdin: 'test input',
-      randomSeed: 42,
+    it('should pass timeout to executor service', async () => {
+      mockExecuteCode.mockResolvedValue({
+        success: true,
+        output: '',
+        error: '',
+        executionTime: 100,
+      });
+
+      const request = createRequest({
+        code: 'print("test")',
+        timeout: 5000,
+      });
+      await POST(request);
+
+      expect(mockExecuteCode).toHaveBeenCalledWith(
+        expect.any(Object),
+        5000
+      );
     });
 
-    const response = await POST(request);
-    const data = await response.json();
+    it('should execute code with attached files', async () => {
+      mockExecuteCode.mockResolvedValue({
+        success: true,
+        output: 'file content\n',
+        error: '',
+        executionTime: 175,
+      });
 
-    expect(response.status).toBe(200);
-    expect(data.success).toBe(true);
-    expect(mockExecuteCode).toHaveBeenCalledWith(
-      {
-        code: 'import random\nprint(random.randint(1, 100))',
-        executionSettings: {
-          stdin: 'test input',
-          randomSeed: 42,
-          attachedFiles: undefined,
-        },
-      },
-      undefined
-    );
-  });
+      const attachedFiles = [{ name: 'data.txt', content: 'file content' }];
 
-  it('should execute code with attached files', async () => {
-    mockGetAuthProvider.mockResolvedValue(createMockAuthProvider(true) as any);
-
-    mockExecuteCode.mockResolvedValue({
-      success: true,
-      output: 'file content\n',
-      error: '',
-      executionTime: 175,
-      stdin: undefined,
-    });
-
-    const attachedFiles = [
-      { name: 'data.txt', content: 'file content' }
-    ];
-
-    const request = createMockRequest({
-      code: 'with open("data.txt") as f:\n    print(f.read())',
-      attachedFiles,
-    });
-
-    const response = await POST(request);
-    const data = await response.json();
-
-    expect(response.status).toBe(200);
-    expect(data.success).toBe(true);
-    expect(mockExecuteCode).toHaveBeenCalledWith(
-      {
+      const request = createRequest({
         code: 'with open("data.txt") as f:\n    print(f.read())',
-        executionSettings: {
-          stdin: undefined,
-          randomSeed: undefined,
-          attachedFiles,
+        attachedFiles,
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.success).toBe(true);
+      expect(mockExecuteCode).toHaveBeenCalledWith(
+        {
+          code: 'with open("data.txt") as f:\n    print(f.read())',
+          executionSettings: {
+            stdin: undefined,
+            randomSeed: undefined,
+            attachedFiles,
+          },
         },
-      },
-      undefined
-    );
-  });
-
-  it('should handle execution errors', async () => {
-    mockGetAuthProvider.mockResolvedValue(createMockAuthProvider(true) as any);
-
-    mockExecuteCode.mockResolvedValue({
-      success: false,
-      output: '',
-      error: 'NameError: name "x" is not defined',
-      executionTime: 100,
-      stdin: undefined,
+        undefined
+      );
     });
 
-    const request = createMockRequest({
-      code: 'print(x)',
+    it('should handle execution errors', async () => {
+      mockExecuteCode.mockResolvedValue({
+        success: false,
+        output: '',
+        error: 'NameError: name "x" is not defined',
+        executionTime: 100,
+      });
+
+      const request = createRequest({ code: 'print(x)' });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.success).toBe(false);
+      expect(data.error).toContain('NameError');
     });
 
-    const response = await POST(request);
-    const data = await response.json();
+    it('should handle unexpected errors', async () => {
+      mockExecuteCode.mockRejectedValue(new Error('Unexpected error'));
 
-    expect(response.status).toBe(200);
-    expect(data.success).toBe(false);
-    expect(data.error).toContain('NameError');
-  });
+      const request = createRequest({ code: 'print("test")' });
 
-  it('should respect custom timeout', async () => {
-    mockGetAuthProvider.mockResolvedValue(createMockAuthProvider(true) as any);
+      const response = await POST(request);
+      const data = await response.json();
 
-    mockExecuteCode.mockResolvedValue({
-      success: false,
-      output: '',
-      error: 'Execution timed out after 5000ms',
-      executionTime: 5000,
-      stdin: undefined,
+      expect(response.status).toBe(500);
+      expect(data.error).toBe('Unexpected error');
     });
-
-    const request = createMockRequest({
-      code: 'import time\ntime.sleep(10)',
-      timeout: 5000,
-    });
-
-    const response = await POST(request);
-
-    expect(response.status).toBe(200);
-    expect(mockExecuteCode).toHaveBeenCalledWith(
-      {
-        code: 'import time\ntime.sleep(10)',
-        executionSettings: {
-          stdin: undefined,
-          randomSeed: undefined,
-          attachedFiles: undefined,
-        },
-      },
-      5000
-    );
-  });
-
-  it('should handle unexpected errors', async () => {
-    mockGetAuthProvider.mockResolvedValue(createMockAuthProvider(true) as any);
-
-    mockExecuteCode.mockRejectedValue(new Error('Unexpected error'));
-
-    const request = createMockRequest({
-      code: 'print("test")',
-    });
-
-    const response = await POST(request);
-    const data = await response.json();
-
-    expect(response.status).toBe(500);
-    expect(data.error).toBe('Unexpected error');
   });
 });
