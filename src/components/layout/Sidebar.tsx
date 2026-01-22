@@ -153,6 +153,13 @@ export function Sidebar({ collapsed = false, onToggleCollapse }: SidebarProps) {
       }`}
       aria-label="Main navigation"
     >
+      {/* Collapse toggle at top */}
+      {onToggleCollapse && (
+        <div className="px-2 py-3 border-b border-gray-200">
+          <SidebarToggle isCollapsed={collapsed} onToggle={onToggleCollapse} />
+        </div>
+      )}
+
       {/* Navigation items */}
       <div className="flex-1 overflow-y-auto py-4 px-2">
         {navGroups.map((group, index) => (
@@ -167,11 +174,6 @@ export function Sidebar({ collapsed = false, onToggleCollapse }: SidebarProps) {
           />
         ))}
       </div>
-
-      {/* Toggle button at bottom */}
-      {onToggleCollapse && (
-        <SidebarToggle isCollapsed={collapsed} onToggle={onToggleCollapse} />
-      )}
     </aside>
   );
 }

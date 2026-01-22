@@ -25,9 +25,12 @@ export function SidebarToggle({ isCollapsed, onToggle }: SidebarToggleProps) {
       onClick={onToggle}
       aria-expanded={!isCollapsed}
       aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-      className="w-full flex items-center justify-center p-2 text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 transition-colors border-t border-gray-200"
+      className={`flex items-center gap-2 p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 transition-colors rounded-md ${
+        isCollapsed ? 'justify-center w-full' : ''
+      }`}
     >
       <Icon className="h-5 w-5" />
+      {!isCollapsed && <span className="text-sm font-medium">Collapse</span>}
     </button>
   );
 }
