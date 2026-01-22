@@ -141,7 +141,10 @@ describeE2E('Invitation Flows', () => {
       // Wait for page to load
       await expect(page.locator('h1:has-text("Manage Invitations")')).toBeVisible({ timeout: 10000 });
 
-      // Fill out the invitation form (inline on this page)
+      // Click to show the invitation form
+      await page.click('button:has-text("Invite Instructor")');
+
+      // Fill out the invitation form
       await expect(page.locator('input[placeholder*="email"]')).toBeVisible({ timeout: 5000 });
       await page.fill('input[placeholder*="email"]', inviteeEmail);
 
@@ -209,7 +212,11 @@ describeE2E('Invitation Flows', () => {
       await page.goto('/namespace/invitations');
       await expect(page.locator('h1:has-text("Manage Invitations")')).toBeVisible({ timeout: 10000 });
 
+      // Click to show the invitation form
+      await page.click('button:has-text("Invite Instructor")');
+
       // Create initial invitation
+      await expect(page.locator('input[placeholder*="email"]')).toBeVisible({ timeout: 5000 });
       await page.fill('input[placeholder*="email"]', inviteeEmail);
       await page.click('button:has-text("Send Invitation")');
 
