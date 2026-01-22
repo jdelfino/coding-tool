@@ -5,7 +5,7 @@
  * Provides the overall layout structure with header, sidebar, content, and panels.
  */
 
-import { useState, ReactNode } from 'react';
+import { useState, ReactNode, Suspense } from 'react';
 import { GlobalHeader } from './GlobalHeader';
 import { Sidebar } from './Sidebar';
 import { MobileNav } from './MobileNav';
@@ -46,18 +46,22 @@ export function AppShell({
       {/* Main content area */}
       <div className="flex-1 flex overflow-hidden">
         {/* Desktop sidebar */}
-        <div className="hidden lg:block">
-          <Sidebar
-            collapsed={sidebarCollapsed}
-            onToggleCollapse={sidebarCollapsedProp === undefined ? toggleCollapsed : undefined}
-          />
+        <div className="hidden lg:block h-full">
+          <Suspense fallback={<div className={`bg-white border-r border-gray-200 h-full ${sidebarCollapsed ? 'w-16' : 'w-64'}`} />}>
+            <Sidebar
+              collapsed={sidebarCollapsed}
+              onToggleCollapse={sidebarCollapsedProp === undefined ? toggleCollapsed : undefined}
+            />
+          </Suspense>
         </div>
 
         {/* Mobile navigation drawer */}
-        <MobileNav isOpen={mobileNavOpen} onClose={() => setMobileNavOpen(false)} />
+        <Suspense fallback={null}>
+          <MobileNav isOpen={mobileNavOpen} onClose={() => setMobileNavOpen(false)} />
+        </Suspense>
 
         {/* Main content */}
-        <main className="flex-1 overflow-auto">
+        <main className="flex-1 overflow-auto p-6">
           {children}
         </main>
 

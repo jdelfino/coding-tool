@@ -9,8 +9,10 @@ import { Sidebar } from '../Sidebar';
 
 // Mock next/navigation
 const mockPathname = jest.fn();
+const mockSearchParams = jest.fn();
 jest.mock('next/navigation', () => ({
   usePathname: () => mockPathname(),
+  useSearchParams: () => mockSearchParams(),
 }));
 
 // Mock useAuth
@@ -25,6 +27,7 @@ describe('Sidebar', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockPathname.mockReturnValue('/instructor');
+    mockSearchParams.mockReturnValue(new URLSearchParams());
     mockUser.mockReturnValue({
       id: 'user1',
       email: 'test@example.com',

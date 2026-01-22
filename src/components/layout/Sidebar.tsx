@@ -8,7 +8,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { getNavItemsForRole, getNavGroupsForRole, NavGroup, NavItem } from '@/config/navigation';
 import { SidebarToggle } from './SidebarToggle';
@@ -67,11 +67,12 @@ interface NavGroupSectionProps {
   group: NavGroup;
   items: NavItem[];
   pathname: string;
+  searchParams: URLSearchParams | null;
   collapsed: boolean;
   isFirst: boolean;
 }
 
-function NavGroupSection({ group, items, pathname, collapsed, isFirst }: NavGroupSectionProps) {
+function NavGroupSection({ group, items, pathname, searchParams, collapsed, isFirst }: NavGroupSectionProps) {
   const groupItems = items.filter(item => item.group === group);
 
   if (groupItems.length === 0) {
@@ -90,7 +91,7 @@ function NavGroupSection({ group, items, pathname, collapsed, isFirst }: NavGrou
           <NavItemLink
             key={item.id}
             item={item}
-            isActive={isPathActive(item.href, pathname)}
+            isActive={isPathActive(item.href, pathname, searchParams ?? undefined)}
             collapsed={collapsed}
           />
         ))}
@@ -100,18 +101,35 @@ function NavGroupSection({ group, items, pathname, collapsed, isFirst }: NavGrou
 }
 
 /**
- * Check if a nav item's href matches the current pathname.
+ * Check if a nav item's href matches the current pathname and search params.
  */
-function isPathActive(href: string, pathname: string): boolean {
-  // Handle query parameters in hrefs
-  const hrefPath = href.split('?')[0];
+function isPathActive(href: string, pathname: string, searchParams?: URLSearchParams): boolean {
+  const [hrefPath, hrefQuery] = href.split('?');
 
-  // Exact match
+  // For hrefs with query params (like /instructor?view=sessions),
+  // require exact path AND query param match
+  if (hrefQuery) {
+    if (pathname !== hrefPath) {
+      return false;
+    }
+    // Check if the view param matches
+    const hrefParams = new URLSearchParams(hrefQuery);
+    const hrefView = hrefParams.get('view');
+    const currentView = searchParams?.get('view');
+    return hrefView === currentView;
+  }
+
+  // For hrefs without query params (like /instructor),
+  // match only when there's no view param in current URL
   if (pathname === hrefPath) {
+    // If this is /instructor without query, only match when no view param
+    if (hrefPath === '/instructor') {
+      return !searchParams?.get('view');
+    }
     return true;
   }
 
-  // For paths like /instructor, also match /instructor/...
+  // For paths like /classes, also match /classes/...
   if (hrefPath !== '/' && pathname.startsWith(hrefPath + '/')) {
     return true;
   }
@@ -122,6 +140,7 @@ function isPathActive(href: string, pathname: string): boolean {
 export function Sidebar({ collapsed = false, onToggleCollapse }: SidebarProps) {
   const { user } = useAuth();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
 
   const role = user?.role || 'student';
   const navItems = getNavItemsForRole(role);
@@ -142,6 +161,7 @@ export function Sidebar({ collapsed = false, onToggleCollapse }: SidebarProps) {
             group={group}
             items={navItems}
             pathname={pathname}
+            searchParams={searchParams}
             collapsed={collapsed}
             isFirst={index === 0}
           />

@@ -8,7 +8,7 @@
 import React, { useEffect } from 'react';
 import { X } from 'lucide-react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { getNavItemsForRole, getNavGroupsForRole, NavGroup, NavItem } from '@/config/navigation';
 import { getIconComponent } from './iconMap';
@@ -31,16 +31,37 @@ const GROUP_LABELS: Record<NavGroup, string> = {
 };
 
 /**
- * Check if a nav item's href matches the current pathname.
+ * Check if a nav item's href matches the current pathname and search params.
  */
-function isPathActive(href: string, pathname: string): boolean {
-  const hrefPath = href.split('?')[0];
+function isPathActive(href: string, pathname: string, searchParams?: URLSearchParams | null): boolean {
+  const [hrefPath, hrefQuery] = href.split('?');
+
+  // For hrefs with query params (like /instructor?view=sessions),
+  // require exact path AND query param match
+  if (hrefQuery) {
+    if (pathname !== hrefPath) {
+      return false;
+    }
+    const hrefParams = new URLSearchParams(hrefQuery);
+    const hrefView = hrefParams.get('view');
+    const currentView = searchParams?.get('view');
+    return hrefView === currentView;
+  }
+
+  // For hrefs without query params (like /instructor),
+  // match only when there's no view param in current URL
   if (pathname === hrefPath) {
+    if (hrefPath === '/instructor') {
+      return !searchParams?.get('view');
+    }
     return true;
   }
+
+  // For paths like /classes, also match /classes/...
   if (hrefPath !== '/' && pathname.startsWith(hrefPath + '/')) {
     return true;
   }
+
   return false;
 }
 
@@ -79,11 +100,12 @@ interface MobileNavGroupProps {
   group: NavGroup;
   items: NavItem[];
   pathname: string;
+  searchParams: URLSearchParams | null;
   onClose: () => void;
   isFirst: boolean;
 }
 
-function MobileNavGroup({ group, items, pathname, onClose, isFirst }: MobileNavGroupProps) {
+function MobileNavGroup({ group, items, pathname, searchParams, onClose, isFirst }: MobileNavGroupProps) {
   const groupItems = items.filter(item => item.group === group);
 
   if (groupItems.length === 0) {
@@ -100,7 +122,7 @@ function MobileNavGroup({ group, items, pathname, onClose, isFirst }: MobileNavG
           <MobileNavItem
             key={item.id}
             item={item}
-            isActive={isPathActive(item.href, pathname)}
+            isActive={isPathActive(item.href, pathname, searchParams)}
             onClose={onClose}
           />
         ))}
@@ -112,6 +134,7 @@ function MobileNavGroup({ group, items, pathname, onClose, isFirst }: MobileNavG
 export function MobileNav({ isOpen, onClose }: MobileNavProps) {
   const { user } = useAuth();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
 
   const role = user?.role || 'student';
   const navItems = getNavItemsForRole(role);
@@ -190,6 +213,7 @@ export function MobileNav({ isOpen, onClose }: MobileNavProps) {
               group={group}
               items={navItems}
               pathname={pathname}
+              searchParams={searchParams}
               onClose={onClose}
               isFirst={index === 0}
             />
