@@ -46,9 +46,18 @@ function InstructorPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  // Navigation state
-  const initialView = (searchParams.get('view') as ViewMode) || 'classes';
-  const [viewMode, setViewMode] = useState<ViewMode>(initialView);
+  // Navigation state - sync with URL searchParams
+  const [viewMode, setViewMode] = useState<ViewMode>(() => {
+    return (searchParams.get('view') as ViewMode) || 'classes';
+  });
+
+  // Sync viewMode when URL changes (e.g., from sidebar navigation)
+  useEffect(() => {
+    const urlView = (searchParams.get('view') as ViewMode) || 'classes';
+    if (urlView !== viewMode) {
+      setViewMode(urlView);
+    }
+  }, [searchParams]);
   const [classContext, setClassContext] = useState<ClassContext | null>(null);
   const [sessionContext, setSessionContext] = useState<SessionContext | null>(null);
   const [problemSubView, setProblemSubView] = useState<'library' | 'creator'>('library');
