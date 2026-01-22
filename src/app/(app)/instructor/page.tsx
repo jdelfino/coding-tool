@@ -1,6 +1,18 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, useCallback, Suspense } from 'react';
+/**
+ * Instructor Page
+ *
+ * Main instructor dashboard with navigation between:
+ * - Classes (default view)
+ * - Sections (within a class)
+ * - Problems library
+ * - Sessions list
+ * - Session details
+ * - Active session view (using SessionView component)
+ */
+
+import React, { useState, useEffect, useMemo, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useRealtimeSession } from '@/hooks/useRealtimeSession';
 import { useSessionOperations } from '@/hooks/useSessionOperations';
@@ -9,34 +21,13 @@ import NamespaceHeader from '@/components/NamespaceHeader';
 import { ErrorAlert } from '@/components/ErrorAlert';
 import ClassList from './components/ClassList';
 import SectionView from './components/SectionView';
-import SessionControls from './components/SessionControls';
-import StudentList from './components/StudentList';
-import CodeEditor from '@/app/(fullscreen)/student/components/CodeEditor';
-import { EditorContainer } from '@/app/(fullscreen)/student/components/EditorContainer';
-import RevisionViewer from './components/RevisionViewer';
 import ProblemLibrary from './components/ProblemLibrary';
 import ProblemCreator from './components/ProblemCreator';
-import ProblemLoader from './components/ProblemLoader';
 import SessionsList from './components/SessionsList';
 import SessionDetails from './components/SessionDetails';
+import { SessionView } from './components/SessionView';
 import { Problem, ExecutionSettings } from '@/server/types/problem';
-import SessionProblemEditor from './components/SessionProblemEditor';
-import WalkthroughPanel from './components/WalkthroughPanel';
 import { Breadcrumb, BreadcrumbItem } from '@/components/ui/Breadcrumb';
-import { PageBreadcrumb } from '@/components/layout';
-
-interface Student {
-  id: string;
-  name: string;
-  hasCode: boolean;
-  randomSeed?: number; // For backward compatibility, kept here for display
-  attachedFiles?: Array<{ name: string; content: string }>; // For backward compatibility
-  executionSettings?: {
-    randomSeed?: number;
-    stdin?: string;
-    attachedFiles?: Array<{ name: string; content: string }>;
-  };
-}
 
 type ViewMode = 'classes' | 'sections' | 'problems' | 'sessions' | 'session' | 'details';
 
@@ -55,7 +46,7 @@ function InstructorPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  // Navigation state - initialize viewMode from URL if present
+  // Navigation state
   const initialView = (searchParams.get('view') as ViewMode) || 'classes';
   const [viewMode, setViewMode] = useState<ViewMode>(initialView);
   const [classContext, setClassContext] = useState<ClassContext | null>(null);
@@ -67,25 +58,13 @@ function InstructorPage() {
   // Session state
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [joinCode, setJoinCode] = useState<string | null>(null);
-  const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
-  const [selectedStudentCode, setSelectedStudentCode] = useState<string>('');
-  const [executionResult, setExecutionResult] = useState<any>(null);
-  const [isExecutingCode, setIsExecutingCode] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isCreatingSession, setIsCreatingSession] = useState(false);
-  const [revisionViewerState, setRevisionViewerState] = useState<{
-    studentId: string;
-    studentName: string;
-  } | null>(null);
-  const [showProblemLoader, setShowProblemLoader] = useState(false);
 
-  // Session tab state for instructor session view
-  const [sessionTab, setSessionTab] = useState<'problem' | 'students' | 'walkthrough'>('problem');
-
-  // Refresh trigger for SessionsList (increment to force refresh)
+  // Refresh trigger for SessionsList
   const [sessionsListRefreshTrigger, setSessionsListRefreshTrigger] = useState(0);
 
-  // Session execution settings
+  // Session problem state (synced from realtime)
   const [sessionProblem, setSessionProblem] = useState<Problem | null>(null);
   const [sessionExecutionSettings, setSessionExecutionSettings] = useState<{
     stdin?: string;
@@ -97,7 +76,6 @@ function InstructorPage() {
   const {
     session: realtimeSession,
     students: realtimeStudents,
-    featuredStudent,
     isConnected,
     connectionStatus,
     connectionError,
@@ -113,10 +91,7 @@ function InstructorPage() {
   const {
     createSession: apiCreateSession,
     endSession: apiEndSession,
-    loadProblem: apiLoadProblem,
     updateProblem: apiUpdateProblem,
-    loading: operationsLoading,
-    error: operationsError,
   } = useSessionOperations();
 
   // Derive students array from realtime data
@@ -134,16 +109,14 @@ function InstructorPage() {
     [realtimeStudents]
   );
 
-  // Build breadcrumb items based on current view and context
+  // Build breadcrumb items
   const breadcrumbItems = useMemo((): BreadcrumbItem[] => {
     const items: BreadcrumbItem[] = [];
 
-    // Handle problem creator view (no breadcrumbs)
     if (viewMode === 'problems' && problemSubView === 'creator') {
       return [];
     }
 
-    // Add Classes as root for class-based navigation
     if (viewMode === 'classes' || viewMode === 'sections' || viewMode === 'session') {
       if (viewMode === 'classes') {
         items.push({ label: 'Classes' });
@@ -152,12 +125,10 @@ function InstructorPage() {
       }
     }
 
-    // Add Problems as root for problem library navigation
     if (viewMode === 'problems') {
       items.push({ label: 'Problems' });
     }
 
-    // Add Sessions as root for sessions navigation
     if (viewMode === 'sessions' || viewMode === 'details') {
       if (viewMode === 'sessions') {
         items.push({ label: 'Sessions' });
@@ -166,7 +137,6 @@ function InstructorPage() {
       }
     }
 
-    // Add class name if we have class context
     if (classContext && (viewMode === 'sections' || viewMode === 'session')) {
       if (viewMode === 'sections') {
         items.push({ label: classContext.className });
@@ -175,12 +145,10 @@ function InstructorPage() {
       }
     }
 
-    // Add section name for active session
     if (sessionContext && viewMode === 'session') {
       items.push({ label: sessionContext.sectionName });
     }
 
-    // Add Session Details for details view
     if (viewMode === 'details') {
       items.push({ label: 'Session Details' });
     }
@@ -188,7 +156,7 @@ function InstructorPage() {
     return items;
   }, [viewMode, classContext, sessionContext, problemSubView]);
 
-  // Update URL when viewMode changes to preserve on refresh
+  // Update URL when viewMode changes
   useEffect(() => {
     if (viewMode && viewMode !== 'session') {
       const url = new URL(window.location.href);
@@ -200,22 +168,9 @@ function InstructorPage() {
   // Sync state from Realtime session
   useEffect(() => {
     if (!realtimeSession) return;
-
-    // Update local state from Realtime
     setSessionProblem(realtimeSession.problem || null);
     setSessionExecutionSettings(realtimeSession.problem?.executionSettings || {});
-    // Note: joinCode comes from section, not session - already set when creating session
   }, [realtimeSession]);
-
-  // Update selected student code when realtime students change
-  useEffect(() => {
-    if (!selectedStudentId) return;
-
-    const student = realtimeStudents.find(s => s.id === selectedStudentId);
-    if (student) {
-      setSelectedStudentCode(student.code || '');
-    }
-  }, [realtimeStudents, selectedStudentId]);
 
   // Navigation handlers
   const handleSelectClass = async (classId: string) => {
@@ -240,21 +195,7 @@ function InstructorPage() {
     setViewMode('classes');
   };
 
-  const handleNavigate = (view: 'classes' | 'problems' | 'sessions') => {
-    if (view === 'problems') {
-      setViewMode('problems');
-      setProblemSubView('library'); // Reset to library view when navigating to problems
-      setEditingProblemId(null); // Clear any editing state
-    } else if (view === 'classes') {
-      setClassContext(null);
-      setViewMode('classes');
-    } else if (view === 'sessions') {
-      setViewMode('sessions');
-    }
-  };
-
   const handleCreateSession = async (sectionId: string, sectionName: string) => {
-    // Check if instructor already has an active session
     if (sessionId) {
       const message = 'You already have an active session running. Please end your current session before starting a new one.';
       alert(message);
@@ -264,7 +205,7 @@ function InstructorPage() {
 
     setIsCreatingSession(true);
     setSessionContext({ sectionId, sectionName });
-    setViewMode('session'); // Switch to session view to show "Creating session..." message
+    setViewMode('session');
 
     try {
       const session = await apiCreateSession(sectionId, sectionName);
@@ -281,21 +222,12 @@ function InstructorPage() {
     }
   };
 
-  const handleJoinSession = (sessionId: string) => {
-    // With Realtime, just set the sessionId and the hook will subscribe
-    setSessionId(sessionId);
+  const handleJoinSession = (sessionIdToJoin: string) => {
+    setSessionId(sessionIdToJoin);
     setViewMode('session');
   };
 
   const handleLeaveSession = () => {
-    // Navigate away from session view without ending the session
-    // Session continues running in the background
-    setSelectedStudentId(null);
-    setSelectedStudentCode('');
-    setExecutionResult(null);
-    setRevisionViewerState(null);
-
-    // Navigate based on context
     if (classContext) {
       setViewMode('sections');
     } else {
@@ -304,50 +236,23 @@ function InstructorPage() {
   };
 
   const handleEndSession = async () => {
-    if (!sessionId) {
-      return;
-    }
+    if (!sessionId) return;
 
-    // Determine navigation target based on where we came from
     const targetView = viewMode === 'sessions' ? 'sessions' : (classContext ? 'sections' : 'classes');
 
     try {
       await apiEndSession(sessionId);
-
-      // Clear sessionId from URL and set the correct view parameter
       router.replace(`/instructor?view=${targetView}`);
 
-      // Clear ALL session-related state immediately
       setSessionId(null);
       setJoinCode(null);
-      setSelectedStudentId(null);
-      setSelectedStudentCode('');
-      setExecutionResult(null);
-      setRevisionViewerState(null);
       setSessionProblem(null);
       setSessionExecutionSettings({});
       setSessionContext(null);
-
-      // Navigate based on context
       setViewMode(targetView);
     } catch (err: any) {
       setError(err.message || 'Failed to end session');
     }
-  };
-
-  const handleOpenProblemLoader = () => {
-    setShowProblemLoader(true);
-  };
-
-  const handleCloseProblemLoader = () => {
-    setShowProblemLoader(false);
-  };
-
-  const handleProblemLoaded = (problemId: string) => {
-    // The problem will be broadcast via WebSocket PROBLEM_UPDATE message
-    // which will update the session state automatically
-    setShowProblemLoader(false);
-    // Could optionally show a success toast notification here
   };
 
   const handleUpdateProblem = async (
@@ -362,57 +267,30 @@ function InstructorPage() {
 
     try {
       await apiUpdateProblem(sessionId, problem, executionSettings);
-      // State updates automatically via Realtime subscription
     } catch (err: any) {
       setError(err.message || 'Failed to update problem');
     }
   };
 
-  const handleSelectStudent = (studentId: string) => {
-    setSelectedStudentId(studentId);
-    setExecutionResult(null);
-    // Code will be automatically updated from realtimeStudents via useEffect
-  };
-
-  const handleExecuteStudentCode = async (executionSettings: ExecutionSettings) => {
-    if (!selectedStudentId || !sessionId) return;
-
-    setIsExecutingCode(true);
-    setExecutionResult(null);
-
-    try {
-      const result = await executeCode(selectedStudentId, selectedStudentCode, executionSettings);
-      setExecutionResult(result);
-    } catch (err: any) {
-      setError(err.message || 'Failed to execute code');
-    } finally {
-      setIsExecutingCode(false);
-    }
-  };
-
-  const handleViewRevisions = (studentId: string, studentName: string) => {
-    setRevisionViewerState({
-      studentId,
-      studentName,
-    });
-  };
-
-  const handleCloseRevisionViewer = () => {
-    setRevisionViewerState(null);
-  };
-
-  const handleShowOnPublicView = async (studentId: string) => {
+  const handleFeatureStudent = async (studentId: string) => {
     if (!sessionId) return;
 
     try {
       await featureStudent(studentId);
-      // State updates automatically via Realtime
     } catch (err: any) {
       setError(err.message || 'Failed to feature student');
     }
   };
 
-  // Render different views based on mode
+  const handleExecuteCode = async (
+    studentId: string,
+    code: string,
+    executionSettings: ExecutionSettings
+  ) => {
+    return executeCode(studentId, code, executionSettings);
+  };
+
+  // Render content based on view mode
   const renderContent = () => {
     if (viewMode === 'classes') {
       return <ClassList onSelectClass={handleSelectClass} />;
@@ -430,14 +308,13 @@ function InstructorPage() {
       );
     }
 
-    // Problems view with library/creator sub-views
     if (viewMode === 'problems') {
       if (problemSubView === 'creator') {
         return (
           <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
             <ProblemCreator
               problemId={editingProblemId}
-              onProblemCreated={(id) => {
+              onProblemCreated={() => {
                 setProblemSubView('library');
                 setEditingProblemId(null);
               }}
@@ -469,22 +346,19 @@ function InstructorPage() {
         <SessionsList
           refreshTrigger={sessionsListRefreshTrigger}
           onRejoinSession={(sessionIdToJoin) => {
-            // With Realtime, just set the sessionId and navigate
             setSessionId(sessionIdToJoin);
             setViewMode('session');
           }}
           onEndSession={async (sessionIdToEnd) => {
             try {
               await apiEndSession(sessionIdToEnd);
-              // Trigger refresh of sessions list
               setSessionsListRefreshTrigger(prev => prev + 1);
             } catch (err: any) {
               alert(`Failed to end session: ${err.message || 'Unknown error'}`);
             }
           }}
-          onViewDetails={(sessionId) => {
-            // Navigate to details view for completed sessions
-            setDetailsSessionId(sessionId);
+          onViewDetails={(id) => {
+            setDetailsSessionId(id);
             setViewMode('details');
           }}
         />
@@ -504,7 +378,6 @@ function InstructorPage() {
     }
 
     if (viewMode === 'session') {
-      // Show loading state while creating session
       if (isCreatingSession) {
         return (
           <div className="text-center py-12">
@@ -521,7 +394,6 @@ function InstructorPage() {
         );
       }
 
-      // Only render session content once we have sessionId
       if (!sessionId) {
         return (
           <div className="text-center py-12">
@@ -536,124 +408,20 @@ function InstructorPage() {
       }
 
       return (
-        <div className="space-y-6">
-          <SessionControls
-            sessionId={sessionId}
-            sectionName={sessionContext?.sectionName}
-            joinCode={joinCode || undefined}
-            connectedStudentCount={students.length}
-            onEndSession={handleEndSession}
-            onLeaveSession={handleLeaveSession}
-            onLoadProblem={handleOpenProblemLoader}
-          />
-
-          {/* Tabbed Interface */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-            {/* Tab Headers */}
-            <div className="flex border-b border-gray-200">
-              <button
-                onClick={() => setSessionTab('problem')}
-                className={`flex-1 px-6 py-3 text-sm font-medium transition-colors ${
-                  sessionTab === 'problem'
-                    ? 'bg-blue-50 text-blue-700 border-b-2 border-blue-600'
-                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                }`}
-              >
-                📝 Problem Setup
-              </button>
-              <button
-                onClick={() => setSessionTab('students')}
-                className={`flex-1 px-6 py-3 text-sm font-medium transition-colors ${
-                  sessionTab === 'students'
-                    ? 'bg-blue-50 text-blue-700 border-b-2 border-blue-600'
-                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                }`}
-              >
-                👥 Student Code {students.length > 0 && `(${students.length})`}
-              </button>
-              <button
-                onClick={() => setSessionTab('walkthrough')}
-                className={`flex-1 px-6 py-3 text-sm font-medium transition-colors ${
-                  sessionTab === 'walkthrough'
-                    ? 'bg-blue-50 text-blue-700 border-b-2 border-blue-600'
-                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                }`}
-              >
-                🤖 AI Walkthrough
-              </button>
-            </div>
-
-            {/* Tab Content */}
-            <div className="p-6">
-              {sessionTab === 'problem' && (
-                <SessionProblemEditor
-                  onUpdateProblem={handleUpdateProblem}
-                  initialProblem={sessionProblem}
-                  initialExecutionSettings={sessionExecutionSettings}
-                />
-              )}
-              {sessionTab === 'students' && (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <StudentList
-                    students={students}
-                    onSelectStudent={handleSelectStudent}
-                    onShowOnPublicView={handleShowOnPublicView}
-                    onViewHistory={handleViewRevisions}
-                    joinCode={joinCode || undefined}
-                  />
-
-                  {selectedStudentId && (
-                    <div>
-                      <div style={{ marginBottom: '1rem' }}>
-                        <h3 style={{ margin: '0 0 0.5rem 0' }}>
-                          {students.find(s => s.id === selectedStudentId)?.name || 'Student'}'s Code
-                        </h3>
-                      </div>
-                      <EditorContainer height="500px">
-                        <CodeEditor
-                          code={selectedStudentCode}
-                          onChange={() => {}} // Read-only for instructor
-                          onRun={handleExecuteStudentCode}
-                          isRunning={isExecutingCode}
-                          exampleInput={sessionExecutionSettings.stdin}
-                          randomSeed={students.find(s => s.id === selectedStudentId)?.executionSettings?.randomSeed}
-                          attachedFiles={students.find(s => s.id === selectedStudentId)?.executionSettings?.attachedFiles}
-                          readOnly
-                          problem={sessionProblem}
-                          executionResult={executionResult}
-                        />
-                      </EditorContainer>
-                    </div>
-                  )}
-                </div>
-              )}
-              {sessionTab === 'walkthrough' && sessionId && (
-                <WalkthroughPanel
-                  sessionId={sessionId}
-                  onFeatureStudent={handleShowOnPublicView}
-                  studentCount={students.length}
-                />
-              )}
-            </div>
-          </div>
-
-          {revisionViewerState && (
-            <RevisionViewer
-              sessionId={sessionId}
-              studentId={revisionViewerState.studentId}
-              studentName={revisionViewerState.studentName}
-              onClose={handleCloseRevisionViewer}
-            />
-          )}
-
-          {showProblemLoader && (
-            <ProblemLoader
-              sessionId={sessionId}
-              onProblemLoaded={handleProblemLoaded}
-              onClose={handleCloseProblemLoader}
-            />
-          )}
-        </div>
+        <SessionView
+          sessionId={sessionId}
+          joinCode={joinCode}
+          sessionContext={sessionContext}
+          students={students}
+          realtimeStudents={realtimeStudents}
+          sessionProblem={sessionProblem}
+          sessionExecutionSettings={sessionExecutionSettings}
+          onEndSession={handleEndSession}
+          onLeaveSession={handleLeaveSession}
+          onUpdateProblem={handleUpdateProblem}
+          onFeatureStudent={handleFeatureStudent}
+          executeCode={handleExecuteCode}
+        />
       );
     }
 
@@ -662,51 +430,34 @@ function InstructorPage() {
 
   return (
     <div className="space-y-6" style={{ padding: viewMode === 'problems' && problemSubView === 'creator' ? '0' : undefined }}>
-      {/* Page header with namespace context and connection status */}
+      {/* Page header */}
       {!(viewMode === 'problems' && problemSubView === 'creator') && (
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <NamespaceHeader className="text-sm" />
           </div>
-          {/* Connection status */}
           <div className="flex items-center gap-2">
-            <div className={`w-2 h-2 rounded-full ${
-              isConnected ? 'bg-green-500' : 'bg-red-500'
-            }`}></div>
-            <span className="text-sm text-gray-600">
-              {connectionStatus}
-            </span>
+            <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
+            <span className="text-sm text-gray-600">{connectionStatus}</span>
           </div>
         </div>
       )}
 
-      {/* Breadcrumb navigation */}
+      {/* Breadcrumb */}
       {breadcrumbItems.length > 0 && (
-        <Breadcrumb
-          items={breadcrumbItems}
-          separator="/"
-          className="px-1"
-        />
+        <Breadcrumb items={breadcrumbItems} separator="/" className="px-1" />
       )}
 
+      {/* Errors */}
       {connectionError && (
-        <ErrorAlert
-          error={connectionError}
-          title="Connection Error"
-          variant="warning"
-          showHelpText={true}
-        />
+        <ErrorAlert error={connectionError} title="Connection Error" variant="warning" showHelpText={true} />
       )}
 
       {error && (
-        <ErrorAlert
-          error={error}
-          onDismiss={() => setError(null)}
-          showHelpText={true}
-        />
+        <ErrorAlert error={error} onDismiss={() => setError(null)} showHelpText={true} />
       )}
 
-      {isCreatingSession && (
+      {isCreatingSession && viewMode !== 'session' && (
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-blue-700">
           <div className="flex items-center gap-3">
             <div className="animate-spin w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full"></div>
