@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import CodeEditor from '@/app/student/components/CodeEditor';
-import { EditorContainer } from '@/app/student/components/EditorContainer';
+import CodeEditor from '@/app/(fullscreen)/student/components/CodeEditor';
+import { EditorContainer } from '@/app/(fullscreen)/student/components/EditorContainer';
 import { BackButton } from '@/components/ui/BackButton';
 
 interface SessionDetailsProps {

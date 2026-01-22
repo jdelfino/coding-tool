@@ -32,7 +32,7 @@ jest.mock('@/hooks/useResponsiveLayout', () => ({
 }));
 
 // Mock the CodeEditor component
-jest.mock('@/app/student/components/CodeEditor', () => {
+jest.mock('@/app/(fullscreen)/student/components/CodeEditor', () => {
   return function MockCodeEditor({
     code,
     onChange,

@@ -12,8 +12,8 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import type { ProblemInput } from '@/server/types/problem';
-import CodeEditor from '@/app/student/components/CodeEditor';
-import { EditorContainer } from '@/app/student/components/EditorContainer';
+import CodeEditor from '@/app/(fullscreen)/student/components/CodeEditor';
+import { EditorContainer } from '@/app/(fullscreen)/student/components/EditorContainer';
 import { useDebugger } from '@/hooks/useDebugger';
 
 interface ProblemCreatorProps {

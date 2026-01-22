@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import CodeEditor from '../../student/components/CodeEditor';
+import CodeEditor from '@/app/(fullscreen)/student/components/CodeEditor';
 
 interface CodeViewerProps {
   code: string;

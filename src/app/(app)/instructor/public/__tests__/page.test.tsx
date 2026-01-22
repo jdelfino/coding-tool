@@ -74,7 +74,7 @@ jest.mock('@/hooks/useApiDebugger', () => ({
 let lastCodeEditorProps: any = null;
 
 // Mock CodeEditor component
-jest.mock('@/app/student/components/CodeEditor', () => {
+jest.mock('@/app/(fullscreen)/student/components/CodeEditor', () => {
   return function MockCodeEditor(props: any) {
     lastCodeEditorProps = props;
     return (

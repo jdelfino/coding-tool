@@ -4,7 +4,7 @@ import React, { useEffect, useState, useCallback, Suspense, useRef } from 'react
 import { useSearchParams } from 'next/navigation';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { Problem } from '@/server/types/problem';
-import CodeEditor from '@/app/student/components/CodeEditor';
+import CodeEditor from '@/app/(fullscreen)/student/components/CodeEditor';
 import { useApiDebugger } from '@/hooks/useApiDebugger';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 

@@ -58,7 +58,7 @@ jest.mock('@/hooks/useResponsiveLayout', () => ({
 }));
 
 // Mock CodeEditor component
-jest.mock('@/app/student/components/CodeEditor', () => {
+jest.mock('@/app/(fullscreen)/student/components/CodeEditor', () => {
   return function MockCodeEditor({ code, onChange, title, useApiExecution, problem, onProblemEdit, editableProblem }: any) {
     return (
       <div data-testid={`code-editor-${title}`}>

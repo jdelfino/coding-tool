@@ -21,7 +21,7 @@ import '@testing-library/jest-dom';
 // dependencies, we test the CodeEditor directly with the props pattern used
 // by the instructor page.
 
-import CodeEditor from '@/app/student/components/CodeEditor';
+import CodeEditor from '@/app/(fullscreen)/student/components/CodeEditor';
 
 // Mock Monaco Editor
 jest.mock('@monaco-editor/react', () => {
@@ -31,7 +31,7 @@ jest.mock('@monaco-editor/react', () => {
 });
 
 // Mock ExecutionSettings
-jest.mock('@/app/student/components/ExecutionSettings', () => {
+jest.mock('@/app/(fullscreen)/student/components/ExecutionSettings', () => {
   return function MockExecutionSettings() {
     return <div data-testid="execution-settings">Settings</div>;
   };
