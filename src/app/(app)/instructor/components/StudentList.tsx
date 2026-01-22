@@ -29,7 +29,7 @@ export default function StudentList({ students, onSelectStudent, onShowOnPublicV
           <p className="m-0">Loading students...</p>
         </div>
       ) : students.length === 0 ? (
-        <div className="bg-gray-50 p-4 rounded mt-2">
+        <div className="bg-gray-50 p-4 mt-2">
           <p className="text-gray-500 mb-2">
             Waiting for students to join the session.
           </p>
