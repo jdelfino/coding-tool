@@ -15,7 +15,7 @@
 
 import { test, expect } from './helpers/setup';
 import { hasSupabaseCredentials, generateTestNamespaceId, cleanupNamespace } from './helpers/db-helpers';
-import { loginAsSystemAdmin } from './fixtures/auth-helpers';
+import { loginAsSystemAdmin, signInAs } from './fixtures/auth-helpers';
 import { getSupabaseAdmin, createTestClass, createTestSection } from './helpers/test-data';
 import { waitForEmail, extractInviteLink, clearMailbox } from './helpers/inbucket-client';
 
@@ -125,15 +125,8 @@ describeE2E('Invitation Flows', () => {
       // Clear any existing emails
       await clearMailbox(inviteeEmail);
 
-      // Sign in as namespace admin (created during sign-in)
-      const nsAdmin = await loginAsSystemAdmin(page, `nsadmin-${namespaceId}`);
-
-      // For this test, we need to manually update the user to be namespace-admin
-      // and change their namespace
-      await supabase
-        .from('user_profiles')
-        .update({ role: 'namespace-admin', namespace_id: namespaceId })
-        .eq('id', nsAdmin.id);
+      // Sign in as namespace admin directly
+      await signInAs(page, `nsadmin-${namespaceId}`, 'namespace-admin', namespaceId);
 
       // Navigate to namespace invitations page
       await page.goto('/namespace/invitations');
@@ -199,14 +192,8 @@ describeE2E('Invitation Flows', () => {
       // Clear any existing emails
       await clearMailbox(inviteeEmail);
 
-      // Sign in as namespace admin
-      const nsAdmin = await loginAsSystemAdmin(page, `nsadmin-resend-${namespaceId}`);
-
-      // Update to namespace-admin role
-      await supabase
-        .from('user_profiles')
-        .update({ role: 'namespace-admin', namespace_id: namespaceId })
-        .eq('id', nsAdmin.id);
+      // Sign in as namespace admin directly
+      await signInAs(page, `nsadmin-resend-${namespaceId}`, 'namespace-admin', namespaceId);
 
       // Navigate to invitations page
       await page.goto('/namespace/invitations');
