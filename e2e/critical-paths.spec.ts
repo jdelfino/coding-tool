@@ -5,7 +5,10 @@ import {
   loginAsStudent,
   generateTestNamespaceId,
   createTestNamespace,
-  cleanupNamespace
+  cleanupNamespace,
+  navigateToSessions,
+  navigateToClasses,
+  navigateToDashboard,
 } from './fixtures/auth-helpers';
 
 /**
@@ -91,6 +94,16 @@ describeE2E('Critical User Paths', () => {
 
       // Wait for session to be created and session view to appear
       await expect(instructorPage.locator('h2:has-text("Active Session")')).toBeVisible({ timeout: 10000 });
+
+      // Navigate back to Dashboard via sidebar to verify sidebar navigation works
+      await navigateToDashboard(instructorPage);
+      await expect(instructorPage.locator('h2:has-text("Your Classes"), h3:has-text("No Classes Yet")').first()).toBeVisible({ timeout: 5000 });
+
+      // Navigate to Sessions via sidebar to verify the active session appears
+      await navigateToSessions(instructorPage);
+      await expect(instructorPage.locator('h2:has-text("Sessions")')).toBeVisible({ timeout: 5000 });
+      // The active session should be visible in the list
+      await expect(instructorPage.locator('text=Test Section')).toBeVisible({ timeout: 5000 });
 
       // ===== STUDENT FLOW =====
       // Student joins the section using the join code

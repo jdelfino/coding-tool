@@ -20,7 +20,9 @@ export default function ClassesPage() {
       return;
     }
 
-    if (user && user.role !== 'instructor') {
+    // Allow instructor, namespace-admin, and system-admin roles
+    const teachingRoles = ['instructor', 'namespace-admin', 'system-admin'];
+    if (user && !teachingRoles.includes(user.role)) {
       router.push('/');
       return;
     }
@@ -43,7 +45,8 @@ export default function ClassesPage() {
     );
   }
 
-  if (!user || user.role !== 'instructor') {
+  const canViewClasses = user && ['instructor', 'namespace-admin', 'system-admin'].includes(user.role);
+  if (!canViewClasses) {
     return null;
   }
 

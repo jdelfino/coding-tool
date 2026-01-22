@@ -16,7 +16,9 @@ import { hasSupabaseCredentials } from './helpers/db-helpers';
 import {
   loginAsSystemAdmin,
   generateTestNamespaceId,
-  cleanupNamespace
+  cleanupNamespace,
+  navigateToNamespaces,
+  navigateToUserManagement,
 } from './fixtures/auth-helpers';
 
 // Skip E2E tests if Supabase is not configured
@@ -70,12 +72,20 @@ describeE2E('System Admin Core Flows', () => {
       // Verify the users list heading is shown (will be empty for new namespace)
       await expect(page.getByRole('heading', { name: /Users/ })).toBeVisible({ timeout: 5000 });
 
-      // Navigate back to system dashboard (BackButton renders as a link when using href)
-      await page.click('a:has-text("Back to System Admin")');
+      // Navigate back to system dashboard via sidebar (tests sidebar navigation)
+      await navigateToNamespaces(page);
       await expect(page).toHaveURL('/system');
 
       // Verify namespace still shows in the list (use specific selector to avoid header dropdown)
       await expect(page.locator('div.text-sm.text-gray-500.font-mono', { hasText: namespaceId })).toBeVisible();
+
+      // Navigate to User Management via sidebar
+      await navigateToUserManagement(page);
+      await expect(page).toHaveURL('/admin');
+      await expect(page.locator('h1:has-text("User Management")')).toBeVisible({ timeout: 5000 });
+
+      // Navigate back to Namespaces via sidebar
+      await navigateToNamespaces(page);
 
       // Verify Invitations tab exists and is accessible
       await page.click('button:has-text("Invitations")');

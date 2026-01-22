@@ -171,3 +171,69 @@ export async function signOut(page: Page): Promise<void> {
   // Wait for redirect to sign-in page
   await page.waitForURL('/auth/signin', { timeout: 5000 });
 }
+
+/**
+ * Navigate using the sidebar. This tests actual sidebar navigation
+ * rather than direct URL navigation.
+ * @param page - Playwright page
+ * @param itemName - The sidebar item label to click (e.g., "Dashboard", "Classes", "Sessions")
+ * @param expectedUrl - Optional URL pattern to wait for after navigation
+ */
+export async function navigateViaSidebar(
+  page: Page,
+  itemName: string,
+  expectedUrl?: string | RegExp
+): Promise<void> {
+  // Find and click the sidebar link
+  const sidebar = page.locator('aside[aria-label="Main navigation"]');
+  const link = sidebar.locator(`a:has-text("${itemName}")`);
+
+  await link.click();
+
+  // Wait for navigation if expected URL provided
+  if (expectedUrl) {
+    await page.waitForURL(expectedUrl, { timeout: 10000 });
+  }
+}
+
+/**
+ * Navigate to Sessions via sidebar
+ */
+export async function navigateToSessions(page: Page): Promise<void> {
+  await navigateViaSidebar(page, 'Sessions', '/instructor?view=sessions');
+}
+
+/**
+ * Navigate to Problems via sidebar
+ */
+export async function navigateToProblems(page: Page): Promise<void> {
+  await navigateViaSidebar(page, 'Problems', '/instructor?view=problems');
+}
+
+/**
+ * Navigate to Classes via sidebar
+ */
+export async function navigateToClasses(page: Page): Promise<void> {
+  await navigateViaSidebar(page, 'Classes', '/classes');
+}
+
+/**
+ * Navigate to Dashboard via sidebar
+ */
+export async function navigateToDashboard(page: Page): Promise<void> {
+  await navigateViaSidebar(page, 'Dashboard', '/instructor');
+}
+
+/**
+ * Navigate to User Management via sidebar (admin only)
+ */
+export async function navigateToUserManagement(page: Page): Promise<void> {
+  await navigateViaSidebar(page, 'User Management', '/admin');
+}
+
+/**
+ * Navigate to Namespaces via sidebar (system admin only)
+ */
+export async function navigateToNamespaces(page: Page): Promise<void> {
+  await navigateViaSidebar(page, 'Namespaces', '/system');
+}
