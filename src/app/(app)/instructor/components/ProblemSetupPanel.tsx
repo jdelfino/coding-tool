@@ -49,8 +49,8 @@ export function ProblemSetupPanel({
 }: ProblemSetupPanelProps) {
   const content = (
     <div className={isFullWidth ? 'p-6' : 'space-y-4'}>
-      {/* Show problem title when available */}
-      {initialProblem?.title && (
+      {/* Show problem title when available - only in panel mode */}
+      {!isFullWidth && initialProblem?.title && (
         <div className="text-sm text-gray-600 pb-2 border-b border-gray-100 mb-4">
           <span className="font-medium">Current: </span>
           {initialProblem.title}
