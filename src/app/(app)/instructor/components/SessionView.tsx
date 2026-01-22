@@ -195,26 +195,30 @@ export function SessionView({
 
         {/* Students Tab - Student list + code editor */}
         <Tabs.Panel tabId="students" className="py-0">
-          <SessionStudentPane
-            students={students}
-            realtimeStudents={realtimeStudents}
-            sessionProblem={sessionProblem}
-            sessionExecutionSettings={sessionExecutionSettings}
-            joinCode={joinCode || undefined}
-            onShowOnPublicView={onFeatureStudent}
-            onViewHistory={handleViewRevisions}
-            onExecuteCode={handleExecuteCode}
-          />
+          <div className="bg-white border border-gray-200 p-4">
+            <SessionStudentPane
+              students={students}
+              realtimeStudents={realtimeStudents}
+              sessionProblem={sessionProblem}
+              sessionExecutionSettings={sessionExecutionSettings}
+              joinCode={joinCode || undefined}
+              onShowOnPublicView={onFeatureStudent}
+              onViewHistory={handleViewRevisions}
+              onExecuteCode={handleExecuteCode}
+            />
+          </div>
         </Tabs.Panel>
 
         {/* Problem Setup Tab - Full width for editor */}
         <Tabs.Panel tabId="problem" className="py-0">
-          <ProblemSetupPanel
-            onUpdateProblem={onUpdateProblem}
-            initialProblem={sessionProblem}
-            initialExecutionSettings={sessionExecutionSettings}
-            isFullWidth
-          />
+          <div className="bg-white border border-gray-200">
+            <ProblemSetupPanel
+              onUpdateProblem={onUpdateProblem}
+              initialProblem={sessionProblem}
+              initialExecutionSettings={sessionExecutionSettings}
+              isFullWidth
+            />
+          </div>
         </Tabs.Panel>
 
         {/* AI Walkthrough Tab */}

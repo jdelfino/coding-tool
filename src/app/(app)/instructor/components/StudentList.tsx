@@ -22,7 +22,7 @@ interface StudentListProps {
 
 export default function StudentList({ students, onSelectStudent, onShowOnPublicView, onViewHistory, joinCode, isLoading = false }: StudentListProps) {
   return (
-    <Card variant="outlined" className="p-4 mb-4">
+    <Card variant="outlined" className="p-4">
       <h3 className="text-lg font-semibold text-gray-900 mb-3">Connected Students ({students.length})</h3>
       {isLoading ? (
         <div className="text-gray-500 py-4">
