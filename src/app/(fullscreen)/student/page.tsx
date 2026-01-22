@@ -4,7 +4,6 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useSearchParams } from 'next/navigation';
 import { useRealtimeSession } from '@/hooks/useRealtimeSession';
-import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSessionHistory } from '@/hooks/useSessionHistory';
 import { Problem, ExecutionSettings } from '@/server/types/problem';
@@ -16,7 +15,7 @@ import SessionEndedNotification from './components/SessionEndedNotification';
 import { ConnectionStatus } from '@/components/ConnectionStatus';
 
 function StudentPage() {
-  const { user, signOut } = useAuth();
+  const { user } = useAuth();
   const searchParams = useSearchParams();
   const sessionIdFromUrl = searchParams.get('sessionId');
   const { refetch: refetchSessions } = useSessionHistory();
@@ -38,7 +37,6 @@ function StudentPage() {
   const [isRunning, setIsRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isJoining, setIsJoining] = useState(false);
-  const [isSigningOut, setIsSigningOut] = useState(false);
   const [sessionEnded, setSessionEnded] = useState(false);
   const [showReplaceCodeConfirm, setShowReplaceCodeConfirm] = useState(false);
   const [pendingStarterCode, setPendingStarterCode] = useState<string | null>(null);
@@ -271,20 +269,10 @@ function StudentPage() {
     );
   }
 
-  const handleSignOut = async () => {
-    setIsSigningOut(true);
-    try {
-      await signOut();
-    } catch (error) {
-      console.error('Sign out error:', error);
-      setIsSigningOut(false);
-    }
-  };
-
   // Active session view
   return (
     <main className="p-4 w-full h-screen box-border flex flex-col relative">
-      {/* Header with Sign Out */}
+      {/* Header */}
       <div className="flex justify-between items-center mb-4 flex-shrink-0">
         <div className="flex items-center gap-4">
           <h1 className="m-0">Live Coding Session</h1>
@@ -299,27 +287,12 @@ function StudentPage() {
             variant="badge"
           />
         </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={handleLeaveSession}
-            className="px-4 py-2 bg-transparent text-blue-500 border border-blue-500 rounded cursor-pointer text-sm hover:bg-blue-50"
-          >
-            Leave Session
-          </button>
-          <div className="flex items-center gap-4 px-4 py-2 bg-gray-50 rounded border border-gray-200">
-            <div className="flex flex-col items-end">
-              <span className="font-bold text-sm">{user?.displayName || user?.email}</span>
-              <span className="text-xs text-green-600 font-medium">Student</span>
-            </div>
-            <button
-              onClick={handleSignOut}
-              disabled={isSigningOut}
-              className="px-4 py-2 bg-red-500 text-white border-none rounded cursor-pointer text-sm disabled:opacity-60 disabled:cursor-not-allowed hover:bg-red-600"
-            >
-              {isSigningOut ? 'Signing out...' : 'Sign Out'}
-            </button>
-          </div>
-        </div>
+        <button
+          onClick={handleLeaveSession}
+          className="px-4 py-2 bg-transparent text-blue-500 border border-blue-500 rounded cursor-pointer text-sm hover:bg-blue-50"
+        >
+          Leave Session
+        </button>
       </div>
 
       {/* Connection Error */}
@@ -391,9 +364,5 @@ function StudentPage() {
 }
 
 export default function StudentPageWrapper() {
-  return (
-    <ProtectedRoute requiredRole="student">
-      <StudentPage />
-    </ProtectedRoute>
-  );
+  return <StudentPage />;
 }

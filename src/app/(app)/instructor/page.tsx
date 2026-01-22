@@ -4,7 +4,6 @@ import React, { useState, useEffect, useMemo, useCallback, Suspense } from 'reac
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useRealtimeSession } from '@/hooks/useRealtimeSession';
 import { useSessionOperations } from '@/hooks/useSessionOperations';
-import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { useAuth } from '@/contexts/AuthContext';
 import NamespaceHeader from '@/components/NamespaceHeader';
 import { ErrorAlert } from '@/components/ErrorAlert';
@@ -15,7 +14,6 @@ import StudentList from './components/StudentList';
 import CodeEditor from '@/app/(fullscreen)/student/components/CodeEditor';
 import { EditorContainer } from '@/app/(fullscreen)/student/components/EditorContainer';
 import RevisionViewer from './components/RevisionViewer';
-import InstructorNav from './components/InstructorNav';
 import ProblemLibrary from './components/ProblemLibrary';
 import ProblemCreator from './components/ProblemCreator';
 import ProblemLoader from './components/ProblemLoader';
@@ -25,6 +23,7 @@ import { Problem, ExecutionSettings } from '@/server/types/problem';
 import SessionProblemEditor from './components/SessionProblemEditor';
 import WalkthroughPanel from './components/WalkthroughPanel';
 import { Breadcrumb, BreadcrumbItem } from '@/components/ui/Breadcrumb';
+import { PageBreadcrumb } from '@/components/layout';
 
 interface Student {
   id: string;
@@ -52,7 +51,7 @@ interface SessionContext {
 }
 
 function InstructorPage() {
-  const { user, signOut } = useAuth();
+  const { user } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -74,7 +73,6 @@ function InstructorPage() {
   const [isExecutingCode, setIsExecutingCode] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isCreatingSession, setIsCreatingSession] = useState(false);
-  const [isSigningOut, setIsSigningOut] = useState(false);
   const [revisionViewerState, setRevisionViewerState] = useState<{
     studentId: string;
     studentName: string;
@@ -414,16 +412,6 @@ function InstructorPage() {
     }
   };
 
-  const handleSignOut = async () => {
-    setIsSigningOut(true);
-    try {
-      await signOut();
-    } catch (err) {
-      console.error('Sign out error:', err);
-      setIsSigningOut(false);
-    }
-  };
-
   // Render different views based on mode
   const renderContent = () => {
     if (viewMode === 'classes') {
@@ -673,102 +661,62 @@ function InstructorPage() {
   };
 
   return (
-    <ProtectedRoute requiredRole="instructor">
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
-        {/* Header */}
-        <div className="bg-white border-b border-gray-200 shadow-sm">
-          <div style={{ maxWidth: viewMode === 'problems' && problemSubView === 'creator' ? 'none' : '80rem', margin: '0 auto', padding: '1rem' }}>
-            <div className="flex justify-between items-center">
-              <div>
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                  Instructor Dashboard
-                </h1>
-                <div className="flex items-center gap-3 mt-1">
-                  {user && (
-                    <p className="text-sm text-gray-600">
-                      Signed in as {user.displayName || user.email}
-                    </p>
-                  )}
-                  <NamespaceHeader className="text-sm" />
-                </div>
-              </div>
-
-              <div className="flex items-center gap-4">
-                {/* Connection status */}
-                <div className="flex items-center gap-2">
-                  <div className={`w-2 h-2 rounded-full ${
-                    isConnected ? 'bg-green-500' : 'bg-red-500'
-                  }`}></div>
-                  <span className="text-sm text-gray-600">
-                    {connectionStatus}
-                  </span>
-                </div>
-
-                <button
-                  onClick={handleSignOut}
-                  disabled={isSigningOut}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  {isSigningOut ? 'Signing out...' : 'Sign Out'}
-                </button>
-              </div>
-            </div>
+    <div className="space-y-6" style={{ padding: viewMode === 'problems' && problemSubView === 'creator' ? '0' : undefined }}>
+      {/* Page header with namespace context and connection status */}
+      {!(viewMode === 'problems' && problemSubView === 'creator') && (
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <NamespaceHeader className="text-sm" />
+          </div>
+          {/* Connection status */}
+          <div className="flex items-center gap-2">
+            <div className={`w-2 h-2 rounded-full ${
+              isConnected ? 'bg-green-500' : 'bg-red-500'
+            }`}></div>
+            <span className="text-sm text-gray-600">
+              {connectionStatus}
+            </span>
           </div>
         </div>
+      )}
 
-        {/* Main content */}
-        <div style={{ width: '100%', height: 'calc(100vh - 5rem)', display: 'flex', flexDirection: 'column', padding: viewMode === 'problems' && problemSubView === 'creator' ? '0' : '2rem 1rem' }}>
-          {/* Navigation */}
-          {!(viewMode === 'problems' && problemSubView === 'creator') && (
-            <InstructorNav
-              currentView={viewMode}
-              onNavigate={handleNavigate}
-              activeSessionId={sessionId}
-              onReturnToSession={() => setViewMode('session')}
-            />
-          )}
+      {/* Breadcrumb navigation */}
+      {breadcrumbItems.length > 0 && (
+        <Breadcrumb
+          items={breadcrumbItems}
+          separator="/"
+          className="px-1"
+        />
+      )}
 
-          {/* Breadcrumb navigation */}
-          {breadcrumbItems.length > 0 && (
-            <Breadcrumb
-              items={breadcrumbItems}
-              separator="/"
-              className="mb-4 px-1"
-            />
-          )}
+      {connectionError && (
+        <ErrorAlert
+          error={connectionError}
+          title="Connection Error"
+          variant="warning"
+          showHelpText={true}
+        />
+      )}
 
-          {connectionError && (
-            <ErrorAlert
-              error={connectionError}
-              title="Connection Error"
-              variant="warning"
-              className="mb-6"
-              showHelpText={true}
-            />
-          )}
+      {error && (
+        <ErrorAlert
+          error={error}
+          onDismiss={() => setError(null)}
+          showHelpText={true}
+        />
+      )}
 
-          {error && (
-            <ErrorAlert
-              error={error}
-              onDismiss={() => setError(null)}
-              className="mb-6"
-              showHelpText={true}
-            />
-          )}
-
-          {isCreatingSession && (
-            <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4 text-blue-700">
-              <div className="flex items-center gap-3">
-                <div className="animate-spin w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full"></div>
-                <span>Creating session...</span>
-              </div>
-            </div>
-          )}
-
-          {renderContent()}
+      {isCreatingSession && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-blue-700">
+          <div className="flex items-center gap-3">
+            <div className="animate-spin w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full"></div>
+            <span>Creating session...</span>
+          </div>
         </div>
-      </div>
-    </ProtectedRoute>
+      )}
+
+      {renderContent()}
+    </div>
   );
 }
 

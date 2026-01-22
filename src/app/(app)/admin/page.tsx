@@ -7,7 +7,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { ProtectedRoute } from '@/components/ProtectedRoute';
 import NamespaceHeader from '@/components/NamespaceHeader';
 import { ErrorAlert } from '@/components/ErrorAlert';
 import UserList from './components/UserList';
@@ -17,7 +16,6 @@ import { Tabs } from '@/components/ui/Tabs';
 import { Table } from '@/components/ui/Table';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
-import { Button } from '@/components/ui/Button';
 import type { User, UserRole } from '@/server/auth/types';
 
 interface Invitation {
@@ -47,7 +45,7 @@ interface SystemStats {
 }
 
 function AdminPage() {
-  const { user, signOut } = useAuth();
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'instructors' | 'students'>('overview');
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [instructors, setInstructors] = useState<User[]>([]);
@@ -55,7 +53,6 @@ function AdminPage() {
   const [stats, setStats] = useState<SystemStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
-  const [isSigningOut, setIsSigningOut] = useState(false);
   const [roleChangeLoading, setRoleChangeLoading] = useState<string | null>(null);
   const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [invitationsLoading, setInvitationsLoading] = useState(false);
@@ -243,16 +240,6 @@ function AdminPage() {
     await loadStats();
   };
 
-  const handleSignOut = async () => {
-    setIsSigningOut(true);
-    try {
-      await signOut();
-    } catch (error) {
-      console.error('Sign out error:', error);
-      setIsSigningOut(false);
-    }
-  };
-
   const getRoleBadgeVariant = (role: UserRole): 'error' | 'info' | 'success' | 'warning' | 'default' => {
     switch (role) {
       case 'namespace-admin': return 'error';
@@ -266,29 +253,11 @@ function AdminPage() {
   const effectiveTab = !isAdmin && activeTab === 'overview' ? 'instructors' : activeTab;
 
   return (
-    <main className="p-8 max-w-6xl mx-auto">
+    <main className="max-w-6xl mx-auto">
       {/* Header */}
-      <div className="flex justify-between items-center mb-8">
-        <div className="flex flex-col gap-2">
-          <h1 className="text-2xl font-bold">{isAdmin ? 'System Administration' : 'Admin Panel'}</h1>
-          <NamespaceHeader />
-        </div>
-        <Card variant="outlined" className="flex items-center gap-4 px-4 py-2">
-          <div className="flex flex-col items-end">
-            <span className="font-bold text-sm">{user.displayName || user.email}</span>
-            <Badge variant={getRoleBadgeVariant(user.role)} className="capitalize">
-              {user.role}
-            </Badge>
-          </div>
-          <Button
-            variant="danger"
-            size="sm"
-            onClick={handleSignOut}
-            loading={isSigningOut}
-          >
-            {isSigningOut ? 'Signing out...' : 'Sign Out'}
-          </Button>
-        </Card>
+      <div className="flex flex-col gap-2 mb-8">
+        <h1 className="text-2xl font-bold">{isAdmin ? 'System Administration' : 'Admin Panel'}</h1>
+        <NamespaceHeader />
       </div>
 
       {/* Error Message */}
@@ -462,9 +431,5 @@ function AdminPage() {
 }
 
 export default function AdminPageWrapper() {
-  return (
-    <ProtectedRoute requiredRole="instructor">
-      <AdminPage />
-    </ProtectedRoute>
-  );
+  return <AdminPage />;
 }

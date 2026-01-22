@@ -48,40 +48,36 @@ export default function ClassesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">My Classes</h1>
-            <NamespaceHeader className="mt-2" />
-          </div>
-          {!showCreateForm && classes.length > 0 && (
-            <button
-              onClick={() => setShowCreateForm(true)}
-              className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-            >
-              <svg className="mr-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              New Class
-            </button>
-          )}
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">My Classes</h1>
+          <NamespaceHeader className="mt-2" />
         </div>
-
-        {showCreateForm && (
-          <div className="mb-8">
-            <CreateClassForm
-              onSubmit={handleCreateClass}
-              onCancel={() => setShowCreateForm(false)}
-            />
-          </div>
+        {!showCreateForm && classes.length > 0 && (
+          <button
+            onClick={() => setShowCreateForm(true)}
+            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+          >
+            <svg className="mr-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            New Class
+          </button>
         )}
-
-        <ClassList 
-          classes={classes} 
-          onCreateNew={() => setShowCreateForm(true)} 
-        />
       </div>
+
+      {showCreateForm && (
+        <CreateClassForm
+          onSubmit={handleCreateClass}
+          onCancel={() => setShowCreateForm(false)}
+        />
+      )}
+
+      <ClassList
+        classes={classes}
+        onCreateNew={() => setShowCreateForm(true)}
+      />
     </div>
   );
 }

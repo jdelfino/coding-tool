@@ -99,43 +99,40 @@ export default function SectionDetailPage() {
 
   if (error || !section) {
     return (
-      <div className="min-h-screen bg-gray-50 py-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center py-12 bg-white rounded-lg shadow">
-            <p className="text-red-600 mb-4">{error || 'Section not found'}</p>
-            <BackButton href="/sections">Back to Sections</BackButton>
-          </div>
+      <div className="space-y-6">
+        <div className="text-center py-12 bg-white rounded-lg shadow">
+          <p className="text-red-600 mb-4">{error || 'Section not found'}</p>
+          <BackButton href="/sections">Back to Sections</BackButton>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="mb-4">
-            <BackButton href="/sections">Back to My Sections</BackButton>
-          </div>
+    <div className="space-y-6">
+      {/* Header */}
+      <div>
+        <div className="mb-4">
+          <BackButton href="/sections">Back to My Sections</BackButton>
+        </div>
 
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-start justify-between">
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900 mb-2">{section.name}</h1>
-                <p className="text-lg text-gray-600 mb-1">{section.className}</p>
-                {section.semester && (
-                  <span className="inline-block text-sm text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
-                    {section.semester}
-                  </span>
-                )}
-              </div>
-              <div className="text-sm text-gray-500">
-                Enrolled as <span className="font-medium text-gray-700">{section.role}</span>
-              </div>
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex items-start justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">{section.name}</h1>
+              <p className="text-lg text-gray-600 mb-1">{section.className}</p>
+              {section.semester && (
+                <span className="inline-block text-sm text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
+                  {section.semester}
+                </span>
+              )}
+            </div>
+            <div className="text-sm text-gray-500">
+              Enrolled as <span className="font-medium text-gray-700">{section.role}</span>
             </div>
           </div>
         </div>
+      </div>
 
         {/* Active Sessions */}
         <div className="mb-8">
@@ -284,7 +281,6 @@ export default function SectionDetailPage() {
             </div>
           )}
         </div>
-      </div>
     </div>
   );
 }

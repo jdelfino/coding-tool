@@ -7,7 +7,6 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { ProtectedRoute } from '@/components/ProtectedRoute';
 import InvitationList, { Invitation } from '@/components/InvitationList';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -163,7 +162,7 @@ function InvitationsPageContent() {
   }
 
   return (
-    <main className="p-8 max-w-5xl mx-auto">
+    <main className="max-w-5xl mx-auto">
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-2xl font-bold mb-2">Manage Invitations</h1>
@@ -294,9 +293,5 @@ function InvitationsPageContent() {
 }
 
 export default function InvitationsPage() {
-  return (
-    <ProtectedRoute requiredPermission="user.manage">
-      <InvitationsPageContent />
-    </ProtectedRoute>
-  );
+  return <InvitationsPageContent />;
 }

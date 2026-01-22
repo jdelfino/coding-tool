@@ -78,7 +78,7 @@ export default function SystemAdminPage() {
 }
 
 function SystemAdminContent() {
-  const { user, isLoading: authLoading, signOut } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -101,7 +101,6 @@ function SystemAdminContent() {
 
   const [showCreateNamespaceForm, setShowCreateNamespaceForm] = useState(false);
   const [includeInactive, setIncludeInactive] = useState(false);
-  const [isSigningOut, setIsSigningOut] = useState(false);
 
   // Invitation state
   const [invitations, setInvitations] = useState<Invitation[]>([]);
@@ -204,17 +203,6 @@ function SystemAdminContent() {
     await fetchInvitations();
   };
 
-  const handleSignOut = async () => {
-    setIsSigningOut(true);
-    try {
-      await signOut();
-      router.push('/auth/signin');
-    } catch (err) {
-      console.error('Sign out error:', err);
-      setIsSigningOut(false);
-    }
-  };
-
   // Update URL when tab changes
   const handleTabChange = (tab: string) => {
     const validTab = tab === 'invitations' ? 'invitations' : 'namespaces';
@@ -281,21 +269,11 @@ function SystemAdminContent() {
   }));
 
   return (
-    <main className="p-8 max-w-6xl mx-auto">
+    <main className="max-w-6xl mx-auto">
       {/* Header */}
-      <div className="mb-8 flex justify-between items-start">
-        <div>
-          <h1 className="text-2xl font-bold mb-2">System Administration</h1>
-          <p className="text-gray-500">Manage namespaces and users across the system</p>
-        </div>
-        <Button
-          variant="danger"
-          onClick={handleSignOut}
-          disabled={isSigningOut}
-          loading={isSigningOut}
-        >
-          {isSigningOut ? 'Signing out...' : 'Sign Out'}
-        </Button>
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold mb-2">System Administration</h1>
+        <p className="text-gray-500">Manage namespaces and users across the system</p>
       </div>
 
       {/* Statistics */}
