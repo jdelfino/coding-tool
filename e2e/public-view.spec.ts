@@ -107,11 +107,10 @@ describeE2E('Public View Feature', () => {
 
       console.log('Public view opened, shows no submission');
 
-      // Instructor clicks "Student Code" tab to wait for students
-      await instructorPage.locator('button:has-text("Student Code")').click();
+      // Verify student list panel is visible (always visible in new layout, no tabs)
       await expect(instructorPage.locator('h3:has-text("Connected Students")')).toBeVisible({ timeout: 5000 });
 
-      console.log('Instructor viewing Student Code tab, waiting for students...');
+      console.log('Instructor viewing student list, waiting for students...');
 
       // ===== STUDENT JOINS AND WRITES CODE =====
       await loginAsStudent(page, `student-${namespaceId}`, namespaceId);
