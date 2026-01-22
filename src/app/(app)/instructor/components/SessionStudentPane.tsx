@@ -137,7 +137,7 @@ export function SessionStudentPane({
       {/* Code Editor - Right Panel */}
       <div className="lg:w-2/3 flex-1">
         {selectedStudentId ? (
-          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+          <div className="bg-white border border-gray-200 overflow-hidden">
             <div className="px-4 py-3 border-b border-gray-200 bg-gray-50">
               <h3 className="text-sm font-medium text-gray-900 m-0">
                 {selectedStudent?.name || 'Student'}'s Code
@@ -160,7 +160,7 @@ export function SessionStudentPane({
           </div>
         ) : (
           <div
-            className="bg-gray-50 border border-gray-200 rounded-lg p-8 flex items-center justify-center min-h-[500px]"
+            className="bg-gray-50 border border-gray-200 p-8 flex items-center justify-center min-h-[500px]"
             data-testid="no-student-selected"
           >
             <div className="text-center text-gray-500">

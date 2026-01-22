@@ -181,7 +181,7 @@ export function SessionView({
 
       {/* Tabbed Content Area */}
       <Tabs activeTab={activeTab} onTabChange={(tab) => setActiveTab(tab as SessionTab)}>
-        <Tabs.List className="bg-white rounded-t-lg px-2">
+        <Tabs.List className="bg-white border-b border-gray-200 px-2">
           <Tabs.Tab tabId="students">
             Students ({students.length})
           </Tabs.Tab>
@@ -219,7 +219,7 @@ export function SessionView({
 
         {/* AI Walkthrough Tab */}
         <Tabs.Panel tabId="walkthrough" className="py-0">
-          <div className="bg-white rounded-b-lg border border-t-0 border-gray-200 p-6">
+          <div className="bg-white border border-gray-200 p-6">
             <WalkthroughPanelWrapper
               sessionId={sessionId}
               onFeatureStudent={onFeatureStudent}
