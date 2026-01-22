@@ -310,8 +310,9 @@ function InstructorPage() {
 
     if (viewMode === 'problems') {
       if (problemSubView === 'creator') {
+        // Use calc to fill available height (viewport - header 56px - main padding 48px)
         return (
-          <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ width: '100%', height: 'calc(100vh - 104px)', display: 'flex', flexDirection: 'column' }}>
             <ProblemCreator
               problemId={editingProblemId}
               onProblemCreated={() => {
