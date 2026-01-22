@@ -181,7 +181,7 @@ export function SessionView({
 
       {/* Tabbed Content Area */}
       <Tabs activeTab={activeTab} onTabChange={(tab) => setActiveTab(tab as SessionTab)}>
-        <Tabs.List className="bg-white border-b border-gray-200 px-2">
+        <Tabs.List className="px-1">
           <Tabs.Tab tabId="students">
             Students ({students.length})
           </Tabs.Tab>
