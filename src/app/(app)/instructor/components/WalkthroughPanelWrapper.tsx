@@ -7,6 +7,7 @@
 
 import React from 'react';
 import { Panel } from '@/components/layout';
+import { Card } from '@/components/ui/Card';
 import { PanelErrorBoundary } from './PanelError';
 import WalkthroughPanel from './WalkthroughPanel';
 
@@ -43,11 +44,13 @@ export function WalkthroughPanelWrapper({
     />
   );
 
-  // Full-width mode: render content directly without panel wrapper
+  // Full-width mode: render content in a card without panel chrome
   if (isFullWidth) {
     return (
       <PanelErrorBoundary title="AI Walkthrough">
-        {content}
+        <Card variant="default" className="p-6">
+          {content}
+        </Card>
       </PanelErrorBoundary>
     );
   }

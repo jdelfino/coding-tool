@@ -194,43 +194,37 @@ export function SessionView({
         </Tabs.List>
 
         {/* Students Tab - Student list + code editor */}
-        <Tabs.Panel tabId="students" className="py-0">
-          <div className="bg-white border border-gray-200 rounded-lg p-4">
-            <SessionStudentPane
-              students={students}
-              realtimeStudents={realtimeStudents}
-              sessionProblem={sessionProblem}
-              sessionExecutionSettings={sessionExecutionSettings}
-              joinCode={joinCode || undefined}
-              onShowOnPublicView={onFeatureStudent}
-              onViewHistory={handleViewRevisions}
-              onExecuteCode={handleExecuteCode}
-            />
-          </div>
+        <Tabs.Panel tabId="students" className="pt-4">
+          <SessionStudentPane
+            students={students}
+            realtimeStudents={realtimeStudents}
+            sessionProblem={sessionProblem}
+            sessionExecutionSettings={sessionExecutionSettings}
+            joinCode={joinCode || undefined}
+            onShowOnPublicView={onFeatureStudent}
+            onViewHistory={handleViewRevisions}
+            onExecuteCode={handleExecuteCode}
+          />
         </Tabs.Panel>
 
         {/* Problem Setup Tab - Full width for editor */}
-        <Tabs.Panel tabId="problem" className="py-0">
-          <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-            <ProblemSetupPanel
-              onUpdateProblem={onUpdateProblem}
-              initialProblem={sessionProblem}
-              initialExecutionSettings={sessionExecutionSettings}
-              isFullWidth
-            />
-          </div>
+        <Tabs.Panel tabId="problem" className="pt-4">
+          <ProblemSetupPanel
+            onUpdateProblem={onUpdateProblem}
+            initialProblem={sessionProblem}
+            initialExecutionSettings={sessionExecutionSettings}
+            isFullWidth
+          />
         </Tabs.Panel>
 
         {/* AI Walkthrough Tab */}
-        <Tabs.Panel tabId="walkthrough" className="py-0">
-          <div className="bg-white border border-gray-200 rounded-lg p-6">
-            <WalkthroughPanelWrapper
-              sessionId={sessionId}
-              onFeatureStudent={onFeatureStudent}
-              studentCount={students.length}
-              isFullWidth
-            />
-          </div>
+        <Tabs.Panel tabId="walkthrough" className="pt-4">
+          <WalkthroughPanelWrapper
+            sessionId={sessionId}
+            onFeatureStudent={onFeatureStudent}
+            studentCount={students.length}
+            isFullWidth
+          />
         </Tabs.Panel>
       </Tabs>
 

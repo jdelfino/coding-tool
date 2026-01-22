@@ -7,6 +7,7 @@
 
 import React from 'react';
 import { Panel } from '@/components/layout';
+import { Card } from '@/components/ui/Card';
 import { PanelErrorBoundary } from './PanelError';
 import SessionProblemEditor from './SessionProblemEditor';
 import { Problem } from '@/server/types/problem';
@@ -47,15 +48,17 @@ export function ProblemSetupPanel({
   isLoading = false,
   isFullWidth = false,
 }: ProblemSetupPanelProps) {
-  // Full-width mode: render editor directly without any wrappers
+  // Full-width mode: render editor in a card without panel chrome
   if (isFullWidth) {
     return (
       <PanelErrorBoundary title="Problem Setup">
-        <SessionProblemEditor
-          onUpdateProblem={onUpdateProblem}
-          initialProblem={initialProblem}
-          initialExecutionSettings={initialExecutionSettings}
-        />
+        <Card variant="default" className="overflow-hidden">
+          <SessionProblemEditor
+            onUpdateProblem={onUpdateProblem}
+            initialProblem={initialProblem}
+            initialExecutionSettings={initialExecutionSettings}
+          />
+        </Card>
       </PanelErrorBoundary>
     );
   }
