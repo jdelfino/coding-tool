@@ -77,6 +77,17 @@ jest.mock('../ProblemSetupPanel', () => ({
   },
 }));
 
+// Mock Tabs component to render all panels (including inactive ones) for testing
+jest.mock('@/components/ui/Tabs', () => ({
+  Tabs: ({ children }: { children: React.ReactNode }) => <div data-testid="tabs">{children}</div>,
+}));
+
+// Add Tab subcomponents to the mock
+const TabsMock = require('@/components/ui/Tabs').Tabs;
+TabsMock.List = ({ children }: { children: React.ReactNode }) => <div data-testid="tabs-list">{children}</div>;
+TabsMock.Tab = ({ children }: { children: React.ReactNode }) => <button>{children}</button>;
+TabsMock.Panel = ({ children }: { children: React.ReactNode }) => <div>{children}</div>;
+
 jest.mock('../WalkthroughPanelWrapper', () => ({
   WalkthroughPanelWrapper: function MockWalkthroughPanelWrapper({
     sessionId,
@@ -127,20 +138,6 @@ jest.mock('../ProblemLoader', () => {
   };
 });
 
-// Mock layout components
-jest.mock('@/components/layout', () => ({
-  RightPanelContainer: ({ children }: { children: React.ReactNode }) => (
-    <div data-testid="right-panel-container">{children}</div>
-  ),
-}));
-
-// Mock PanelContext
-jest.mock('@/contexts/PanelContext', () => ({
-  usePanelState: () => ({
-    togglePanel: jest.fn(),
-    isPanelExpanded: () => true,
-  }),
-}));
 
 describe('SessionView', () => {
   const mockStudents = [
@@ -208,27 +205,27 @@ describe('SessionView', () => {
       expect(screen.getByTestId('student-count-pane')).toHaveTextContent('2');
     });
 
-    it('renders problem setup panel', () => {
+    it('renders problem setup panel in tab', () => {
       render(<SessionView {...defaultProps} />);
 
-      // Should be rendered twice - once in desktop right panel, once in mobile
-      expect(screen.getAllByTestId('problem-setup-panel')).toHaveLength(2);
-      expect(screen.getAllByTestId('problem-title')[0]).toHaveTextContent('Test Problem');
+      // Now rendered once in the Problem Setup tab
+      expect(screen.getByTestId('problem-setup-panel')).toBeInTheDocument();
+      expect(screen.getByTestId('problem-title')).toHaveTextContent('Test Problem');
     });
 
-    it('renders walkthrough panel', () => {
+    it('renders walkthrough panel in tab', () => {
       render(<SessionView {...defaultProps} />);
 
-      // Should be rendered twice - once in desktop, once in mobile
-      expect(screen.getAllByTestId('walkthrough-panel')).toHaveLength(2);
-      expect(screen.getAllByTestId('walkthrough-session-id')[0]).toHaveTextContent('session-123');
-      expect(screen.getAllByTestId('walkthrough-student-count')[0]).toHaveTextContent('2');
+      // Now rendered once in the AI Walkthrough tab
+      expect(screen.getByTestId('walkthrough-panel')).toBeInTheDocument();
+      expect(screen.getByTestId('walkthrough-session-id')).toHaveTextContent('session-123');
+      expect(screen.getByTestId('walkthrough-student-count')).toHaveTextContent('2');
     });
 
-    it('renders right panel container for desktop', () => {
+    it('renders tabs container', () => {
       render(<SessionView {...defaultProps} />);
 
-      expect(screen.getByTestId('right-panel-container')).toBeInTheDocument();
+      expect(screen.getByTestId('tabs')).toBeInTheDocument();
     });
   });
 
@@ -334,9 +331,8 @@ describe('SessionView', () => {
     it('calls onFeatureStudent from walkthrough panel', () => {
       render(<SessionView {...defaultProps} />);
 
-      // Get the first walkthrough feature button (desktop version)
-      const featureButtons = screen.getAllByTestId('walkthrough-feature-btn');
-      fireEvent.click(featureButtons[0]);
+      // Now only one walkthrough panel rendered in tab
+      fireEvent.click(screen.getByTestId('walkthrough-feature-btn'));
 
       expect(defaultProps.onFeatureStudent).toHaveBeenCalledWith('student-2');
     });
@@ -346,9 +342,8 @@ describe('SessionView', () => {
     it('calls onUpdateProblem when problem is updated', () => {
       render(<SessionView {...defaultProps} />);
 
-      // Get the first update button (desktop version)
-      const updateButtons = screen.getAllByTestId('update-problem-btn');
-      fireEvent.click(updateButtons[0]);
+      // Now only one problem setup panel rendered in tab
+      fireEvent.click(screen.getByTestId('update-problem-btn'));
 
       expect(defaultProps.onUpdateProblem).toHaveBeenCalledWith(
         { title: 'Updated', description: '', starterCode: '' }
@@ -372,7 +367,7 @@ describe('SessionView', () => {
     it('handles null sessionProblem gracefully', () => {
       render(<SessionView {...defaultProps} sessionProblem={null} />);
 
-      expect(screen.getAllByTestId('problem-title')[0]).toHaveTextContent('No problem');
+      expect(screen.getByTestId('problem-title')).toHaveTextContent('No problem');
     });
   });
 });
