@@ -15,9 +15,9 @@
 
 import { test, expect } from './helpers/setup';
 import { hasSupabaseCredentials, generateTestNamespaceId, cleanupNamespace } from './helpers/db-helpers';
-import { loginAsSystemAdmin } from './fixtures/auth-helpers';
+import { loginAsSystemAdmin, signInAs } from './fixtures/auth-helpers';
 import { getSupabaseAdmin, createTestClass, createTestSection } from './helpers/test-data';
-import { waitForEmail, extractInviteLink, clearMailbox } from './helpers/inbucket-client';
+import { waitForEmail, extractInviteLink, clearMailbox, listEmails, getEmail, type InbucketEmail } from './helpers/inbucket-client';
 
 // Skip E2E tests if Supabase is not configured
 // UI implementation is complete (coding-tool-tu6):
@@ -125,15 +125,8 @@ describeE2E('Invitation Flows', () => {
       // Clear any existing emails
       await clearMailbox(inviteeEmail);
 
-      // Sign in as namespace admin (created during sign-in)
-      const nsAdmin = await loginAsSystemAdmin(page, `nsadmin-${namespaceId}`);
-
-      // For this test, we need to manually update the user to be namespace-admin
-      // and change their namespace
-      await supabase
-        .from('user_profiles')
-        .update({ role: 'namespace-admin', namespace_id: namespaceId })
-        .eq('id', nsAdmin.id);
+      // Sign in as namespace admin directly
+      await signInAs(page, `nsadmin-${namespaceId}`, 'namespace-admin', namespaceId);
 
       // Navigate to namespace invitations page
       await page.goto('/namespace/invitations');
@@ -141,9 +134,12 @@ describeE2E('Invitation Flows', () => {
       // Wait for page to load
       await expect(page.locator('h1:has-text("Manage Invitations")')).toBeVisible({ timeout: 10000 });
 
-      // Fill out the invitation form (inline on this page)
-      await expect(page.locator('input[placeholder*="email"]')).toBeVisible({ timeout: 5000 });
-      await page.fill('input[placeholder*="email"]', inviteeEmail);
+      // Click to show the invitation form
+      await page.click('button:has-text("Invite Instructor")');
+
+      // Fill out the invitation form
+      await expect(page.locator('input#email')).toBeVisible({ timeout: 5000 });
+      await page.fill('input#email', inviteeEmail);
 
       // Record time before sending
       const beforeSend = new Date();
@@ -196,21 +192,19 @@ describeE2E('Invitation Flows', () => {
       // Clear any existing emails
       await clearMailbox(inviteeEmail);
 
-      // Sign in as namespace admin
-      const nsAdmin = await loginAsSystemAdmin(page, `nsadmin-resend-${namespaceId}`);
-
-      // Update to namespace-admin role
-      await supabase
-        .from('user_profiles')
-        .update({ role: 'namespace-admin', namespace_id: namespaceId })
-        .eq('id', nsAdmin.id);
+      // Sign in as namespace admin directly
+      await signInAs(page, `nsadmin-resend-${namespaceId}`, 'namespace-admin', namespaceId);
 
       // Navigate to invitations page
       await page.goto('/namespace/invitations');
       await expect(page.locator('h1:has-text("Manage Invitations")')).toBeVisible({ timeout: 10000 });
 
+      // Click to show the invitation form
+      await page.click('button:has-text("Invite Instructor")');
+
       // Create initial invitation
-      await page.fill('input[placeholder*="email"]', inviteeEmail);
+      await expect(page.locator('input#email')).toBeVisible({ timeout: 5000 });
+      await page.fill('input#email', inviteeEmail);
       await page.click('button:has-text("Send Invitation")');
 
       // Wait for first invitation to appear in the table (use td to avoid matching toast)
@@ -229,34 +223,41 @@ describeE2E('Invitation Flows', () => {
       // Small delay to ensure distinct timestamps
       await page.waitForTimeout(2000);
 
-      // Click Resend button for this invitation
+      // Click Resend button for this invitation (sends immediately, no confirmation)
       const invitationRow = page.locator(`tr:has-text("${inviteeEmail}")`).first();
-      await invitationRow.locator('button:has-text("Resend")').click();
+      const resendButton = invitationRow.locator('button:has-text("Resend")');
+      await resendButton.click();
 
-      // Confirm resend in modal
-      await expect(page.locator('text=Resend Invitation')).toBeVisible({ timeout: 5000 });
-      await page.click('button:has-text("Confirm")');
+      // Wait for the button text to change to "Sending..." then back to "Resend"
+      // This indicates the API call has completed
+      await expect(resendButton).toHaveText('Resend', { timeout: 10000 });
 
-      // Wait for modal to close
-      await expect(page.locator('text=Resend Invitation')).not.toBeVisible({ timeout: 5000 });
-
-      // Wait for second email (should be after the first one)
+      // Wait for second email to arrive - poll until we have 2 emails total
       console.log('Waiting for resent email...');
-      const secondEmail = await waitForEmail(inviteeEmail, {
-        timeout: 30000,
-        afterDate: firstEmailTime,
-        subjectContains: 'invite',
-      });
+      let emails: InbucketEmail[] = [];
+      const startTime = Date.now();
+      const timeout = 30000;
 
-      expect(secondEmail).not.toBeNull();
-      const secondEmailTime = new Date(secondEmail!.date);
-      console.log(`Second email received at ${secondEmailTime.toISOString()}`);
+      while (Date.now() - startTime < timeout) {
+        // Get all invite emails for this recipient
+        const allEmails = await listEmails(inviteeEmail);
+        const inviteEmails = allEmails.filter(e => e.subject.toLowerCase().includes('invite'));
 
-      // Verify the second email is newer than the first
-      expect(secondEmailTime.getTime()).toBeGreaterThan(firstEmailTime.getTime());
+        if (inviteEmails.length >= 2) {
+          // Get full email details for verification
+          emails = await Promise.all(inviteEmails.map(e => getEmail(inviteeEmail, e.id)));
+          break;
+        }
+        await page.waitForTimeout(1000);
+      }
 
-      // Verify the link in the second email works
-      const newInviteLink = extractInviteLink(secondEmail!);
+      expect(emails.length).toBeGreaterThanOrEqual(2);
+      console.log(`Found ${emails.length} invite emails after resend`);
+
+      // Verify the latest email has a valid invite link
+      const sortedEmails = emails.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      const latestEmail = sortedEmails[0];
+      const newInviteLink = extractInviteLink(latestEmail);
       expect(newInviteLink).not.toBeNull();
       console.log('Resend invitation generated new email with valid link!');
     } finally {
