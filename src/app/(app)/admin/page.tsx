@@ -361,8 +361,12 @@ function AdminPage() {
                               >
                                 <option value="student">Student</option>
                                 <option value="instructor">Instructor</option>
-                                <option value="namespace-admin">Namespace Admin</option>
-                                <option value="system-admin">System Admin</option>
+                                {user.role === 'system-admin' && (
+                                  <>
+                                    <option value="namespace-admin">Namespace Admin</option>
+                                    <option value="system-admin">System Admin</option>
+                                  </>
+                                )}
                               </select>
                             )}
                             {u.id === user?.id && (
