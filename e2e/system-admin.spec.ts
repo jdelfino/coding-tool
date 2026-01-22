@@ -54,15 +54,14 @@ describeE2E('System Admin Core Flows', () => {
       await expect(page.locator('h3:has-text("Test Organization")').first()).toBeVisible();
 
       // Click "Manage Users" for the new namespace specifically
-      // Wait for our namespace to appear and scroll it into view if needed
-      await page.locator(`text=${namespaceId}`).scrollIntoViewIfNeeded();
+      // Wait for our namespace card to appear - use exact match to avoid header dropdown
+      const namespaceCard = page.locator('div.text-sm.text-gray-500.font-mono', { hasText: namespaceId });
+      await namespaceCard.scrollIntoViewIfNeeded();
 
-      // Find the card containing our namespace ID and click its Manage Users button
-      // Use a more direct selector approach
-      const manageUsersButtons = await page.locator('button:has-text("Manage Users")').all();
-      // Our namespace should be the last one created (most recent)
-      const lastButton = manageUsersButtons[manageUsersButtons.length - 1];
-      await lastButton.click();
+      // Find the Manage Users button in the same card as our namespace ID
+      // The card is a parent container that contains both the namespace ID and the button
+      const card = namespaceCard.locator('xpath=ancestor::div[contains(@class, "border")]').first();
+      await card.locator('button:has-text("Manage Users")').click();
 
       // Should navigate to user management page
       await expect(page).toHaveURL(`/system/namespaces/${namespaceId}`);
@@ -75,8 +74,8 @@ describeE2E('System Admin Core Flows', () => {
       await page.click('a:has-text("Back to System Admin")');
       await expect(page).toHaveURL('/system');
 
-      // Verify namespace still shows in the list
-      await expect(page.locator(`text=${namespaceId}`)).toBeVisible();
+      // Verify namespace still shows in the list (use specific selector to avoid header dropdown)
+      await expect(page.locator('div.text-sm.text-gray-500.font-mono', { hasText: namespaceId })).toBeVisible();
 
       // Verify Invitations tab exists and is accessible
       await page.click('button:has-text("Invitations")');

@@ -37,7 +37,8 @@ describeE2E('Public View Feature', () => {
       await loginAsInstructor(instructorPage, `instructor-${namespaceId}`, namespaceId);
       await instructorPage.goto('/instructor');
 
-      await expect(instructorPage.locator('h1:has-text("Instructor Dashboard")')).toBeVisible({ timeout: 10000 });
+      // Wait for the instructor page to load - look for class-related content
+      await expect(instructorPage.locator('h2:has-text("Your Classes"), h3:has-text("No Classes Yet"), button:has-text("Create Your First Class")').first()).toBeVisible({ timeout: 10000 });
 
       // Create class
       const createClassButton = instructorPage.locator('button:has-text("New Class"), button:has-text("Create Your First Class")').first();
