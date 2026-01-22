@@ -164,11 +164,9 @@ describe('CodeEditor Component', () => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             code: "print('API execution')",
-            executionSettings: {
-              stdin: undefined,
-              randomSeed: undefined,
-              attachedFiles: undefined,
-            },
+            stdin: undefined,
+            randomSeed: undefined,
+            attachedFiles: undefined,
           }),
         });
       });
@@ -269,12 +267,12 @@ describe('CodeEditor Component', () => {
       // Check that fetch was called with correct params
       const callArgs = (global.fetch as jest.Mock).mock.calls[0];
       expect(callArgs[0]).toBe('/api/execute');
-      
+
       const body = JSON.parse(callArgs[1].body);
       expect(body.code).toBe(codeToRun);
-      expect(body.executionSettings.stdin).toBe('test input');
-      expect(body.executionSettings.randomSeed).toBe(42);
-      expect(body.executionSettings.attachedFiles).toEqual(attachedFiles);
+      expect(body.stdin).toBe('test input');
+      expect(body.randomSeed).toBe(42);
+      expect(body.attachedFiles).toEqual(attachedFiles);
     });
 
     it('should show running state during API execution', async () => {

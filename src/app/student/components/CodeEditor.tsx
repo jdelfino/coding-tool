@@ -328,11 +328,9 @@ export default function CodeEditor({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           code,
-          executionSettings: {
-            stdin: stdin || undefined,
-            randomSeed,
-            attachedFiles,
-          },
+          stdin: stdin || undefined,
+          randomSeed,
+          attachedFiles,
         }),
       });
 
