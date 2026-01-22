@@ -2,9 +2,10 @@
 
 /**
  * SessionView - Main session layout component for instructors.
- * Replaces the tabbed interface with a panel-based layout where:
- * - Left: Student list + code editor (always visible)
- * - Right: Collapsible panels for Problem Setup and AI Walkthrough
+ * Uses a tabbed interface where instructor can switch between:
+ * - Students: Student list + code editor
+ * - Problem Setup: Configure the session problem (full width for editor)
+ * - AI Walkthrough: Generate AI analysis of submissions
  */
 
 import React, { useState, useCallback } from 'react';
@@ -14,7 +15,7 @@ import { ProblemSetupPanel } from './ProblemSetupPanel';
 import { WalkthroughPanelWrapper } from './WalkthroughPanelWrapper';
 import RevisionViewer from './RevisionViewer';
 import ProblemLoader from './ProblemLoader';
-import { RightPanelContainer } from '@/components/layout';
+import { Tabs } from '@/components/ui/Tabs';
 import { Problem, ExecutionSettings } from '@/server/types/problem';
 
 interface Student {
@@ -95,13 +96,15 @@ interface SessionViewProps {
   onProblemLoaded?: (problemId: string) => void;
 }
 
+type SessionTab = 'students' | 'problem' | 'walkthrough';
+
 /**
  * SessionView provides the main layout for an active instructor session.
  *
  * Layout:
  * - Header: SessionControls (join code, end/leave buttons)
- * - Main area: SessionStudentPane (student list + code editor)
- * - Right sidebar: Collapsible panels for problem setup and AI walkthrough
+ * - Tabs: Students | Problem Setup | AI Walkthrough
+ * - Content: Full-width content for selected tab
  */
 export function SessionView({
   sessionId,
@@ -118,6 +121,9 @@ export function SessionView({
   executeCode,
   onProblemLoaded,
 }: SessionViewProps) {
+  // Tab state
+  const [activeTab, setActiveTab] = useState<SessionTab>('students');
+
   // Modal states
   const [revisionViewerState, setRevisionViewerState] = useState<{
     studentId: string;
@@ -161,62 +167,70 @@ export function SessionView({
   }, [executeCode]);
 
   return (
-    <div className="flex flex-col xl:flex-row gap-6" data-testid="session-view">
-      {/* Main content area */}
-      <div className="flex-1 space-y-6 min-w-0">
-        {/* Session Controls Header */}
-        <SessionControls
-          sessionId={sessionId}
-          sectionName={sessionContext?.sectionName}
-          joinCode={joinCode || undefined}
-          connectedStudentCount={students.length}
-          onEndSession={onEndSession}
-          onLeaveSession={onLeaveSession}
-          onLoadProblem={handleOpenProblemLoader}
-        />
+    <div className="space-y-4" data-testid="session-view">
+      {/* Session Controls Header */}
+      <SessionControls
+        sessionId={sessionId}
+        sectionName={sessionContext?.sectionName}
+        joinCode={joinCode || undefined}
+        connectedStudentCount={students.length}
+        onEndSession={onEndSession}
+        onLeaveSession={onLeaveSession}
+        onLoadProblem={handleOpenProblemLoader}
+      />
 
-        {/* Student List + Code Editor */}
-        <SessionStudentPane
-          students={students}
-          realtimeStudents={realtimeStudents}
-          sessionProblem={sessionProblem}
-          sessionExecutionSettings={sessionExecutionSettings}
-          joinCode={joinCode || undefined}
-          onShowOnPublicView={onFeatureStudent}
-          onViewHistory={handleViewRevisions}
-          onExecuteCode={handleExecuteCode}
-        />
-      </div>
+      {/* Tabbed Content Area */}
+      <Tabs activeTab={activeTab} onTabChange={(tab) => setActiveTab(tab as SessionTab)}>
+        <Tabs.List className="bg-white rounded-t-lg px-2">
+          <Tabs.Tab tabId="students">
+            Students ({students.length})
+          </Tabs.Tab>
+          <Tabs.Tab tabId="problem">
+            Problem Setup
+          </Tabs.Tab>
+          <Tabs.Tab tabId="walkthrough">
+            AI Walkthrough
+          </Tabs.Tab>
+        </Tabs.List>
 
-      {/* Right Panel Container - Hidden on mobile */}
-      <div className="hidden xl:block flex-shrink-0">
-        <RightPanelContainer>
-          <ProblemSetupPanel
-            onUpdateProblem={onUpdateProblem}
-            initialProblem={sessionProblem}
-            initialExecutionSettings={sessionExecutionSettings}
+        {/* Students Tab - Student list + code editor */}
+        <Tabs.Panel tabId="students" className="py-0">
+          <SessionStudentPane
+            students={students}
+            realtimeStudents={realtimeStudents}
+            sessionProblem={sessionProblem}
+            sessionExecutionSettings={sessionExecutionSettings}
+            joinCode={joinCode || undefined}
+            onShowOnPublicView={onFeatureStudent}
+            onViewHistory={handleViewRevisions}
+            onExecuteCode={handleExecuteCode}
           />
-          <WalkthroughPanelWrapper
-            sessionId={sessionId}
-            onFeatureStudent={onFeatureStudent}
-            studentCount={students.length}
-          />
-        </RightPanelContainer>
-      </div>
+        </Tabs.Panel>
 
-      {/* Mobile panels - shown inline on smaller screens */}
-      <div className="xl:hidden space-y-4">
-        <ProblemSetupPanel
-          onUpdateProblem={onUpdateProblem}
-          initialProblem={sessionProblem}
-          initialExecutionSettings={sessionExecutionSettings}
-        />
-        <WalkthroughPanelWrapper
-          sessionId={sessionId}
-          onFeatureStudent={onFeatureStudent}
-          studentCount={students.length}
-        />
-      </div>
+        {/* Problem Setup Tab - Full width for editor */}
+        <Tabs.Panel tabId="problem" className="py-0">
+          <div className="bg-white rounded-b-lg border border-t-0 border-gray-200">
+            <ProblemSetupPanel
+              onUpdateProblem={onUpdateProblem}
+              initialProblem={sessionProblem}
+              initialExecutionSettings={sessionExecutionSettings}
+              isFullWidth
+            />
+          </div>
+        </Tabs.Panel>
+
+        {/* AI Walkthrough Tab */}
+        <Tabs.Panel tabId="walkthrough" className="py-0">
+          <div className="bg-white rounded-b-lg border border-t-0 border-gray-200 p-6">
+            <WalkthroughPanelWrapper
+              sessionId={sessionId}
+              onFeatureStudent={onFeatureStudent}
+              studentCount={students.length}
+              isFullWidth
+            />
+          </div>
+        </Tabs.Panel>
+      </Tabs>
 
       {/* Modals */}
       {revisionViewerState && (

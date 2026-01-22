@@ -31,18 +31,49 @@ interface ProblemSetupPanelProps {
   };
   /** Whether the panel is loading */
   isLoading?: boolean;
+  /** Whether to render in full-width mode (no panel wrapper) */
+  isFullWidth?: boolean;
 }
 
 /**
- * ProblemSetupPanel wraps SessionProblemEditor in a collapsible panel.
- * Shows "Problem Setup" as the panel title with the problem title as subtitle when collapsed.
+ * ProblemSetupPanel wraps SessionProblemEditor.
+ * In panel mode: Uses collapsible Panel component.
+ * In full-width mode: Renders editor directly for tab-based layouts.
  */
 export function ProblemSetupPanel({
   onUpdateProblem,
   initialProblem,
   initialExecutionSettings,
   isLoading = false,
+  isFullWidth = false,
 }: ProblemSetupPanelProps) {
+  const content = (
+    <div className={isFullWidth ? 'p-6' : 'space-y-4'}>
+      {/* Show problem title when available */}
+      {initialProblem?.title && (
+        <div className="text-sm text-gray-600 pb-2 border-b border-gray-100 mb-4">
+          <span className="font-medium">Current: </span>
+          {initialProblem.title}
+        </div>
+      )}
+      <SessionProblemEditor
+        onUpdateProblem={onUpdateProblem}
+        initialProblem={initialProblem}
+        initialExecutionSettings={initialExecutionSettings}
+      />
+    </div>
+  );
+
+  // Full-width mode: render content directly without panel wrapper
+  if (isFullWidth) {
+    return (
+      <PanelErrorBoundary title="Problem Setup">
+        {content}
+      </PanelErrorBoundary>
+    );
+  }
+
+  // Panel mode: wrap in collapsible panel
   return (
     <PanelErrorBoundary title="Problem Setup">
       <Panel
@@ -51,20 +82,7 @@ export function ProblemSetupPanel({
         icon="FileText"
         isLoading={isLoading}
       >
-        <div className="space-y-4">
-          {/* Show problem title when available */}
-          {initialProblem?.title && (
-            <div className="text-sm text-gray-600 pb-2 border-b border-gray-100">
-              <span className="font-medium">Current: </span>
-              {initialProblem.title}
-            </div>
-          )}
-          <SessionProblemEditor
-            onUpdateProblem={onUpdateProblem}
-            initialProblem={initialProblem}
-            initialExecutionSettings={initialExecutionSettings}
-          />
-        </div>
+        {content}
       </Panel>
     </PanelErrorBoundary>
   );

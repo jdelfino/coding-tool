@@ -19,18 +19,40 @@ interface WalkthroughPanelWrapperProps {
   studentCount: number;
   /** Whether the panel is loading */
   isLoading?: boolean;
+  /** Whether to render in full-width mode (no panel wrapper) */
+  isFullWidth?: boolean;
 }
 
 /**
- * WalkthroughPanelWrapper wraps WalkthroughPanel in a collapsible panel.
- * Shows "AI Walkthrough" as the panel title.
+ * WalkthroughPanelWrapper wraps WalkthroughPanel.
+ * In panel mode: Uses collapsible Panel component.
+ * In full-width mode: Renders content directly for tab-based layouts.
  */
 export function WalkthroughPanelWrapper({
   sessionId,
   onFeatureStudent,
   studentCount,
   isLoading = false,
+  isFullWidth = false,
 }: WalkthroughPanelWrapperProps) {
+  const content = (
+    <WalkthroughPanel
+      sessionId={sessionId}
+      onFeatureStudent={onFeatureStudent}
+      studentCount={studentCount}
+    />
+  );
+
+  // Full-width mode: render content directly without panel wrapper
+  if (isFullWidth) {
+    return (
+      <PanelErrorBoundary title="AI Walkthrough">
+        {content}
+      </PanelErrorBoundary>
+    );
+  }
+
+  // Panel mode: wrap in collapsible panel
   return (
     <PanelErrorBoundary title="AI Walkthrough">
       <Panel
@@ -40,11 +62,7 @@ export function WalkthroughPanelWrapper({
         isLoading={isLoading}
       >
         <div className="max-h-[400px] overflow-y-auto">
-          <WalkthroughPanel
-            sessionId={sessionId}
-            onFeatureStudent={onFeatureStudent}
-            studentCount={studentCount}
-          />
+          {content}
         </div>
       </Panel>
     </PanelErrorBoundary>
