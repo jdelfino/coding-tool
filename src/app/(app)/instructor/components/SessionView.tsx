@@ -195,7 +195,7 @@ export function SessionView({
 
         {/* Students Tab - Student list + code editor */}
         <Tabs.Panel tabId="students" className="py-0">
-          <div className="bg-white border border-gray-200 p-4">
+          <div className="bg-white border border-gray-200 rounded-lg p-4">
             <SessionStudentPane
               students={students}
               realtimeStudents={realtimeStudents}
@@ -211,7 +211,7 @@ export function SessionView({
 
         {/* Problem Setup Tab - Full width for editor */}
         <Tabs.Panel tabId="problem" className="py-0">
-          <div className="bg-white border border-gray-200">
+          <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
             <ProblemSetupPanel
               onUpdateProblem={onUpdateProblem}
               initialProblem={sessionProblem}
@@ -223,7 +223,7 @@ export function SessionView({
 
         {/* AI Walkthrough Tab */}
         <Tabs.Panel tabId="walkthrough" className="py-0">
-          <div className="bg-white border border-gray-200 p-6">
+          <div className="bg-white border border-gray-200 rounded-lg p-6">
             <WalkthroughPanelWrapper
               sessionId={sessionId}
               onFeatureStudent={onFeatureStudent}

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { Card } from '@/components/ui/Card';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import type { Section } from '@/server/classes/types';
 import { formatJoinCodeForDisplay } from '@/server/classes/join-code-service';
@@ -78,7 +79,7 @@ export default function SectionCard({
   };
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow-md space-y-4">
+    <Card variant="default" className="p-6 space-y-4">
       <div>
         <h3 className="text-xl font-semibold text-gray-900">{section.name}</h3>
         {section.semester && (
@@ -201,6 +202,6 @@ export default function SectionCard({
           setInstructorToRemove(null);
         }}
       />
-    </div>
+    </Card>
   );
 }

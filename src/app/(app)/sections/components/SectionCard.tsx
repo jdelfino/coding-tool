@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { Card } from '@/components/ui/Card';
 import type { Session } from '@/server/types';
 
 interface SectionWithClass {
@@ -54,7 +55,7 @@ export default function SectionCard({ section, getActiveSessions }: SectionCardP
   };
 
   return (
-    <div className="bg-white rounded-lg shadow hover:shadow-lg transition-shadow border border-gray-200">
+    <Card variant="default" className="p-0">
       <div className="p-6">
         <div className="flex items-start justify-between">
           {/* Left: Section Info - Clickable */}
@@ -147,6 +148,6 @@ export default function SectionCard({ section, getActiveSessions }: SectionCardP
           </div>
         )}
       </div>
-    </div>
+    </Card>
   );
 }

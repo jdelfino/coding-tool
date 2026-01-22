@@ -30,7 +30,7 @@ export default function SessionControls({
   };
 
   return (
-    <div className="bg-white border-2 border-blue-200 rounded-xl shadow-lg p-6">
+    <div className="bg-white border border-blue-200 rounded-lg shadow-sm p-6">
       <div className="flex justify-between items-start mb-4">
         <div>
           <h2 className="text-xl font-bold text-gray-900 mb-1">Active Session</h2>

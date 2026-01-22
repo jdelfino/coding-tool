@@ -2,11 +2,12 @@
 
 /**
  * Problem Card Component
- * 
+ *
  * Displays an individual problem with metadata and action buttons.
  */
 
 import React, { useState } from 'react';
+import { Card } from '@/components/ui/Card';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 
 interface Problem {
@@ -67,7 +68,7 @@ export default function ProblemCard({
 
   if (viewMode === 'list') {
     return (
-      <div className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+      <Card variant="default" className="p-4">
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1 min-w-0">
             <h3 className="text-lg font-semibold text-gray-900 truncate mb-2">
@@ -135,13 +136,13 @@ export default function ProblemCard({
           onConfirm={handleConfirmDelete}
           onCancel={() => setShowDeleteConfirm(false)}
         />
-      </div>
+      </Card>
     );
   }
 
   // Grid view
   return (
-    <div className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow flex flex-col">
+    <Card variant="default" className="p-4 flex flex-col">
       <h3 className="text-lg font-semibold text-gray-900 truncate mb-3">
         {problem.title}
       </h3>
@@ -198,6 +199,6 @@ export default function ProblemCard({
         onConfirm={handleConfirmDelete}
         onCancel={() => setShowDeleteConfirm(false)}
       />
-    </div>
+    </Card>
   );
 }
