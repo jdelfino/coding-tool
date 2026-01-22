@@ -34,7 +34,9 @@ export default function ClassDetailsPage() {
       return;
     }
 
-    if (user && user.role !== 'instructor') {
+    // Allow instructor, namespace-admin, and system-admin roles
+    const allowedRoles = ['instructor', 'namespace-admin', 'system-admin'];
+    if (user && !allowedRoles.includes(user.role)) {
       router.push('/');
       return;
     }
