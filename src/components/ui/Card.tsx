@@ -1,6 +1,6 @@
 import React, { forwardRef, HTMLAttributes } from 'react';
 
-export type CardVariant = 'default' | 'elevated' | 'outlined';
+export type CardVariant = 'default' | 'elevated' | 'outlined' | 'flat';
 
 export interface CardProps extends HTMLAttributes<HTMLDivElement> {
   /** Visual style variant of the card */
@@ -22,6 +22,7 @@ const variantStyles: Record<CardVariant, string> = {
   default: 'bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow',
   elevated: 'bg-white border border-gray-100 rounded-xl shadow-2xl',
   outlined: 'bg-transparent border border-gray-200 rounded-lg',
+  flat: 'bg-white border border-gray-200',
 };
 
 /**
