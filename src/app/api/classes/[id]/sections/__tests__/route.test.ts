@@ -274,16 +274,26 @@ describe('/api/classes/[id]/sections', () => {
       const mockSectionRepo = {
         createSection: jest.fn(),
       };
+      const mockMembershipRepo = {
+        addMembership: jest.fn(),
+      };
 
       mockGetAuthProvider.mockResolvedValue(mockAuthProvider as any);
       mockGetClassRepository.mockReturnValue(mockClassRepo as any);
       mockGetSectionRepository.mockReturnValue(mockSectionRepo as any);
+      mockGetMembershipRepository.mockReturnValue(mockMembershipRepo as any);
 
       mockClassRepo.getClass.mockResolvedValue({ id: 'class-1', name: 'CS101' } as any);
       mockSectionRepo.createSection.mockResolvedValue({
         id: 'section-1',
         classId: 'class-1',
         name: 'Section A',
+      } as any);
+      mockMembershipRepo.addMembership.mockResolvedValue({
+        id: 'membership-1',
+        userId: 'user-1',
+        sectionId: 'section-1',
+        role: 'instructor',
       } as any);
 
       const request = new NextRequest('http://localhost/api/classes/class-1/sections', {

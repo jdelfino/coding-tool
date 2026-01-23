@@ -172,6 +172,16 @@ describe('/api/auth/register-student', () => {
             }),
           };
         }
+        if (table === 'section_memberships') {
+          return {
+            select: jest.fn().mockReturnThis(),
+            eq: jest.fn().mockReturnThis(),
+            limit: jest.fn().mockResolvedValue({
+              data: [{ user_id: mockInstructor.id }],
+              error: null,
+            }),
+          };
+        }
         return {
           select: jest.fn().mockReturnThis(),
           eq: jest.fn().mockReturnThis(),
@@ -330,15 +340,33 @@ describe('/api/auth/register-student', () => {
         }
         if (table === 'user_profiles') {
           return {
-            select: jest.fn().mockImplementation(() => ({
-              eq: jest.fn().mockReturnThis(),
-              single: jest.fn().mockImplementation(() => {
-                const data = instructorCallIndex < instructorData.length
-                  ? instructorData[instructorCallIndex++]
-                  : null;
-                return Promise.resolve({ data, error: null });
-              }),
-            })),
+            select: jest.fn().mockImplementation((_cols: string, opts?: { count?: string; head?: boolean }) => {
+              if (opts?.count === 'exact') {
+                return {
+                  eq: jest.fn().mockReturnThis(),
+                  then: jest.fn((cb: any) => cb({ count: 0, error: null })),
+                };
+              }
+              return {
+                eq: jest.fn().mockReturnThis(),
+                single: jest.fn().mockImplementation(() => {
+                  const data = instructorCallIndex < instructorData.length
+                    ? instructorData[instructorCallIndex++]
+                    : null;
+                  return Promise.resolve({ data, error: null });
+                }),
+              };
+            }),
+          };
+        }
+        if (table === 'section_memberships') {
+          return {
+            select: jest.fn().mockReturnThis(),
+            eq: jest.fn().mockReturnThis(),
+            limit: jest.fn().mockResolvedValue({
+              data: [{ user_id: 'instructor-1' }, { user_id: 'instructor-2' }],
+              error: null,
+            }),
           };
         }
         return { select: jest.fn().mockReturnThis(), eq: jest.fn().mockReturnThis(), single: jest.fn().mockResolvedValue({ data: null, error: null }) };
@@ -417,12 +445,28 @@ describe('/api/auth/register-student', () => {
         }
         if (table === 'user_profiles') {
           return {
-            select: jest.fn().mockImplementation(() => ({
-              eq: jest.fn().mockReturnThis(),
-              single: jest.fn().mockResolvedValue({ data: null, error: null }),
-              count: 'exact',
-              head: true,
-            })),
+            select: jest.fn().mockImplementation((_cols: string, opts?: { count?: string; head?: boolean }) => {
+              if (opts?.count === 'exact') {
+                return {
+                  eq: jest.fn().mockReturnThis(),
+                  then: jest.fn((cb: any) => cb({ count: 0, error: null })),
+                };
+              }
+              return {
+                eq: jest.fn().mockReturnThis(),
+                single: jest.fn().mockResolvedValue({ data: null, error: null }),
+              };
+            }),
+          };
+        }
+        if (table === 'section_memberships') {
+          return {
+            select: jest.fn().mockReturnThis(),
+            eq: jest.fn().mockReturnThis(),
+            limit: jest.fn().mockResolvedValue({
+              data: [],
+              error: null,
+            }),
           };
         }
         return { select: jest.fn().mockReturnThis(), eq: jest.fn().mockReturnThis(), single: jest.fn().mockResolvedValue({ data: null, error: null }) };
@@ -499,6 +543,16 @@ describe('/api/auth/register-student', () => {
                 eq: jest.fn().mockReturnThis(),
                 single: jest.fn().mockResolvedValue({ data: null, error: null }),
               };
+            }),
+          };
+        }
+        if (table === 'section_memberships') {
+          return {
+            select: jest.fn().mockReturnThis(),
+            eq: jest.fn().mockReturnThis(),
+            limit: jest.fn().mockResolvedValue({
+              data: [],
+              error: null,
             }),
           };
         }
