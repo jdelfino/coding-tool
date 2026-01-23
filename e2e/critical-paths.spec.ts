@@ -288,8 +288,9 @@ describeE2E('Critical User Paths', () => {
 
       // ===== VERIFY INSTRUCTOR CAN VIEW STUDENT CODE =====
       // Click "View" button to see student's code
-      const studentRow = instructorPage.locator(`div:has-text("${studentName}")`).first();
-      const viewButton = studentRow.locator('button:has-text("View")');
+      // Target the student row div (has border class) that contains the student name
+      const studentRow = instructorPage.locator(`div.border:has-text("${studentName}")`).first();
+      const viewButton = studentRow.locator('button:has-text("View")').first();
       await viewButton.click();
 
       console.log('Clicked View button');
