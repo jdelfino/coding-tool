@@ -6,11 +6,13 @@
  */
 
 import { useState, useRef, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { User, LogOut, ChevronDown } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
 export function UserMenu() {
   const { user, signOut } = useAuth();
+  const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -51,6 +53,7 @@ export function UserMenu() {
   const handleSignOut = async () => {
     setIsOpen(false);
     await signOut();
+    router.push('/auth/signin');
   };
 
   return (
