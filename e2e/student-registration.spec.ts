@@ -83,10 +83,11 @@ describeE2E('Student Registration via Join Code', () => {
       await expect(page.locator('button:has-text("Creating account...")')).toBeHidden({ timeout: 10000 });
 
       // Then check for success (either message or redirect)
+      // After auto-login, user is redirected to /sections instead of /auth/signin
       const successVisible = await page.locator('text=Account Created!').isVisible().catch(() => false);
       if (!successVisible) {
-        // If success message wasn't visible (fast redirect), wait for navigation
-        await page.waitForURL(/\/(student|auth)/, { timeout: 5000 });
+        // If success message wasn't visible (fast redirect), wait for navigation to sections (auto-login) or auth (fallback)
+        await page.waitForURL(/\/(sections|student|auth)/, { timeout: 5000 });
       }
 
       console.log('Student registration completed successfully!');
@@ -174,10 +175,11 @@ describeE2E('Student Registration via Join Code', () => {
       await expect(page.locator('button:has-text("Creating account...")')).toBeHidden({ timeout: 10000 });
 
       // Then check for success (either message or redirect)
+      // After auto-login, user is redirected to /sections instead of /auth/signin
       const successVisible = await page.locator('text=Account Created!').isVisible().catch(() => false);
       if (!successVisible) {
-        // If success message wasn't visible, wait for navigation
-        await page.waitForURL(/\/(student|auth)/, { timeout: 5000 });
+        // If success message wasn't visible, wait for navigation to sections (auto-login) or auth (fallback)
+        await page.waitForURL(/\/(sections|student|auth)/, { timeout: 5000 });
       }
 
       console.log('Student registration from URL parameter completed successfully!');
