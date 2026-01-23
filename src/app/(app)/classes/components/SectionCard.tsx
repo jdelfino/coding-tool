@@ -11,7 +11,7 @@ interface SectionCardProps {
   onRegenerateCode?: (sectionId: string) => Promise<string>;
   onAddInstructor?: (sectionId: string, email: string) => Promise<void>;
   onRemoveInstructor?: (sectionId: string, userId: string) => Promise<void>;
-  instructorEmails?: Record<string, string>; // userId -> email mapping
+  instructorNames?: Record<string, string>; // userId -> email mapping
 }
 
 export default function SectionCard({ 
@@ -19,9 +19,9 @@ export default function SectionCard({
   onRegenerateCode,
   onAddInstructor,
   onRemoveInstructor,
-  instructorEmails = {}
+  instructorNames = {}
 }: SectionCardProps) {
-  const [showJoinCode, setShowJoinCode] = useState(false);
+  const [showJoinCode, setShowJoinCode] = useState(true);
   const [joinCode, setJoinCode] = useState(section.joinCode);
   const [regenerating, setRegenerating] = useState(false);
   const [addingInstructor, setAddingInstructor] = useState(false);
@@ -132,7 +132,7 @@ export default function SectionCard({
           <ul className="space-y-2 mb-3">
             {section.instructorIds.map((instructorId) => (
               <li key={instructorId} className="flex items-center justify-between text-sm">
-                <span>{instructorEmails[instructorId] || instructorId}</span>
+                <span>{instructorNames[instructorId] || instructorId}</span>
                 {section.instructorIds.length > 1 && (
                   <button
                     onClick={() => handleRemoveInstructorClick(instructorId)}

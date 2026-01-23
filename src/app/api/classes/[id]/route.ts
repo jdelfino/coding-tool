@@ -41,9 +41,38 @@ export async function GET(
     // Get sections for this class
     const sections = await classRepo.getClassSections(id, namespaceId);
 
+    // Collect all unique instructor IDs
+    const instructorIds = new Set<string>();
+    for (const section of sections) {
+      for (const instructorId of section.instructorIds) {
+        instructorIds.add(instructorId);
+      }
+    }
+
+    // Fetch instructor display names from user_profiles
+    const instructorNames: Record<string, string> = {};
+    if (instructorIds.size > 0) {
+      const { createClient } = await import('@supabase/supabase-js');
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+      const supabaseKey = process.env.SUPABASE_SECRET_KEY!;
+      const supabase = createClient(supabaseUrl, supabaseKey);
+
+      const { data: profiles } = await supabase
+        .from('user_profiles')
+        .select('id, display_name, email')
+        .in('id', Array.from(instructorIds));
+
+      if (profiles) {
+        for (const profile of profiles) {
+          instructorNames[profile.id] = profile.display_name || profile.email || profile.id;
+        }
+      }
+    }
+
     return NextResponse.json({
       class: classData,
-      sections
+      sections,
+      instructorNames
     });
   } catch (error) {
     console.error('[API] Get class error:', error);

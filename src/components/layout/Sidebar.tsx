@@ -10,7 +10,7 @@ import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-import { getNavItemsForRole, getNavGroupsForRole, NavGroup, NavItem } from '@/config/navigation';
+import { getNavItemsForRole, getNavGroupsForRole, NavGroup, NavItem, NAV_ITEMS } from '@/config/navigation';
 import { SidebarToggle } from './SidebarToggle';
 import { getIconComponent } from './iconMap';
 
@@ -101,7 +101,8 @@ function NavGroupSection({ group, items, pathname, collapsed, isFirst }: NavGrou
 
 /**
  * Check if a nav item's href matches the current pathname.
- * Matches exact path or any child paths (e.g., /classes matches /classes/123).
+ * Matches exact path or child paths, but NOT if the path matches a more specific nav item.
+ * E.g., /instructor should not match when on /instructor/problems (which is its own nav item).
  */
 function isPathActive(href: string, pathname: string): boolean {
   // Exact match
@@ -110,8 +111,17 @@ function isPathActive(href: string, pathname: string): boolean {
   }
 
   // Child path match (e.g., /classes matches /classes/123)
+  // But don't match if there's a more specific nav item for this path
   if (href !== '/' && pathname.startsWith(href + '/')) {
-    return true;
+    // Check if another nav item is a more specific match for this pathname
+    const moreSpecificMatch = NAV_ITEMS.some(item =>
+      item.href !== href &&
+      item.href.startsWith(href + '/') &&
+      (pathname === item.href || pathname.startsWith(item.href + '/'))
+    );
+
+    // Only match if there's no more specific nav item
+    return !moreSpecificMatch;
   }
 
   return false;

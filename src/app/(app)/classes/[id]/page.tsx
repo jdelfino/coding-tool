@@ -27,7 +27,7 @@ export default function ClassDetailsPage() {
   const [sections, setSections] = useState<Section[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateForm, setShowCreateForm] = useState(false);
-  const [instructorEmails, setInstructorEmails] = useState<Record<string, string>>({});
+  const [instructorNames, setInstructorNames] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -50,22 +50,11 @@ export default function ClassDetailsPage() {
     try {
       const response = await fetch(`/api/classes/${classId}`);
       if (!response.ok) throw new Error('Failed to load class');
-      
+
       const data = await response.json();
       setClassData(data.class);
       setSections(data.sections || []);
-      
-      // Load instructor emails
-      const emails: Record<string, string> = {};
-      for (const section of data.sections || []) {
-        for (const instructorId of section.instructorIds) {
-          if (!emails[instructorId]) {
-            // In a real app, we'd fetch user details
-            emails[instructorId] = instructorId;
-          }
-        }
-      }
-      setInstructorEmails(emails);
+      setInstructorNames(data.instructorNames || {});
     } catch (error) {
       console.error('Failed to load class:', error);
     } finally {
@@ -165,7 +154,7 @@ export default function ClassDetailsPage() {
               onRegenerateCode={handleRegenerateCode}
               onAddInstructor={handleAddInstructor}
               onRemoveInstructor={handleRemoveInstructor}
-              instructorEmails={instructorEmails}
+              instructorNames={instructorNames}
             />
           ))}
         </div>
