@@ -26,7 +26,7 @@ describe('StudentRegistrationService', () => {
       classId: 'class-456',
       name: 'Section A',
       instructorIds: ['instructor-1'],
-      joinCode: 'ABC-123-XYZ',
+      joinCode: 'ABC123',
       active: true,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -132,7 +132,7 @@ describe('StudentRegistrationService', () => {
       mockNamespaceRepo.getNamespace.mockResolvedValue(mockNamespace);
       mockCapacityService.canAddUser.mockResolvedValue(true);
 
-      const result = await service.validateSectionCode('ABC-123-XYZ');
+      const result = await service.validateSectionCode('ABC123');
 
       expect(result.valid).toBe(true);
       expect(result.section).toEqual(mockSection);
@@ -149,9 +149,9 @@ describe('StudentRegistrationService', () => {
       mockNamespaceRepo.getNamespace.mockResolvedValue(mockNamespace);
       mockCapacityService.canAddUser.mockResolvedValue(true);
 
-      await service.validateSectionCode('  abc-123-xyz  ');
+      await service.validateSectionCode('  abc-123  ');
 
-      expect(mockSectionRepo.getSectionByJoinCode).toHaveBeenCalledWith('ABC-123-XYZ');
+      expect(mockSectionRepo.getSectionByJoinCode).toHaveBeenCalledWith('ABC123');
     });
 
     it('returns error for invalid code (not found)', async () => {
@@ -170,7 +170,7 @@ describe('StudentRegistrationService', () => {
 
       mockSectionRepo.getSectionByJoinCode.mockResolvedValue(mockSection);
 
-      const result = await service.validateSectionCode('ABC-123-XYZ');
+      const result = await service.validateSectionCode('ABC123');
 
       expect(result.valid).toBe(false);
       expect(result.error).toBe('SECTION_INACTIVE');
@@ -182,7 +182,7 @@ describe('StudentRegistrationService', () => {
       mockSectionRepo.getSectionByJoinCode.mockResolvedValue(mockSection);
       mockNamespaceRepo.getNamespace.mockResolvedValue(null);
 
-      const result = await service.validateSectionCode('ABC-123-XYZ');
+      const result = await service.validateSectionCode('ABC123');
 
       expect(result.valid).toBe(false);
       expect(result.error).toBe('NAMESPACE_NOT_FOUND');
@@ -196,7 +196,7 @@ describe('StudentRegistrationService', () => {
       mockNamespaceRepo.getNamespace.mockResolvedValue(mockNamespace);
       mockCapacityService.canAddUser.mockResolvedValue(false);
 
-      const result = await service.validateSectionCode('ABC-123-XYZ');
+      const result = await service.validateSectionCode('ABC123');
 
       expect(result.valid).toBe(true);
       expect(result.capacityAvailable).toBe(false);
@@ -239,7 +239,7 @@ describe('StudentRegistrationService', () => {
 
     it('creates user with correct role and namespace', async () => {
       const result = await service.registerStudent(
-        'ABC-123-XYZ',
+        'ABC123',
         'student@example.com',
         'SecurePassword123!',
         'newstudent'
@@ -257,7 +257,7 @@ describe('StudentRegistrationService', () => {
 
     it('adds user to section membership', async () => {
       const result = await service.registerStudent(
-        'ABC-123-XYZ',
+        'ABC123',
         'student@example.com',
         'SecurePassword123!',
         'newstudent'
@@ -302,7 +302,7 @@ describe('StudentRegistrationService', () => {
 
       await expect(
         service.registerStudent(
-          'ABC-123-XYZ',
+          'ABC123',
           'student@example.com',
           'SecurePassword123!',
           'newstudent'
@@ -311,7 +311,7 @@ describe('StudentRegistrationService', () => {
 
       try {
         await service.registerStudent(
-          'ABC-123-XYZ',
+          'ABC123',
           'student@example.com',
           'SecurePassword123!',
           'newstudent'
@@ -328,7 +328,7 @@ describe('StudentRegistrationService', () => {
 
       await expect(
         service.registerStudent(
-          'ABC-123-XYZ',
+          'ABC123',
           'student@example.com',
           'SecurePassword123!',
           'newstudent'
@@ -337,7 +337,7 @@ describe('StudentRegistrationService', () => {
 
       try {
         await service.registerStudent(
-          'ABC-123-XYZ',
+          'ABC123',
           'student@example.com',
           'SecurePassword123!',
           'newstudent'
@@ -352,7 +352,7 @@ describe('StudentRegistrationService', () => {
 
       await expect(
         service.registerStudent(
-          'ABC-123-XYZ',
+          'ABC123',
           'existing@example.com',
           'SecurePassword123!',
           'newstudent'
@@ -361,7 +361,7 @@ describe('StudentRegistrationService', () => {
 
       try {
         await service.registerStudent(
-          'ABC-123-XYZ',
+          'ABC123',
           'existing@example.com',
           'SecurePassword123!',
           'newstudent'
@@ -373,7 +373,7 @@ describe('StudentRegistrationService', () => {
 
     it('normalizes email to lowercase', async () => {
       await service.registerStudent(
-        'ABC-123-XYZ',
+        'ABC123',
         'STUDENT@EXAMPLE.COM',
         'SecurePassword123!',
         'newstudent'
@@ -389,7 +389,7 @@ describe('StudentRegistrationService', () => {
 
     it('trims email whitespace', async () => {
       await service.registerStudent(
-        'ABC-123-XYZ',
+        'ABC123',
         '  student@example.com  ',
         'SecurePassword123!',
         'newstudent'
@@ -406,7 +406,7 @@ describe('StudentRegistrationService', () => {
     it('throws error for invalid email format', async () => {
       await expect(
         service.registerStudent(
-          'ABC-123-XYZ',
+          'ABC123',
           'not-an-email',
           'SecurePassword123!',
           'newstudent'
@@ -415,7 +415,7 @@ describe('StudentRegistrationService', () => {
 
       try {
         await service.registerStudent(
-          'ABC-123-XYZ',
+          'ABC123',
           'not-an-email',
           'SecurePassword123!',
           'newstudent'
@@ -428,7 +428,7 @@ describe('StudentRegistrationService', () => {
     it('throws error for empty password', async () => {
       await expect(
         service.registerStudent(
-          'ABC-123-XYZ',
+          'ABC123',
           'student@example.com',
           '',
           'newstudent'
@@ -437,7 +437,7 @@ describe('StudentRegistrationService', () => {
 
       try {
         await service.registerStudent(
-          'ABC-123-XYZ',
+          'ABC123',
           'student@example.com',
           '',
           'newstudent'

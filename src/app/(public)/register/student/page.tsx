@@ -109,14 +109,14 @@ function StudentRegistrationContent() {
     }
   }, [searchParams]);
 
-  // Format join code as XXX-XXX-XXX
+  // Format join code as XXX-XXX
   const formatJoinCode = (value: string): string => {
     // Remove non-alphanumeric characters and uppercase
     const cleaned = value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
 
-    // Format with dashes
+    // Format with dashes (max 6 chars = XXX-XXX)
     const parts = [];
-    for (let i = 0; i < cleaned.length && i < 9; i += 3) {
+    for (let i = 0; i < cleaned.length && i < 6; i += 3) {
       parts.push(cleaned.slice(i, i + 3));
     }
     return parts.join('-');
@@ -129,10 +129,10 @@ function StudentRegistrationContent() {
     if (codeError) setCodeError('');
   };
 
-  // Validate join code format
+  // Validate join code format (6 chars)
   const validateCodeFormat = (code: string): boolean => {
     const cleaned = code.replace(/-/g, '');
-    return /^[A-Z0-9]{6,9}$/.test(cleaned);
+    return /^[A-Z0-9]{6}$/.test(cleaned);
   };
 
   // Validate email format
@@ -174,7 +174,7 @@ function StudentRegistrationContent() {
 
     const cleaned = joinCode.replace(/-/g, '');
     if (!validateCodeFormat(joinCode)) {
-      setCodeError('Please enter a valid join code (e.g., ABC-123-XYZ)');
+      setCodeError('Please enter a valid join code (e.g., ABC-123)');
       return;
     }
 
@@ -353,11 +353,11 @@ function StudentRegistrationContent() {
                 className={`appearance-none rounded-lg relative block w-full px-4 py-3 border ${
                   codeError ? 'border-red-300' : 'border-gray-300'
                 } placeholder-gray-400 text-gray-900 text-center text-lg font-mono tracking-widest focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 sm:text-sm disabled:bg-gray-50 disabled:text-gray-500`}
-                placeholder="ABC-123-XYZ"
+                placeholder="ABC-123"
                 value={joinCode}
                 onChange={(e) => handleCodeChange(e.target.value)}
                 disabled={pageState.status === 'validating-code'}
-                maxLength={11}
+                maxLength={7}
               />
               {codeError && (
                 <p className="mt-2 text-sm text-red-600">{codeError}</p>

@@ -12,24 +12,24 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 
-// Format join code with dashes (XXX-XXX-XXX)
+// Format join code with dashes (XXX-XXX)
 function formatJoinCode(value: string): string {
   // Remove all non-alphanumeric characters and uppercase
   const cleaned = value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
 
-  // Add dashes every 3 characters
+  // Add dashes every 3 characters (max 6 chars = XXX-XXX)
   const parts = [];
-  for (let i = 0; i < cleaned.length && i < 9; i += 3) {
+  for (let i = 0; i < cleaned.length && i < 6; i += 3) {
     parts.push(cleaned.slice(i, i + 3));
   }
 
   return parts.join('-');
 }
 
-// Validate join code format (XXX-XXX-XXX, 9 alphanumeric chars)
+// Validate join code format (XXX-XXX, 6 alphanumeric chars)
 function isValidJoinCode(code: string): boolean {
   const cleaned = code.replace(/-/g, '');
-  return /^[A-Z0-9]{9}$/.test(cleaned);
+  return /^[A-Z0-9]{6}$/.test(cleaned);
 }
 
 export default function Home() {
@@ -79,7 +79,7 @@ export default function Home() {
 
     // Validate format
     if (!isValidJoinCode(joinCode)) {
-      setError('Please enter a valid join code (e.g., ABC-123-XYZ)');
+      setError('Please enter a valid join code (e.g., ABC-123)');
       return;
     }
 
@@ -234,7 +234,7 @@ export default function Home() {
               type="text"
               value={joinCode}
               onChange={handleCodeChange}
-              placeholder="ABC-123-XYZ"
+              placeholder="ABC-123"
               disabled={isValidating}
               autoComplete="off"
               autoCapitalize="characters"

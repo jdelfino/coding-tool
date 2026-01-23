@@ -100,7 +100,7 @@ describe('Landing Page', () => {
       expect(screen.getByText('Code Classroom')).toBeInTheDocument();
       expect(screen.getByText('Enter your section code to get started')).toBeInTheDocument();
       expect(screen.getByLabelText('Section Join Code')).toBeInTheDocument();
-      expect(screen.getByPlaceholderText('ABC-123-XYZ')).toBeInTheDocument();
+      expect(screen.getByPlaceholderText('ABC-123')).toBeInTheDocument();
       expect(screen.getByRole('button', { name: 'Join Section' })).toBeInTheDocument();
     });
 
@@ -139,17 +139,17 @@ describe('Landing Page', () => {
       const user = userEvent.setup();
       render(<Home />);
 
-      const input = screen.getByPlaceholderText('ABC-123-XYZ');
+      const input = screen.getByPlaceholderText('ABC-123');
       await user.type(input, 'abc123xyz');
 
-      expect(input).toHaveValue('ABC-123-XYZ');
+      expect(input).toHaveValue('ABC-123');
     });
 
     it('auto-uppercases input', async () => {
       const user = userEvent.setup();
       render(<Home />);
 
-      const input = screen.getByPlaceholderText('ABC-123-XYZ');
+      const input = screen.getByPlaceholderText('ABC-123');
       await user.type(input, 'abc');
 
       expect(input).toHaveValue('ABC');
@@ -159,20 +159,20 @@ describe('Landing Page', () => {
       const user = userEvent.setup();
       render(<Home />);
 
-      const input = screen.getByPlaceholderText('ABC-123-XYZ');
+      const input = screen.getByPlaceholderText('ABC-123');
       await user.type(input, 'abc!@#123');
 
       expect(input).toHaveValue('ABC-123');
     });
 
-    it('limits input to 9 characters (formatted as XXX-XXX-XXX)', async () => {
+    it('limits input to 6 characters (formatted as XXX-XXX)', async () => {
       const user = userEvent.setup();
       render(<Home />);
 
-      const input = screen.getByPlaceholderText('ABC-123-XYZ');
+      const input = screen.getByPlaceholderText('ABC-123');
       await user.type(input, 'ABCDEFGHIJKLMNOP');
 
-      expect(input).toHaveValue('ABC-DEF-GHI');
+      expect(input).toHaveValue('ABC-DEF');
     });
   });
 
@@ -188,13 +188,13 @@ describe('Landing Page', () => {
       const user = userEvent.setup();
       render(<Home />);
 
-      const input = screen.getByPlaceholderText('ABC-123-XYZ');
+      const input = screen.getByPlaceholderText('ABC-123');
       await user.type(input, 'ABC');
 
       const button = screen.getByRole('button', { name: 'Join Section' });
       await user.click(button);
 
-      expect(screen.getByText('Please enter a valid join code (e.g., ABC-123-XYZ)')).toBeInTheDocument();
+      expect(screen.getByText('Please enter a valid join code (e.g., ABC-123)')).toBeInTheDocument();
       expect(mockPush).not.toHaveBeenCalled();
     });
 
@@ -202,45 +202,45 @@ describe('Landing Page', () => {
       const user = userEvent.setup();
       render(<Home />);
 
-      const input = screen.getByPlaceholderText('ABC-123-XYZ');
+      const input = screen.getByPlaceholderText('ABC-123');
       await user.type(input, 'ABC');
 
       const button = screen.getByRole('button', { name: 'Join Section' });
       await user.click(button);
 
-      expect(screen.getByText('Please enter a valid join code (e.g., ABC-123-XYZ)')).toBeInTheDocument();
+      expect(screen.getByText('Please enter a valid join code (e.g., ABC-123)')).toBeInTheDocument();
 
       // Type more characters - error should clear
       await user.type(input, '123');
 
-      expect(screen.queryByText('Please enter a valid join code (e.g., ABC-123-XYZ)')).not.toBeInTheDocument();
+      expect(screen.queryByText('Please enter a valid join code (e.g., ABC-123)')).not.toBeInTheDocument();
     });
 
     it('navigates to registration with valid code', async () => {
       const user = userEvent.setup();
       render(<Home />);
 
-      const input = screen.getByPlaceholderText('ABC-123-XYZ');
-      await user.type(input, 'ABC123XYZ');
+      const input = screen.getByPlaceholderText('ABC-123');
+      await user.type(input, 'ABC123');
 
       const button = screen.getByRole('button', { name: 'Join Section' });
       await user.click(button);
 
-      expect(mockPush).toHaveBeenCalledWith('/register/student?code=ABC123XYZ');
+      expect(mockPush).toHaveBeenCalledWith('/register/student?code=ABC123');
     });
 
     it('navigates with code that has dashes', async () => {
       const user = userEvent.setup();
       render(<Home />);
 
-      const input = screen.getByPlaceholderText('ABC-123-XYZ');
-      await user.type(input, 'DEF-456-GHI');
+      const input = screen.getByPlaceholderText('ABC-123');
+      await user.type(input, 'DEF-456');
 
       const button = screen.getByRole('button', { name: 'Join Section' });
       await user.click(button);
 
       // Should strip dashes for URL
-      expect(mockPush).toHaveBeenCalledWith('/register/student?code=DEF456GHI');
+      expect(mockPush).toHaveBeenCalledWith('/register/student?code=DEF456');
     });
 
     it('disables button when input is empty', () => {
@@ -254,7 +254,7 @@ describe('Landing Page', () => {
       const user = userEvent.setup();
       render(<Home />);
 
-      const input = screen.getByPlaceholderText('ABC-123-XYZ');
+      const input = screen.getByPlaceholderText('ABC-123');
       await user.type(input, 'A');
 
       const button = screen.getByRole('button', { name: 'Join Section' });
@@ -272,7 +272,7 @@ describe('Landing Page', () => {
       render(<Home />);
 
       // Should not show the join code form or redirect
-      expect(screen.queryByPlaceholderText('ABC-123-XYZ')).not.toBeInTheDocument();
+      expect(screen.queryByPlaceholderText('ABC-123')).not.toBeInTheDocument();
       expect(mockPush).not.toHaveBeenCalled();
     });
 
@@ -300,18 +300,18 @@ describe('Landing Page', () => {
       const user = userEvent.setup();
       render(<Home />);
 
-      const input = screen.getByPlaceholderText('ABC-123-XYZ');
-      await user.type(input, 'ABC123XYZ{enter}');
+      const input = screen.getByPlaceholderText('ABC-123');
+      await user.type(input, 'ABC123{enter}');
 
-      expect(mockPush).toHaveBeenCalledWith('/register/student?code=ABC123XYZ');
+      expect(mockPush).toHaveBeenCalledWith('/register/student?code=ABC123');
     });
 
     it('shows loading state after submission', async () => {
       const user = userEvent.setup();
       render(<Home />);
 
-      const input = screen.getByPlaceholderText('ABC-123-XYZ');
-      await user.type(input, 'ABC123XYZ');
+      const input = screen.getByPlaceholderText('ABC-123');
+      await user.type(input, 'ABC123');
 
       const button = screen.getByRole('button', { name: 'Join Section' });
       await user.click(button);
