@@ -273,41 +273,29 @@ export class SupabaseSessionRepository implements ISessionRepository {
     }
 
     // Handle student updates if provided
-    if (updates.students !== undefined) {
-      // Delete existing students for this session
-      const { error: deleteError } = await supabase
+    if (updates.students !== undefined && updates.students.size > 0) {
+      // Use UPSERT to insert or update students (works with RLS since students have INSERT + UPDATE permissions)
+      const studentRows = Array.from(updates.students.entries()).map(([studentId, student]) => ({
+        session_id: sessionId,
+        student_id: studentId,
+        name: student.name,
+        code: student.code,
+        last_update: student.lastUpdate.toISOString(),
+        execution_settings: (student.executionSettings as any) || null,
+      }));
+
+      const { error: upsertError } = await supabase
         .from('session_students')
-        .delete()
-        .eq('session_id', sessionId);
+        .upsert(studentRows, {
+          onConflict: 'session_id,student_id',
+        });
 
-      if (deleteError) {
+      if (upsertError) {
         throw new PersistenceError(
-          `Failed to update session students: ${deleteError.message}`,
+          `Failed to update session students: ${upsertError.message}`,
           PersistenceErrorCode.STORAGE_ERROR,
-          deleteError
+          upsertError
         );
-      }
-
-      // Insert new students
-      if (updates.students.size > 0) {
-        const studentRows = Array.from(updates.students.entries()).map(([studentId, student]) => ({
-          session_id: sessionId,
-          student_id: studentId,
-          name: student.name,
-          code: student.code,
-          last_update: student.lastUpdate.toISOString(),
-          execution_settings: (student.executionSettings as any) || null,
-        }));
-
-        const { error: insertError } = await supabase.from('session_students').insert(studentRows);
-
-        if (insertError) {
-          throw new PersistenceError(
-            `Failed to update session students: ${insertError.message}`,
-            PersistenceErrorCode.STORAGE_ERROR,
-            insertError
-          );
-        }
       }
     }
   }

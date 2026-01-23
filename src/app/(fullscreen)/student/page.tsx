@@ -97,11 +97,18 @@ function StudentPage() {
       setIsJoining(true);
 
       joinSession(user.id, user.displayName || user.email || 'Student')
-        .then(() => {
+        .then((result) => {
           setJoined(true);
           setStudentId(user.id);
           setIsJoining(false);
           setError(null);
+          // Restore saved code and execution settings from server
+          if (result?.student?.code) {
+            setCode(result.student.code);
+          }
+          if (result?.student?.executionSettings) {
+            setStudentExecutionSettings(result.student.executionSettings);
+          }
         })
         .catch((err) => {
           setError(err.message || 'Failed to join session');

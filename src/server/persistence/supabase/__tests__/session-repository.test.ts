@@ -16,6 +16,7 @@ const mockSelect = jest.fn();
 const mockInsert = jest.fn();
 const mockUpdate = jest.fn();
 const mockDelete = jest.fn();
+const mockUpsert = jest.fn();
 const mockEq = jest.fn();
 const mockIn = jest.fn();
 const mockSingle = jest.fn();
@@ -119,6 +120,7 @@ describe('SupabaseSessionRepository', () => {
       delete: mockDelete.mockReturnValue({
         eq: mockEq,
       }),
+      upsert: mockUpsert,
     }));
 
     repository = new SupabaseSessionRepository('test-token');
@@ -385,8 +387,7 @@ describe('SupabaseSessionRepository', () => {
     it('should update session with new students', async () => {
       const mockCheckExisting = jest.fn().mockResolvedValue({ data: { id: mockSession.id }, error: null });
       const mockUpdateResult = jest.fn().mockResolvedValue({ data: null, error: null });
-      const mockDeleteResult = jest.fn().mockResolvedValue({ data: null, error: null });
-      const mockInsertResult = jest.fn().mockResolvedValue({ data: null, error: null });
+      const mockUpsertResult = jest.fn().mockResolvedValue({ data: null, error: null });
 
       mockFrom.mockImplementation((table: string) => {
         if (table === 'sessions') {
@@ -403,10 +404,7 @@ describe('SupabaseSessionRepository', () => {
         }
         if (table === 'session_students') {
           return {
-            delete: jest.fn().mockReturnValue({
-              eq: mockDeleteResult,
-            }),
-            insert: mockInsertResult,
+            upsert: mockUpsertResult,
           };
         }
         return {};
@@ -418,12 +416,15 @@ describe('SupabaseSessionRepository', () => {
 
       await repository.updateSession(mockSession.id, { students: newStudents });
 
-      expect(mockInsertResult).toHaveBeenCalledWith([
-        expect.objectContaining({
-          student_id: 'student-2',
-          name: 'Bob',
-        }),
-      ]);
+      expect(mockUpsertResult).toHaveBeenCalledWith(
+        [
+          expect.objectContaining({
+            student_id: 'student-2',
+            name: 'Bob',
+          }),
+        ],
+        { onConflict: 'session_id,student_id' }
+      );
     });
 
     it('should throw NOT_FOUND if session does not exist', async () => {
