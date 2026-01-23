@@ -196,7 +196,7 @@ describe('InstructorSessionPage', () => {
 
       fireEvent.click(screen.getByText('Back to Sessions'));
 
-      expect(mockPush).toHaveBeenCalledWith('/instructor?view=sessions');
+      expect(mockPush).toHaveBeenCalledWith('/instructor');
     });
   });
 
@@ -223,7 +223,7 @@ describe('InstructorSessionPage', () => {
 
       fireEvent.click(screen.getByText('Back to Sessions'));
 
-      expect(mockPush).toHaveBeenCalledWith('/instructor?view=sessions');
+      expect(mockPush).toHaveBeenCalledWith('/instructor');
     });
   });
 
@@ -290,7 +290,7 @@ describe('InstructorSessionPage', () => {
       fireEvent.click(screen.getByTestId('end-session-btn'));
 
       await waitFor(() => {
-        expect(mockPush).toHaveBeenCalledWith('/instructor?view=sessions');
+        expect(mockPush).toHaveBeenCalledWith('/instructor');
       });
     });
 
@@ -311,7 +311,7 @@ describe('InstructorSessionPage', () => {
 
       fireEvent.click(screen.getByTestId('leave-session-btn'));
 
-      expect(mockPush).toHaveBeenCalledWith('/instructor?view=sessions');
+      expect(mockPush).toHaveBeenCalledWith('/instructor');
     });
 
     it('navigates via back button', () => {
@@ -319,7 +319,7 @@ describe('InstructorSessionPage', () => {
 
       fireEvent.click(screen.getByText('Back to Sessions'));
 
-      expect(mockPush).toHaveBeenCalledWith('/instructor?view=sessions');
+      expect(mockPush).toHaveBeenCalledWith('/instructor');
     });
   });
 

@@ -7,6 +7,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { hasRolePermission } from '@/server/auth/permissions';
 import NamespaceHeader from '@/components/NamespaceHeader';
 import { ErrorAlert } from '@/components/ErrorAlert';
 import UserList from './components/UserList';
@@ -59,7 +60,7 @@ function AdminPage() {
 
   // Admin page requires authenticated user with role
   if (!user) return null;
-  const isAdmin = user.role === 'namespace-admin';
+  const isAdmin = hasRolePermission(user.role, 'user.changeRole');
 
   const loadStats = async () => {
     if (!isAdmin) return;

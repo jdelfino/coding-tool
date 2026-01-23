@@ -9,10 +9,8 @@ import { Sidebar } from '../Sidebar';
 
 // Mock next/navigation
 const mockPathname = jest.fn();
-const mockSearchParams = jest.fn();
 jest.mock('next/navigation', () => ({
   usePathname: () => mockPathname(),
-  useSearchParams: () => mockSearchParams(),
 }));
 
 // Mock useAuth
@@ -27,7 +25,6 @@ describe('Sidebar', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockPathname.mockReturnValue('/instructor');
-    mockSearchParams.mockReturnValue(new URLSearchParams());
     mockUser.mockReturnValue({
       id: 'user1',
       email: 'test@example.com',
@@ -54,8 +51,8 @@ describe('Sidebar', () => {
 
       expect(screen.getByText('Dashboard')).toBeInTheDocument();
       expect(screen.getByText('Classes')).toBeInTheDocument();
-      expect(screen.getByText('Sessions')).toBeInTheDocument();
       expect(screen.getByText('Problems')).toBeInTheDocument();
+      // Note: Sessions removed from navigation - sessions are now managed from the dashboard
     });
 
     it('does not render admin items for instructor', () => {

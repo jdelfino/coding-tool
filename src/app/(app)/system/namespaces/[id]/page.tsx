@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { hasRolePermission } from '@/server/auth/permissions';
 import { useRouter, useParams } from 'next/navigation';
 import { useNamespaces } from '@/hooks/useNamespaces';
 import { User } from '@/server/auth/types';
@@ -40,14 +41,14 @@ export default function NamespaceUsersPage() {
 
   // Redirect if not system admin
   useEffect(() => {
-    if (!authLoading && (!currentUser || currentUser.role !== 'system-admin')) {
+    if (!authLoading && (!currentUser || !hasRolePermission(currentUser.role, 'system.admin'))) {
       router.push('/');
     }
   }, [currentUser, authLoading, router]);
 
   // Fetch namespace and users
   useEffect(() => {
-    if (currentUser?.role === 'system-admin' && namespaceId) {
+    if (currentUser && hasRolePermission(currentUser.role, 'system.admin') && namespaceId) {
       fetchData();
     }
   }, [currentUser, namespaceId]);
@@ -101,7 +102,7 @@ export default function NamespaceUsersPage() {
   }
 
   // Verify system admin role
-  if (currentUser.role !== 'system-admin') {
+  if (!hasRolePermission(currentUser.role, 'system.admin')) {
     return null; // Will redirect
   }
 

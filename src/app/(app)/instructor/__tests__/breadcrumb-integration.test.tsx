@@ -45,7 +45,7 @@ function buildBreadcrumbItems(
     if (viewMode === 'classes') {
       items.push({ label: 'Classes' });
     } else {
-      items.push({ label: 'Classes', href: '/instructor?view=classes' });
+      items.push({ label: 'Classes', href: '/classes' });
     }
   }
 
@@ -59,7 +59,7 @@ function buildBreadcrumbItems(
     if (viewMode === 'sessions') {
       items.push({ label: 'Sessions' });
     } else {
-      items.push({ label: 'Sessions', href: '/instructor?view=sessions' });
+      items.push({ label: 'Sessions', href: '/instructor' });
     }
   }
 
@@ -68,7 +68,7 @@ function buildBreadcrumbItems(
     if (viewMode === 'sections') {
       items.push({ label: classContext.className });
     } else {
-      items.push({ label: classContext.className, href: '/instructor?view=sections' });
+      items.push({ label: classContext.className, href: '/classes' });
     }
   }
 
@@ -103,7 +103,7 @@ describe('Instructor Breadcrumb Integration', () => {
         const items = buildBreadcrumbItems('sections', classContext, null, 'library');
 
         expect(items).toHaveLength(2);
-        expect(items[0]).toEqual({ label: 'Classes', href: '/instructor?view=classes' });
+        expect(items[0]).toEqual({ label: 'Classes', href: '/classes' });
         expect(items[1]).toEqual({ label: 'CS 101' }); // Current page
       });
 
@@ -122,8 +122,8 @@ describe('Instructor Breadcrumb Integration', () => {
         const items = buildBreadcrumbItems('session', classContext, sessionContext, 'library');
 
         expect(items).toHaveLength(3);
-        expect(items[0]).toEqual({ label: 'Classes', href: '/instructor?view=classes' });
-        expect(items[1]).toEqual({ label: 'CS 101', href: '/instructor?view=sections' });
+        expect(items[0]).toEqual({ label: 'Classes', href: '/classes' });
+        expect(items[1]).toEqual({ label: 'CS 101', href: '/classes' });
         expect(items[2]).toEqual({ label: 'Section A' }); // Current page
       });
 
@@ -132,7 +132,7 @@ describe('Instructor Breadcrumb Integration', () => {
         const items = buildBreadcrumbItems('session', null, sessionContext, 'library');
 
         expect(items).toHaveLength(2);
-        expect(items[0]).toEqual({ label: 'Classes', href: '/instructor?view=classes' });
+        expect(items[0]).toEqual({ label: 'Classes', href: '/classes' });
         expect(items[1]).toEqual({ label: 'Section A' });
       });
     });
@@ -166,7 +166,7 @@ describe('Instructor Breadcrumb Integration', () => {
         const items = buildBreadcrumbItems('details', null, null, 'library');
 
         expect(items).toHaveLength(2);
-        expect(items[0]).toEqual({ label: 'Sessions', href: '/instructor?view=sessions' });
+        expect(items[0]).toEqual({ label: 'Sessions', href: '/instructor' });
         expect(items[1]).toEqual({ label: 'Session Details' });
       });
     });
@@ -187,7 +187,7 @@ describe('Instructor Breadcrumb Integration', () => {
       render(<Breadcrumb items={items} />);
 
       const classesLink = screen.getByRole('link', { name: 'Classes' });
-      expect(classesLink).toHaveAttribute('href', '/instructor?view=classes');
+      expect(classesLink).toHaveAttribute('href', '/classes');
       expect(screen.getByText('CS 101')).toHaveAttribute('aria-current', 'page');
     });
 
@@ -197,8 +197,8 @@ describe('Instructor Breadcrumb Integration', () => {
       const items = buildBreadcrumbItems('session', classContext, sessionContext, 'library');
       render(<Breadcrumb items={items} />);
 
-      expect(screen.getByRole('link', { name: 'Classes' })).toHaveAttribute('href', '/instructor?view=classes');
-      expect(screen.getByRole('link', { name: 'CS 101' })).toHaveAttribute('href', '/instructor?view=sections');
+      expect(screen.getByRole('link', { name: 'Classes' })).toHaveAttribute('href', '/classes');
+      expect(screen.getByRole('link', { name: 'CS 101' })).toHaveAttribute('href', '/classes');
       expect(screen.getByText('Section A')).toHaveAttribute('aria-current', 'page');
     });
 

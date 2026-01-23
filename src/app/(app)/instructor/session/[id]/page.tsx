@@ -113,7 +113,7 @@ export default function InstructorSessionPage() {
 
   // Handlers
   const handleLeaveSession = useCallback(() => {
-    router.push('/instructor?view=sessions');
+    router.push('/instructor');
   }, [router]);
 
   const handleEndSession = useCallback(async () => {
@@ -121,7 +121,7 @@ export default function InstructorSessionPage() {
 
     try {
       await apiEndSession(sessionId);
-      router.push('/instructor?view=sessions');
+      router.push('/instructor');
     } catch (err: any) {
       setError(err.message || 'Failed to end session');
     }
@@ -183,7 +183,7 @@ export default function InstructorSessionPage() {
             <h2 className="text-lg font-semibold text-red-900 mb-2">Session Not Found</h2>
             <p className="text-red-700 mb-4">{sessionError}</p>
             <button
-              onClick={() => router.push('/instructor?view=sessions')}
+              onClick={() => router.push('/instructor')}
               className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
             >
               Back to Sessions
@@ -205,7 +205,7 @@ export default function InstructorSessionPage() {
               This session has ended and is no longer active.
             </p>
             <button
-              onClick={() => router.push('/instructor?view=sessions')}
+              onClick={() => router.push('/instructor')}
               className="px-4 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700 transition-colors"
             >
               Back to Sessions

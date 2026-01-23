@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClasses } from '@/hooks/useClasses';
+import { hasRolePermission } from '@/server/auth/permissions';
 import type { Class, Section } from '@/server/classes/types';
 import SectionCard from '../components/SectionCard';
 import CreateSectionForm from '../components/CreateSectionForm';
@@ -34,9 +35,8 @@ export default function ClassDetailsPage() {
       return;
     }
 
-    // Allow instructor, namespace-admin, and system-admin roles
-    const allowedRoles = ['instructor', 'namespace-admin', 'system-admin'];
-    if (user && !allowedRoles.includes(user.role)) {
+    // Check if user has permission to read classes
+    if (user && !hasRolePermission(user.role, 'class.read')) {
       router.push('/');
       return;
     }
@@ -105,7 +105,7 @@ export default function ClassDetailsPage() {
     );
   }
 
-  if (!user || user.role !== 'instructor' || !classData) {
+  if (!user || !hasRolePermission(user.role, 'class.read') || !classData) {
     return null;
   }
 
