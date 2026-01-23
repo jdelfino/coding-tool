@@ -22,6 +22,17 @@ import { ErrorAlert } from '@/components/ErrorAlert';
 import { Spinner } from '@/components/ui/Spinner';
 import { Problem, ExecutionSettings } from '@/server/types/problem';
 
+/**
+ * Extended session state from API that includes joinCode from section
+ */
+interface SessionStateFromAPI {
+  sectionId?: string;
+  sectionName?: string;
+  joinCode?: string;
+  problem?: Problem | null;
+  status?: 'active' | 'completed';
+}
+
 export default function InstructorSessionPage() {
   const params = useParams();
   const router = useRouter();
@@ -39,7 +50,7 @@ export default function InstructorSessionPage() {
 
   // Realtime session hook
   const {
-    session: realtimeSession,
+    session: realtimeSessionRaw,
     students: realtimeStudents,
     loading: sessionLoading,
     error: sessionError,
@@ -53,6 +64,9 @@ export default function InstructorSessionPage() {
     userId: user?.id,
     userName: user?.displayName || user?.email,
   });
+
+  // Cast session to include additional API fields like joinCode
+  const realtimeSession = realtimeSessionRaw as SessionStateFromAPI | null;
 
   // Session operations hook
   const {
@@ -94,8 +108,8 @@ export default function InstructorSessionPage() {
     setSessionExecutionSettings(realtimeSession.problem?.executionSettings || {});
   }, [realtimeSession]);
 
-  // Handle session ended state
-  const isSessionEnded = realtimeSession?.status === 'ended';
+  // Handle session ended state - status is 'active' or 'completed', not 'ended'
+  const isSessionEnded = realtimeSession?.status === 'completed';
 
   // Handlers
   const handleLeaveSession = useCallback(() => {
