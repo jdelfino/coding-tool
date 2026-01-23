@@ -159,7 +159,6 @@ export class SupabaseMembershipRepository implements IMembershipRepository {
           class_id,
           name,
           semester,
-          instructor_ids,
           join_code,
           active,
           created_at,
