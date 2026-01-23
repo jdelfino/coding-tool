@@ -35,7 +35,6 @@ function mapRowToSectionWithClass(row: any): SectionWithClass {
     classId: row.class_id,
     name: row.name,
     semester: row.semester || undefined,
-    instructorIds: row.instructor_ids || [],
     joinCode: row.join_code,
     active: row.active,
     createdAt: new Date(row.created_at),

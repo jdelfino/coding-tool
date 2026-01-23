@@ -135,7 +135,7 @@ export async function POST(
       );
     }
 
-    // Add instructor to section via membership only (no need to update section.instructorIds)
+    // Add instructor to section via membership
     await membershipRepo.addMembership({
       userId: user.id,
       sectionId: id,

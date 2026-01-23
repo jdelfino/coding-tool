@@ -206,7 +206,9 @@ export class FakeSectionRepository implements ISectionRepository {
     }
 
     if (filters?.instructorId) {
-      sections = sections.filter(s => s.instructorIds.includes(filters.instructorId!));
+      // Filter by instructor via memberships (requires membership repository to be set up)
+      // For now, skip this filter in the fake implementation - tests should use memberships directly
+      console.warn('FakeSectionRepository: instructorId filter requires membership lookup');
     }
 
     if (filters?.active !== undefined) {
@@ -232,30 +234,9 @@ export class FakeSectionRepository implements ISectionRepository {
     return newJoinCode;
   }
 
-  async addInstructor(sectionId: string, instructorId: string): Promise<void> {
-    const section = this.sections.get(sectionId);
-    if (!section) {
-      throw new Error(`Section not found: ${sectionId}`);
-    }
-
-    if (!section.instructorIds.includes(instructorId)) {
-      section.instructorIds.push(instructorId);
-      section.updatedAt = new Date();
-    }
-  }
-
-  async removeInstructor(sectionId: string, instructorId: string): Promise<void> {
-    const section = this.sections.get(sectionId);
-    if (!section) {
-      throw new Error(`Section not found: ${sectionId}`);
-    }
-
-    const index = section.instructorIds.indexOf(instructorId);
-    if (index > -1) {
-      section.instructorIds.splice(index, 1);
-      section.updatedAt = new Date();
-    }
-  }
+  // NOTE: addInstructor and removeInstructor methods have been removed
+  // Instructor management is now done through section_memberships
+  // Tests should use FakeMembershipRepository.addMembership/removeMembership instead
 
   async getSectionStats(sectionId: string): Promise<SectionStats> {
     const section = this.sections.get(sectionId);

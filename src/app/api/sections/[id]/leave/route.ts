@@ -63,7 +63,7 @@ export async function DELETE(
       }
     }
 
-    // Remove membership (no need to update section.instructorIds)
+    // Remove membership
     await membershipRepo.removeMembership(session.user.id, id);
 
     return NextResponse.json({ success: true });
