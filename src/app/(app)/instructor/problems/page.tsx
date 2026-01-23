@@ -1,34 +1,64 @@
 'use client';
 
 /**
- * Instructor Problems Page - Redirect to main instructor page
- * 
- * This page redirects to /instructor with the problems view active.
- * The problems functionality is embedded in the main instructor page.
+ * Instructor Problems Page
+ *
+ * Displays the problem library for instructors to manage and create problems.
+ * Uses the ProblemLibrary component for the main UI.
  */
 
-import React, { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { Suspense, useState } from 'react';
+import ProblemLibrary from '../components/ProblemLibrary';
+import ProblemCreator from '../components/ProblemCreator';
+import NamespaceHeader from '@/components/NamespaceHeader';
 
-export default function ProblemsRedirectPage() {
-  const router = useRouter();
+function ProblemsPage() {
+  const [showCreator, setShowCreator] = useState(false);
+  const [editingProblemId, setEditingProblemId] = useState<string | null>(null);
 
-  useEffect(() => {
-    // Redirect to main instructor page
-    // The problems view will be shown via the navigation tabs
-    router.replace('/instructor');
-  }, [router]);
+  const handleCreateNew = () => {
+    setEditingProblemId(null);
+    setShowCreator(true);
+  };
+
+  const handleEdit = (problemId: string) => {
+    setEditingProblemId(problemId);
+    setShowCreator(true);
+  };
+
+  const handleCloseCreator = () => {
+    setShowCreator(false);
+    setEditingProblemId(null);
+  };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="text-center">
-        <div 
-          className="animate-spin w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full mx-auto mb-4"
-          role="status"
-          aria-label="Loading"
-        ></div>
-        <p className="text-gray-600">Redirecting to instructor dashboard...</p>
+    <div className="space-y-6">
+      {/* Page header */}
+      <div className="flex items-center justify-between">
+        <NamespaceHeader className="text-sm" />
       </div>
+
+      {/* Main content */}
+      {showCreator ? (
+        <ProblemCreator
+          problemId={editingProblemId}
+          onCancel={handleCloseCreator}
+          onProblemCreated={handleCloseCreator}
+        />
+      ) : (
+        <ProblemLibrary
+          onCreateNew={handleCreateNew}
+          onEdit={handleEdit}
+        />
+      )}
     </div>
+  );
+}
+
+export default function ProblemsPageWrapper() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
+      <ProblemsPage />
+    </Suspense>
   );
 }

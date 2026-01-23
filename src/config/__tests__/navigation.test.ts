@@ -19,10 +19,10 @@ describe('Navigation Configuration', () => {
       expect(itemIds).toContain('my-sections');
       expect(itemIds).toContain('dashboard');
       expect(itemIds).toContain('classes');
-      expect(itemIds).toContain('sessions');
       expect(itemIds).toContain('problems');
       expect(itemIds).toContain('user-management');
       expect(itemIds).toContain('namespaces');
+      // Note: 'sessions' removed - sessions are now managed from the dashboard
     });
 
     it('has unique IDs for all items', () => {
@@ -85,8 +85,8 @@ describe('Navigation Configuration', () => {
         const ids = items.map(i => i.id);
         expect(ids).toContain('dashboard');
         expect(ids).toContain('classes');
-        expect(ids).toContain('sessions');
         expect(ids).toContain('problems');
+        // Note: 'sessions' removed - sessions are now managed from the dashboard
       });
 
       it('does not include admin or system items', () => {

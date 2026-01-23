@@ -1,60 +1,108 @@
 /**
- * Tests for Instructor Problems Redirect Page
+ * Tests for Instructor Problems Page
  * @jest-environment jsdom
  */
 
 import React from 'react';
-import { render, screen } from '@testing-library/react';
-import { useRouter } from 'next/navigation';
-import ProblemsRedirectPage from '../page';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import ProblemsPageWrapper from '../page';
 
-// Mock next/navigation
-jest.mock('next/navigation', () => ({
-  useRouter: jest.fn(),
-}));
+// Mock the child components
+jest.mock('../../components/ProblemLibrary', () => {
+  return function MockProblemLibrary({ onCreateNew, onEdit }: { onCreateNew?: () => void; onEdit?: (id: string) => void }) {
+    return (
+      <div data-testid="problem-library">
+        <button onClick={onCreateNew} data-testid="create-new-btn">Create New</button>
+        <button onClick={() => onEdit?.('problem-1')} data-testid="edit-btn">Edit</button>
+      </div>
+    );
+  };
+});
 
-describe('ProblemsRedirectPage', () => {
+jest.mock('../../components/ProblemCreator', () => {
+  return function MockProblemCreator({ problemId, onCancel, onProblemCreated }: {
+    problemId?: string | null;
+    onCancel?: () => void;
+    onProblemCreated?: (id: string) => void;
+  }) {
+    return (
+      <div data-testid="problem-creator">
+        <span data-testid="editing-problem-id">{problemId || 'new'}</span>
+        <button onClick={onCancel} data-testid="cancel-btn">Cancel</button>
+        <button onClick={() => onProblemCreated?.('created-id')} data-testid="save-btn">Save</button>
+      </div>
+    );
+  };
+});
+
+jest.mock('@/components/NamespaceHeader', () => {
+  return function MockNamespaceHeader() {
+    return <div data-testid="namespace-header">Namespace Header</div>;
+  };
+});
+
+describe('ProblemsPage', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  it('redirects to /instructor on mount', () => {
-    const mockReplace = jest.fn();
-    (useRouter as jest.Mock).mockReturnValue({
-      replace: mockReplace,
-    });
+  it('renders the problem library by default', () => {
+    render(<ProblemsPageWrapper />);
 
-    render(<ProblemsRedirectPage />);
-
-    expect(mockReplace).toHaveBeenCalledWith('/instructor');
+    expect(screen.getByTestId('problem-library')).toBeInTheDocument();
+    expect(screen.queryByTestId('problem-creator')).not.toBeInTheDocument();
   });
 
-  it('shows loading spinner while redirecting', () => {
-    const mockReplace = jest.fn();
-    (useRouter as jest.Mock).mockReturnValue({
-      replace: mockReplace,
-    });
+  it('renders namespace header', () => {
+    render(<ProblemsPageWrapper />);
 
-    render(<ProblemsRedirectPage />);
-
-    // Check for spinner (loading status role)
-    const spinner = screen.getByRole('status');
-    expect(spinner).toBeInTheDocument();
-    expect(spinner).toHaveAttribute('aria-label', 'Loading');
+    expect(screen.getByTestId('namespace-header')).toBeInTheDocument();
   });
 
-  it('renders with correct layout classes', () => {
-    const mockReplace = jest.fn();
-    (useRouter as jest.Mock).mockReturnValue({
-      replace: mockReplace,
-    });
+  it('shows problem creator when creating a new problem', () => {
+    render(<ProblemsPageWrapper />);
 
-    const { container } = render(<ProblemsRedirectPage />);
-    const mainDiv = container.firstChild as HTMLElement;
-    
-    expect(mainDiv.className).toContain('min-h-screen');
-    expect(mainDiv.className).toContain('flex');
-    expect(mainDiv.className).toContain('items-center');
-    expect(mainDiv.className).toContain('justify-center');
+    fireEvent.click(screen.getByTestId('create-new-btn'));
+
+    expect(screen.getByTestId('problem-creator')).toBeInTheDocument();
+    expect(screen.queryByTestId('problem-library')).not.toBeInTheDocument();
+    expect(screen.getByTestId('editing-problem-id')).toHaveTextContent('new');
+  });
+
+  it('shows problem creator with problem ID when editing', () => {
+    render(<ProblemsPageWrapper />);
+
+    fireEvent.click(screen.getByTestId('edit-btn'));
+
+    expect(screen.getByTestId('problem-creator')).toBeInTheDocument();
+    expect(screen.getByTestId('editing-problem-id')).toHaveTextContent('problem-1');
+  });
+
+  it('returns to library when canceling from creator', () => {
+    render(<ProblemsPageWrapper />);
+
+    // Open creator
+    fireEvent.click(screen.getByTestId('create-new-btn'));
+    expect(screen.getByTestId('problem-creator')).toBeInTheDocument();
+
+    // Cancel
+    fireEvent.click(screen.getByTestId('cancel-btn'));
+
+    expect(screen.getByTestId('problem-library')).toBeInTheDocument();
+    expect(screen.queryByTestId('problem-creator')).not.toBeInTheDocument();
+  });
+
+  it('returns to library after saving a problem', () => {
+    render(<ProblemsPageWrapper />);
+
+    // Open creator
+    fireEvent.click(screen.getByTestId('create-new-btn'));
+    expect(screen.getByTestId('problem-creator')).toBeInTheDocument();
+
+    // Save
+    fireEvent.click(screen.getByTestId('save-btn'));
+
+    expect(screen.getByTestId('problem-library')).toBeInTheDocument();
+    expect(screen.queryByTestId('problem-creator')).not.toBeInTheDocument();
   });
 });
