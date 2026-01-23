@@ -26,12 +26,11 @@ function mapRowsToSession(
   sessionRow: SessionRow,
   studentRows: SessionStudentRow[]
 ): StoredSession {
-  // Reconstruct the students Map from student rows
+  // Reconstruct the students Map from student rows (keyed by user_id)
   const students = new Map<string, Student>();
   for (const studentRow of studentRows) {
-    students.set(studentRow.student_id, {
-      id: studentRow.student_id,
-      userId: studentRow.user_id!, // user_id is required for RLS
+    students.set(studentRow.user_id, {
+      userId: studentRow.user_id,
       name: studentRow.name,
       code: studentRow.code,
       lastUpdate: new Date(studentRow.last_update),
@@ -151,10 +150,9 @@ export class SupabaseSessionRepository implements ISessionRepository {
 
     // Insert students if any
     if (session.students.size > 0) {
-      const studentRows = Array.from(session.students.entries()).map(([studentId, student]) => ({
+      const studentRows = Array.from(session.students.entries()).map(([userId, student]) => ({
         session_id: session.id,
-        student_id: studentId,
-        user_id: student.userId,
+        user_id: userId,
         name: student.name,
         code: student.code,
         last_update: student.lastUpdate.toISOString(),
@@ -277,10 +275,9 @@ export class SupabaseSessionRepository implements ISessionRepository {
     // Handle student updates if provided
     if (updates.students !== undefined && updates.students.size > 0) {
       // Use UPSERT to insert or update students (works with RLS since students have INSERT + UPDATE permissions)
-      const studentRows = Array.from(updates.students.entries()).map(([studentId, student]) => ({
+      const studentRows = Array.from(updates.students.entries()).map(([userId, student]) => ({
         session_id: sessionId,
-        student_id: studentId,
-        user_id: student.userId,
+        user_id: userId,
         name: student.name,
         code: student.code,
         last_update: student.lastUpdate.toISOString(),
@@ -290,7 +287,7 @@ export class SupabaseSessionRepository implements ISessionRepository {
       const { error: upsertError } = await supabase
         .from('session_students')
         .upsert(studentRows, {
-          onConflict: 'session_id,student_id',
+          onConflict: 'session_id,user_id',
         });
 
       if (upsertError) {

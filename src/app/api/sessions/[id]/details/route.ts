@@ -49,7 +49,7 @@ export async function GET(
     // Get all students from the session's students map
     const students = Array.from(session.students.values());
     const studentData = students.map(student => ({
-      id: student.id,
+      id: student.userId,
       name: student.name,
       code: student.code,
       lastUpdate: student.lastUpdate.toISOString(),

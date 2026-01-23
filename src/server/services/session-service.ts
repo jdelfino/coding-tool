@@ -166,12 +166,11 @@ export async function createSessionWithProblem(
 export async function addStudent(
   storage: IStorageRepository,
   session: Session,
-  studentId: string,
-  name: string,
-  userId: string
+  userId: string,
+  name: string
 ): Promise<Student> {
   // Check if student already exists (rejoining)
-  const existingStudent = session.students.get(studentId);
+  const existingStudent = session.students.get(userId);
 
   // Initialize with starter code if first join, preserve existing code otherwise
   const initialCode =
@@ -180,7 +179,6 @@ export async function addStudent(
       : session.problem?.starterCode || '';
 
   const student: Student = {
-    id: studentId,
     userId,
     name: name.trim(),
     code: initialCode,
@@ -188,11 +186,11 @@ export async function addStudent(
     executionSettings: existingStudent?.executionSettings,
   };
 
-  // Update session
-  session.students.set(studentId, student);
+  // Update session (keyed by userId)
+  session.students.set(userId, student);
 
-  if (!session.participants.includes(studentId)) {
-    session.participants.push(studentId);
+  if (!session.participants.includes(userId)) {
+    session.participants.push(userId);
   }
 
   // Persist
@@ -211,13 +209,13 @@ export async function addStudent(
 export async function updateStudentCode(
   storage: IStorageRepository,
   session: Session,
-  studentId: string,
+  userId: string,
   code: string,
   executionSettings?: ExecutionSettings
 ): Promise<void> {
-  const student = session.students.get(studentId);
+  const student = session.students.get(userId);
   if (!student) {
-    throw new Error(`Student ${studentId} not found in session`);
+    throw new Error(`Student ${userId} not found in session`);
   }
 
   student.code = code;
@@ -243,14 +241,14 @@ export async function updateStudentCode(
  */
 export function getStudentData(
   session: Session,
-  studentId: string
+  userId: string
 ):
   | {
       code: string;
       executionSettings?: ExecutionSettings;
     }
   | undefined {
-  const student = session.students.get(studentId);
+  const student = session.students.get(userId);
   if (!student) return undefined;
 
   const problemSettings = session.problem?.executionSettings;

@@ -149,12 +149,15 @@ export function useRealtimeSession({
         // Set session data
         setSession(data.session);
 
-        // Convert students array to Map
+        // Convert students array to Map (API returns 'id' but we use 'userId' internally)
         const studentsMap = new Map<string, Student>();
         data.students.forEach((student: any) => {
           studentsMap.set(student.id, {
-            ...student,
+            userId: student.id,
+            name: student.name,
+            code: student.code || '',
             lastUpdate: new Date(student.lastUpdate),
+            executionSettings: student.executionSettings,
           });
         });
         setStudents(studentsMap);
@@ -198,12 +201,15 @@ export function useRealtimeSession({
       // Set session data
       setSession(data.session);
 
-      // Convert students array to Map
+      // Convert students array to Map (API returns 'id' but we use 'userId' internally)
       const studentsMap = new Map<string, Student>();
       data.students.forEach((student: any) => {
         studentsMap.set(student.id, {
-          ...student,
+          userId: student.id,
+          name: student.name,
+          code: student.code || '',
           lastUpdate: new Date(student.lastUpdate),
+          executionSettings: student.executionSettings,
         });
       });
       setStudents(studentsMap);
@@ -234,9 +240,8 @@ export function useRealtimeSession({
           const { student } = payload.payload;
           setStudents(prev => {
             const updated = new Map(prev);
-            updated.set(student.id, {
-              id: student.id,
-              userId: student.userId || student.id,
+            updated.set(student.userId, {
+              userId: student.userId,
               name: student.name,
               code: student.code || '',
               lastUpdate: new Date(),
@@ -306,10 +311,9 @@ export function useRealtimeSession({
       if (type === 'INSERT' || type === 'UPDATE') {
         setStudents(prev => {
           const updated = new Map(prev);
-          updated.set(payload.student_id, {
-            id: payload.student_id,
-            userId: payload.user_id || payload.student_id,
-            name: payload.name, // Column is 'name', not 'student_name'
+          updated.set(payload.user_id, {
+            userId: payload.user_id,
+            name: payload.name,
             code: payload.code || '',
             lastUpdate: new Date(payload.last_update),
             executionSettings: payload.execution_settings,
@@ -319,7 +323,7 @@ export function useRealtimeSession({
       } else if (type === 'DELETE') {
         setStudents(prev => {
           const updated = new Map(prev);
-          updated.delete(payload.student_id);
+          updated.delete(payload.user_id);
           return updated;
         });
       }

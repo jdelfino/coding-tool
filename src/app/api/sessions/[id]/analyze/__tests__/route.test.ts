@@ -52,7 +52,6 @@ describe('POST /api/sessions/[id]/analyze', () => {
   };
 
   const mockStudent1: Student = {
-    id: 'student-1',
     userId: 'user-1',
     name: 'Alice',
     code: 'print("Alice solution here")',
@@ -60,7 +59,6 @@ describe('POST /api/sessions/[id]/analyze', () => {
   };
 
   const mockStudent2: Student = {
-    id: 'student-2',
     userId: 'user-2',
     name: 'Bob',
     code: 'print("Bob solution here")',
@@ -72,13 +70,13 @@ describe('POST /api/sessions/[id]/analyze', () => {
     namespaceId: 'default',
     problem: mockProblem,
     students: new Map([
-      ['student-1', mockStudent1],
-      ['student-2', mockStudent2],
+      ['user-1', mockStudent1],
+      ['user-2', mockStudent2],
     ]),
     createdAt: new Date(),
     lastActivity: new Date(),
     creatorId: 'instructor-1',
-    participants: ['student-1', 'student-2'],
+    participants: ['user-1', 'user-2'],
     status: 'active',
     sectionId: 'section-1',
     sectionName: 'Test Section',
@@ -90,7 +88,7 @@ describe('POST /api/sessions/[id]/analyze', () => {
       {
         position: 1,
         studentLabel: 'Student A',
-        studentId: 'student-1',
+        studentId: 'user-1',
         discussionPoints: ['Missing edge case handling'],
         pedagogicalNote: 'Common beginner mistake',
         category: 'common-error',
@@ -162,8 +160,8 @@ describe('POST /api/sessions/[id]/analyze', () => {
         problemDescription: 'Test description',
         starterCode: 'print("Hello")',
         submissions: expect.arrayContaining([
-          expect.objectContaining({ studentId: 'student-1' }),
-          expect.objectContaining({ studentId: 'student-2' }),
+          expect.objectContaining({ studentId: 'user-1' }),
+          expect.objectContaining({ studentId: 'user-2' }),
         ]),
       })
     );

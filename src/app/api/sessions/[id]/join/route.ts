@@ -20,7 +20,7 @@ import { ExecutionSettings } from '@/server/types';
 export function broadcastStudentJoined(
   sessionId: string,
   student: {
-    id: string;
+    userId: string;
     name: string;
     code: string | null;
     executionSettings: ExecutionSettings | undefined;
@@ -57,7 +57,6 @@ export function broadcastStudentJoined(
 }
 
 interface JoinSessionBody {
-  studentId?: string;
   name: string;
 }
 
@@ -71,7 +70,7 @@ export async function POST(
 
   try {
     // Authenticate user
-    const { user, accessToken } = await getAuthenticatedUserWithToken(request);
+    const { user } = await getAuthenticatedUserWithToken(request);
 
     // Get session ID from params
     const { id: sessionId } = await params;
@@ -95,9 +94,6 @@ export async function POST(
       );
     }
 
-    // Use provided studentId or default to authenticated user's ID
-    const studentId = body.studentId || user.id;
-
     // Use service role for session operations
     // RLS policies for session_students require complex permission checks
     // We've already verified user is authenticated, so use service role for the update
@@ -120,15 +116,14 @@ export async function POST(
     }
 
     // Add student via service (handles starter code, participants, persistence)
-    // Pass user.id as userId for RLS policy (allows student to update their own rows)
-    const student = await SessionService.addStudent(storage, session, studentId, name, user.id);
+    const student = await SessionService.addStudent(storage, session, user.id, name);
 
     // Get merged execution settings via service
-    const studentData = SessionService.getStudentData(session, studentId);
+    const studentData = SessionService.getStudentData(session, user.id);
 
     // Broadcast the student join event to all connected clients (more reliable than postgres_changes)
     broadcastStudentJoined(sessionId, {
-      id: student.id,
+      userId: student.userId,
       name: student.name,
       code: student.code || null,
       executionSettings: studentData?.executionSettings,
@@ -138,7 +133,7 @@ export async function POST(
     return NextResponse.json({
       success: true,
       student: {
-        id: student.id,
+        id: student.userId,
         name: student.name,
         code: student.code,
         executionSettings: studentData?.executionSettings,

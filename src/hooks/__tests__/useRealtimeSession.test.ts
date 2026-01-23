@@ -120,7 +120,7 @@ describe('useRealtimeSession', () => {
 
       expect(result.current.session).toEqual(mockState.session);
       expect(result.current.students).toHaveLength(1);
-      expect(result.current.students[0].id).toBe('student-1');
+      expect(result.current.students[0].userId).toBe('student-1');
       expect(result.current.featuredStudent).toEqual(mockState.featuredStudent);
     });
 
@@ -205,7 +205,7 @@ describe('useRealtimeSession', () => {
         type: 'INSERT' as const,
         table: 'session_students',
         payload: {
-          student_id: 'student-1',
+          user_id: 'student-1',
           name: 'Alice',
           code: 'print("hello")',
           last_update: new Date().toISOString(),
@@ -214,7 +214,7 @@ describe('useRealtimeSession', () => {
       rerender();
 
       expect(result.current.students).toHaveLength(1);
-      expect(result.current.students[0].id).toBe('student-1');
+      expect(result.current.students[0].userId).toBe('student-1');
       expect(result.current.students[0].name).toBe('Alice');
       expect(result.current.students[0].code).toBe('print("hello")');
     });
@@ -235,7 +235,7 @@ describe('useRealtimeSession', () => {
         type: 'INSERT' as const,
         table: 'session_students',
         payload: {
-          student_id: 'student-1',
+          user_id: 'student-1',
           name: 'Alice',
           code: '',
           last_update: new Date().toISOString(),
@@ -250,7 +250,7 @@ describe('useRealtimeSession', () => {
         type: 'UPDATE' as const,
         table: 'session_students',
         payload: {
-          student_id: 'student-1',
+          user_id: 'student-1',
           name: 'Alice',
           code: 'print("updated")',
           last_update: new Date().toISOString(),
@@ -277,7 +277,7 @@ describe('useRealtimeSession', () => {
         type: 'INSERT' as const,
         table: 'session_students',
         payload: {
-          student_id: 'student-1',
+          user_id: 'student-1',
           name: 'Alice',
           code: '',
           last_update: new Date().toISOString(),
@@ -292,7 +292,7 @@ describe('useRealtimeSession', () => {
         type: 'DELETE' as const,
         table: 'session_students',
         payload: {
-          student_id: 'student-1',
+          user_id: 'student-1',
         },
       };
       rerender();
@@ -476,7 +476,7 @@ describe('useRealtimeSession', () => {
         await jest.runAllTimersAsync();
       });
 
-      const student = result.current.students.find(s => s.id === 'student-1');
+      const student = result.current.students.find(s => s.userId === 'student-1');
       expect(student?.code).toBe('print("new code")');
     });
   });
@@ -832,7 +832,7 @@ describe('useRealtimeSession', () => {
           payload: {
             sessionId: 'session-1',
             student: {
-              id: 'student-1',
+              userId: 'student-1',
               name: 'Alice',
               code: 'print("hello")',
               executionSettings: undefined,
@@ -843,7 +843,7 @@ describe('useRealtimeSession', () => {
       });
 
       expect(result.current.students).toHaveLength(1);
-      expect(result.current.students[0].id).toBe('student-1');
+      expect(result.current.students[0].userId).toBe('student-1');
       expect(result.current.students[0].name).toBe('Alice');
       expect(result.current.students[0].code).toBe('print("hello")');
     });
@@ -867,7 +867,7 @@ describe('useRealtimeSession', () => {
           payload: {
             sessionId: 'session-1',
             student: {
-              id: 'student-1',
+              userId: 'student-1',
               name: 'Alice',
               code: '',
               executionSettings: undefined,

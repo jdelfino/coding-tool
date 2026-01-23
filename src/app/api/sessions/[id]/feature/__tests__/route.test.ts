@@ -54,7 +54,6 @@ describe('POST /api/sessions/[id]/feature', () => {
   };
 
   const mockStudentObj: Student = {
-    id: 'student-1',
     userId: 'user-1',
     name: 'Alice',
     code: 'print("Alice code")',
@@ -65,11 +64,11 @@ describe('POST /api/sessions/[id]/feature', () => {
     id: 'session-1',
     namespaceId: 'default',
     problem: mockProblem,
-    students: new Map([['student-1', mockStudentObj]]),
+    students: new Map([['user-1', mockStudentObj]]),
     createdAt: new Date(),
     lastActivity: new Date(),
     creatorId: 'instructor-1',
-    participants: ['student-1'],
+    participants: ['user-1'],
     status: 'active',
     sectionId: 'section-1',
     sectionName: 'Test Section',
@@ -103,7 +102,7 @@ describe('POST /api/sessions/[id]/feature', () => {
 
     const request = new NextRequest('http://localhost:3000/api/sessions/session-1/feature', {
       method: 'POST',
-      body: JSON.stringify({ studentId: 'student-1' }),
+      body: JSON.stringify({ studentId: 'user-1' }),
     });
     const params = Promise.resolve({ id: 'session-1' });
 
@@ -112,10 +111,10 @@ describe('POST /api/sessions/[id]/feature', () => {
 
     expect(response.status).toBe(200);
     expect(data.success).toBe(true);
-    expect(data.featuredStudentId).toBe('student-1');
+    expect(data.featuredStudentId).toBe('user-1');
     expect(data.featuredCode).toBe('print("Alice code")');
     expect(SessionService.setFeaturedSubmission).toHaveBeenCalledWith(
-      mockStorage, mockSession, 'student-1'
+      mockStorage, mockSession, 'user-1'
     );
   });
 
@@ -144,7 +143,7 @@ describe('POST /api/sessions/[id]/feature', () => {
 
     const request = new NextRequest('http://localhost:3000/api/sessions/session-1/feature', {
       method: 'POST',
-      body: JSON.stringify({ studentId: 'student-1' }),
+      body: JSON.stringify({ studentId: 'user-1' }),
     });
     const params = Promise.resolve({ id: 'session-1' });
 
@@ -159,7 +158,7 @@ describe('POST /api/sessions/[id]/feature', () => {
 
     const request = new NextRequest('http://localhost:3000/api/sessions/session-1/feature', {
       method: 'POST',
-      body: JSON.stringify({ studentId: 'student-1' }),
+      body: JSON.stringify({ studentId: 'user-1' }),
     });
     const params = Promise.resolve({ id: 'session-1' });
 
@@ -177,7 +176,7 @@ describe('POST /api/sessions/[id]/feature', () => {
 
     const request = new NextRequest('http://localhost:3000/api/sessions/session-1/feature', {
       method: 'POST',
-      body: JSON.stringify({ studentId: 'student-1' }),
+      body: JSON.stringify({ studentId: 'user-1' }),
     });
     const params = Promise.resolve({ id: 'session-1' });
 
@@ -212,7 +211,7 @@ describe('POST /api/sessions/[id]/feature', () => {
 
     const request = new NextRequest('http://localhost:3000/api/sessions/session-1/feature', {
       method: 'POST',
-      body: JSON.stringify({ studentId: 'student-1' }),
+      body: JSON.stringify({ studentId: 'user-1' }),
     });
     const params = Promise.resolve({ id: 'session-1' });
 

@@ -72,7 +72,7 @@ describe('POST /api/sessions/[id]/join', () => {
   };
 
   const mockStudent = {
-    id: 'user-1',
+    userId: 'user-1',
     name: 'Alice',
     code: 'print("Hello")',
     lastUpdate: new Date(),
@@ -120,7 +120,7 @@ describe('POST /api/sessions/[id]/join', () => {
     expect(data.student.id).toBe('user-1');
     expect(data.student.name).toBe('Alice');
     expect(SessionService.addStudent).toHaveBeenCalledWith(
-      mockStorage, mockSession, 'user-1', 'Alice', 'user-1'
+      mockStorage, mockSession, 'user-1', 'Alice'
     );
   });
 
@@ -137,7 +137,7 @@ describe('POST /api/sessions/[id]/join', () => {
 
     expect(response.status).toBe(200);
     expect(SessionService.addStudent).toHaveBeenCalledWith(
-      mockStorage, mockSession, 'user-1', 'Alice', 'user-1'
+      mockStorage, mockSession, 'user-1', 'Alice'
     );
   });
 
@@ -271,7 +271,7 @@ describe('POST /api/sessions/[id]/join', () => {
       payload: expect.objectContaining({
         sessionId: 'session-1',
         student: expect.objectContaining({
-          id: 'user-1',
+          userId: 'user-1',
           name: 'Alice',
           code: 'print("Hello")',
         }),

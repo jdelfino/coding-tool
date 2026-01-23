@@ -74,10 +74,10 @@ export default function InstructorSessionPage() {
     updateProblem: apiUpdateProblem,
   } = useSessionOperations();
 
-  // Derive students array from realtime data
+  // Derive students array from realtime data (map userId to id for UI components)
   const students = useMemo(() =>
     realtimeStudents.map(s => ({
-      id: s.id,
+      id: s.userId,
       name: s.name,
       hasCode: !!s.code,
       executionSettings: {
@@ -85,6 +85,17 @@ export default function InstructorSessionPage() {
         stdin: s.executionSettings?.stdin,
         attachedFiles: s.executionSettings?.attachedFiles,
       },
+    })),
+    [realtimeStudents]
+  );
+
+  // Map userId to id for UI component compatibility
+  const mappedRealtimeStudents = useMemo(() =>
+    realtimeStudents.map(s => ({
+      id: s.userId,
+      name: s.name,
+      code: s.code,
+      executionSettings: s.executionSettings,
     })),
     [realtimeStudents]
   );
@@ -251,7 +262,7 @@ export default function InstructorSessionPage() {
           joinCode={joinCode}
           sessionContext={sessionContext}
           students={students}
-          realtimeStudents={realtimeStudents}
+          realtimeStudents={mappedRealtimeStudents}
           sessionProblem={sessionProblem}
           sessionExecutionSettings={sessionExecutionSettings}
           onEndSession={handleEndSession}

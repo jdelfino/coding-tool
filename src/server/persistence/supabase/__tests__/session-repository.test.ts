@@ -45,7 +45,6 @@ describe('SupabaseSessionRepository', () => {
   };
 
   const mockStudent: Student = {
-    id: 'student-1',
     userId: 'student-1',
     name: 'Alice',
     code: 'print("Hello World")',
@@ -85,12 +84,11 @@ describe('SupabaseSessionRepository', () => {
   const mockStudentRow = {
     id: 'row-1',
     session_id: mockSession.id,
-    student_id: mockStudent.id,
+    user_id: mockStudent.userId,
     name: mockStudent.name,
     code: mockStudent.code,
     last_update: mockStudent.lastUpdate.toISOString(),
     execution_settings: null,
-    user_id: null,
   };
 
   beforeEach(() => {
@@ -213,7 +211,7 @@ describe('SupabaseSessionRepository', () => {
       expect(mockStudentInsert).toHaveBeenCalledWith([
         expect.objectContaining({
           session_id: mockSession.id,
-          student_id: 'student-1',
+          user_id: 'student-1',
           name: 'Alice',
           code: 'print("Hello World")',
         }),
@@ -412,7 +410,7 @@ describe('SupabaseSessionRepository', () => {
       });
 
       const newStudents = new Map<string, Student>([
-        ['student-2', { id: 'student-2', userId: 'student-2', name: 'Bob', code: 'print("Hi")', lastUpdate: new Date() }],
+        ['student-2', { userId: 'student-2', name: 'Bob', code: 'print("Hi")', lastUpdate: new Date() }],
       ]);
 
       await repository.updateSession(mockSession.id, { students: newStudents });
@@ -420,11 +418,11 @@ describe('SupabaseSessionRepository', () => {
       expect(mockUpsertResult).toHaveBeenCalledWith(
         [
           expect.objectContaining({
-            student_id: 'student-2',
+            user_id: 'student-2',
             name: 'Bob',
           }),
         ],
-        { onConflict: 'session_id,student_id' }
+        { onConflict: 'session_id,user_id' }
       );
     });
 

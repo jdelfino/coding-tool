@@ -40,7 +40,6 @@ describe('GET /api/sessions/[id]/state', () => {
   };
 
   const mockStudent1: Student = {
-    id: 'student-1',
     userId: 'user-1',
     name: 'Alice',
     code: 'print("Alice")',
@@ -48,7 +47,6 @@ describe('GET /api/sessions/[id]/state', () => {
   };
 
   const mockStudent2: Student = {
-    id: 'student-2',
     userId: 'user-2',
     name: 'Bob',
     code: 'print("Bob")',
@@ -60,17 +58,17 @@ describe('GET /api/sessions/[id]/state', () => {
     namespaceId: 'default',
     problem: mockProblem,
     students: new Map([
-      ['student-1', mockStudent1],
-      ['student-2', mockStudent2],
+      ['user-1', mockStudent1],
+      ['user-2', mockStudent2],
     ]),
     createdAt: new Date(),
     lastActivity: new Date(),
     creatorId: 'user-1',
-    participants: ['student-1', 'student-2'],
+    participants: ['user-1', 'user-2'],
     status: 'active',
     sectionId: 'section-1',
     sectionName: 'Test Section',
-    featuredStudentId: 'student-1',
+    featuredStudentId: 'user-1',
     featuredCode: 'print("Featured")',
   };
 
@@ -119,7 +117,7 @@ describe('GET /api/sessions/[id]/state', () => {
     expect(data.session.id).toBe('session-1');
     expect(data.students).toHaveLength(2);
     expect(data.featuredStudent).toEqual({
-      studentId: 'student-1',
+      studentId: 'user-1',
       code: 'print("Featured")',
     });
   });

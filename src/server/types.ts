@@ -13,15 +13,14 @@ export interface CodeSubmission {
 }
 
 export interface Student {
-  id: string;
+  /** Auth user ID - used as the student identifier */
+  userId: string;
   name: string;
   code: string;
   ws?: WebSocket;
   lastUpdate: Date;
   // Execution settings (overrides session/problem defaults)
   executionSettings?: ExecutionSettings;
-  // Auth user ID (for RLS - allows students to update their own rows)
-  userId: string;
 }
 
 export interface Session {

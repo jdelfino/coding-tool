@@ -43,7 +43,7 @@ export async function GET(
 
     // Get students from session (convert Map to array)
     const formattedStudents = Array.from(session.students.values()).map(student => ({
-      id: student.id,
+      id: student.userId,
       name: student.name,
       code: student.code,
       lastUpdate: student.lastUpdate,

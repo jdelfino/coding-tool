@@ -403,8 +403,7 @@ export type Database = {
           last_update: string
           name: string
           session_id: string
-          student_id: string
-          user_id: string | null
+          user_id: string
         }
         Insert: {
           code?: string
@@ -413,8 +412,7 @@ export type Database = {
           last_update?: string
           name: string
           session_id: string
-          student_id: string
-          user_id?: string | null
+          user_id: string
         }
         Update: {
           code?: string
@@ -423,8 +421,7 @@ export type Database = {
           last_update?: string
           name?: string
           session_id?: string
-          student_id?: string
-          user_id?: string | null
+          user_id?: string
         }
         Relationships: [
           {

@@ -176,14 +176,13 @@ describe('session-service', () => {
         sectionName: 'Test',
       };
 
-      const student = await addStudent(storage as any, session, 'student-1', 'Alice', 'user-1');
+      const student = await addStudent(storage as any, session, 'user-1', 'Alice');
 
-      expect(student.id).toBe('student-1');
       expect(student.userId).toBe('user-1');
       expect(student.name).toBe('Alice');
       expect(student.code).toBe('print("starter")');
-      expect(session.students.has('student-1')).toBe(true);
-      expect(session.participants).toContain('student-1');
+      expect(session.students.has('user-1')).toBe(true);
+      expect(session.participants).toContain('user-1');
     });
 
     it('preserves existing code on rejoin', async () => {
@@ -203,9 +202,8 @@ describe('session-service', () => {
         },
         students: new Map([
           [
-            'student-1',
+            'user-1',
             {
-              id: 'student-1',
               userId: 'user-1',
               name: 'Alice',
               code: 'print("my code")',
@@ -213,7 +211,7 @@ describe('session-service', () => {
             },
           ],
         ]),
-        participants: ['student-1'],
+        participants: ['user-1'],
         createdAt: new Date(),
         lastActivity: new Date(),
         creatorId: 'instructor-1',
@@ -222,7 +220,7 @@ describe('session-service', () => {
         sectionName: 'Test',
       };
 
-      const student = await addStudent(storage as any, session, 'student-1', 'Alice', 'user-1');
+      const student = await addStudent(storage as any, session, 'user-1', 'Alice');
 
       expect(student.code).toBe('print("my code")'); // Preserved, not starter
     });
@@ -249,9 +247,8 @@ describe('session-service', () => {
         },
         students: new Map([
           [
-            'student-1',
+            'user-1',
             {
-              id: 'student-1',
               userId: 'user-1',
               name: 'Alice',
               code: 'code',
@@ -262,7 +259,7 @@ describe('session-service', () => {
             },
           ],
         ]),
-        participants: ['student-1'],
+        participants: ['user-1'],
         createdAt: new Date(),
         lastActivity: new Date(),
         creatorId: 'instructor-1',
@@ -271,7 +268,7 @@ describe('session-service', () => {
         sectionName: 'Test',
       };
 
-      const data = getStudentData(session, 'student-1');
+      const data = getStudentData(session, 'user-1');
 
       expect(data?.code).toBe('code');
       expect(data?.executionSettings?.stdin).toBe('problem stdin'); // From problem
