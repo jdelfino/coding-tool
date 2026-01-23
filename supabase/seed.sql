@@ -258,18 +258,16 @@ VALUES
 -- SESSION STUDENTS (Optional - add students to the session)
 -- ============================================================================
 
-INSERT INTO session_students (session_id, student_id, user_id, name, code)
+INSERT INTO session_students (session_id, user_id, name, code)
 VALUES
   (
     '00000000-0000-0000-0000-000000000401',
-    '00000000-0000-0000-0000-000000000003',  -- Must match user_id for login to find existing student
     '00000000-0000-0000-0000-000000000003',
     'Alice Student',
     'print("Hello, World!")'
   ),
   (
     '00000000-0000-0000-0000-000000000401',
-    '00000000-0000-0000-0000-000000000004',  -- Must match user_id for login to find existing student
     '00000000-0000-0000-0000-000000000004',
     'Bob Student',
     '# Still working on it...'

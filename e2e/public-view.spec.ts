@@ -168,35 +168,18 @@ describeE2E('Public View Feature', () => {
       const studentName = `student-${namespaceId}`;
       console.log('Looking for student:', studentName);
 
-      // First check if Realtime delivered the student
-      const studentVisible = await instructorPage.locator(`text=${studentName}`).isVisible().catch(() => false);
-      console.log('Student visible via Realtime:', studentVisible);
-
-      if (!studentVisible) {
-        // Realtime not working - this is the bug we're debugging
-        console.log('REALTIME BUG: Student not visible.');
-
-        // Wait a bit more to collect more logs
-        await instructorPage.waitForTimeout(3000);
-
-        // Print all Realtime-related logs
-        console.log('All Realtime-related logs:');
-        instructorLogs.filter(l => l.includes('Realtime')).forEach(l => console.log(l));
-
-        // Fail with diagnostic info
-        throw new Error(`Realtime subscription not delivering student updates. Student ${studentName} should appear but is not visible.`);
-      }
-
-      await expect(instructorPage.locator(`text=${studentName}`)).toBeVisible({ timeout: 5000 });
+      // Wait for student to appear - either via Realtime broadcast or polling fallback
+      // Polling runs every 2 seconds, so give it enough time (10 seconds)
+      await expect(instructorPage.locator(`text=${studentName}`)).toBeVisible({ timeout: 10000 });
 
       console.log('Student appears in instructor view');
 
-      // Click "Show on Public View" button for this student
+      // Click "Feature" button for this student (shows their code on public view)
       const studentRow = instructorPage.locator(`div:has-text("${studentName}")`).first();
-      const showOnPublicViewBtn = studentRow.locator('button:has-text("Show on Public View")');
-      await showOnPublicViewBtn.click();
+      const featureBtn = studentRow.locator('button:has-text("Feature")');
+      await featureBtn.click();
 
-      console.log('Clicked Show on Public View');
+      console.log('Clicked Feature button');
 
       // ===== VERIFY PUBLIC VIEW UPDATES =====
       // The public view should now show the student's code

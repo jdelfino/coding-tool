@@ -77,7 +77,7 @@ export type Database = {
           consumed_at: string | null
           consumed_by: string | null
           created_at: string
-          created_by: string
+          created_by: string | null
           email: string
           expires_at: string
           id: string
@@ -90,7 +90,7 @@ export type Database = {
           consumed_at?: string | null
           consumed_by?: string | null
           created_at?: string
-          created_by: string
+          created_by?: string | null
           email: string
           expires_at: string
           id?: string
@@ -103,7 +103,7 @@ export type Database = {
           consumed_at?: string | null
           consumed_by?: string | null
           created_at?: string
-          created_by?: string
+          created_by?: string | null
           email?: string
           expires_at?: string
           id?: string
@@ -318,7 +318,6 @@ export type Database = {
           class_id: string
           created_at: string
           id: string
-          instructor_ids: string[]
           join_code: string
           name: string
           namespace_id: string
@@ -330,7 +329,6 @@ export type Database = {
           class_id: string
           created_at?: string
           id?: string
-          instructor_ids?: string[]
           join_code: string
           name: string
           namespace_id: string
@@ -342,7 +340,6 @@ export type Database = {
           class_id?: string
           created_at?: string
           id?: string
-          instructor_ids?: string[]
           join_code?: string
           name?: string
           namespace_id?: string
@@ -504,7 +501,6 @@ export type Database = {
           last_login_at: string | null
           namespace_id: string | null
           role: string
-          username: string
         }
         Insert: {
           created_at?: string
@@ -513,7 +509,6 @@ export type Database = {
           last_login_at?: string | null
           namespace_id?: string | null
           role: string
-          username: string
         }
         Update: {
           created_at?: string
@@ -522,7 +517,6 @@ export type Database = {
           last_login_at?: string | null
           namespace_id?: string | null
           role?: string
-          username?: string
         }
         Relationships: [
           {
