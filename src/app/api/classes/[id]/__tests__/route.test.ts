@@ -13,6 +13,7 @@ jest.mock('@/server/auth', () => ({
 
 jest.mock('@/server/classes', () => ({
   getClassRepository: jest.fn(),
+  getMembershipRepository: jest.fn(),
 }));
 
 jest.mock('@/server/auth/api-helpers', () => ({
@@ -20,7 +21,7 @@ jest.mock('@/server/auth/api-helpers', () => ({
   getNamespaceContext: jest.fn((req: any, user: any) => user.namespaceId || 'default'),
 }));
 
-import { getClassRepository } from '@/server/classes';
+import { getClassRepository, getMembershipRepository } from '@/server/classes';
 import { requireAuth } from '@/server/auth/api-helpers';
 import type { User } from '@/server/auth/types';
 import { RBACService } from '@/server/auth/rbac';
@@ -66,9 +67,17 @@ describe('/api/classes/[id]', () => {
     deleteClass: jest.fn(),
   };
 
+  const mockMembershipRepo = {
+    getSectionMembers: jest.fn(),
+  };
+
   beforeEach(() => {
     jest.clearAllMocks();
     (getClassRepository as jest.Mock).mockReturnValue(mockClassRepo);
+    (getMembershipRepository as jest.Mock).mockReturnValue(mockMembershipRepo);
+    // Default: no sections means no membership queries needed
+    mockClassRepo.getClassSections.mockResolvedValue([]);
+    mockMembershipRepo.getSectionMembers.mockResolvedValue([]);
   });
 
   // Class owned by instructor A

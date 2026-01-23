@@ -41,28 +41,27 @@ export async function DELETE(
       );
     }
 
-    // Check if user is an instructor of this section
-    if (!section.instructorIds.includes(session.user.id)) {
+    // Check if user is an instructor of this section (via memberships)
+    const membershipRepo = getMembershipRepository(accessToken);
+    const currentUserMembership = await membershipRepo.getMembership(session.user.id, sectionId);
+    if (currentUserMembership?.role !== 'instructor') {
       return NextResponse.json(
         { error: 'Only section instructors can remove instructors' },
         { status: 403 }
       );
     }
 
-    // Prevent removing the last instructor
-    if (section.instructorIds.length === 1) {
+    // Prevent removing the last instructor (count instructor memberships)
+    const instructors = await membershipRepo.getSectionMembers(sectionId, 'instructor');
+    if (instructors.length === 1) {
       return NextResponse.json(
         { error: 'Cannot remove the last instructor from a section' },
         { status: 400 }
       );
     }
 
-    // Remove instructor from section
-    const membershipRepo = getMembershipRepository(accessToken);
+    // Remove instructor from section (membership removal only)
     await membershipRepo.removeMembership(userId, sectionId);
-
-    // Update section instructorIds
-    await sectionRepo.removeInstructor(sectionId, userId);
 
     return NextResponse.json({ success: true });
   } catch (error) {

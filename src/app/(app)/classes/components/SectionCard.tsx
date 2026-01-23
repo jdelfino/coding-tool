@@ -1,21 +1,27 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/Card';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import type { Section } from '@/server/classes/types';
 import { formatJoinCodeForDisplay } from '@/server/classes/join-code-service';
+
+interface Instructor {
+  id: string;
+  name: string;
+  email: string;
+}
 
 interface SectionCardProps {
   section: Section;
   onRegenerateCode?: (sectionId: string) => Promise<string>;
   onAddInstructor?: (sectionId: string, email: string) => Promise<void>;
   onRemoveInstructor?: (sectionId: string, userId: string) => Promise<void>;
-  instructorNames?: Record<string, string>; // userId -> email mapping
+  instructorNames?: Record<string, string>; // userId -> email mapping (kept for backwards compat)
 }
 
-export default function SectionCard({ 
-  section, 
+export default function SectionCard({
+  section,
   onRegenerateCode,
   onAddInstructor,
   onRemoveInstructor,
@@ -29,6 +35,26 @@ export default function SectionCard({
   const [error, setError] = useState<string | null>(null);
   const [showRemoveInstructorConfirm, setShowRemoveInstructorConfirm] = useState(false);
   const [instructorToRemove, setInstructorToRemove] = useState<string | null>(null);
+  const [instructors, setInstructors] = useState<Instructor[]>([]);
+  const [loadingInstructors, setLoadingInstructors] = useState(true);
+
+  // Fetch instructors from API
+  useEffect(() => {
+    const fetchInstructors = async () => {
+      try {
+        const response = await fetch(`/api/sections/${section.id}/instructors`);
+        if (response.ok) {
+          const data = await response.json();
+          setInstructors(data.instructors || []);
+        }
+      } catch (err) {
+        console.error('Failed to fetch instructors:', err);
+      } finally {
+        setLoadingInstructors(false);
+      }
+    };
+    fetchInstructors();
+  }, [section.id]);
 
   const handleRegenerateCode = async () => {
     if (!onRegenerateCode) return;
@@ -45,15 +71,28 @@ export default function SectionCard({
     }
   };
 
+  const refreshInstructors = async () => {
+    try {
+      const response = await fetch(`/api/sections/${section.id}/instructors`);
+      if (response.ok) {
+        const data = await response.json();
+        setInstructors(data.instructors || []);
+      }
+    } catch (err) {
+      console.error('Failed to refresh instructors:', err);
+    }
+  };
+
   const handleAddInstructor = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!onAddInstructor || !newInstructorEmail.trim()) return;
-    
+
     setError(null);
     try {
       await onAddInstructor(section.id, newInstructorEmail.trim());
       setNewInstructorEmail('');
       setAddingInstructor(false);
+      await refreshInstructors();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to add instructor');
     }
@@ -71,6 +110,7 @@ export default function SectionCard({
     setError(null);
     try {
       await onRemoveInstructor(section.id, instructorToRemove);
+      await refreshInstructors();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to remove instructor');
     } finally {
@@ -129,23 +169,27 @@ export default function SectionCard({
       {onAddInstructor && onRemoveInstructor && (
         <div className="border-t pt-4">
           <h4 className="text-sm font-medium text-gray-700 mb-2">Instructors</h4>
-          <ul className="space-y-2 mb-3">
-            {section.instructorIds.map((instructorId) => (
-              <li key={instructorId} className="flex items-center justify-between text-sm">
-                <span>{instructorNames[instructorId] || instructorId}</span>
-                {section.instructorIds.length > 1 && (
-                  <button
-                    onClick={() => handleRemoveInstructorClick(instructorId)}
-                    className="text-red-600 hover:text-red-700"
-                  >
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                )}
-              </li>
-            ))}
-          </ul>
+          {loadingInstructors ? (
+            <p className="text-sm text-gray-400 mb-3">Loading...</p>
+          ) : (
+            <ul className="space-y-2 mb-3">
+              {instructors.map((instructor) => (
+                <li key={instructor.id} className="flex items-center justify-between text-sm">
+                  <span>{instructor.name || instructor.email}</span>
+                  {instructors.length > 1 && (
+                    <button
+                      onClick={() => handleRemoveInstructorClick(instructor.id)}
+                      className="text-red-600 hover:text-red-700"
+                    >
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
           
           {addingInstructor ? (
             <form onSubmit={handleAddInstructor} className="flex gap-2">

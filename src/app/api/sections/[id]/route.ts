@@ -83,8 +83,10 @@ export async function PUT(
       );
     }
 
-    // Check if user is an instructor of this section
-    if (!section.instructorIds.includes(user.id)) {
+    // Check if user is an instructor of this section (via memberships)
+    const membershipRepo = getMembershipRepository(accessToken);
+    const membership = await membershipRepo.getMembership(user.id, id);
+    if (membership?.role !== 'instructor') {
       return NextResponse.json(
         { error: 'Only section instructors can update it' },
         { status: 403 }
@@ -138,8 +140,10 @@ export async function DELETE(
       );
     }
 
-    // Verify the user is an instructor for this section
-    if (!section.instructorIds.includes(user.id)) {
+    // Verify the user is an instructor for this section (via memberships)
+    const membershipRepo = getMembershipRepository(accessToken);
+    const membership = await membershipRepo.getMembership(user.id, id);
+    if (membership?.role !== 'instructor') {
       return NextResponse.json(
         { error: 'Only section instructors can delete it' },
         { status: 403 }

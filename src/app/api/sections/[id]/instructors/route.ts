@@ -38,14 +38,15 @@ export async function GET(
       );
     }
 
-    // Get instructor details
-    const userRepo = getUserRepository(accessToken);
-    const instructors = await Promise.all(
-      section.instructorIds.map(async (instructorId) => {
-        const user = await userRepo.getUser(instructorId);
-        return user ? { id: user.id, name: user.displayName || user.email, email: user.email } : null;
-      })
-    );
+    // Get instructor details via memberships (getSectionMembers returns User[])
+    const membershipRepo = getMembershipRepository(accessToken);
+    const instructorUsers = await membershipRepo.getSectionMembers(id, 'instructor');
+
+    const instructors = instructorUsers.map((user) => ({
+      id: user.id,
+      name: user.displayName || user.email,
+      email: user.email
+    }));
 
     return NextResponse.json({
       instructors: instructors.filter(Boolean)
@@ -96,8 +97,10 @@ export async function POST(
       );
     }
 
-    // Also check if user is an instructor of this section
-    if (!section.instructorIds.includes(auth.user.id)) {
+    // Also check if user is an instructor of this section (via memberships)
+    const membershipRepo = getMembershipRepository(accessToken);
+    const currentUserMembership = await membershipRepo.getMembership(auth.user.id, id);
+    if (currentUserMembership?.role !== 'instructor') {
       return NextResponse.json(
         { error: 'Only section instructors can add co-instructors' },
         { status: 403 }
@@ -132,16 +135,12 @@ export async function POST(
       );
     }
 
-    // Add instructor to section
-    const membershipRepo = getMembershipRepository(accessToken);
+    // Add instructor to section via membership
     await membershipRepo.addMembership({
       userId: user.id,
       sectionId: id,
       role: 'instructor',
     });
-
-    // Update section instructorIds
-    await sectionRepo.addInstructor(id, user.id);
 
     return NextResponse.json({ success: true, instructor: user });
   } catch (error) {

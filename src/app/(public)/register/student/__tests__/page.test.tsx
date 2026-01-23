@@ -34,7 +34,7 @@ describe('StudentRegistrationPage', () => {
       render(<StudentRegistrationPage />);
 
       expect(screen.getByText('Join Your Section')).toBeInTheDocument();
-      expect(screen.getByPlaceholderText('ABC-123-XYZ')).toBeInTheDocument();
+      expect(screen.getByPlaceholderText('ABC-123')).toBeInTheDocument();
       expect(screen.getByRole('button', { name: 'Continue' })).toBeInTheDocument();
     });
 
@@ -43,8 +43,8 @@ describe('StudentRegistrationPage', () => {
 
       render(<StudentRegistrationPage />);
 
-      const input = screen.getByPlaceholderText('ABC-123-XYZ');
-      expect(input).toHaveValue('TES-TCO-DE1');
+      const input = screen.getByPlaceholderText('ABC-123');
+      expect(input).toHaveValue('TES-TCO');
     });
   });
 
@@ -53,17 +53,17 @@ describe('StudentRegistrationPage', () => {
       const user = userEvent.setup();
       render(<StudentRegistrationPage />);
 
-      const input = screen.getByPlaceholderText('ABC-123-XYZ');
+      const input = screen.getByPlaceholderText('ABC-123');
       await user.type(input, 'abc123xyz');
 
-      expect(input).toHaveValue('ABC-123-XYZ');
+      expect(input).toHaveValue('ABC-123');
     });
 
     it('auto-uppercases code', async () => {
       const user = userEvent.setup();
       render(<StudentRegistrationPage />);
 
-      const input = screen.getByPlaceholderText('ABC-123-XYZ');
+      const input = screen.getByPlaceholderText('ABC-123');
       await user.type(input, 'abc');
 
       expect(input).toHaveValue('ABC');
@@ -73,7 +73,7 @@ describe('StudentRegistrationPage', () => {
       const user = userEvent.setup();
       render(<StudentRegistrationPage />);
 
-      const input = screen.getByPlaceholderText('ABC-123-XYZ');
+      const input = screen.getByPlaceholderText('ABC-123');
       await user.type(input, 'abc-!@#-123');
 
       expect(input).toHaveValue('ABC-123');
@@ -85,13 +85,13 @@ describe('StudentRegistrationPage', () => {
       const user = userEvent.setup();
       render(<StudentRegistrationPage />);
 
-      const input = screen.getByPlaceholderText('ABC-123-XYZ');
+      const input = screen.getByPlaceholderText('ABC-123');
       await user.type(input, 'ABC');
 
       const button = screen.getByRole('button', { name: 'Continue' });
       await user.click(button);
 
-      expect(screen.getByText('Please enter a valid join code (e.g., ABC-123-XYZ)')).toBeInTheDocument();
+      expect(screen.getByText('Please enter a valid join code (e.g., ABC-123)')).toBeInTheDocument();
       expect(mockFetch).not.toHaveBeenCalled();
     });
 
@@ -101,8 +101,8 @@ describe('StudentRegistrationPage', () => {
 
       render(<StudentRegistrationPage />);
 
-      const input = screen.getByPlaceholderText('ABC-123-XYZ');
-      await user.type(input, 'ABC123XYZ');
+      const input = screen.getByPlaceholderText('ABC-123');
+      await user.type(input, 'ABC123');
 
       const button = screen.getByRole('button', { name: 'Continue' });
       await user.click(button);
@@ -119,8 +119,8 @@ describe('StudentRegistrationPage', () => {
 
       render(<StudentRegistrationPage />);
 
-      const input = screen.getByPlaceholderText('ABC-123-XYZ');
-      await user.type(input, 'ABC123XYZ');
+      const input = screen.getByPlaceholderText('ABC-123');
+      await user.type(input, 'ABC123');
 
       const button = screen.getByRole('button', { name: 'Continue' });
       await user.click(button);
@@ -139,8 +139,8 @@ describe('StudentRegistrationPage', () => {
 
       render(<StudentRegistrationPage />);
 
-      const input = screen.getByPlaceholderText('ABC-123-XYZ');
-      await user.type(input, 'ABC123XYZ');
+      const input = screen.getByPlaceholderText('ABC-123');
+      await user.type(input, 'ABC123');
 
       const button = screen.getByRole('button', { name: 'Continue' });
       await user.click(button);
@@ -164,8 +164,8 @@ describe('StudentRegistrationPage', () => {
 
       render(<StudentRegistrationPage />);
 
-      const input = screen.getByPlaceholderText('ABC-123-XYZ');
-      await user.type(input, 'ABC123XYZ');
+      const input = screen.getByPlaceholderText('ABC-123');
+      await user.type(input, 'ABC123');
 
       const button = screen.getByRole('button', { name: 'Continue' });
       await user.click(button);
@@ -196,8 +196,8 @@ describe('StudentRegistrationPage', () => {
       const user = userEvent.setup();
       render(<StudentRegistrationPage />);
 
-      const codeInput = screen.getByPlaceholderText('ABC-123-XYZ');
-      await user.type(codeInput, 'ABC123XYZ');
+      const codeInput = screen.getByPlaceholderText('ABC-123');
+      await user.type(codeInput, 'ABC123');
       await user.click(screen.getByRole('button', { name: 'Continue' }));
 
       await waitFor(() => {
@@ -288,8 +288,8 @@ describe('StudentRegistrationPage', () => {
 
       render(<StudentRegistrationPage />);
 
-      const codeInput = screen.getByPlaceholderText('ABC-123-XYZ');
-      await user.type(codeInput, 'ABC123XYZ');
+      const codeInput = screen.getByPlaceholderText('ABC-123');
+      await user.type(codeInput, 'ABC123');
       await user.click(screen.getByRole('button', { name: 'Continue' }));
 
       await waitFor(() => {
@@ -321,7 +321,7 @@ describe('StudentRegistrationPage', () => {
         expect(mockFetch).toHaveBeenCalledWith('/api/auth/register-student', expect.objectContaining({
           method: 'POST',
           body: JSON.stringify({
-            code: 'ABC123XYZ',
+            code: 'ABC123',
             email: 'student@example.com',
             password: 'Password123',
           }),
@@ -401,8 +401,8 @@ describe('StudentRegistrationPage', () => {
 
       render(<StudentRegistrationPage />);
 
-      const codeInput = screen.getByPlaceholderText('ABC-123-XYZ');
-      await user.type(codeInput, 'ABC123XYZ');
+      const codeInput = screen.getByPlaceholderText('ABC-123');
+      await user.type(codeInput, 'ABC123');
       await user.click(screen.getByRole('button', { name: 'Continue' }));
 
       await waitFor(() => {
@@ -412,7 +412,7 @@ describe('StudentRegistrationPage', () => {
       await user.click(screen.getByRole('button', { name: 'Back' }));
 
       expect(screen.getByText('Join Your Section')).toBeInTheDocument();
-      expect(screen.getByPlaceholderText('ABC-123-XYZ')).toBeInTheDocument();
+      expect(screen.getByPlaceholderText('ABC-123')).toBeInTheDocument();
     });
   });
 

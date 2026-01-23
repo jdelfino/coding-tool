@@ -78,7 +78,7 @@ describe('GET /api/sessions/[id]/state', () => {
     classId: 'class-1',
     namespaceId: 'default',
     joinCode: 'ABC123',
-    instructorIds: ['user-1'],
+    active: true,
     createdAt: new Date(),
     updatedAt: new Date(),
   };

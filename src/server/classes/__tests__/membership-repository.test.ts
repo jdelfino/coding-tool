@@ -70,7 +70,6 @@ describe('MembershipRepository', () => {
       namespaceId: 'default',
       classId: mockClass.id,
       name: 'Section A',
-      instructorIds: ['instructor-1'],
       active: true,
     });
 
@@ -78,7 +77,6 @@ describe('MembershipRepository', () => {
       namespaceId: 'default',
       classId: mockClass.id,
       name: 'Section B',
-      instructorIds: ['instructor-1'],
       active: true,
     });
 
@@ -323,7 +321,6 @@ describe('MembershipRepository', () => {
         namespaceId: 'default',
         classId: mockClass.id,
         name: 'Empty Section',
-        instructorIds: ['instructor-1'],
         active: true,
       });
 
@@ -489,7 +486,6 @@ describe('MembershipRepository', () => {
         namespaceId: 'default',
         classId: mockClass.id,
         name: 'Inactive Section',
-        instructorIds: ['instructor-1'],
         active: false,
       });
 

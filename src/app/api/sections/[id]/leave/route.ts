@@ -52,21 +52,19 @@ export async function DELETE(
       );
     }
 
-    // Don't allow instructors to leave if they're the only one
-    if (membership.role === 'instructor' && section.instructorIds.length === 1) {
-      return NextResponse.json(
-        { error: 'Cannot leave - you are the only instructor for this section' },
-        { status: 400 }
-      );
+    // Don't allow instructors to leave if they're the only one (count instructor memberships)
+    if (membership.role === 'instructor') {
+      const instructors = await membershipRepo.getSectionMembers(id, 'instructor');
+      if (instructors.length === 1) {
+        return NextResponse.json(
+          { error: 'Cannot leave - you are the only instructor for this section' },
+          { status: 400 }
+        );
+      }
     }
 
     // Remove membership
     await membershipRepo.removeMembership(session.user.id, id);
-
-    // If instructor, update section instructorIds
-    if (membership.role === 'instructor') {
-      await sectionRepo.removeInstructor(id, session.user.id);
-    }
 
     return NextResponse.json({ success: true });
   } catch (error) {

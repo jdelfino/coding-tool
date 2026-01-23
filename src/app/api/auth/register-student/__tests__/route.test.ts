@@ -40,7 +40,6 @@ describe('/api/auth/register-student', () => {
     semester: 'Fall 2024',
     namespaceId: 'test-namespace',
     classId: 'class-123',
-    instructorIds: ['instructor-1', 'instructor-2'],
     joinCode: 'ABC-123-XYZ',
     active: true,
     createdAt: new Date('2024-01-01'),
@@ -125,7 +124,6 @@ describe('/api/auth/register-student', () => {
                 semester: mockSection.semester,
                 namespace_id: mockSection.namespaceId,
                 class_id: mockSection.classId,
-                instructor_ids: mockSection.instructorIds,
                 join_code: mockSection.joinCode,
                 active: mockSection.active,
               },
@@ -170,6 +168,16 @@ describe('/api/auth/register-student', () => {
                 id: mockInstructor.id,
                 display_name: mockInstructor.displayName,
               },
+              error: null,
+            }),
+          };
+        }
+        if (table === 'section_memberships') {
+          return {
+            select: jest.fn().mockReturnThis(),
+            eq: jest.fn().mockReturnThis(),
+            limit: jest.fn().mockResolvedValue({
+              data: [{ user_id: mockInstructor.id }],
               error: null,
             }),
           };
@@ -256,7 +264,6 @@ describe('/api/auth/register-student', () => {
                 semester: mockSection.semester,
                 namespace_id: mockSection.namespaceId,
                 class_id: mockSection.classId,
-                instructor_ids: mockSection.instructorIds,
                 join_code: mockSection.joinCode,
                 active: false, // Inactive
               },
@@ -296,7 +303,6 @@ describe('/api/auth/register-student', () => {
                 semester: mockSection.semester,
                 namespace_id: mockSection.namespaceId,
                 class_id: mockSection.classId,
-                instructor_ids: mockSection.instructorIds,
                 join_code: mockSection.joinCode,
                 active: mockSection.active,
               },
@@ -334,15 +340,33 @@ describe('/api/auth/register-student', () => {
         }
         if (table === 'user_profiles') {
           return {
-            select: jest.fn().mockImplementation(() => ({
-              eq: jest.fn().mockReturnThis(),
-              single: jest.fn().mockImplementation(() => {
-                const data = instructorCallIndex < instructorData.length
-                  ? instructorData[instructorCallIndex++]
-                  : null;
-                return Promise.resolve({ data, error: null });
-              }),
-            })),
+            select: jest.fn().mockImplementation((_cols: string, opts?: { count?: string; head?: boolean }) => {
+              if (opts?.count === 'exact') {
+                return {
+                  eq: jest.fn().mockReturnThis(),
+                  then: jest.fn((cb: any) => cb({ count: 0, error: null })),
+                };
+              }
+              return {
+                eq: jest.fn().mockReturnThis(),
+                single: jest.fn().mockImplementation(() => {
+                  const data = instructorCallIndex < instructorData.length
+                    ? instructorData[instructorCallIndex++]
+                    : null;
+                  return Promise.resolve({ data, error: null });
+                }),
+              };
+            }),
+          };
+        }
+        if (table === 'section_memberships') {
+          return {
+            select: jest.fn().mockReturnThis(),
+            eq: jest.fn().mockReturnThis(),
+            limit: jest.fn().mockResolvedValue({
+              data: [{ user_id: 'instructor-1' }, { user_id: 'instructor-2' }],
+              error: null,
+            }),
           };
         }
         return { select: jest.fn().mockReturnThis(), eq: jest.fn().mockReturnThis(), single: jest.fn().mockResolvedValue({ data: null, error: null }) };
@@ -388,7 +412,6 @@ describe('/api/auth/register-student', () => {
                 semester: mockSection.semester,
                 namespace_id: mockSection.namespaceId,
                 class_id: mockSection.classId,
-                instructor_ids: [],
                 join_code: mockSection.joinCode,
                 active: true,
               },
@@ -422,12 +445,28 @@ describe('/api/auth/register-student', () => {
         }
         if (table === 'user_profiles') {
           return {
-            select: jest.fn().mockImplementation(() => ({
-              eq: jest.fn().mockReturnThis(),
-              single: jest.fn().mockResolvedValue({ data: null, error: null }),
-              count: 'exact',
-              head: true,
-            })),
+            select: jest.fn().mockImplementation((_cols: string, opts?: { count?: string; head?: boolean }) => {
+              if (opts?.count === 'exact') {
+                return {
+                  eq: jest.fn().mockReturnThis(),
+                  then: jest.fn((cb: any) => cb({ count: 0, error: null })),
+                };
+              }
+              return {
+                eq: jest.fn().mockReturnThis(),
+                single: jest.fn().mockResolvedValue({ data: null, error: null }),
+              };
+            }),
+          };
+        }
+        if (table === 'section_memberships') {
+          return {
+            select: jest.fn().mockReturnThis(),
+            eq: jest.fn().mockReturnThis(),
+            limit: jest.fn().mockResolvedValue({
+              data: [],
+              error: null,
+            }),
           };
         }
         return { select: jest.fn().mockReturnThis(), eq: jest.fn().mockReturnThis(), single: jest.fn().mockResolvedValue({ data: null, error: null }) };
@@ -455,7 +494,6 @@ describe('/api/auth/register-student', () => {
                 semester: mockSection.semester,
                 namespace_id: mockSection.namespaceId,
                 class_id: mockSection.classId,
-                instructor_ids: [],
                 join_code: mockSection.joinCode,
                 active: true,
               },
@@ -505,6 +543,16 @@ describe('/api/auth/register-student', () => {
                 eq: jest.fn().mockReturnThis(),
                 single: jest.fn().mockResolvedValue({ data: null, error: null }),
               };
+            }),
+          };
+        }
+        if (table === 'section_memberships') {
+          return {
+            select: jest.fn().mockReturnThis(),
+            eq: jest.fn().mockReturnThis(),
+            limit: jest.fn().mockResolvedValue({
+              data: [],
+              error: null,
             }),
           };
         }

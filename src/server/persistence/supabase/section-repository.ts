@@ -22,7 +22,6 @@ function mapRowToSection(row: any): Section {
     classId: row.class_id,
     name: row.name,
     semester: row.semester || undefined,
-    instructorIds: row.instructor_ids || [],
     joinCode: row.join_code,
     active: row.active,
     createdAt: new Date(row.created_at),
@@ -110,7 +109,6 @@ export class SupabaseSectionRepository implements ISectionRepository {
       class_id: sectionData.classId,
       name: sectionData.name,
       semester: sectionData.semester || null,
-      instructor_ids: sectionData.instructorIds || [],
       join_code: joinCode!,
       active: sectionData.active ?? true,
       created_at: now.toISOString(),
@@ -193,7 +191,6 @@ export class SupabaseSectionRepository implements ISectionRepository {
     if (updates.classId !== undefined) dbUpdates.class_id = updates.classId;
     if (updates.name !== undefined) dbUpdates.name = updates.name;
     if (updates.semester !== undefined) dbUpdates.semester = updates.semester || null;
-    if (updates.instructorIds !== undefined) dbUpdates.instructor_ids = updates.instructorIds;
     if (updates.joinCode !== undefined) dbUpdates.join_code = updates.joinCode;
     if (updates.active !== undefined) dbUpdates.active = updates.active;
     if (updates.updatedAt !== undefined) dbUpdates.updated_at = updates.updatedAt.toISOString();
@@ -224,14 +221,55 @@ export class SupabaseSectionRepository implements ISectionRepository {
   async listSections(filters?: SectionFilters, namespaceId?: string): Promise<Section[]> {
     const supabase = getSupabaseClientWithAuth(this.accessToken);
 
+    // If filtering by instructorId, we need to query section_memberships first
+    if (filters?.instructorId) {
+      // Get section IDs where this user is an instructor
+      const { data: memberships, error: membershipError } = await supabase
+        .from('section_memberships')
+        .select('section_id')
+        .eq('user_id', filters.instructorId)
+        .eq('role', 'instructor');
+
+      if (membershipError) {
+        throw new Error(`Failed to list sections: ${membershipError.message}`);
+      }
+
+      if (!memberships || memberships.length === 0) {
+        return [];
+      }
+
+      const sectionIds = memberships.map(m => m.section_id);
+
+      // Now query sections with these IDs
+      let query = supabase.from('sections').select('*').in('id', sectionIds);
+
+      if (filters?.classId) {
+        query = query.eq('class_id', filters.classId);
+      }
+
+      if (filters?.active !== undefined) {
+        query = query.eq('active', filters.active);
+      }
+
+      const finalNamespaceId = namespaceId || filters?.namespaceId;
+      if (finalNamespaceId) {
+        query = query.eq('namespace_id', finalNamespaceId);
+      }
+
+      const { data, error } = await query;
+
+      if (error) {
+        throw new Error(`Failed to list sections: ${error.message}`);
+      }
+
+      return data ? data.map(mapRowToSection) : [];
+    }
+
+    // No instructorId filter - use standard query
     let query = supabase.from('sections').select('*');
 
     if (filters?.classId) {
       query = query.eq('class_id', filters.classId);
-    }
-
-    if (filters?.instructorId) {
-      query = query.contains('instructor_ids', [filters.instructorId]);
     }
 
     if (filters?.active !== undefined) {
@@ -295,66 +333,6 @@ export class SupabaseSectionRepository implements ISectionRepository {
     }
 
     return newJoinCode!;
-  }
-
-  async addInstructor(sectionId: string, instructorId: string): Promise<void> {
-    const supabase = getSupabaseClientWithAuth(this.accessToken);
-
-    // Get current section
-    const section = await this.getSection(sectionId);
-    if (!section) {
-      throw new Error(`Section ${sectionId} not found`);
-    }
-
-    // Check if instructor already exists
-    if (section.instructorIds.includes(instructorId)) {
-      return; // Idempotent - no change needed
-    }
-
-    // Add instructor to the array
-    const updatedInstructorIds = [...section.instructorIds, instructorId];
-
-    const { error } = await supabase
-      .from('sections')
-      .update({ 
-        instructor_ids: updatedInstructorIds,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', sectionId);
-
-    if (error) {
-      throw new Error(`Failed to add instructor: ${error.message}`);
-    }
-  }
-
-  async removeInstructor(sectionId: string, instructorId: string): Promise<void> {
-    const supabase = getSupabaseClientWithAuth(this.accessToken);
-
-    // Get current section
-    const section = await this.getSection(sectionId);
-    if (!section) {
-      throw new Error(`Section ${sectionId} not found`);
-    }
-
-    // Remove instructor from the array
-    const updatedInstructorIds = section.instructorIds.filter(id => id !== instructorId);
-
-    // If no change, return early (idempotent)
-    if (updatedInstructorIds.length === section.instructorIds.length) {
-      return;
-    }
-
-    const { error } = await supabase
-      .from('sections')
-      .update({ 
-        instructor_ids: updatedInstructorIds,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', sectionId);
-
-    if (error) {
-      throw new Error(`Failed to remove instructor: ${error.message}`);
-    }
   }
 
   async getSectionStats(sectionId: string): Promise<SectionStats> {

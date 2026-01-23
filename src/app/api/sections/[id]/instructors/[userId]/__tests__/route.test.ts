@@ -39,7 +39,7 @@ function createTestSection(overrides: any = {}) {
     name: 'Test Section',
     joinCode: 'ABC123',
     namespaceId: 'default',
-    instructorIds: ['instructor-1', 'instructor-2'],
+    active: true,
     createdAt: new Date(),
     updatedAt: new Date(),
     ...overrides,
@@ -53,10 +53,11 @@ describe('DELETE /api/sections/[id]/instructors/[userId]', () => {
 
   const mockSectionRepo = {
     getSection: jest.fn(),
-    removeInstructor: jest.fn(),
   };
 
   const mockMembershipRepo = {
+    getMembership: jest.fn(),
+    getSectionMembers: jest.fn(),
     removeMembership: jest.fn(),
   };
 
@@ -121,8 +122,9 @@ describe('DELETE /api/sections/[id]/instructors/[userId]', () => {
     const user = createTestUser({ id: 'other-user' });
     mockAuthProvider.getSessionFromRequest.mockResolvedValue({ user });
 
-    const mockSection = createTestSection({ instructorIds: ['instructor-1', 'instructor-2'] });
+    const mockSection = createTestSection();
     mockSectionRepo.getSection.mockResolvedValue(mockSection);
+    mockMembershipRepo.getMembership.mockResolvedValue(null);
 
     const request = new NextRequest('http://localhost/api/sections/section-1/instructors/instructor-2', {
       method: 'DELETE',
@@ -141,8 +143,18 @@ describe('DELETE /api/sections/[id]/instructors/[userId]', () => {
     const user = createTestUser();
     mockAuthProvider.getSessionFromRequest.mockResolvedValue({ user });
 
-    const mockSection = createTestSection({ instructorIds: ['instructor-1'] });
+    const mockSection = createTestSection();
     mockSectionRepo.getSection.mockResolvedValue(mockSection);
+    mockMembershipRepo.getMembership.mockResolvedValue({
+      id: 'membership-1',
+      userId: 'instructor-1',
+      sectionId: 'section-1',
+      role: 'instructor',
+      joinedAt: new Date(),
+    });
+    mockMembershipRepo.getSectionMembers.mockResolvedValue([
+      { id: 'instructor-1', email: 'instructor@example.com', role: 'instructor' },
+    ]);
 
     const request = new NextRequest('http://localhost/api/sections/section-1/instructors/instructor-1', {
       method: 'DELETE',
@@ -161,10 +173,20 @@ describe('DELETE /api/sections/[id]/instructors/[userId]', () => {
     const user = createTestUser();
     mockAuthProvider.getSessionFromRequest.mockResolvedValue({ user });
 
-    const mockSection = createTestSection({ instructorIds: ['instructor-1', 'instructor-2'] });
+    const mockSection = createTestSection();
     mockSectionRepo.getSection.mockResolvedValue(mockSection);
+    mockMembershipRepo.getMembership.mockResolvedValue({
+      id: 'membership-1',
+      userId: 'instructor-1',
+      sectionId: 'section-1',
+      role: 'instructor',
+      joinedAt: new Date(),
+    });
+    mockMembershipRepo.getSectionMembers.mockResolvedValue([
+      { id: 'instructor-1', email: 'instructor@example.com', role: 'instructor' },
+      { id: 'instructor-2', email: 'instructor2@example.com', role: 'instructor' },
+    ]);
     mockMembershipRepo.removeMembership.mockResolvedValue(undefined);
-    mockSectionRepo.removeInstructor.mockResolvedValue(undefined);
 
     const request = new NextRequest('http://localhost/api/sections/section-1/instructors/instructor-2', {
       method: 'DELETE',
@@ -178,15 +200,25 @@ describe('DELETE /api/sections/[id]/instructors/[userId]', () => {
     expect(response.status).toBe(200);
     expect(data.success).toBe(true);
     expect(mockMembershipRepo.removeMembership).toHaveBeenCalledWith('instructor-2', 'section-1');
-    expect(mockSectionRepo.removeInstructor).toHaveBeenCalledWith('section-1', 'instructor-2');
   });
 
   it('should allow instructor to remove themselves when not the last instructor', async () => {
     const user = createTestUser();
     mockAuthProvider.getSessionFromRequest.mockResolvedValue({ user });
 
-    const mockSection = createTestSection({ instructorIds: ['instructor-1', 'instructor-2'] });
+    const mockSection = createTestSection();
     mockSectionRepo.getSection.mockResolvedValue(mockSection);
+    mockMembershipRepo.getMembership.mockResolvedValue({
+      id: 'membership-1',
+      userId: 'instructor-1',
+      sectionId: 'section-1',
+      role: 'instructor',
+      joinedAt: new Date(),
+    });
+    mockMembershipRepo.getSectionMembers.mockResolvedValue([
+      { id: 'instructor-1', email: 'instructor@example.com', role: 'instructor' },
+      { id: 'instructor-2', email: 'instructor2@example.com', role: 'instructor' },
+    ]);
 
     const request = new NextRequest('http://localhost/api/sections/section-1/instructors/instructor-1', {
       method: 'DELETE',

@@ -13,7 +13,6 @@ interface SectionWithClass {
   className: string;
   classDescription: string;
   role: 'instructor' | 'student';
-  instructorIds: string[];
   joinCode: string;
   createdAt: string | Date;
 }

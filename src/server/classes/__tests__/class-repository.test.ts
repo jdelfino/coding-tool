@@ -311,17 +311,15 @@ describe('ClassRepository', () => {
       // Create sections using the mock repository
       await mockSectionRepository.createSection({
         namespaceId: 'default',
-      classId: created.id,
+        classId: created.id,
         name: 'Section A',
-        instructorIds: ['instructor-1'],
         active: true,
       });
 
       await mockSectionRepository.createSection({
         namespaceId: 'default',
-      classId: created.id,
+        classId: created.id,
         name: 'Section B',
-        instructorIds: ['instructor-1'],
         active: true,
       });
 

@@ -14,10 +14,11 @@ jest.mock('@/server/auth', () => ({
 
 jest.mock('@/server/classes', () => ({
   getSectionRepository: jest.fn(),
+  getMembershipRepository: jest.fn(),
 }));
 
 import { getAuthProvider } from '@/server/auth';
-import { getSectionRepository } from '@/server/classes';
+import { getSectionRepository, getMembershipRepository } from '@/server/classes';
 
 // Test fixture factory
 function createTestUser(overrides: Partial<User> = {}): User {
@@ -38,7 +39,7 @@ function createTestSection(overrides: any = {}) {
     name: 'Test Section',
     joinCode: 'ABC123',
     namespaceId: 'default',
-    instructorIds: ['instructor-1'],
+    active: true,
     createdAt: new Date(),
     updatedAt: new Date(),
     ...overrides,
@@ -55,10 +56,15 @@ describe('POST /api/sections/[id]/regenerate-code', () => {
     regenerateJoinCode: jest.fn(),
   };
 
+  const mockMembershipRepo = {
+    getMembership: jest.fn(),
+  };
+
   beforeEach(() => {
     jest.clearAllMocks();
     (getAuthProvider as jest.Mock).mockResolvedValue(mockAuthProvider);
     (getSectionRepository as jest.Mock).mockReturnValue(mockSectionRepo);
+    (getMembershipRepository as jest.Mock).mockReturnValue(mockMembershipRepo);
   });
 
   it('should return 401 if not authenticated', async () => {
@@ -109,8 +115,9 @@ describe('POST /api/sections/[id]/regenerate-code', () => {
     const user = createTestUser({ id: 'other-user' });
     mockAuthProvider.getSessionFromRequest.mockResolvedValue({ user });
 
-    const mockSection = createTestSection({ instructorIds: ['instructor-1'] });
+    const mockSection = createTestSection();
     mockSectionRepo.getSection.mockResolvedValue(mockSection);
+    mockMembershipRepo.getMembership.mockResolvedValue(null);
 
     const request = new NextRequest('http://localhost/api/sections/section-1/regenerate-code', {
       method: 'POST',
@@ -127,8 +134,14 @@ describe('POST /api/sections/[id]/regenerate-code', () => {
     const user = createTestUser({ id: 'student-1', role: 'student' });
     mockAuthProvider.getSessionFromRequest.mockResolvedValue({ user });
 
-    const mockSection = createTestSection({ instructorIds: ['instructor-1'] });
+    const mockSection = createTestSection();
     mockSectionRepo.getSection.mockResolvedValue(mockSection);
+    mockMembershipRepo.getMembership.mockResolvedValue({
+      id: 'membership-1',
+      userId: 'student-1',
+      sectionId: 'section-1',
+      role: 'student',
+    });
 
     const request = new NextRequest('http://localhost/api/sections/section-1/regenerate-code', {
       method: 'POST',
@@ -147,6 +160,12 @@ describe('POST /api/sections/[id]/regenerate-code', () => {
 
     const mockSection = createTestSection();
     mockSectionRepo.getSection.mockResolvedValue(mockSection);
+    mockMembershipRepo.getMembership.mockResolvedValue({
+      id: 'membership-1',
+      userId: 'instructor-1',
+      sectionId: 'section-1',
+      role: 'instructor',
+    });
     mockSectionRepo.regenerateJoinCode.mockResolvedValue('NEW456');
 
     const request = new NextRequest('http://localhost/api/sections/section-1/regenerate-code', {
@@ -165,8 +184,14 @@ describe('POST /api/sections/[id]/regenerate-code', () => {
     const user = createTestUser({ id: 'instructor-2' });
     mockAuthProvider.getSessionFromRequest.mockResolvedValue({ user });
 
-    const mockSection = createTestSection({ instructorIds: ['instructor-1', 'instructor-2'] });
+    const mockSection = createTestSection();
     mockSectionRepo.getSection.mockResolvedValue(mockSection);
+    mockMembershipRepo.getMembership.mockResolvedValue({
+      id: 'membership-2',
+      userId: 'instructor-2',
+      sectionId: 'section-1',
+      role: 'instructor',
+    });
     mockSectionRepo.regenerateJoinCode.mockResolvedValue('XYZ789');
 
     const request = new NextRequest('http://localhost/api/sections/section-1/regenerate-code', {

@@ -49,7 +49,7 @@ function createSectionWithClass(overrides: any = {}) {
     name: 'Test Section',
     joinCode: 'ABC123',
     namespaceId: 'default',
-    instructorIds: ['instructor-1'],
+    active: true,
     createdAt: new Date(),
     updatedAt: new Date(),
     class: {
@@ -173,7 +173,7 @@ describe('GET /api/sections/my', () => {
     const user = createTestUser({ id: 'instructor-1', role: 'instructor' });
     (requireAuth as jest.Mock).mockResolvedValue(createAuthContext(user));
 
-    const sectionWithClass = createSectionWithClass({ instructorIds: ['instructor-1'] });
+    const sectionWithClass = createSectionWithClass();
     mockMembershipRepo.getUserSections.mockResolvedValue([sectionWithClass]);
     mockMembershipRepo.getMembership.mockResolvedValue({
       id: 'membership-1',

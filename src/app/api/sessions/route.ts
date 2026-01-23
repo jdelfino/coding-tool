@@ -138,11 +138,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Section not found' }, { status: 404 });
     }
 
-    const isInstructor = section.instructorIds.includes(user.id);
+    // Check if user is an instructor of this section (via memberships only)
     const membership = await storage.memberships.getMembership(user.id, sectionId);
-    const hasInstructorMembership = membership?.role === 'instructor';
-
-    if (!isInstructor && !hasInstructorMembership) {
+    if (membership?.role !== 'instructor') {
       return NextResponse.json(
         { error: 'Forbidden: You must be an instructor in this section' },
         { status: 403 }

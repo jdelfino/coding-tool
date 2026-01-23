@@ -44,7 +44,6 @@ describe('Wave 2 Integration: Class ↔ Section ↔ Membership', () => {
         classId: 'class-123',
         name: 'Section A',
         semester: 'Fall 2025',
-        instructorIds: ['instructor-1'],
         joinCode: 'ABC-123-XYZ',
         active: true,
         createdAt: new Date('2025-01-02T00:00:00Z'),
@@ -55,7 +54,6 @@ describe('Wave 2 Integration: Class ↔ Section ↔ Membership', () => {
       expect(section.classId).toBe('class-123');
       expect(section.namespaceId).toBeDefined();
       expect(section.joinCode).toBeDefined();
-      expect(section.instructorIds).toHaveLength(1);
     });
 
     it('should create a membership linking user to section', () => {
@@ -97,7 +95,6 @@ describe('Wave 2 Integration: Class ↔ Section ↔ Membership', () => {
         classId: classData.id,
         name: 'Section A',
         semester: 'Fall 2025',
-        instructorIds: ['prof-smith'],
         joinCode: 'CS1-F25-ABC',
         active: true,
         createdAt: new Date('2025-01-02T00:00:00Z'),
@@ -153,7 +150,6 @@ describe('Wave 2 Integration: Class ↔ Section ↔ Membership', () => {
         classId: classData.id,
         name: 'Section A',
         semester: 'Fall 2025',
-        instructorIds: ['prof-smith'],
         joinCode: 'CS1-F25-AAA',
         active: true,
         createdAt: new Date('2025-01-02T00:00:00Z'),
@@ -166,7 +162,6 @@ describe('Wave 2 Integration: Class ↔ Section ↔ Membership', () => {
         classId: classData.id,
         name: 'Section B',
         semester: 'Fall 2025',
-        instructorIds: ['prof-jones'],
         joinCode: 'CS1-F25-BBB',
         active: true,
         createdAt: new Date('2025-01-02T00:00:00Z'),
@@ -311,7 +306,6 @@ describe('Wave 2 Integration: Class ↔ Section ↔ Membership', () => {
           namespaceId: 'stanford',
           classId: 'cs101',
           name: 'CS101 Section A',
-          instructorIds: ['prof-1'],
           joinCode: 'CS1-AAA',
           active: true,
           createdAt: new Date(),
@@ -322,7 +316,6 @@ describe('Wave 2 Integration: Class ↔ Section ↔ Membership', () => {
           namespaceId: 'stanford',
           classId: 'cs101',
           name: 'CS101 Section B',
-          instructorIds: ['prof-2'],
           joinCode: 'CS1-BBB',
           active: true,
           createdAt: new Date(),
@@ -333,7 +326,6 @@ describe('Wave 2 Integration: Class ↔ Section ↔ Membership', () => {
           namespaceId: 'stanford',
           classId: 'cs202',
           name: 'CS202 Section A',
-          instructorIds: ['prof-3'],
           joinCode: 'CS2-AAA',
           active: true,
           createdAt: new Date(),
@@ -385,7 +377,6 @@ describe('Wave 2 Integration: Class ↔ Section ↔ Membership', () => {
           namespaceId: 'stanford',
           classId: 'cs101',
           name: 'CS101 Section A',
-          instructorIds: ['prof-1'],
           joinCode: 'CS1-AAA',
           active: true,
           createdAt: new Date(),
@@ -423,7 +414,6 @@ describe('Wave 2 Integration: Class ↔ Section ↔ Membership', () => {
           namespaceId: 'stanford',
           classId: 'cs101',
           name: 'Section A',
-          instructorIds: ['prof-smith'],
           joinCode: 'CS1-AAA',
           active: true,
           createdAt: new Date(),
@@ -434,7 +424,6 @@ describe('Wave 2 Integration: Class ↔ Section ↔ Membership', () => {
           namespaceId: 'stanford',
           classId: 'cs101',
           name: 'Section B',
-          instructorIds: ['prof-jones'],
           joinCode: 'CS1-BBB',
           active: true,
           createdAt: new Date(),
@@ -445,7 +434,6 @@ describe('Wave 2 Integration: Class ↔ Section ↔ Membership', () => {
           namespaceId: 'stanford',
           classId: 'cs202',
           name: 'Section A',
-          instructorIds: ['prof-wilson'],
           joinCode: 'CS2-AAA',
           active: true,
           createdAt: new Date(),
@@ -476,25 +464,31 @@ describe('Wave 2 Integration: Class ↔ Section ↔ Membership', () => {
       expect(visibleSections.find((s) => s.id === 'cs202-a')).toBeUndefined();
     });
 
-    it('should support co-teaching scenarios with multiple instructors', () => {
+    it('should support sections with multiple instructor memberships (co-teaching)', () => {
+      // Co-teaching is now tracked via section_memberships with role='instructor'
+      // rather than an instructorIds array on the section itself
       const section: Section = {
         id: 'cs101-a',
         namespaceId: 'stanford',
         classId: 'cs101',
         name: 'Section A',
         semester: 'Fall 2025',
-        instructorIds: ['prof-smith', 'prof-jones', 'ta-alice'],
         joinCode: 'CS1-AAA',
         active: true,
         createdAt: new Date(),
         updatedAt: new Date(),
       };
 
-      // All three instructors should have access
-      expect(section.instructorIds).toContain('prof-smith');
-      expect(section.instructorIds).toContain('prof-jones');
-      expect(section.instructorIds).toContain('ta-alice');
-      expect(section.instructorIds).toHaveLength(3);
+      // Instructors are added via memberships, not the section object
+      const instructorMemberships: SectionMembership[] = [
+        { id: 'mem-1', userId: 'prof-smith', sectionId: section.id, role: 'instructor', joinedAt: new Date() },
+        { id: 'mem-2', userId: 'prof-jones', sectionId: section.id, role: 'instructor', joinedAt: new Date() },
+        { id: 'mem-3', userId: 'ta-alice', sectionId: section.id, role: 'instructor', joinedAt: new Date() },
+      ];
+
+      // All three instructors have memberships
+      expect(instructorMemberships).toHaveLength(3);
+      expect(instructorMemberships.every(m => m.role === 'instructor')).toBe(true);
     });
 
     it('should allow instructors to see sections even without explicit membership', () => {
@@ -514,7 +508,6 @@ describe('Wave 2 Integration: Class ↔ Section ↔ Membership', () => {
           namespaceId: 'stanford',
           classId: 'cs101',
           name: 'Section A',
-          instructorIds: ['prof-jones'], // Different instructor
           joinCode: 'CS1-AAA',
           active: true,
           createdAt: new Date(),
@@ -645,7 +638,6 @@ describe('Wave 2 Integration: Class ↔ Section ↔ Membership', () => {
         namespaceId,
         classId: classData.id,
         name: 'Section A',
-        instructorIds: ['prof-1'],
         joinCode: 'CS1-AAA',
         active: true,
         createdAt: new Date(),
@@ -685,7 +677,6 @@ describe('Wave 2 Integration: Class ↔ Section ↔ Membership', () => {
           namespaceId: 'stanford',
           classId: 'cs101',
           name: 'Section A',
-          instructorIds: ['prof-1'],
           joinCode: 'CS1-AAA',
           active: true,
           createdAt: new Date(),
