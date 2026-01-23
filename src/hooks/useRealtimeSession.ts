@@ -1,7 +1,9 @@
 'use client';
 
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
+import { RealtimeChannel } from '@supabase/supabase-js';
 import { useRealtime, RealtimeMessage } from './useRealtime';
+import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { Session, Student, ExecutionResult } from '@/server/types';
 import { ExecutionSettings } from '@/server/types/problem';
 
@@ -73,7 +75,9 @@ export interface FeaturedStudent {
  *
  * Features:
  * - Loads initial session state from API
- * - Subscribes to Realtime updates
+ * - Subscribes to Realtime updates via postgres_changes
+ * - Subscribes to Broadcast events for faster updates (student_joined, student_code_updated)
+ * - Falls back to polling (every 2s) when broadcast is disconnected
  * - Provides debounced code updates (300ms)
  * - Handles errors with retry logic
  * - Tracks online users via presence
@@ -89,6 +93,10 @@ export function useRealtimeSession({
   const [featuredStudent, setFeaturedStudent] = useState<FeaturedStudent>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Broadcast connection state
+  const [isBroadcastConnected, setIsBroadcastConnected] = useState(false);
+  const broadcastChannelRef = useRef<RealtimeChannel | null>(null);
 
   // Track if initial state has been loaded
   const initialLoadRef = useRef(false);
@@ -165,6 +173,122 @@ export function useRealtimeSession({
 
     loadState();
   }, [sessionId]);
+
+  /**
+   * Fetch session state (used for initial load and polling fallback)
+   */
+  const fetchState = useCallback(async () => {
+    if (!sessionId) return;
+
+    try {
+      const res = await fetchWithRetry(`/api/sessions/${sessionId}/state`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({ error: 'Failed to load session' }));
+        throw new Error(errorData.error || 'Failed to load session');
+      }
+
+      const data = await res.json();
+
+      // Set session data
+      setSession(data.session);
+
+      // Convert students array to Map
+      const studentsMap = new Map<string, Student>();
+      data.students.forEach((student: any) => {
+        studentsMap.set(student.id, {
+          ...student,
+          lastUpdate: new Date(student.lastUpdate),
+        });
+      });
+      setStudents(studentsMap);
+
+      // Set featured student
+      setFeaturedStudent(data.featuredStudent || {});
+      setError(null);
+    } catch (e: any) {
+      console.error('[useRealtimeSession] Failed to fetch state:', e);
+      setError(e.message || 'Failed to fetch session state');
+    }
+  }, [sessionId]);
+
+  /**
+   * Subscribe to Broadcast channel for faster real-time updates
+   * Broadcast is more reliable than postgres_changes (recommended by Supabase)
+   */
+  useEffect(() => {
+    if (!sessionId) return;
+
+    const supabase = getSupabaseBrowserClient();
+    const channelName = `session:${sessionId}`;
+
+    const channel = supabase
+      .channel(channelName)
+      .on('broadcast', { event: 'student_joined' }, (payload) => {
+        if (payload.payload?.student) {
+          const { student } = payload.payload;
+          setStudents(prev => {
+            const updated = new Map(prev);
+            updated.set(student.id, {
+              id: student.id,
+              name: student.name,
+              code: student.code || '',
+              lastUpdate: new Date(),
+              executionSettings: student.executionSettings,
+            });
+            return updated;
+          });
+        }
+      })
+      .on('broadcast', { event: 'student_code_updated' }, (payload) => {
+        if (payload.payload) {
+          const { studentId, code, executionSettings, lastUpdate } = payload.payload;
+          setStudents(prev => {
+            const updated = new Map(prev);
+            const student = updated.get(studentId);
+            if (student) {
+              updated.set(studentId, {
+                ...student,
+                code: code || '',
+                lastUpdate: lastUpdate ? new Date(lastUpdate) : new Date(),
+                executionSettings: executionSettings ?? student.executionSettings,
+              });
+            }
+            return updated;
+          });
+        }
+      })
+      .subscribe((status) => {
+        setIsBroadcastConnected(status === 'SUBSCRIBED');
+      });
+
+    broadcastChannelRef.current = channel;
+
+    return () => {
+      supabase.removeChannel(channel);
+      broadcastChannelRef.current = null;
+    };
+  }, [sessionId]);
+
+  /**
+   * Polling fallback: Poll for updates every 2 seconds when broadcast is disconnected
+   * This compensates for Realtime connection issues
+   * Only poll when not loading (initial load complete)
+   */
+  useEffect(() => {
+    if (!sessionId || isBroadcastConnected || loading) return;
+
+    const pollInterval = setInterval(() => {
+      fetchState();
+    }, 2000);
+
+    return () => clearInterval(pollInterval);
+  }, [sessionId, isBroadcastConnected, loading, fetchState]);
 
   /**
    * Handle Realtime messages
@@ -391,6 +515,7 @@ export function useRealtimeSession({
     maxReconnectAttempts,
     connectionStartTime,
     isReconnecting,
+    isBroadcastConnected,
 
     // Actions
     updateCode,

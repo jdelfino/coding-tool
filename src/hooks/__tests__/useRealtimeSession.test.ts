@@ -17,6 +17,40 @@ jest.mock('../useRealtime', () => ({
   useRealtime: jest.fn(() => mockUseRealtime),
 }));
 
+// Mock Supabase client for broadcast functionality
+type BroadcastCallback = (payload: { event: string; payload: any }) => void;
+const mockBroadcastCallbacks: Map<string, BroadcastCallback> = new Map();
+let mockBroadcastSubscribeStatus = 'SUBSCRIBED';
+
+interface MockBroadcastChannel {
+  on: jest.Mock;
+  subscribe: jest.Mock;
+}
+
+const mockBroadcastChannel: MockBroadcastChannel = {
+  on: jest.fn((type: string, config: { event: string }, callback: BroadcastCallback): MockBroadcastChannel => {
+    if (type === 'broadcast') {
+      mockBroadcastCallbacks.set(config.event, callback);
+    }
+    return mockBroadcastChannel;
+  }),
+  subscribe: jest.fn((callback?: (status: string) => void): MockBroadcastChannel => {
+    if (callback) {
+      callback(mockBroadcastSubscribeStatus);
+    }
+    return mockBroadcastChannel;
+  }),
+};
+
+const mockSupabaseClient = {
+  channel: jest.fn((): MockBroadcastChannel => mockBroadcastChannel),
+  removeChannel: jest.fn(),
+};
+
+jest.mock('@/lib/supabase/client', () => ({
+  getSupabaseBrowserClient: jest.fn(() => mockSupabaseClient),
+}));
+
 // Mock fetch
 const mockFetch = jest.fn();
 global.fetch = mockFetch;
@@ -35,6 +69,14 @@ describe('useRealtimeSession', () => {
       lastMessage: null,
       onlineUsers: {},
     });
+
+    // Reset broadcast mocks
+    mockBroadcastCallbacks.clear();
+    mockBroadcastSubscribeStatus = 'SUBSCRIBED';
+    mockBroadcastChannel.on.mockClear();
+    mockBroadcastChannel.subscribe.mockClear();
+    mockSupabaseClient.channel.mockClear();
+    mockSupabaseClient.removeChannel.mockClear();
   });
 
   describe('Initial state loading', () => {
@@ -722,6 +764,380 @@ describe('useRealtimeSession', () => {
       });
 
       expect(result.current.onlineUsers).toEqual(mockUseRealtime.onlineUsers);
+    });
+  });
+
+  describe('Broadcast event handling', () => {
+    beforeEach(async () => {
+      // Setup initial state
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          session: { id: 'session-1' },
+          students: [],
+          featuredStudent: {},
+        }),
+      });
+    });
+
+    it('should subscribe to broadcast channel on mount', async () => {
+      const { result } = renderHook(() =>
+        useRealtimeSession({
+          sessionId: 'session-1',
+        })
+      );
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      // Should create broadcast channel
+      expect(mockSupabaseClient.channel).toHaveBeenCalledWith('session:session-1');
+
+      // Should subscribe to student_joined event
+      expect(mockBroadcastChannel.on).toHaveBeenCalledWith(
+        'broadcast',
+        { event: 'student_joined' },
+        expect.any(Function)
+      );
+
+      // Should subscribe to student_code_updated event
+      expect(mockBroadcastChannel.on).toHaveBeenCalledWith(
+        'broadcast',
+        { event: 'student_code_updated' },
+        expect.any(Function)
+      );
+    });
+
+    it('should handle student_joined broadcast event', async () => {
+      const { result } = renderHook(() =>
+        useRealtimeSession({
+          sessionId: 'session-1',
+        })
+      );
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      expect(result.current.students).toHaveLength(0);
+
+      // Simulate broadcast event
+      const studentJoinedCallback = mockBroadcastCallbacks.get('student_joined');
+      expect(studentJoinedCallback).toBeDefined();
+
+      act(() => {
+        studentJoinedCallback!({
+          event: 'student_joined',
+          payload: {
+            sessionId: 'session-1',
+            student: {
+              id: 'student-1',
+              name: 'Alice',
+              code: 'print("hello")',
+              executionSettings: undefined,
+            },
+            timestamp: Date.now(),
+          },
+        });
+      });
+
+      expect(result.current.students).toHaveLength(1);
+      expect(result.current.students[0].id).toBe('student-1');
+      expect(result.current.students[0].name).toBe('Alice');
+      expect(result.current.students[0].code).toBe('print("hello")');
+    });
+
+    it('should handle student_code_updated broadcast event', async () => {
+      const { result, rerender } = renderHook(() =>
+        useRealtimeSession({
+          sessionId: 'session-1',
+        })
+      );
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      // First add a student via broadcast
+      const studentJoinedCallback = mockBroadcastCallbacks.get('student_joined');
+      act(() => {
+        studentJoinedCallback!({
+          event: 'student_joined',
+          payload: {
+            sessionId: 'session-1',
+            student: {
+              id: 'student-1',
+              name: 'Alice',
+              code: '',
+              executionSettings: undefined,
+            },
+            timestamp: Date.now(),
+          },
+        });
+      });
+
+      expect(result.current.students[0].code).toBe('');
+
+      // Simulate code update broadcast
+      const codeUpdatedCallback = mockBroadcastCallbacks.get('student_code_updated');
+      expect(codeUpdatedCallback).toBeDefined();
+
+      act(() => {
+        codeUpdatedCallback!({
+          event: 'student_code_updated',
+          payload: {
+            sessionId: 'session-1',
+            studentId: 'student-1',
+            code: 'print("updated")',
+            executionSettings: { showTests: true },
+            lastUpdate: new Date().toISOString(),
+            timestamp: Date.now(),
+          },
+        });
+      });
+
+      expect(result.current.students[0].code).toBe('print("updated")');
+      expect(result.current.students[0].executionSettings).toEqual({ showTests: true });
+    });
+
+    it('should expose isBroadcastConnected status', async () => {
+      const { result } = renderHook(() =>
+        useRealtimeSession({
+          sessionId: 'session-1',
+        })
+      );
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      // When subscription is successful
+      expect(result.current.isBroadcastConnected).toBe(true);
+    });
+
+    it('should set isBroadcastConnected to false when disconnected', async () => {
+      // Configure the broadcast to not be subscribed
+      mockBroadcastSubscribeStatus = 'CHANNEL_ERROR';
+
+      const { result } = renderHook(() =>
+        useRealtimeSession({
+          sessionId: 'session-1',
+        })
+      );
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      expect(result.current.isBroadcastConnected).toBe(false);
+    });
+
+    it('should cleanup broadcast channel on unmount', async () => {
+      const { result, unmount } = renderHook(() =>
+        useRealtimeSession({
+          sessionId: 'session-1',
+        })
+      );
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      unmount();
+
+      expect(mockSupabaseClient.removeChannel).toHaveBeenCalled();
+    });
+  });
+
+  describe('Polling fallback', () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
+    });
+
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    it('should poll when broadcast is disconnected', async () => {
+      // Configure broadcast as disconnected BEFORE rendering
+      mockBroadcastSubscribeStatus = 'CHANNEL_ERROR';
+
+      // Setup initial fetch
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          session: { id: 'session-1' },
+          students: [],
+          featuredStudent: {},
+        }),
+      });
+
+      const { result } = renderHook(() =>
+        useRealtimeSession({
+          sessionId: 'session-1',
+        })
+      );
+
+      // Wait for initial load (flush promises)
+      await act(async () => {
+        await Promise.resolve(); // Let initial fetch complete
+      });
+
+      expect(result.current.loading).toBe(false);
+      expect(result.current.isBroadcastConnected).toBe(false);
+
+      // Reset fetch mock to track polling calls
+      mockFetch.mockClear();
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          session: { id: 'session-1' },
+          students: [
+            { id: 'student-1', name: 'Alice', code: 'polled', lastUpdate: new Date().toISOString() },
+          ],
+          featuredStudent: {},
+        }),
+      });
+
+      // Advance time by 2 seconds (polling interval) and flush
+      await act(async () => {
+        jest.advanceTimersByTime(2000);
+        await Promise.resolve();
+      });
+
+      // Should have polled
+      expect(mockFetch).toHaveBeenCalledWith(
+        '/api/sessions/session-1/state',
+        expect.any(Object)
+      );
+    });
+
+    it('should not poll when broadcast is connected', async () => {
+      // Broadcast is connected by default
+      mockBroadcastSubscribeStatus = 'SUBSCRIBED';
+
+      // Setup initial fetch
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          session: { id: 'session-1' },
+          students: [],
+          featuredStudent: {},
+        }),
+      });
+
+      const { result } = renderHook(() =>
+        useRealtimeSession({
+          sessionId: 'session-1',
+        })
+      );
+
+      await act(async () => {
+        await Promise.resolve();
+      });
+
+      expect(result.current.loading).toBe(false);
+      expect(result.current.isBroadcastConnected).toBe(true);
+
+      // Reset fetch mock
+      mockFetch.mockClear();
+
+      // Advance time by 2 seconds
+      await act(async () => {
+        jest.advanceTimersByTime(2000);
+        await Promise.resolve();
+      });
+
+      // Should NOT have polled since broadcast is connected
+      expect(mockFetch).not.toHaveBeenCalled();
+    });
+
+    it('should stop polling when broadcast reconnects', async () => {
+      // Start disconnected
+      mockBroadcastSubscribeStatus = 'CHANNEL_ERROR';
+
+      // Setup initial fetch
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          session: { id: 'session-1' },
+          students: [],
+          featuredStudent: {},
+        }),
+      });
+
+      const { result, unmount } = renderHook(() =>
+        useRealtimeSession({
+          sessionId: 'session-1',
+        })
+      );
+
+      await act(async () => {
+        await Promise.resolve();
+      });
+
+      expect(result.current.loading).toBe(false);
+      expect(result.current.isBroadcastConnected).toBe(false);
+
+      // Reset and verify polling happens
+      mockFetch.mockClear();
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          session: { id: 'session-1' },
+          students: [],
+          featuredStudent: {},
+        }),
+      });
+
+      await act(async () => {
+        jest.advanceTimersByTime(2000);
+        await Promise.resolve();
+      });
+
+      const pollCountWhileDisconnected = mockFetch.mock.calls.length;
+      expect(pollCountWhileDisconnected).toBeGreaterThan(0);
+
+      // Unmount to clean up
+      unmount();
+
+      // Now simulate broadcast being connected on re-mount
+      mockBroadcastSubscribeStatus = 'SUBSCRIBED';
+      mockFetch.mockClear();
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          session: { id: 'session-1' },
+          students: [],
+          featuredStudent: {},
+        }),
+      });
+
+      // Re-mount with connected broadcast
+      const { result: result2 } = renderHook(() =>
+        useRealtimeSession({
+          sessionId: 'session-1',
+        })
+      );
+
+      await act(async () => {
+        await Promise.resolve();
+      });
+
+      // Should be connected now
+      expect(result2.current.isBroadcastConnected).toBe(true);
+
+      // Reset fetch to track polling
+      mockFetch.mockClear();
+
+      await act(async () => {
+        jest.advanceTimersByTime(4000); // 2 poll intervals
+        await Promise.resolve();
+      });
+
+      // Polling should not happen when connected
+      expect(mockFetch).not.toHaveBeenCalled();
     });
   });
 });

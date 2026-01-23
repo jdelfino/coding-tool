@@ -17,6 +17,22 @@ jest.mock('@/server/auth/api-auth');
 jest.mock('@/server/persistence');
 jest.mock('@/server/services/session-service');
 
+// Mock Supabase client for broadcast functionality
+const mockSend = jest.fn().mockResolvedValue({});
+const mockSubscribe = jest.fn();
+const mockChannel = jest.fn(() => ({
+  subscribe: mockSubscribe,
+  send: mockSend,
+}));
+const mockRemoveChannel = jest.fn();
+
+jest.mock('@supabase/supabase-js', () => ({
+  createClient: jest.fn(() => ({
+    channel: mockChannel,
+    removeChannel: mockRemoveChannel,
+  })),
+}));
+
 const mockGetAuthenticatedUserWithToken = getAuthenticatedUserWithToken as jest.MockedFunction<typeof getAuthenticatedUserWithToken>;
 const mockCreateStorage = createStorage as jest.MockedFunction<typeof createStorage>;
 
@@ -66,6 +82,10 @@ describe('POST /api/sessions/[id]/join', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+
+    // Set required env vars for broadcast
+    process.env.NEXT_PUBLIC_SUPABASE_URL = 'http://localhost:54321';
+    process.env.SUPABASE_SECRET_KEY = 'test-secret-key';
 
     mockStorage = {
       sessions: {
@@ -219,5 +239,47 @@ describe('POST /api/sessions/[id]/join', () => {
 
     expect(response.status).toBe(500);
     expect(data.error).toBe('Failed to join session');
+  });
+
+  it('broadcasts student_joined event after successful join', async () => {
+    mockGetAuthenticatedUserWithToken.mockResolvedValue({ user: mockUser, accessToken: 'test-token' });
+
+    const request = new NextRequest('http://localhost:3000/api/sessions/session-1/join', {
+      method: 'POST',
+      body: JSON.stringify({ studentId: 'user-1', name: 'Alice' }),
+    });
+    const params = Promise.resolve({ id: 'session-1' });
+
+    const response = await POST(request, { params });
+
+    expect(response.status).toBe(200);
+
+    // Verify channel was created for the session
+    expect(mockChannel).toHaveBeenCalledWith('session:session-1');
+
+    // Verify subscribe was called
+    expect(mockSubscribe).toHaveBeenCalled();
+
+    // Simulate the subscribe callback being invoked with 'SUBSCRIBED'
+    const subscribeCallback = mockSubscribe.mock.calls[0][0];
+    await subscribeCallback('SUBSCRIBED');
+
+    // Verify the broadcast was sent with correct payload
+    expect(mockSend).toHaveBeenCalledWith({
+      type: 'broadcast',
+      event: 'student_joined',
+      payload: expect.objectContaining({
+        sessionId: 'session-1',
+        student: expect.objectContaining({
+          id: 'user-1',
+          name: 'Alice',
+          code: 'print("Hello")',
+        }),
+        timestamp: expect.any(Number),
+      }),
+    });
+
+    // Verify channel cleanup
+    expect(mockRemoveChannel).toHaveBeenCalled();
   });
 });
