@@ -101,7 +101,6 @@ export async function createTestSection(
   options: {
     name?: string;
     semester?: string;
-    instructorIds?: string[];
   } = {}
 ): Promise<TestSection> {
   const id = uuidv4();
@@ -115,7 +114,6 @@ export async function createTestSection(
     namespace_id: namespaceId,
     join_code: joinCode,
     semester: options.semester || 'Spring 2026',
-    instructor_ids: options.instructorIds || [],
     active: true,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
@@ -260,14 +258,18 @@ export async function createInstructorForSection(
     throw new Error(`Failed to create instructor profile: ${profileError.message}`);
   }
 
-  // Add to section
-  const { error: sectionError } = await supabase
-    .from('sections')
-    .update({ instructor_ids: [userId] })
-    .eq('id', sectionId);
+  // Add instructor membership to section
+  const { error: membershipError } = await supabase
+    .from('section_memberships')
+    .insert({
+      user_id: userId,
+      section_id: sectionId,
+      role: 'instructor',
+      joined_at: new Date().toISOString(),
+    });
 
-  if (sectionError) {
-    console.warn(`Warning: Could not add instructor to section: ${sectionError.message}`);
+  if (membershipError) {
+    console.warn(`Warning: Could not add instructor membership: ${membershipError.message}`);
   }
 
   console.log(`Created instructor: ${displayName} for section`);
