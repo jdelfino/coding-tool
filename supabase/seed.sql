@@ -180,7 +180,7 @@ VALUES
 -- SECTIONS
 -- ============================================================================
 
-INSERT INTO sections (id, namespace_id, class_id, name, semester, instructor_ids, join_code, active)
+INSERT INTO sections (id, namespace_id, class_id, name, semester, join_code, active)
 VALUES
   (
     '00000000-0000-0000-0000-000000000201',
@@ -188,8 +188,7 @@ VALUES
     '00000000-0000-0000-0000-000000000101',
     'Section A',
     'Spring 2026',
-    ARRAY['00000000-0000-0000-0000-000000000002'::uuid],
-    'ABC-123-XYZ',
+    'ABC123',
     true
   );
 
