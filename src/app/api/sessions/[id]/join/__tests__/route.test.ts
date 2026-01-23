@@ -120,7 +120,7 @@ describe('POST /api/sessions/[id]/join', () => {
     expect(data.student.id).toBe('user-1');
     expect(data.student.name).toBe('Alice');
     expect(SessionService.addStudent).toHaveBeenCalledWith(
-      mockStorage, mockSession, 'user-1', 'Alice'
+      mockStorage, mockSession, 'user-1', 'Alice', 'user-1'
     );
   });
 
@@ -137,7 +137,7 @@ describe('POST /api/sessions/[id]/join', () => {
 
     expect(response.status).toBe(200);
     expect(SessionService.addStudent).toHaveBeenCalledWith(
-      mockStorage, mockSession, 'user-1', 'Alice'
+      mockStorage, mockSession, 'user-1', 'Alice', 'user-1'
     );
   });
 

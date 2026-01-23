@@ -20,6 +20,8 @@ export interface Student {
   lastUpdate: Date;
   // Execution settings (overrides session/problem defaults)
   executionSettings?: ExecutionSettings;
+  // Auth user ID (for RLS - allows students to update their own rows)
+  userId: string;
 }
 
 export interface Session {

@@ -53,6 +53,7 @@ describe('POST /api/sessions/[id]/analyze', () => {
 
   const mockStudent1: Student = {
     id: 'student-1',
+    userId: 'user-1',
     name: 'Alice',
     code: 'print("Alice solution here")',
     lastUpdate: new Date(),
@@ -60,6 +61,7 @@ describe('POST /api/sessions/[id]/analyze', () => {
 
   const mockStudent2: Student = {
     id: 'student-2',
+    userId: 'user-2',
     name: 'Bob',
     code: 'print("Bob solution here")',
     lastUpdate: new Date(),

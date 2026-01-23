@@ -55,6 +55,7 @@ describe('POST /api/sessions/[id]/feature', () => {
 
   const mockStudentObj: Student = {
     id: 'student-1',
+    userId: 'user-1',
     name: 'Alice',
     code: 'print("Alice code")',
     lastUpdate: new Date(),

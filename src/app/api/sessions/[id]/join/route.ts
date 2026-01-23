@@ -120,7 +120,8 @@ export async function POST(
     }
 
     // Add student via service (handles starter code, participants, persistence)
-    const student = await SessionService.addStudent(storage, session, studentId, name);
+    // Pass user.id as userId for RLS policy (allows student to update their own rows)
+    const student = await SessionService.addStudent(storage, session, studentId, name, user.id);
 
     // Get merged execution settings via service
     const studentData = SessionService.getStudentData(session, studentId);

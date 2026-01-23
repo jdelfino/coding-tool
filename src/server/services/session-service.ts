@@ -167,7 +167,8 @@ export async function addStudent(
   storage: IStorageRepository,
   session: Session,
   studentId: string,
-  name: string
+  name: string,
+  userId: string
 ): Promise<Student> {
   // Check if student already exists (rejoining)
   const existingStudent = session.students.get(studentId);
@@ -180,6 +181,7 @@ export async function addStudent(
 
   const student: Student = {
     id: studentId,
+    userId,
     name: name.trim(),
     code: initialCode,
     lastUpdate: new Date(),

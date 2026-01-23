@@ -41,6 +41,7 @@ describe('GET /api/sessions/[id]/state', () => {
 
   const mockStudent1: Student = {
     id: 'student-1',
+    userId: 'user-1',
     name: 'Alice',
     code: 'print("Alice")',
     lastUpdate: new Date(),
@@ -48,6 +49,7 @@ describe('GET /api/sessions/[id]/state', () => {
 
   const mockStudent2: Student = {
     id: 'student-2',
+    userId: 'user-2',
     name: 'Bob',
     code: 'print("Bob")',
     lastUpdate: new Date(),

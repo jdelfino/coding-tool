@@ -31,6 +31,7 @@ function mapRowsToSession(
   for (const studentRow of studentRows) {
     students.set(studentRow.student_id, {
       id: studentRow.student_id,
+      userId: studentRow.user_id!, // user_id is required for RLS
       name: studentRow.name,
       code: studentRow.code,
       lastUpdate: new Date(studentRow.last_update),
@@ -153,6 +154,7 @@ export class SupabaseSessionRepository implements ISessionRepository {
       const studentRows = Array.from(session.students.entries()).map(([studentId, student]) => ({
         session_id: session.id,
         student_id: studentId,
+        user_id: student.userId,
         name: student.name,
         code: student.code,
         last_update: student.lastUpdate.toISOString(),
@@ -278,6 +280,7 @@ export class SupabaseSessionRepository implements ISessionRepository {
       const studentRows = Array.from(updates.students.entries()).map(([studentId, student]) => ({
         session_id: sessionId,
         student_id: studentId,
+        user_id: student.userId,
         name: student.name,
         code: student.code,
         last_update: student.lastUpdate.toISOString(),

@@ -46,6 +46,7 @@ describe('SupabaseSessionRepository', () => {
 
   const mockStudent: Student = {
     id: 'student-1',
+    userId: 'student-1',
     name: 'Alice',
     code: 'print("Hello World")',
     lastUpdate: new Date('2025-01-01T10:00:00Z'),
@@ -411,7 +412,7 @@ describe('SupabaseSessionRepository', () => {
       });
 
       const newStudents = new Map<string, Student>([
-        ['student-2', { id: 'student-2', name: 'Bob', code: 'print("Hi")', lastUpdate: new Date() }],
+        ['student-2', { id: 'student-2', userId: 'student-2', name: 'Bob', code: 'print("Hi")', lastUpdate: new Date() }],
       ]);
 
       await repository.updateSession(mockSession.id, { students: newStudents });

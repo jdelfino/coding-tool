@@ -236,6 +236,7 @@ export function useRealtimeSession({
             const updated = new Map(prev);
             updated.set(student.id, {
               id: student.id,
+              userId: student.userId || student.id,
               name: student.name,
               code: student.code || '',
               lastUpdate: new Date(),
@@ -307,6 +308,7 @@ export function useRealtimeSession({
           const updated = new Map(prev);
           updated.set(payload.student_id, {
             id: payload.student_id,
+            userId: payload.user_id || payload.student_id,
             name: payload.name, // Column is 'name', not 'student_name'
             code: payload.code || '',
             lastUpdate: new Date(payload.last_update),

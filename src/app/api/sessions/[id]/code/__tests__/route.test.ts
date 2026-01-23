@@ -73,6 +73,7 @@ describe('POST /api/sessions/[id]/code', () => {
     students: new Map([
       ['user-1', {
         id: 'user-1',
+        userId: 'user-1',
         name: 'Test Student',
         code: 'old code',
         lastUpdate: new Date(),

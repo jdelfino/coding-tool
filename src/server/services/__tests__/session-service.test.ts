@@ -176,9 +176,10 @@ describe('session-service', () => {
         sectionName: 'Test',
       };
 
-      const student = await addStudent(storage as any, session, 'student-1', 'Alice');
+      const student = await addStudent(storage as any, session, 'student-1', 'Alice', 'user-1');
 
       expect(student.id).toBe('student-1');
+      expect(student.userId).toBe('user-1');
       expect(student.name).toBe('Alice');
       expect(student.code).toBe('print("starter")');
       expect(session.students.has('student-1')).toBe(true);
@@ -205,6 +206,7 @@ describe('session-service', () => {
             'student-1',
             {
               id: 'student-1',
+              userId: 'user-1',
               name: 'Alice',
               code: 'print("my code")',
               lastUpdate: new Date(),
@@ -220,7 +222,7 @@ describe('session-service', () => {
         sectionName: 'Test',
       };
 
-      const student = await addStudent(storage as any, session, 'student-1', 'Alice');
+      const student = await addStudent(storage as any, session, 'student-1', 'Alice', 'user-1');
 
       expect(student.code).toBe('print("my code")'); // Preserved, not starter
     });
@@ -250,6 +252,7 @@ describe('session-service', () => {
             'student-1',
             {
               id: 'student-1',
+              userId: 'user-1',
               name: 'Alice',
               code: 'code',
               lastUpdate: new Date(),
