@@ -74,6 +74,22 @@ Jest projects (see `jest.config.js`):
 
 **Don't use optional chaining on required fields.** Trust the type system - if `user.role` is required, use `user.role` not `user?.role`.
 
+## Issue Tracking (beads)
+
+This project uses `bd` (beads) for issue tracking. Key commands:
+
+```bash
+bd show <id> --json      # View issue details
+bd list --json           # List issues
+bd ready --json          # Show unblocked issues
+bd update <id> --status in_progress --json
+bd close <id> --reason "Done" --json
+bd create "Title" -t task -p 2 --json
+bd dep add <blocked> <blocker> --json  # Add dependency
+```
+
+See AGENTS.md for full beads documentation.
+
 ## Additional Resources
 
 - **[README.md](README.md)** - Project overview, setup, architecture
