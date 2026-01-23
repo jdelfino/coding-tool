@@ -57,14 +57,31 @@ export async function GET(
       const supabaseKey = process.env.SUPABASE_SECRET_KEY!;
       const supabase = createClient(supabaseUrl, supabaseKey);
 
-      const { data: profiles } = await supabase
+      // Fetch user profiles and emails
+      const { data: profiles, error: profileError } = await supabase
         .from('user_profiles')
-        .select('id, display_name, email')
+        .select('id, display_name')
         .in('id', Array.from(instructorIds));
 
-      if (profiles) {
-        for (const profile of profiles) {
-          instructorNames[profile.id] = profile.display_name || profile.email || profile.id;
+      if (profileError) {
+        console.error('[API] Failed to fetch instructor profiles:', profileError);
+      }
+
+      // Fetch emails from auth.users for each instructor
+      for (const instructorId of instructorIds) {
+        const profile = profiles?.find(p => p.id === instructorId);
+
+        if (profile?.display_name) {
+          instructorNames[instructorId] = profile.display_name;
+        } else {
+          // Try to get email from auth
+          const { data: authUser } = await supabase.auth.admin.getUserById(instructorId);
+          if (authUser?.user?.email) {
+            instructorNames[instructorId] = authUser.user.email;
+          } else {
+            // Last resort: show truncated ID
+            instructorNames[instructorId] = `Instructor (${instructorId.slice(0, 8)}...)`;
+          }
         }
       }
     }
