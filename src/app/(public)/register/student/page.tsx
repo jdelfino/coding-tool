@@ -15,6 +15,7 @@
 import React, { useState, useEffect, FormEvent, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import { useAuth } from '@/contexts/AuthContext';
 
 // Page state types
 type PageState =
@@ -83,6 +84,7 @@ export default function StudentRegistrationPage() {
 function StudentRegistrationContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { refreshUser } = useAuth();
 
   // Page state
   const [pageState, setPageState] = useState<PageState>({ status: 'code-entry' });
@@ -273,10 +275,19 @@ function StudentRegistrationContent() {
         return;
       }
 
+      const data = await response.json();
+
       // Success!
       setPageState({ status: 'success' });
 
-      // Redirect to sections page
+      // If auto-login failed, redirect to sign-in with a message
+      if (data.autoLoginFailed) {
+        router.push('/auth/signin?registered=true');
+        return;
+      }
+
+      // Auto-login succeeded - refresh auth context and redirect
+      await refreshUser();
       router.push('/sections');
     } catch (error) {
       console.error('[StudentRegistration] Register error:', error);
@@ -339,47 +350,73 @@ function StudentRegistrationContent() {
 
         {/* Code Entry Step */}
         {(pageState.status === 'code-entry' || pageState.status === 'validating-code') && (
-          <form className="mt-8 space-y-6" onSubmit={handleValidateCode}>
-            <div>
-              <label htmlFor="joinCode" className="block text-sm font-medium text-gray-700 mb-2">
-                Section Join Code
-              </label>
-              <input
-                id="joinCode"
-                name="joinCode"
-                type="text"
-                autoComplete="off"
-                autoFocus
-                className={`appearance-none rounded-lg relative block w-full px-4 py-3 border ${
-                  codeError ? 'border-red-300' : 'border-gray-300'
-                } placeholder-gray-400 text-gray-900 text-center text-lg font-mono tracking-widest focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 sm:text-sm disabled:bg-gray-50 disabled:text-gray-500`}
-                placeholder="ABC-123"
-                value={joinCode}
-                onChange={(e) => handleCodeChange(e.target.value)}
-                disabled={pageState.status === 'validating-code'}
-                maxLength={7}
-              />
-              {codeError && (
-                <p className="mt-2 text-sm text-red-600">{codeError}</p>
-              )}
+          <>
+            {/* Prominent Sign In Option */}
+            <div className="bg-blue-50 rounded-lg p-4 border border-blue-200 mb-6">
+              <div className="flex items-start gap-3">
+                <svg className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-blue-900">Already have an account?</p>
+                  <p className="text-sm text-blue-700 mt-1">
+                    If you've registered before, sign in to access your sections.
+                  </p>
+                  <Link
+                    href="/auth/signin"
+                    className="inline-flex items-center mt-2 text-sm font-semibold text-blue-600 hover:text-blue-800 transition-colors"
+                  >
+                    Sign in to your account
+                    <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </Link>
+                </div>
+              </div>
             </div>
 
-            <div>
-              <button
-                type="submit"
-                disabled={pageState.status === 'validating-code'}
-                className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-semibold rounded-lg text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 active:translate-y-0"
-              >
-                {pageState.status === 'validating-code' && (
-                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                  </svg>
+            <form className="space-y-6" onSubmit={handleValidateCode}>
+              <div>
+                <label htmlFor="joinCode" className="block text-sm font-medium text-gray-700 mb-2">
+                  Section Join Code
+                </label>
+                <input
+                  id="joinCode"
+                  name="joinCode"
+                  type="text"
+                  autoComplete="off"
+                  autoFocus
+                  className={`appearance-none rounded-lg relative block w-full px-4 py-3 border ${
+                    codeError ? 'border-red-300' : 'border-gray-300'
+                  } placeholder-gray-400 text-gray-900 text-center text-lg font-mono tracking-widest focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 sm:text-sm disabled:bg-gray-50 disabled:text-gray-500`}
+                  placeholder="ABC-123"
+                  value={joinCode}
+                  onChange={(e) => handleCodeChange(e.target.value)}
+                  disabled={pageState.status === 'validating-code'}
+                  maxLength={7}
+                />
+                {codeError && (
+                  <p className="mt-2 text-sm text-red-600">{codeError}</p>
                 )}
-                {pageState.status === 'validating-code' ? 'Checking code...' : 'Continue'}
-              </button>
-            </div>
-          </form>
+              </div>
+
+              <div>
+                <button
+                  type="submit"
+                  disabled={pageState.status === 'validating-code'}
+                  className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-semibold rounded-lg text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 active:translate-y-0"
+                >
+                  {pageState.status === 'validating-code' && (
+                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    </svg>
+                  )}
+                  {pageState.status === 'validating-code' ? 'Checking code...' : 'Continue to Register'}
+                </button>
+              </div>
+            </form>
+          </>
         )}
 
         {/* Section Preview + Registration Form */}

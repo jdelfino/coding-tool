@@ -17,6 +17,14 @@ jest.mock('next/navigation', () => ({
   useSearchParams: () => mockSearchParams,
 }));
 
+// Mock AuthContext
+const mockRefreshUser = jest.fn();
+jest.mock('@/contexts/AuthContext', () => ({
+  useAuth: () => ({
+    refreshUser: mockRefreshUser,
+  }),
+}));
+
 // Mock fetch
 const mockFetch = jest.fn();
 global.fetch = mockFetch;
@@ -26,6 +34,8 @@ describe('StudentRegistrationPage', () => {
     jest.clearAllMocks();
     mockPush.mockClear();
     mockFetch.mockClear();
+    mockRefreshUser.mockClear();
+    mockRefreshUser.mockResolvedValue(undefined);
     mockSearchParams.delete('code');
   });
 
@@ -35,7 +45,7 @@ describe('StudentRegistrationPage', () => {
 
       expect(screen.getByText('Join Your Section')).toBeInTheDocument();
       expect(screen.getByPlaceholderText('ABC-123')).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: 'Continue' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Continue to Register' })).toBeInTheDocument();
     });
 
     it('pre-fills code from URL param', () => {
@@ -88,7 +98,7 @@ describe('StudentRegistrationPage', () => {
       const input = screen.getByPlaceholderText('ABC-123');
       await user.type(input, 'ABC');
 
-      const button = screen.getByRole('button', { name: 'Continue' });
+      const button = screen.getByRole('button', { name: 'Continue to Register' });
       await user.click(button);
 
       expect(screen.getByText('Please enter a valid join code (e.g., ABC-123)')).toBeInTheDocument();
@@ -104,7 +114,7 @@ describe('StudentRegistrationPage', () => {
       const input = screen.getByPlaceholderText('ABC-123');
       await user.type(input, 'ABC123');
 
-      const button = screen.getByRole('button', { name: 'Continue' });
+      const button = screen.getByRole('button', { name: 'Continue to Register' });
       await user.click(button);
 
       expect(screen.getByText('Checking code...')).toBeInTheDocument();
@@ -122,7 +132,7 @@ describe('StudentRegistrationPage', () => {
       const input = screen.getByPlaceholderText('ABC-123');
       await user.type(input, 'ABC123');
 
-      const button = screen.getByRole('button', { name: 'Continue' });
+      const button = screen.getByRole('button', { name: 'Continue to Register' });
       await user.click(button);
 
       await waitFor(() => {
@@ -142,7 +152,7 @@ describe('StudentRegistrationPage', () => {
       const input = screen.getByPlaceholderText('ABC-123');
       await user.type(input, 'ABC123');
 
-      const button = screen.getByRole('button', { name: 'Continue' });
+      const button = screen.getByRole('button', { name: 'Continue to Register' });
       await user.click(button);
 
       await waitFor(() => {
@@ -167,7 +177,7 @@ describe('StudentRegistrationPage', () => {
       const input = screen.getByPlaceholderText('ABC-123');
       await user.type(input, 'ABC123');
 
-      const button = screen.getByRole('button', { name: 'Continue' });
+      const button = screen.getByRole('button', { name: 'Continue to Register' });
       await user.click(button);
 
       await waitFor(() => {
@@ -198,7 +208,7 @@ describe('StudentRegistrationPage', () => {
 
       const codeInput = screen.getByPlaceholderText('ABC-123');
       await user.type(codeInput, 'ABC123');
-      await user.click(screen.getByRole('button', { name: 'Continue' }));
+      await user.click(screen.getByRole('button', { name: 'Continue to Register' }));
 
       await waitFor(() => {
         expect(screen.getByText('Create Your Account')).toBeInTheDocument();
@@ -290,7 +300,7 @@ describe('StudentRegistrationPage', () => {
 
       const codeInput = screen.getByPlaceholderText('ABC-123');
       await user.type(codeInput, 'ABC123');
-      await user.click(screen.getByRole('button', { name: 'Continue' }));
+      await user.click(screen.getByRole('button', { name: 'Continue to Register' }));
 
       await waitFor(() => {
         expect(screen.getByText('Create Your Account')).toBeInTheDocument();
@@ -403,7 +413,7 @@ describe('StudentRegistrationPage', () => {
 
       const codeInput = screen.getByPlaceholderText('ABC-123');
       await user.type(codeInput, 'ABC123');
-      await user.click(screen.getByRole('button', { name: 'Continue' }));
+      await user.click(screen.getByRole('button', { name: 'Continue to Register' }));
 
       await waitFor(() => {
         expect(screen.getByText('Create Your Account')).toBeInTheDocument();
@@ -421,6 +431,94 @@ describe('StudentRegistrationPage', () => {
       render(<StudentRegistrationPage />);
 
       expect(screen.getByRole('link', { name: 'Sign in here' })).toHaveAttribute('href', '/auth/signin');
+    });
+
+    it('shows prominent sign-in box on code entry step', () => {
+      render(<StudentRegistrationPage />);
+
+      // The prominent sign-in box has specific helper text
+      expect(screen.getByText("If you've registered before, sign in to access your sections.")).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: /Sign in to your account/i })).toHaveAttribute('href', '/auth/signin');
+    });
+  });
+
+  describe('Auto-login Flow', () => {
+    const setupAndFillForm = async () => {
+      const user = userEvent.setup();
+
+      // First call: validate code
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({
+          section: { id: 'sec-1', name: 'Test Section' },
+          class: { id: 'cls-1', name: 'Test Class' },
+          namespace: { id: 'ns-1', displayName: 'Test Org' },
+          instructors: [],
+        }),
+      });
+
+      render(<StudentRegistrationPage />);
+
+      const codeInput = screen.getByPlaceholderText('ABC-123');
+      await user.type(codeInput, 'ABC123');
+      await user.click(screen.getByRole('button', { name: 'Continue to Register' }));
+
+      await waitFor(() => {
+        expect(screen.getByText('Create Your Account')).toBeInTheDocument();
+      });
+
+      await user.type(screen.getByPlaceholderText('you@example.com'), 'student@example.com');
+      await user.type(screen.getByPlaceholderText('At least 8 characters'), 'Password123');
+      await user.type(screen.getByPlaceholderText('Re-enter your password'), 'Password123');
+
+      return user;
+    };
+
+    it('refreshes user and redirects to /sections on successful auto-login', async () => {
+      const user = await setupAndFillForm();
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 201,
+        json: () => Promise.resolve({
+          user: { id: 'user-1', role: 'student' },
+          section: { id: 'sec-1', name: 'Test Section' },
+          // No autoLoginFailed - means auto-login succeeded
+        }),
+      });
+
+      await user.click(screen.getByRole('button', { name: 'Create Account' }));
+
+      await waitFor(() => {
+        expect(mockRefreshUser).toHaveBeenCalled();
+      });
+
+      await waitFor(() => {
+        expect(mockPush).toHaveBeenCalledWith('/sections');
+      });
+    });
+
+    it('redirects to signin with message when auto-login fails', async () => {
+      const user = await setupAndFillForm();
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 201,
+        json: () => Promise.resolve({
+          user: { id: 'user-1', role: 'student' },
+          section: { id: 'sec-1', name: 'Test Section' },
+          autoLoginFailed: true, // Auto-login failed
+        }),
+      });
+
+      await user.click(screen.getByRole('button', { name: 'Create Account' }));
+
+      await waitFor(() => {
+        expect(mockPush).toHaveBeenCalledWith('/auth/signin?registered=true');
+      });
+
+      // Should not call refreshUser when auto-login fails
+      expect(mockRefreshUser).not.toHaveBeenCalled();
     });
   });
 });

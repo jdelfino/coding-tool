@@ -27,6 +27,25 @@ jest.mock('@/server/supabase/client', () => ({
   getSupabaseClient: jest.fn(),
 }));
 
+// Mock next/headers for cookies
+const mockCookieStore = {
+  get: jest.fn(),
+  set: jest.fn(),
+};
+jest.mock('next/headers', () => ({
+  cookies: jest.fn(() => Promise.resolve(mockCookieStore)),
+}));
+
+// Mock @supabase/ssr for auto-login
+const mockSignInWithPassword = jest.fn();
+jest.mock('@supabase/ssr', () => ({
+  createServerClient: jest.fn(() => ({
+    auth: {
+      signInWithPassword: mockSignInWithPassword,
+    },
+  })),
+}));
+
 import { getStudentRegistrationService } from '@/server/invitations';
 import { createStorage } from '@/server/persistence';
 import { rateLimit } from '@/server/rate-limit';
@@ -83,6 +102,9 @@ describe('/api/auth/register-student', () => {
 
     // Default: no rate limiting
     (rateLimit as jest.Mock).mockResolvedValue(null);
+
+    // Default: auto-login succeeds
+    mockSignInWithPassword.mockResolvedValue({ error: null });
 
     // Setup student registration service mock
     mockStudentRegistrationService = {
@@ -714,6 +736,48 @@ describe('/api/auth/register-student', () => {
       const data = await response.json();
       expect(data.error).toBe('Password has been found in a data breach');
       expect(data.code).toBe('WEAK_PASSWORD');
+    });
+
+    it('auto-signs in user after successful registration', async () => {
+      const request = new NextRequest('http://localhost/api/auth/register-student', {
+        method: 'POST',
+        body: JSON.stringify(validBody),
+      });
+      const response = await POST(request);
+
+      expect(response.status).toBe(201);
+      const data = await response.json();
+
+      // Should call signInWithPassword after registration
+      expect(mockSignInWithPassword).toHaveBeenCalledWith({
+        email: 'student@example.com',
+        password: 'Password123',
+      });
+
+      // Should not have autoLoginFailed flag when auto-login succeeds
+      expect(data.autoLoginFailed).toBeUndefined();
+    });
+
+    it('returns autoLoginFailed flag when sign-in fails after registration', async () => {
+      mockSignInWithPassword.mockResolvedValueOnce({
+        error: { message: 'Sign in failed' },
+      });
+
+      const request = new NextRequest('http://localhost/api/auth/register-student', {
+        method: 'POST',
+        body: JSON.stringify(validBody),
+      });
+      const response = await POST(request);
+
+      // Registration still succeeds even if auto-login fails
+      expect(response.status).toBe(201);
+      const data = await response.json();
+
+      // User should still be returned
+      expect(data.user.id).toBe('student-123');
+
+      // But autoLoginFailed flag should be set
+      expect(data.autoLoginFailed).toBe(true);
     });
   });
 });
