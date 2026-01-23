@@ -9,10 +9,36 @@ for resolving larger issues in follow-on work.
 
 Use the appropriate workflow for your task type:
 
-- **Epics** (multi-commit, branch-based): `/epic <id>`
-- **Tasks/bugs/features** (single commit to current branch): `/task <id>`
+- **Coordinated work** (epics, complex tasks, multi-commit): `/work <id>`
+- **Simple tasks** (quick fixes, single commit): `/task <id>`
 
-These commands load detailed workflow instructions including test requirements, commit checklists, and quality gates.
+### Agent Roles
+
+The `/work` command uses a coordinator that delegates to specialized agents:
+
+| Role | Responsibility | Beads Access |
+|------|---------------|--------------|
+| **Coordinator** | Orchestrates work, manages worktrees, avoids conflicts, creates PRs | Full (owns all issues) |
+| **Implementer** | Writes code and tests, commits and pushes | None (never touches bd) |
+| **Reviewer** | Verifies correctness, test coverage, code quality | Create only (blocking issues) |
+
+### Workflow State Labels
+
+The coordinator tracks task progress via labels:
+
+- `wip` - Implementation in progress
+- `needs-review` - Awaiting review
+- `changes-needed` - Review found issues
+- `approved` - Ready to close
+
+### When to Use Which
+
+| Scenario | Command |
+|----------|---------|
+| Epic with multiple subtasks | `/work <epic-id>` |
+| Complex feature (multi-file) | `/work <task-id>` |
+| Simple bug fix (1-2 files) | `/task <task-id>` |
+| Quick typo/config change | `/task <task-id>` |
 
 ## Issue Tracking with bd (beads)
 
