@@ -50,6 +50,8 @@ E2E tests skip automatically if `SUPABASE_SECRET_KEY` is not set.
 
 **All production code changes MUST include tests.** See AGENTS.md for workflow details.
 
+**NEVER debug E2E tests by pushing to CI.** Always run `npm run test:e2e` locally first. Waiting for remote CI is slow and wasteful.
+
 ### Test Organization
 
 Jest projects (see `jest.config.js`):

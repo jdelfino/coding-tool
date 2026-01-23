@@ -236,11 +236,11 @@ npm test
 # No type errors
 npx tsc --noEmit
 
-# E2E tests pass (if applicable)
+# E2E tests pass locally (REQUIRED before pushing)
 npm run test:e2e
 ```
 
-**Do NOT create PR if any of these fail.** Fix first.
+**Do NOT create PR if any of these fail.** Fix locally first - never debug via CI.
 
 ### Create PR
 
