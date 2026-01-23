@@ -4,7 +4,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthProvider } from '@/server/auth';
-import { getSectionRepository } from '@/server/classes';
+import { getSectionRepository, getMembershipRepository } from '@/server/classes';
 import { rateLimit } from '@/server/rate-limit';
 
 export async function POST(
@@ -41,8 +41,10 @@ export async function POST(
       );
     }
 
-    // Check if user is an instructor of this section
-    if (!section.instructorIds.includes(session.user.id)) {
+    // Check if user is an instructor of this section (via memberships)
+    const membershipRepo = getMembershipRepository(accessToken);
+    const membership = await membershipRepo.getMembership(session.user.id, id);
+    if (membership?.role !== 'instructor') {
       return NextResponse.json(
         { error: 'Only section instructors can regenerate join codes' },
         { status: 403 }

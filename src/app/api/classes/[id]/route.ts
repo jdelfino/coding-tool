@@ -6,7 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth, getNamespaceContext } from '@/server/auth/api-helpers';
-import { getClassRepository } from '@/server/classes';
+import { getClassRepository, getMembershipRepository } from '@/server/classes';
 import { rateLimit } from '@/server/rate-limit';
 
 export async function GET(
@@ -41,11 +41,13 @@ export async function GET(
     // Get sections for this class
     const sections = await classRepo.getClassSections(id, namespaceId);
 
-    // Collect all unique instructor IDs
+    // Collect all unique instructor IDs from memberships
+    const membershipRepo = getMembershipRepository(accessToken);
     const instructorIds = new Set<string>();
     for (const section of sections) {
-      for (const instructorId of section.instructorIds) {
-        instructorIds.add(instructorId);
+      const instructorUsers = await membershipRepo.getSectionMembers(section.id, 'instructor');
+      for (const instructor of instructorUsers) {
+        instructorIds.add(instructor.id);
       }
     }
 

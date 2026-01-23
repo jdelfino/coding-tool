@@ -89,14 +89,20 @@ export async function GET(request: NextRequest) {
       .eq('id', section.class_id)
       .single();
 
-    // Get instructor info for display
-    const instructorIds = section.instructor_ids || [];
+    // Get instructor info for display (from section_memberships table)
+    const { data: instructorMemberships } = await supabase
+      .from('section_memberships')
+      .select('user_id')
+      .eq('section_id', section.id)
+      .eq('role', 'instructor')
+      .limit(3);
+
     const instructors = [];
-    for (const instructorId of instructorIds.slice(0, 3)) {
+    for (const membership of instructorMemberships || []) {
       const { data: profile } = await supabase
         .from('user_profiles')
         .select('id, display_name')
-        .eq('id', instructorId)
+        .eq('id', membership.user_id)
         .single();
       if (profile) {
         instructors.push({

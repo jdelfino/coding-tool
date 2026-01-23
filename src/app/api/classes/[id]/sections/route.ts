@@ -130,9 +130,16 @@ export async function POST(
       classId,
       name: name.trim(),
       semester: semester?.trim() || '',
-      instructorIds: [user.id],
       active: true,
       namespaceId: user.namespaceId!,
+    });
+
+    // Add the creating instructor as a section member
+    const membershipRepo = getMembershipRepository(accessToken);
+    await membershipRepo.addMembership({
+      userId: user.id,
+      sectionId: newSection.id,
+      role: 'instructor',
     });
 
     return NextResponse.json({ section: newSection }, { status: 201 });

@@ -36,20 +36,15 @@ export async function GET(
       );
     }
 
-    // Check if user has access to this section
-    // Access granted if: user is a section instructor OR a member (student/instructor)
-    const isInstructor = section.instructorIds.includes(authSession.user.id);
+    // Check if user has access to this section via membership
+    const membershipRepo = getMembershipRepository(accessToken);
+    const membership = await membershipRepo.getMembership(authSession.user.id, id);
 
-    if (!isInstructor) {
-      const membershipRepo = getMembershipRepository(accessToken);
-      const membership = await membershipRepo.getMembership(authSession.user.id, id);
-
-      if (!membership) {
-        return NextResponse.json(
-          { error: 'You do not have access to this section' },
-          { status: 403 }
-        );
-      }
+    if (!membership) {
+      return NextResponse.json(
+        { error: 'You do not have access to this section' },
+        { status: 403 }
+      );
     }
 
     // Get sessions for this section from storage (filter at DB level for performance)
