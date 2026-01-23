@@ -4,12 +4,58 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
 import { getAuthenticatedUserWithToken } from '@/server/auth/api-auth';
 import { createStorage } from '@/server/persistence';
 import { getRevisionBuffer } from '@/server/revision-buffer';
 import * as SessionService from '@/server/services/session-service';
 import { ExecutionSettings } from '@/server/types/problem';
 import { rateLimit } from '@/server/rate-limit';
+
+/**
+ * Send a broadcast message to notify clients of student code updates.
+ * Uses Broadcast instead of postgres_changes for reliability (recommended by Supabase).
+ * Exported for testing.
+ */
+export function broadcastStudentCodeUpdated(
+  sessionId: string,
+  studentId: string,
+  code: string,
+  executionSettings: ExecutionSettings | undefined,
+  lastUpdate: Date
+) {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = process.env.SUPABASE_SECRET_KEY;
+
+  if (!supabaseUrl) {
+    throw new Error('NEXT_PUBLIC_SUPABASE_URL is required for broadcast');
+  }
+  if (!supabaseKey) {
+    throw new Error('SUPABASE_SECRET_KEY is required for broadcast');
+  }
+
+  const supabase = createClient(supabaseUrl, supabaseKey);
+  const channel = supabase.channel(`session:${sessionId}`);
+
+  // Fire and forget - don't await to avoid blocking the response
+  channel.subscribe(async (status) => {
+    if (status === 'SUBSCRIBED') {
+      await channel.send({
+        type: 'broadcast',
+        event: 'student_code_updated',
+        payload: {
+          sessionId,
+          studentId,
+          code,
+          executionSettings,
+          lastUpdate,
+          timestamp: Date.now(),
+        },
+      });
+      supabase.removeChannel(channel);
+    }
+  });
+}
 
 interface SaveCodeBody {
   studentId: string;
@@ -95,6 +141,13 @@ export async function POST(
       code,
       executionSettings
     );
+
+    // Get the student's lastUpdate for broadcast payload
+    const student = session.students.get(studentId);
+    const lastUpdate = student?.lastUpdate || new Date();
+
+    // Broadcast the code update to all connected clients (more reliable than postgres_changes)
+    broadcastStudentCodeUpdated(sessionId, studentId, code, executionSettings, lastUpdate);
 
     // Track revision using revision buffer (for batched persistence)
     const revisionBuffer = await getRevisionBuffer();
