@@ -82,8 +82,8 @@ describeE2E('System Admin Core Flows', () => {
       // Navigate to User Management via sidebar
       await navigateToUserManagement(page);
       await expect(page).toHaveURL('/admin');
-      // Page heading is "Admin Panel" for system-admin (since isAdmin checks for namespace-admin)
-      await expect(page.locator('h1:has-text("Admin Panel")')).toBeVisible({ timeout: 5000 });
+      // Page heading is "System Administration" for users with user.changeRole permission
+      await expect(page.locator('h1:has-text("System Administration")')).toBeVisible({ timeout: 5000 });
 
       // Navigate back to Namespaces via sidebar
       await navigateToNamespaces(page);
