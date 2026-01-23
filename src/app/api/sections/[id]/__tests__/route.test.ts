@@ -50,7 +50,7 @@ function createTestSection(overrides: any = {}) {
     name: 'Test Section',
     joinCode: 'ABC123',
     namespaceId: 'default',
-    instructorIds: ['user-1'],
+    active: true,
     createdAt: new Date(),
     updatedAt: new Date(),
     ...overrides,
@@ -138,9 +138,14 @@ describe('PUT /api/sections/[id]', () => {
     updateSection: jest.fn(),
   };
 
+  const mockMembershipRepo = {
+    getMembership: jest.fn(),
+  };
+
   beforeEach(() => {
     jest.clearAllMocks();
     (getSectionRepository as jest.Mock).mockReturnValue(mockSectionRepo);
+    (getMembershipRepository as jest.Mock).mockReturnValue(mockMembershipRepo);
     (getNamespaceContext as jest.Mock).mockReturnValue('default');
   });
 
@@ -182,8 +187,9 @@ describe('PUT /api/sections/[id]', () => {
     const user = createTestUser({ id: 'other-user' });
     (requireAuth as jest.Mock).mockResolvedValue(createAuthContext(user));
 
-    const mockSection = createTestSection({ instructorIds: ['user-1'] });
+    const mockSection = createTestSection();
     mockSectionRepo.getSection.mockResolvedValue(mockSection);
+    mockMembershipRepo.getMembership.mockResolvedValue(null);
 
     const request = new NextRequest('http://localhost/api/sections/section-1', {
       method: 'PUT',
@@ -203,6 +209,13 @@ describe('PUT /api/sections/[id]', () => {
 
     const mockSection = createTestSection();
     mockSectionRepo.getSection.mockResolvedValue(mockSection);
+    mockMembershipRepo.getMembership.mockResolvedValue({
+      id: 'membership-1',
+      userId: 'user-1',
+      sectionId: 'section-1',
+      role: 'instructor',
+      joinedAt: new Date(),
+    });
 
     const updatedSection = { ...mockSection, name: 'Updated Section' };
     mockSectionRepo.updateSection.mockResolvedValue(updatedSection);
@@ -226,6 +239,13 @@ describe('PUT /api/sections/[id]', () => {
 
     const mockSection = createTestSection();
     mockSectionRepo.getSection.mockResolvedValue(mockSection);
+    mockMembershipRepo.getMembership.mockResolvedValue({
+      id: 'membership-1',
+      userId: 'user-1',
+      sectionId: 'section-1',
+      role: 'instructor',
+      joinedAt: new Date(),
+    });
 
     const updatedSection = { ...mockSection, semester: 'Fall 2025' };
     mockSectionRepo.updateSection.mockResolvedValue(updatedSection);
@@ -248,6 +268,13 @@ describe('PUT /api/sections/[id]', () => {
 
     const mockSection = createTestSection();
     mockSectionRepo.getSection.mockResolvedValue(mockSection);
+    mockMembershipRepo.getMembership.mockResolvedValue({
+      id: 'membership-1',
+      userId: 'user-1',
+      sectionId: 'section-1',
+      role: 'instructor',
+      joinedAt: new Date(),
+    });
 
     const updatedSection = { ...mockSection, name: 'Trimmed Name', semester: 'Trimmed Semester' };
     mockSectionRepo.updateSection.mockResolvedValue(updatedSection);
@@ -273,9 +300,14 @@ describe('DELETE /api/sections/[id]', () => {
     deleteSection: jest.fn(),
   };
 
+  const mockMembershipRepo = {
+    getMembership: jest.fn(),
+  };
+
   beforeEach(() => {
     jest.clearAllMocks();
     (getSectionRepository as jest.Mock).mockReturnValue(mockSectionRepo);
+    (getMembershipRepository as jest.Mock).mockReturnValue(mockMembershipRepo);
     (getNamespaceContext as jest.Mock).mockReturnValue('default');
   });
 
@@ -315,8 +347,9 @@ describe('DELETE /api/sections/[id]', () => {
     const user = createTestUser({ id: 'other-user' });
     (requireAuth as jest.Mock).mockResolvedValue(createAuthContext(user));
 
-    const mockSection = createTestSection({ instructorIds: ['user-1'] });
+    const mockSection = createTestSection();
     mockSectionRepo.getSection.mockResolvedValue(mockSection);
+    mockMembershipRepo.getMembership.mockResolvedValue(null);
 
     const request = new NextRequest('http://localhost/api/sections/section-1', {
       method: 'DELETE',
@@ -335,6 +368,13 @@ describe('DELETE /api/sections/[id]', () => {
 
     const mockSection = createTestSection();
     mockSectionRepo.getSection.mockResolvedValue(mockSection);
+    mockMembershipRepo.getMembership.mockResolvedValue({
+      id: 'membership-1',
+      userId: 'user-1',
+      sectionId: 'section-1',
+      role: 'instructor',
+      joinedAt: new Date(),
+    });
     mockSectionRepo.deleteSection.mockResolvedValue(undefined);
 
     const request = new NextRequest('http://localhost/api/sections/section-1', {
@@ -353,8 +393,15 @@ describe('DELETE /api/sections/[id]', () => {
     const user = createTestUser({ id: 'instructor-2' });
     (requireAuth as jest.Mock).mockResolvedValue(createAuthContext(user));
 
-    const mockSection = createTestSection({ instructorIds: ['instructor-1', 'instructor-2'] });
+    const mockSection = createTestSection();
     mockSectionRepo.getSection.mockResolvedValue(mockSection);
+    mockMembershipRepo.getMembership.mockResolvedValue({
+      id: 'membership-2',
+      userId: 'instructor-2',
+      sectionId: 'section-1',
+      role: 'instructor',
+      joinedAt: new Date(),
+    });
     mockSectionRepo.deleteSection.mockResolvedValue(undefined);
 
     const request = new NextRequest('http://localhost/api/sections/section-1', {

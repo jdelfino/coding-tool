@@ -42,7 +42,7 @@ function createTestSection(overrides: any = {}) {
     name: 'Test Section',
     joinCode: 'ABC123',
     namespaceId: 'default',
-    instructorIds: ['instructor-1'],
+    active: true,
     createdAt: new Date(),
     updatedAt: new Date(),
     ...overrides,
@@ -137,7 +137,7 @@ describe('GET /api/sections/[id]/sessions', () => {
     const user = createTestUser({ id: 'random-user' });
     mockAuthProvider.getSessionFromRequest.mockResolvedValue({ user });
 
-    const mockSection = createTestSection({ instructorIds: ['instructor-1'] });
+    const mockSection = createTestSection();
     mockSectionRepo.getSection.mockResolvedValue(mockSection);
     mockMembershipRepo.getMembership.mockResolvedValue(null);
 
@@ -152,12 +152,18 @@ describe('GET /api/sections/[id]/sessions', () => {
     expect(data.error).toBe('You do not have access to this section');
   });
 
-  it('should return 200 with sessions if user is section instructor (without membership)', async () => {
+  it('should return 200 with sessions if user is section instructor via membership', async () => {
     const user = createTestUser({ id: 'instructor-1', role: 'instructor' });
     mockAuthProvider.getSessionFromRequest.mockResolvedValue({ user });
 
-    const mockSection = createTestSection({ instructorIds: ['instructor-1'] });
+    const mockSection = createTestSection();
     mockSectionRepo.getSection.mockResolvedValue(mockSection);
+    mockMembershipRepo.getMembership.mockResolvedValue({
+      id: 'membership-1',
+      userId: 'instructor-1',
+      sectionId: 'section-1',
+      role: 'instructor',
+    });
 
     const mockSessions = [
       createTestSession({ id: 'session-1' }),
@@ -174,8 +180,7 @@ describe('GET /api/sections/[id]/sessions', () => {
 
     expect(response.status).toBe(200);
     expect(data.sessions).toHaveLength(2);
-    // Should not check membership when user is an instructor
-    expect(mockMembershipRepo.getMembership).not.toHaveBeenCalled();
+    expect(mockMembershipRepo.getMembership).toHaveBeenCalledWith('instructor-1', 'section-1');
     expect(mockStorage.sessions.listAllSessions).toHaveBeenCalledWith({ sectionId: 'section-1' });
   });
 
@@ -183,7 +188,7 @@ describe('GET /api/sections/[id]/sessions', () => {
     const user = createTestUser({ id: 'student-1', role: 'student' });
     mockAuthProvider.getSessionFromRequest.mockResolvedValue({ user });
 
-    const mockSection = createTestSection({ instructorIds: ['instructor-1'] });
+    const mockSection = createTestSection();
     mockSectionRepo.getSection.mockResolvedValue(mockSection);
     mockMembershipRepo.getMembership.mockResolvedValue({
       id: 'membership-1',
@@ -211,8 +216,14 @@ describe('GET /api/sections/[id]/sessions', () => {
     const user = createTestUser({ id: 'instructor-2', role: 'instructor' });
     mockAuthProvider.getSessionFromRequest.mockResolvedValue({ user });
 
-    const mockSection = createTestSection({ instructorIds: ['instructor-1', 'instructor-2'] });
+    const mockSection = createTestSection();
     mockSectionRepo.getSection.mockResolvedValue(mockSection);
+    mockMembershipRepo.getMembership.mockResolvedValue({
+      id: 'membership-2',
+      userId: 'instructor-2',
+      sectionId: 'section-1',
+      role: 'instructor',
+    });
 
     const mockSessions = [createTestSession()];
     mockStorage.sessions.listAllSessions.mockResolvedValue(mockSessions);
@@ -234,6 +245,12 @@ describe('GET /api/sections/[id]/sessions', () => {
 
     const mockSection = createTestSection();
     mockSectionRepo.getSection.mockResolvedValue(mockSection);
+    mockMembershipRepo.getMembership.mockResolvedValue({
+      id: 'membership-1',
+      userId: 'instructor-1',
+      sectionId: 'section-1',
+      role: 'instructor',
+    });
     mockStorage.sessions.listAllSessions.mockResolvedValue([]);
 
     const request = new NextRequest('http://localhost/api/sections/section-1/sessions', {
@@ -253,6 +270,12 @@ describe('GET /api/sections/[id]/sessions', () => {
 
     const mockSection = createTestSection({ id: 'specific-section' });
     mockSectionRepo.getSection.mockResolvedValue(mockSection);
+    mockMembershipRepo.getMembership.mockResolvedValue({
+      id: 'membership-1',
+      userId: 'instructor-1',
+      sectionId: 'specific-section',
+      role: 'instructor',
+    });
     mockStorage.sessions.listAllSessions.mockResolvedValue([]);
 
     const request = new NextRequest('http://localhost/api/sections/specific-section/sessions', {
@@ -268,8 +291,8 @@ describe('GET /api/sections/[id]/sessions', () => {
     const user = createTestUser({ id: 'user-1', role: 'instructor' });
     mockAuthProvider.getSessionFromRequest.mockResolvedValue({ user });
 
-    // User is NOT in instructorIds but has membership with instructor role
-    const mockSection = createTestSection({ instructorIds: ['other-instructor'] });
+    // User has membership with instructor role
+    const mockSection = createTestSection();
     mockSectionRepo.getSection.mockResolvedValue(mockSection);
     mockMembershipRepo.getMembership.mockResolvedValue({
       id: 'membership-1',

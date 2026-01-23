@@ -25,7 +25,6 @@ describe('StudentRegistrationService', () => {
       namespaceId: 'test-namespace',
       classId: 'class-456',
       name: 'Section A',
-      instructorIds: ['instructor-1'],
       joinCode: 'ABC123',
       active: true,
       createdAt: new Date(),
@@ -73,8 +72,6 @@ describe('StudentRegistrationService', () => {
       deleteSection: jest.fn(),
       listSections: jest.fn(),
       regenerateJoinCode: jest.fn(),
-      addInstructor: jest.fn(),
-      removeInstructor: jest.fn(),
       getSectionStats: jest.fn(),
     };
 

@@ -47,7 +47,7 @@ describe('POST /api/sessions', () => {
     name: 'Section A',
     namespaceId: 'default',
     joinCode: 'ABC123',
-    instructorIds: ['user-1'],
+    active: true,
     createdAt: new Date('2024-01-01'),
   };
 
@@ -252,10 +252,7 @@ describe('POST /api/sessions', () => {
 
   it('returns 403 when user is not an instructor in the section', async () => {
     (requireAuth as jest.Mock).mockResolvedValue(createAuthContext(mockUser));
-    mockStorage.sections.getSection.mockResolvedValue({
-      ...mockSection,
-      instructorIds: ['other-instructor'],
-    });
+    mockStorage.sections.getSection.mockResolvedValue(mockSection);
     mockStorage.memberships.getMembership.mockResolvedValue(null);
 
     const request = new NextRequest('http://localhost/api/sessions', {

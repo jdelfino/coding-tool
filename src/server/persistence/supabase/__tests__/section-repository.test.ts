@@ -38,7 +38,6 @@ describe('SupabaseSectionRepository', () => {
     classId: 'class-456',
     name: 'Section A',
     semester: 'Fall 2025',
-    instructorIds: ['instructor-789'],
     joinCode: 'ABC-123-XYZ',
     active: true,
     createdAt: new Date('2025-01-01T00:00:00Z'),
@@ -51,7 +50,6 @@ describe('SupabaseSectionRepository', () => {
     class_id: mockSection.classId,
     name: mockSection.name,
     semester: mockSection.semester,
-    instructor_ids: mockSection.instructorIds,
     join_code: mockSection.joinCode,
     active: mockSection.active,
     created_at: mockSection.createdAt.toISOString(),
@@ -203,7 +201,6 @@ describe('SupabaseSectionRepository', () => {
         classId: mockSection.classId,
         name: mockSection.name,
         semester: mockSection.semester,
-        instructorIds: mockSection.instructorIds,
         active: mockSection.active,
       };
 
@@ -250,7 +247,6 @@ describe('SupabaseSectionRepository', () => {
         classId: mockSection.classId,
         name: mockSection.name,
         semester: mockSection.semester,
-        instructorIds: mockSection.instructorIds,
         active: mockSection.active,
       };
 
@@ -280,7 +276,6 @@ describe('SupabaseSectionRepository', () => {
         classId: mockSection.classId,
         name: mockSection.name,
         semester: mockSection.semester,
-        instructorIds: mockSection.instructorIds,
         active: mockSection.active,
       };
 
@@ -316,7 +311,6 @@ describe('SupabaseSectionRepository', () => {
         classId: mockSection.classId,
         name: mockSection.name,
         semester: mockSection.semester,
-        instructorIds: mockSection.instructorIds,
         active: mockSection.active,
       };
 
@@ -484,20 +478,6 @@ describe('SupabaseSectionRepository', () => {
       expect(mockEqChain).toHaveBeenCalledWith('class_id', 'class-456');
     });
 
-    it('should filter by instructorId', async () => {
-      const mockContainsChain = jest.fn().mockResolvedValue({ data: [mockSectionRow], error: null });
-      mockFrom.mockReturnValue({
-        select: jest.fn().mockReturnValue({
-          contains: mockContainsChain,
-        }),
-      });
-
-      const result = await repository.listSections({ instructorId: 'instructor-789' });
-
-      expect(result).toHaveLength(1);
-      expect(mockContainsChain).toHaveBeenCalledWith('instructor_ids', ['instructor-789']);
-    });
-
     it('should filter by active status', async () => {
       const mockEqChain = jest.fn().mockResolvedValue({ data: [mockSectionRow], error: null });
       mockFrom.mockReturnValue({
@@ -571,131 +551,6 @@ describe('SupabaseSectionRepository', () => {
 
       await expect(repository.regenerateJoinCode('section-123')).rejects.toThrow(
         'Failed to regenerate join code: Update failed'
-      );
-    });
-  });
-
-  describe('addInstructor', () => {
-    it('should add an instructor to a section', async () => {
-      // Mock getSection
-      mockFrom.mockImplementation((table: string) => {
-        if (table === 'sections') {
-          return {
-            select: jest.fn().mockReturnValue({
-              eq: jest.fn().mockReturnValue({
-                single: jest.fn().mockResolvedValue({ data: mockSectionRow, error: null }),
-              }),
-            }),
-            update: jest.fn().mockReturnValue({
-              eq: jest.fn().mockResolvedValue({ data: null, error: null }),
-            }),
-          };
-        }
-        return {};
-      });
-
-      await expect(
-        repository.addInstructor('section-123', 'new-instructor')
-      ).resolves.not.toThrow();
-    });
-
-    it('should be idempotent - no error if instructor already exists', async () => {
-      mockFrom.mockImplementation((table: string) => {
-        if (table === 'sections') {
-          return {
-            select: jest.fn().mockReturnValue({
-              eq: jest.fn().mockReturnValue({
-                single: jest.fn().mockResolvedValue({ data: mockSectionRow, error: null }),
-              }),
-            }),
-          };
-        }
-        return {};
-      });
-
-      await expect(
-        repository.addInstructor('section-123', 'instructor-789')
-      ).resolves.not.toThrow();
-    });
-
-    it('should throw error if section not found', async () => {
-      mockFrom.mockImplementation((table: string) => {
-        if (table === 'sections') {
-          return {
-            select: jest.fn().mockReturnValue({
-              eq: jest.fn().mockReturnValue({
-                single: jest.fn().mockResolvedValue({ data: null, error: { code: 'PGRST116' } }),
-              }),
-            }),
-          };
-        }
-        return {};
-      });
-
-      await expect(repository.addInstructor('nonexistent', 'instructor')).rejects.toThrow(
-        'Section nonexistent not found'
-      );
-    });
-  });
-
-  describe('removeInstructor', () => {
-    it('should remove an instructor from a section', async () => {
-      mockFrom.mockImplementation((table: string) => {
-        if (table === 'sections') {
-          return {
-            select: jest.fn().mockReturnValue({
-              eq: jest.fn().mockReturnValue({
-                single: jest.fn().mockResolvedValue({ data: mockSectionRow, error: null }),
-              }),
-            }),
-            update: jest.fn().mockReturnValue({
-              eq: jest.fn().mockResolvedValue({ data: null, error: null }),
-            }),
-          };
-        }
-        return {};
-      });
-
-      await expect(
-        repository.removeInstructor('section-123', 'instructor-789')
-      ).resolves.not.toThrow();
-    });
-
-    it('should be idempotent - no error if instructor does not exist', async () => {
-      mockFrom.mockImplementation((table: string) => {
-        if (table === 'sections') {
-          return {
-            select: jest.fn().mockReturnValue({
-              eq: jest.fn().mockReturnValue({
-                single: jest.fn().mockResolvedValue({ data: mockSectionRow, error: null }),
-              }),
-            }),
-          };
-        }
-        return {};
-      });
-
-      await expect(
-        repository.removeInstructor('section-123', 'nonexistent')
-      ).resolves.not.toThrow();
-    });
-
-    it('should throw error if section not found', async () => {
-      mockFrom.mockImplementation((table: string) => {
-        if (table === 'sections') {
-          return {
-            select: jest.fn().mockReturnValue({
-              eq: jest.fn().mockReturnValue({
-                single: jest.fn().mockResolvedValue({ data: null, error: { code: 'PGRST116' } }),
-              }),
-            }),
-          };
-        }
-        return {};
-      });
-
-      await expect(repository.removeInstructor('nonexistent', 'instructor')).rejects.toThrow(
-        'Section nonexistent not found'
       );
     });
   });

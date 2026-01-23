@@ -55,7 +55,7 @@ function createTestSection(overrides: any = {}) {
     name: 'Test Section',
     joinCode: 'ABC123',
     namespaceId: 'default',
-    instructorIds: ['instructor-1'],
+    active: true,
     createdAt: new Date(),
     updatedAt: new Date(),
     ...overrides,
@@ -65,11 +65,11 @@ function createTestSection(overrides: any = {}) {
 describe('POST /api/sections/[id]/instructors', () => {
   const mockSectionRepo = {
     getSection: jest.fn(),
-    addInstructor: jest.fn(),
   };
 
   const mockMembershipRepo = {
     addMembership: jest.fn(),
+    getMembership: jest.fn(),
   };
 
   const mockUserRepo = {
@@ -121,7 +121,7 @@ describe('POST /api/sections/[id]/instructors', () => {
     const user = createTestUser({ role: 'student' });
     (requireAuth as jest.Mock).mockResolvedValue(createAuthContext(user));
 
-    const mockSection = createTestSection({ instructorIds: ['student'] });
+    const mockSection = createTestSection();
     mockSectionRepo.getSection.mockResolvedValue(mockSection);
 
     const request = new NextRequest('http://localhost/api/sections/section-1/instructors', {
@@ -140,8 +140,9 @@ describe('POST /api/sections/[id]/instructors', () => {
     const user = createTestUser({ id: 'other-instructor' });
     (requireAuth as jest.Mock).mockResolvedValue(createAuthContext(user));
 
-    const mockSection = createTestSection({ instructorIds: ['instructor-1'] });
+    const mockSection = createTestSection();
     mockSectionRepo.getSection.mockResolvedValue(mockSection);
+    mockMembershipRepo.getMembership.mockResolvedValue(null);
 
     const request = new NextRequest('http://localhost/api/sections/section-1/instructors', {
       method: 'POST',
@@ -161,6 +162,13 @@ describe('POST /api/sections/[id]/instructors', () => {
 
     const mockSection = createTestSection();
     mockSectionRepo.getSection.mockResolvedValue(mockSection);
+    mockMembershipRepo.getMembership.mockResolvedValue({
+      id: 'membership-1',
+      userId: 'instructor-1',
+      sectionId: 'section-1',
+      role: 'instructor',
+      joinedAt: new Date(),
+    });
 
     const request = new NextRequest('http://localhost/api/sections/section-1/instructors', {
       method: 'POST',
@@ -180,6 +188,13 @@ describe('POST /api/sections/[id]/instructors', () => {
 
     const mockSection = createTestSection();
     mockSectionRepo.getSection.mockResolvedValue(mockSection);
+    mockMembershipRepo.getMembership.mockResolvedValue({
+      id: 'membership-1',
+      userId: 'instructor-1',
+      sectionId: 'section-1',
+      role: 'instructor',
+      joinedAt: new Date(),
+    });
     mockUserRepo.getUserByEmail.mockResolvedValue(null);
 
     const request = new NextRequest('http://localhost/api/sections/section-1/instructors', {
@@ -200,6 +215,13 @@ describe('POST /api/sections/[id]/instructors', () => {
 
     const mockSection = createTestSection();
     mockSectionRepo.getSection.mockResolvedValue(mockSection);
+    mockMembershipRepo.getMembership.mockResolvedValue({
+      id: 'membership-1',
+      userId: 'instructor-1',
+      sectionId: 'section-1',
+      role: 'instructor',
+      joinedAt: new Date(),
+    });
 
     const studentUser = createTestUser({
       id: 'student-1',
@@ -226,6 +248,13 @@ describe('POST /api/sections/[id]/instructors', () => {
 
     const mockSection = createTestSection();
     mockSectionRepo.getSection.mockResolvedValue(mockSection);
+    mockMembershipRepo.getMembership.mockResolvedValue({
+      id: 'membership-1',
+      userId: 'instructor-1',
+      sectionId: 'section-1',
+      role: 'instructor',
+      joinedAt: new Date(),
+    });
 
     const newInstructor = createTestUser({
       id: 'new-instructor',
@@ -233,7 +262,7 @@ describe('POST /api/sections/[id]/instructors', () => {
     });
     mockUserRepo.getUserByEmail.mockResolvedValue(newInstructor);
     mockMembershipRepo.addMembership.mockResolvedValue({
-      id: 'membership-1',
+      id: 'membership-2',
       userId: 'new-instructor',
       sectionId: 'section-1',
       role: 'instructor',
@@ -255,7 +284,6 @@ describe('POST /api/sections/[id]/instructors', () => {
       sectionId: 'section-1',
       role: 'instructor',
     });
-    expect(mockSectionRepo.addInstructor).toHaveBeenCalledWith('section-1', 'new-instructor');
   });
 
   it('should normalize email (lowercase and trim)', async () => {
@@ -264,6 +292,13 @@ describe('POST /api/sections/[id]/instructors', () => {
 
     const mockSection = createTestSection();
     mockSectionRepo.getSection.mockResolvedValue(mockSection);
+    mockMembershipRepo.getMembership.mockResolvedValue({
+      id: 'membership-1',
+      userId: 'instructor-1',
+      sectionId: 'section-1',
+      role: 'instructor',
+      joinedAt: new Date(),
+    });
     mockUserRepo.getUserByEmail.mockResolvedValue(null);
 
     const request = new NextRequest('http://localhost/api/sections/section-1/instructors', {

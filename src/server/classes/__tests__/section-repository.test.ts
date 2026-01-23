@@ -62,28 +62,24 @@ describe('SectionRepository', () => {
       expect(created.classId).toBe('class-1');
       expect(created.name).toBe('Section A');
       expect(created.semester).toBe('Fall 2025');
-      expect(created.instructorIds).toEqual(['instructor-1']);
       expect(created.joinCode).toBe('ABC-123-XYZ');
       expect(created.active).toBe(true);
       expect(created.createdAt).toBeInstanceOf(Date);
       expect(created.updatedAt).toBeInstanceOf(Date);
     });
 
-    it('should handle multiple instructors', async () => {
+    it('should create section with optional semester', async () => {
       const sectionData = {
         namespaceId: 'default',
         classId: 'class-1',
         name: 'Section A',
-        instructorIds: ['instructor-1', 'instructor-2', 'instructor-3'],
+        semester: 'Spring 2026',
         active: true,
       };
 
       const created = await repository.createSection(sectionData);
 
-      expect(created.instructorIds).toHaveLength(3);
-      expect(created.instructorIds).toContain('instructor-1');
-      expect(created.instructorIds).toContain('instructor-2');
-      expect(created.instructorIds).toContain('instructor-3');
+      expect(created.semester).toBe('Spring 2026');
     });
 
     it('should generate unique join codes', async () => {
@@ -91,7 +87,6 @@ describe('SectionRepository', () => {
         namespaceId: 'default',
         classId: 'class-1',
         name: 'Section A',
-        instructorIds: ['instructor-1'],
         active: true,
       });
 
@@ -99,7 +94,6 @@ describe('SectionRepository', () => {
         namespaceId: 'default',
         classId: 'class-1',
         name: 'Section B',
-        instructorIds: ['instructor-1'],
         active: true,
       });
 
@@ -114,7 +108,6 @@ describe('SectionRepository', () => {
         namespaceId: 'default',
         classId: 'class-1',
         name: 'Section A',
-        instructorIds: ['instructor-1'],
         active: true,
       });
 
@@ -130,7 +123,6 @@ describe('SectionRepository', () => {
         namespaceId: 'default',
         classId: 'class-1',
         name: 'Section B',
-        instructorIds: ['instructor-1'],
         active: true,
       });
 
@@ -143,7 +135,6 @@ describe('SectionRepository', () => {
         namespaceId: 'default',
         classId: 'class-1',
         name: 'Section A',
-        instructorIds: ['instructor-1'],
         active: true,
       });
 
@@ -160,7 +151,6 @@ describe('SectionRepository', () => {
         namespaceId: 'default',
         classId: 'class-1',
         name: 'Section A',
-        instructorIds: ['instructor-1'],
         active: true,
       });
 
@@ -183,7 +173,6 @@ describe('SectionRepository', () => {
         namespaceId: 'default',
         classId: 'class-1',
         name: 'Section A',
-        instructorIds: ['instructor-1'],
         active: true,
       });
 
@@ -204,7 +193,6 @@ describe('SectionRepository', () => {
         namespaceId: 'default',
         classId: 'class-1',
         name: 'Section A',
-        instructorIds: ['instructor-1'],
         active: true,
       });
 
@@ -212,7 +200,6 @@ describe('SectionRepository', () => {
         namespaceId: 'default',
         classId: 'class-1',
         name: 'Section B',
-        instructorIds: ['instructor-1'],
         active: true,
       });
 
@@ -231,7 +218,6 @@ describe('SectionRepository', () => {
         classId: 'class-1',
         name: 'Section A',
         semester: 'Fall 2025',
-        instructorIds: ['instructor-1'],
         active: true,
       });
 
@@ -243,25 +229,6 @@ describe('SectionRepository', () => {
       const updated = await repository.getSection(created.id);
       expect(updated?.name).toBe('Section A Updated');
       expect(updated?.semester).toBe('Spring 2026');
-      expect(updated?.instructorIds).toEqual(['instructor-1']); // Should not change
-    });
-
-    it('should update instructor list', async () => {
-      const created = await repository.createSection({
-        namespaceId: 'default',
-        classId: 'class-1',
-        name: 'Section A',
-        instructorIds: ['instructor-1'],
-        active: true,
-      });
-
-      await repository.updateSection(created.id, {
-        instructorIds: ['instructor-1', 'instructor-2'],
-      });
-
-      const updated = await repository.getSection(created.id);
-      expect(updated?.instructorIds).toHaveLength(2);
-      expect(updated?.instructorIds).toContain('instructor-2');
     });
 
     it('should update active status', async () => {
@@ -269,7 +236,6 @@ describe('SectionRepository', () => {
         namespaceId: 'default',
         classId: 'class-1',
         name: 'Section A',
-        instructorIds: ['instructor-1'],
         active: true,
       });
 
@@ -284,7 +250,6 @@ describe('SectionRepository', () => {
         namespaceId: 'default',
         classId: 'class-1',
         name: 'Section A',
-        instructorIds: ['instructor-1'],
         active: true,
       });
 
@@ -307,7 +272,6 @@ describe('SectionRepository', () => {
         namespaceId: 'default',
         classId: 'class-1',
         name: 'Section A',
-        instructorIds: ['instructor-1'],
         active: true,
       });
 
@@ -331,7 +295,6 @@ describe('SectionRepository', () => {
         namespaceId: 'default',
         classId: 'class-1',
         name: 'Section A',
-        instructorIds: ['instructor-1'],
         active: true,
       });
 
@@ -339,7 +302,6 @@ describe('SectionRepository', () => {
         namespaceId: 'default',
         classId: 'class-1',
         name: 'Section B',
-        instructorIds: ['instructor-1'],
         active: true,
       });
 
@@ -355,7 +317,6 @@ describe('SectionRepository', () => {
         namespaceId: 'default',
         classId: 'class-1',
         name: 'Section A',
-        instructorIds: ['instructor-1'],
         active: true,
       });
 
@@ -370,7 +331,6 @@ describe('SectionRepository', () => {
         namespaceId: 'default',
         classId: 'class-1',
         name: 'Section A',
-        instructorIds: ['instructor-1'],
         active: true,
       });
 
@@ -395,7 +355,6 @@ describe('SectionRepository', () => {
         namespaceId: 'default',
         classId: 'class-1',
         name: 'Section A',
-        instructorIds: ['instructor-1'],
         active: true,
       });
 
@@ -403,7 +362,6 @@ describe('SectionRepository', () => {
         namespaceId: 'default',
         classId: 'class-1',
         name: 'Section B',
-        instructorIds: ['instructor-2'],
         active: true,
       });
 
@@ -411,7 +369,6 @@ describe('SectionRepository', () => {
         namespaceId: 'default',
         classId: 'class-2',
         name: 'Section C',
-        instructorIds: ['instructor-1'],
         active: true,
       });
 
@@ -419,7 +376,6 @@ describe('SectionRepository', () => {
         namespaceId: 'default',
         classId: 'class-2',
         name: 'Section D',
-        instructorIds: ['instructor-3'],
         active: false,
       });
     });
@@ -435,12 +391,6 @@ describe('SectionRepository', () => {
       expect(sections.every(s => s.classId === 'class-1')).toBe(true);
     });
 
-    it('should filter by instructorId', async () => {
-      const sections = await repository.listSections({ instructorId: 'instructor-1' });
-      expect(sections).toHaveLength(2);
-      expect(sections.every(s => s.instructorIds.includes('instructor-1'))).toBe(true);
-    });
-
     it('should filter by active status', async () => {
       const activeSections = await repository.listSections({ active: true });
       expect(activeSections).toHaveLength(3);
@@ -454,13 +404,11 @@ describe('SectionRepository', () => {
     it('should combine multiple filters', async () => {
       const sections = await repository.listSections({
         classId: 'class-2',
-        instructorId: 'instructor-1',
         active: true,
       });
 
       expect(sections).toHaveLength(1);
       expect(sections[0].classId).toBe('class-2');
-      expect(sections[0].instructorIds).toContain('instructor-1');
       expect(sections[0].active).toBe(true);
     });
 
@@ -479,7 +427,6 @@ describe('SectionRepository', () => {
         namespaceId: 'default',
         classId: 'class-1',
         name: 'Section A',
-        instructorIds: ['instructor-1'],
         active: true,
       });
 

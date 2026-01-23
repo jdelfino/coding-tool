@@ -126,7 +126,7 @@ describe('POST /api/sections/join', () => {
       name: 'Section A',
       joinCode: 'TEST123',
       namespaceId: 'default',
-      instructorIds: ['instructor-1'],
+      active: true,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -169,7 +169,7 @@ describe('POST /api/sections/join', () => {
       name: 'Section A',
       joinCode: 'TEST123',
       namespaceId: 'default',
-      instructorIds: ['instructor-1'],
+      active: true,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
