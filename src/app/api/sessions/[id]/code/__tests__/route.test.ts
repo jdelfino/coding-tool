@@ -18,6 +18,26 @@ jest.mock('@/server/auth/api-auth');
 jest.mock('@/server/persistence');
 jest.mock('@/server/services/session-service');
 
+// Mock Supabase client for broadcast functionality
+const mockSend = jest.fn().mockResolvedValue({});
+const mockSubscribe = jest.fn((callback) => {
+  // Immediately call callback with SUBSCRIBED status
+  callback('SUBSCRIBED');
+  return { send: mockSend };
+});
+const mockChannel = jest.fn(() => ({
+  subscribe: mockSubscribe,
+  send: mockSend,
+}));
+const mockRemoveChannel = jest.fn();
+
+jest.mock('@supabase/supabase-js', () => ({
+  createClient: jest.fn(() => ({
+    channel: mockChannel,
+    removeChannel: mockRemoveChannel,
+  })),
+}));
+
 const mockGetAuthenticatedUserWithToken = getAuthenticatedUserWithToken as jest.MockedFunction<typeof getAuthenticatedUserWithToken>;
 const mockCreateStorage = createStorage as jest.MockedFunction<typeof createStorage>;
 
@@ -71,6 +91,10 @@ describe('POST /api/sessions/[id]/code', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+
+    // Set required env vars for broadcast
+    process.env.NEXT_PUBLIC_SUPABASE_URL = 'http://localhost:54321';
+    process.env.SUPABASE_SECRET_KEY = 'test-secret-key';
 
     mockStorage = {
       sessions: {
@@ -386,6 +410,63 @@ describe('POST /api/sessions/[id]/code', () => {
 
       expect(response.status).toBe(200);
       expect(SessionService.updateStudentCode).toHaveBeenCalled();
+    });
+  });
+
+  describe('Broadcast notification', () => {
+    it('broadcasts student_code_updated event after successful code update', async () => {
+      mockGetAuthenticatedUserWithToken.mockResolvedValue({ user: mockUser, accessToken: 'test-token' });
+      const code = 'print("Updated code")';
+      const executionSettings = { stdin: 'test input', randomSeed: 42 };
+
+      const request = new NextRequest('http://localhost:3000/api/sessions/session-1/code', {
+        method: 'POST',
+        body: JSON.stringify({ studentId: 'user-1', code, executionSettings }),
+      });
+      const params = Promise.resolve({ id: 'session-1' });
+
+      const response = await POST(request, { params });
+
+      expect(response.status).toBe(200);
+
+      // Verify broadcast was called with correct channel
+      expect(mockChannel).toHaveBeenCalledWith('session:session-1');
+
+      // Verify broadcast message was sent with correct event and payload
+      expect(mockSend).toHaveBeenCalledWith({
+        type: 'broadcast',
+        event: 'student_code_updated',
+        payload: expect.objectContaining({
+          sessionId: 'session-1',
+          studentId: 'user-1',
+          code,
+          executionSettings,
+          timestamp: expect.any(Number),
+        }),
+      });
+    });
+
+    it('includes lastUpdate in broadcast payload', async () => {
+      const lastUpdate = new Date('2024-01-01T12:00:00Z');
+      mockGetAuthenticatedUserWithToken.mockResolvedValue({ user: mockUser, accessToken: 'test-token' });
+      mockStorage.sessions.getSession.mockResolvedValue({
+        ...createMockSession(),
+        students: new Map([['user-1', { id: 'user-1', name: 'Test Student', code: 'old code', lastUpdate }]]),
+      });
+
+      const request = new NextRequest('http://localhost:3000/api/sessions/session-1/code', {
+        method: 'POST',
+        body: JSON.stringify({ studentId: 'user-1', code: 'new code' }),
+      });
+      const params = Promise.resolve({ id: 'session-1' });
+
+      await POST(request, { params });
+
+      expect(mockSend).toHaveBeenCalledWith(expect.objectContaining({
+        payload: expect.objectContaining({
+          lastUpdate: expect.any(Date),
+        }),
+      }));
     });
   });
 });

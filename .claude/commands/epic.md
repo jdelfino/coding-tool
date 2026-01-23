@@ -1,10 +1,7 @@
-# Epic Workflow
+# Epic Workflow (Redirects to /work)
 
-Work on epic **$ARGUMENTS** using the epic-coordinator workflow.
-
-1. Fetch epic details: `bd show $ARGUMENTS --json`
-2. Follow the epic-coordinator skill instructions below
+Use `/work $ARGUMENTS` instead. The `/epic` command is deprecated.
 
 ---
 
-@.claude/skills/epic-coordinator/SKILL.md
+@.claude/skills/coordinator/SKILL.md
