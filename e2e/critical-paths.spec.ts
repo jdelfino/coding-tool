@@ -159,7 +159,9 @@ describeE2E('Critical User Paths', () => {
     }
   });
 
-  test('Student code sync: code changes sync to instructor and public view', { timeout: 60000 }, async ({ page, browser }) => {
+  test('Student code sync: code changes sync to instructor and public view', async ({ page, browser }) => {
+    // Extend timeout for this complex multi-page test
+    test.setTimeout(60000);
     /**
      * This test verifies the critical path of student code sync:
      * 1. Student modifies code in their editor
