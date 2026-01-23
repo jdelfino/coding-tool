@@ -61,9 +61,6 @@ export interface Section {
   /** Optional semester or term (e.g., "Fall 2025", "Spring 2026") */
   semester?: string;
 
-  /** Array of user IDs for instructors teaching this section */
-  instructorIds: string[];
-
   /** Unique join code for students to enroll (format: ABC-123-XYZ) */
   joinCode: string;
 
