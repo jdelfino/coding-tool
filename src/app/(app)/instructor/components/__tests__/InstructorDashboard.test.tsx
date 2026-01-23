@@ -201,14 +201,14 @@ describe('InstructorDashboard', () => {
       });
     });
 
-    it('shows Edit link for each class', async () => {
+    it('shows clickable class name linking to class page', async () => {
       render(<InstructorDashboard {...defaultProps} />);
 
       await waitFor(() => {
-        expect(screen.getByTestId('edit-class-class-1')).toBeInTheDocument();
+        expect(screen.getByTestId('class-link-class-1')).toBeInTheDocument();
       });
 
-      expect(screen.getByTestId('edit-class-class-1')).toHaveAttribute('href', '/classes/class-1');
+      expect(screen.getByTestId('class-link-class-1')).toHaveAttribute('href', '/classes/class-1');
     });
   });
 

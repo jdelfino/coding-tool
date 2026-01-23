@@ -203,7 +203,13 @@ export function InstructorDashboard({
                 // Class with no sections
                 <tr key={classInfo.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="font-medium text-gray-900">{classInfo.name}</div>
+                    <Link
+                      href={`/classes/${classInfo.id}`}
+                      className="font-medium text-blue-600 hover:text-blue-900"
+                      data-testid={`class-link-${classInfo.id}`}
+                    >
+                      {classInfo.name}
+                    </Link>
                     {classInfo.description && (
                       <div className="text-sm text-gray-500 truncate max-w-xs">{classInfo.description}</div>
                     )}
@@ -221,13 +227,7 @@ export function InstructorDashboard({
                     —
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <Link
-                      href={`/classes/${classInfo.id}`}
-                      className="text-blue-600 hover:text-blue-900"
-                      data-testid={`edit-class-${classInfo.id}`}
-                    >
-                      Edit
-                    </Link>
+                    —
                   </td>
                 </tr>
               ) : (
@@ -241,7 +241,13 @@ export function InstructorDashboard({
                     <td className="px-6 py-4 whitespace-nowrap">
                       {sectionIndex === 0 ? (
                         <>
-                          <div className="font-medium text-gray-900">{classInfo.name}</div>
+                          <Link
+                            href={`/classes/${classInfo.id}`}
+                            className="font-medium text-blue-600 hover:text-blue-900"
+                            data-testid={`class-link-${classInfo.id}`}
+                          >
+                            {classInfo.name}
+                          </Link>
                           {classInfo.description && (
                             <div className="text-sm text-gray-500 truncate max-w-xs">{classInfo.description}</div>
                           )}
@@ -272,7 +278,7 @@ export function InstructorDashboard({
                         </span>
                       )}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-3">
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       {canCreateSession && (
                         <button
                           onClick={() => handleStartSession(section)}
@@ -285,15 +291,6 @@ export function InstructorDashboard({
                         >
                           {section.activeSessionId ? 'Rejoin Session' : 'Start Session'}
                         </button>
-                      )}
-                      {sectionIndex === 0 && (
-                        <Link
-                          href={`/classes/${classInfo.id}`}
-                          className="text-gray-600 hover:text-gray-900"
-                          data-testid={`edit-class-${classInfo.id}`}
-                        >
-                          Edit
-                        </Link>
                       )}
                     </td>
                   </tr>
