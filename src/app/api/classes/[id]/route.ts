@@ -41,9 +41,55 @@ export async function GET(
     // Get sections for this class
     const sections = await classRepo.getClassSections(id, namespaceId);
 
+    // Collect all unique instructor IDs
+    const instructorIds = new Set<string>();
+    for (const section of sections) {
+      for (const instructorId of section.instructorIds) {
+        instructorIds.add(instructorId);
+      }
+    }
+
+    // Fetch instructor display names from user_profiles
+    const instructorNames: Record<string, string> = {};
+    if (instructorIds.size > 0) {
+      const { createClient } = await import('@supabase/supabase-js');
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+      const supabaseKey = process.env.SUPABASE_SECRET_KEY!;
+      const supabase = createClient(supabaseUrl, supabaseKey);
+
+      // Fetch user profiles and emails
+      const { data: profiles, error: profileError } = await supabase
+        .from('user_profiles')
+        .select('id, display_name')
+        .in('id', Array.from(instructorIds));
+
+      if (profileError) {
+        console.error('[API] Failed to fetch instructor profiles:', profileError);
+      }
+
+      // Fetch emails from auth.users for each instructor
+      for (const instructorId of instructorIds) {
+        const profile = profiles?.find(p => p.id === instructorId);
+
+        if (profile?.display_name) {
+          instructorNames[instructorId] = profile.display_name;
+        } else {
+          // Try to get email from auth
+          const { data: authUser } = await supabase.auth.admin.getUserById(instructorId);
+          if (authUser?.user?.email) {
+            instructorNames[instructorId] = authUser.user.email;
+          } else {
+            // Last resort: show truncated ID
+            instructorNames[instructorId] = `Instructor (${instructorId.slice(0, 8)}...)`;
+          }
+        }
+      }
+    }
+
     return NextResponse.json({
       class: classData,
-      sections
+      sections,
+      instructorNames
     });
   } catch (error) {
     console.error('[API] Get class error:', error);

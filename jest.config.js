@@ -29,6 +29,7 @@ module.exports = {
         '<rootDir>/src/server/**/__tests__/**/*.test.ts',
         '<rootDir>/src/app/api/**/__tests__/**/*.test.ts',
         '<rootDir>/src/lib/**/__tests__/**/*.test.ts',
+        '<rootDir>/src/config/**/__tests__/**/*.test.ts',
       ],
       testPathIgnorePatterns: [
         '/node_modules/',
@@ -58,6 +59,7 @@ module.exports = {
         '<rootDir>/src/app/**/__tests__/**/*.test.tsx',
         '<rootDir>/src/hooks/**/__tests__/**/*.test.ts',
         '<rootDir>/src/components/**/__tests__/**/*.test.tsx',
+        '<rootDir>/src/contexts/**/__tests__/**/*.test.tsx',
       ],
       testPathIgnorePatterns: [
         '/node_modules/',

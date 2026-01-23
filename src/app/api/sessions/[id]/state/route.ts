@@ -34,6 +34,13 @@ export async function GET(
       );
     }
 
+    // Get the section to retrieve the joinCode
+    let joinCode: string | undefined;
+    if (storage.sections && session.sectionId) {
+      const section = await storage.sections.getSection(session.sectionId, session.namespaceId);
+      joinCode = section?.joinCode;
+    }
+
     // Get students from session (convert Map to array)
     const formattedStudents = Array.from(session.students.values()).map(student => ({
       id: student.id,
@@ -64,6 +71,7 @@ export async function GET(
       sectionName: session.sectionName,
       featuredStudentId: session.featuredStudentId,
       featuredCode: session.featuredCode,
+      joinCode,
     };
 
     return NextResponse.json({

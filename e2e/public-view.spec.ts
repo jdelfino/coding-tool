@@ -15,7 +15,8 @@ import {
   loginAsStudent,
   generateTestNamespaceId,
   createTestNamespace,
-  cleanupNamespace
+  cleanupNamespace,
+  navigateToDashboard
 } from './fixtures/auth-helpers';
 
 // Skip E2E tests if Supabase is not configured
@@ -37,43 +38,60 @@ describeE2E('Public View Feature', () => {
       await loginAsInstructor(instructorPage, `instructor-${namespaceId}`, namespaceId);
       await instructorPage.goto('/instructor');
 
-      await expect(instructorPage.locator('h1:has-text("Instructor Dashboard")')).toBeVisible({ timeout: 10000 });
+      // Wait for the instructor dashboard to load
+      await expect(instructorPage.locator('h2:has-text("Dashboard"), button:has-text("Create Your First Class")').first()).toBeVisible({ timeout: 10000 });
 
-      // Create class
+      // Create class from dashboard
       const createClassButton = instructorPage.locator('button:has-text("New Class"), button:has-text("Create Your First Class")').first();
       await createClassButton.click();
       await instructorPage.fill('input#class-name', 'Test Class');
       await instructorPage.click('button:has-text("Create Class")');
-      await expect(instructorPage.locator('h3:has-text("Test Class")')).toBeVisible({ timeout: 5000 });
 
-      // Click on class
-      await instructorPage.locator('button:has-text("Test Class")').first().click();
-      await expect(instructorPage.locator('h2:has-text("Test Class")')).toBeVisible({ timeout: 5000 });
+      // Wait for class to appear in dashboard table
+      await expect(instructorPage.locator('td:has-text("Test Class"), div:has-text("Test Class")').first()).toBeVisible({ timeout: 5000 });
 
-      // Create section
-      const createSectionButton = instructorPage.locator('button:has-text("New Section"), button:has-text("Create Section")').first();
+      // Click "Edit" link to go to class details page
+      await instructorPage.locator('a:has-text("Edit")').first().click();
+      await expect(instructorPage.locator('h1:has-text("Test Class")')).toBeVisible({ timeout: 5000 });
+
+      // Create section from class details page
+      const createSectionButton = instructorPage.locator('button:has-text("New Section"), button:has-text("Create First Section")').first();
       await createSectionButton.click();
-      await instructorPage.fill('input#section-name', 'Test Section');
-      await instructorPage.locator('button[type="submit"]:has-text("Create Section")').click();
-      await expect(instructorPage.locator('h3:has-text("Test Section")')).toBeVisible({ timeout: 5000 });
+      // Fill in section form (input has id="sectionName")
+      await expect(instructorPage.locator('input#sectionName').first()).toBeVisible({ timeout: 5000 });
+      await instructorPage.fill('input#sectionName', 'Test Section');
+      await instructorPage.locator('button[type="submit"]:has-text("Create"), button:has-text("Create Section")').first().click();
+      await expect(instructorPage.locator('text=Test Section').first()).toBeVisible({ timeout: 5000 });
 
-      // Get join code from section card
-      const sectionCard = instructorPage.locator('button:has-text("Test Section")').first();
-      const cardText = await sectionCard.textContent() || '';
-      // Match XXX-XXX (new format), XXX-XXX-XXX (old), or XXXXXX
-      const joinCodeMatch = cardText.match(/[A-Z0-9]{3}-[A-Z0-9]{3}(?:-[A-Z0-9]{3})?|[A-Z0-9]{6}/);
-      if (!joinCodeMatch) {
-        throw new Error(`Could not find join code: "${cardText}"`);
+      // Navigate back to dashboard
+      await navigateToDashboard(instructorPage);
+      await expect(instructorPage.locator('h2:has-text("Dashboard")')).toBeVisible({ timeout: 5000 });
+      await expect(instructorPage.locator('text=Test Section')).toBeVisible({ timeout: 5000 });
+
+      // Get join code from dashboard table using data-testid
+      const joinCodeElement = instructorPage.locator('[data-testid="join-code"]').first();
+      await expect(joinCodeElement).toBeVisible({ timeout: 5000 });
+      const joinCode = await joinCodeElement.textContent();
+      if (!joinCode) {
+        throw new Error('Could not find join code on dashboard page');
       }
-      const joinCode = joinCodeMatch[0];
       console.log('Section join code:', joinCode);
 
-      // Click on section
-      await instructorPage.locator('button:has-text("Test Section")').first().click();
+      // Click "Start Session" to open the modal
+      await instructorPage.locator('button:has-text("Start Session")').first().click();
+      await expect(instructorPage.locator('h2:has-text("Start Session")')).toBeVisible({ timeout: 5000 });
 
-      // Create session
-      const newSessionButton = instructorPage.locator('button:has-text("New Session"), button:has-text("Create First Session")').first();
-      await newSessionButton.click();
+      // Click "Create blank session" option to enable the Start Session button
+      await instructorPage.locator('button:has-text("Create blank session")').click();
+
+      // Wait for Start Session button to be enabled, then click it
+      await expect(instructorPage.locator('button:has-text("Start Session"):not([disabled])').last()).toBeEnabled({ timeout: 5000 });
+      await instructorPage.locator('button:has-text("Start Session"):not([disabled])').last().click();
+
+      // Wait for navigation to session page
+      await expect(instructorPage).toHaveURL(/\/instructor\/session\//, { timeout: 10000 });
+
+      // Verify session view loaded (check for h2 heading "Active Session")
       await expect(instructorPage.locator('h2:has-text("Active Session")')).toBeVisible({ timeout: 10000 });
 
       // Capture console logs from instructor page
@@ -106,11 +124,10 @@ describeE2E('Public View Feature', () => {
 
       console.log('Public view opened, shows no submission');
 
-      // Instructor clicks "Student Code" tab to wait for students
-      await instructorPage.locator('button:has-text("Student Code")').click();
+      // Verify student list panel is visible (always visible in new layout, no tabs)
       await expect(instructorPage.locator('h3:has-text("Connected Students")')).toBeVisible({ timeout: 5000 });
 
-      console.log('Instructor viewing Student Code tab, waiting for students...');
+      console.log('Instructor viewing student list, waiting for students...');
 
       // ===== STUDENT JOINS AND WRITES CODE =====
       await loginAsStudent(page, `student-${namespaceId}`, namespaceId);

@@ -20,6 +20,24 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     'session.viewOwn',
     'session.delete',
 
+    // Class permissions
+    'class.read',
+    'class.create',
+    'class.update',
+    'class.delete',
+
+    // Section permissions
+    'section.read',
+    'section.create',
+    'section.update',
+    'section.delete',
+
+    // Problem permissions
+    'problem.read',
+    'problem.create',
+    'problem.update',
+    'problem.delete',
+
     // User management permissions
     'user.manage',
     'user.create',
@@ -50,6 +68,24 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     'session.viewOwn',
     'session.delete',
 
+    // Class permissions
+    'class.read',
+    'class.create',
+    'class.update',
+    'class.delete',
+
+    // Section permissions
+    'section.read',
+    'section.create',
+    'section.update',
+    'section.delete',
+
+    // Problem permissions
+    'problem.read',
+    'problem.create',
+    'problem.update',
+    'problem.delete',
+
     // User management permissions
     'user.manage',
     'user.create',
@@ -71,6 +107,24 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     'session.viewOwn',
     'session.delete',
 
+    // Class permissions
+    'class.read',
+    'class.create',
+    'class.update',
+    'class.delete',
+
+    // Section permissions
+    'section.read',
+    'section.create',
+    'section.update',
+    'section.delete',
+
+    // Problem permissions
+    'problem.read',
+    'problem.create',
+    'problem.update',
+    'problem.delete',
+
     // User management permissions
     'user.manage',
     'user.create',
@@ -87,6 +141,13 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     // Session permissions (limited)
     'session.join',
     'session.viewOwn',
+
+    // Class/section permissions (read only - see sections they're enrolled in)
+    'class.read',
+    'section.read',
+
+    // Problem permissions (read only - see problems assigned to them)
+    'problem.read',
 
     // Data access permissions (own data only)
     'data.viewOwn',
@@ -117,6 +178,21 @@ export const PERMISSION_DESCRIPTIONS: Record<Permission, string> = {
   'session.viewAll': 'View all coding sessions (including other instructors)',
   'session.viewOwn': 'View own coding sessions',
   'session.delete': 'Delete coding sessions',
+
+  'class.read': 'View classes',
+  'class.create': 'Create new classes',
+  'class.update': 'Update class settings',
+  'class.delete': 'Delete classes',
+
+  'section.read': 'View sections',
+  'section.create': 'Create new sections',
+  'section.update': 'Update section settings',
+  'section.delete': 'Delete sections',
+
+  'problem.read': 'View problems',
+  'problem.create': 'Create new problems',
+  'problem.update': 'Update problems',
+  'problem.delete': 'Delete problems',
 
   'user.manage': 'Manage user accounts',
   'user.create': 'Create new user accounts',

@@ -4,6 +4,7 @@ import { createStorage } from '@/server/persistence';
 import * as SessionService from '@/server/services/session-service';
 import { getExecutorService } from '@/server/code-execution';
 import { rateLimit } from '@/server/rate-limit';
+import { hasRolePermission } from '@/server/auth/permissions';
 
 /**
  * GET /api/sessions
@@ -36,7 +37,7 @@ export async function GET(request: NextRequest) {
 
     let userSessions;
 
-    if (user.role === 'instructor' || user.role === 'namespace-admin' || user.role === 'system-admin') {
+    if (hasRolePermission(user.role, 'session.create')) {
       const queryOptions: Record<string, unknown> = {
         instructorId: user.id,
         namespaceId,
@@ -110,7 +111,7 @@ export async function POST(request: NextRequest) {
     const namespaceId = getNamespaceContext(request, user);
 
     // Only instructors can create sessions
-    if (user.role !== 'instructor' && user.role !== 'namespace-admin' && user.role !== 'system-admin') {
+    if (!hasRolePermission(user.role, 'session.create')) {
       return NextResponse.json(
         { error: 'Forbidden: Only instructors can create sessions' },
         { status: 403 }

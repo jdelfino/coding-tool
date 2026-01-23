@@ -23,6 +23,21 @@ export type Permission =
   | 'session.viewAll'
   | 'session.viewOwn'
   | 'session.delete'
+  // Class permissions
+  | 'class.read'
+  | 'class.create'
+  | 'class.update'
+  | 'class.delete'
+  // Section permissions
+  | 'section.read'
+  | 'section.create'
+  | 'section.update'
+  | 'section.delete'
+  // Problem permissions
+  | 'problem.read'
+  | 'problem.create'
+  | 'problem.update'
+  | 'problem.delete'
   // User management permissions
   | 'user.manage'
   | 'user.create'

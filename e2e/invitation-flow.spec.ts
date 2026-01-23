@@ -228,9 +228,14 @@ describeE2E('Invitation Flows', () => {
       const resendButton = invitationRow.locator('button:has-text("Resend")');
       await resendButton.click();
 
-      // Wait for the button text to change to "Sending..." then back to "Resend"
-      // This indicates the API call has completed
-      await expect(resendButton).toHaveText('Resend', { timeout: 10000 });
+      // Wait for the button to show "Sending..." (confirms click was registered)
+      await expect(invitationRow.locator('button:has-text("Sending")')).toBeVisible({ timeout: 2000 });
+      console.log('Resend button clicked, showing Sending...');
+
+      // Wait for the API to complete - button returns to "Resend"
+      // Use a fresh locator since the DOM may have changed after fetchInvitations
+      await expect(page.locator(`tr:has-text("${inviteeEmail}")`).first().locator('button:has-text("Resend")')).toBeVisible({ timeout: 15000 });
+      console.log('Resend API completed, button shows Resend again');
 
       // Wait for second email to arrive - poll until we have 2 emails total
       console.log('Waiting for resent email...');

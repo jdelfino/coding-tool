@@ -72,6 +72,17 @@ describe('GET /api/sessions/[id]/state', () => {
     featuredCode: 'print("Featured")',
   };
 
+  const mockSection = {
+    id: 'section-1',
+    name: 'Test Section',
+    classId: 'class-1',
+    namespaceId: 'default',
+    joinCode: 'ABC123',
+    instructorIds: ['user-1'],
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+
   let mockStorage: any;
 
   beforeEach(() => {
@@ -80,6 +91,9 @@ describe('GET /api/sessions/[id]/state', () => {
     mockStorage = {
       sessions: {
         getSession: jest.fn().mockResolvedValue(mockSession),
+      },
+      sections: {
+        getSection: jest.fn().mockResolvedValue(mockSection),
       },
     };
 
@@ -106,6 +120,34 @@ describe('GET /api/sessions/[id]/state', () => {
       studentId: 'student-1',
       code: 'print("Featured")',
     });
+  });
+
+  it('includes joinCode from section in session response', async () => {
+    mockGetAuthenticatedUserWithToken.mockResolvedValue({ user: mockUser, accessToken: 'test-token' });
+
+    const request = new NextRequest('http://localhost:3000/api/sessions/session-1/state');
+    const params = Promise.resolve({ id: 'session-1' });
+
+    const response = await GET(request, { params });
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.session.joinCode).toBe('ABC123');
+    expect(mockStorage.sections.getSection).toHaveBeenCalledWith('section-1', 'default');
+  });
+
+  it('handles missing section gracefully', async () => {
+    mockGetAuthenticatedUserWithToken.mockResolvedValue({ user: mockUser, accessToken: 'test-token' });
+    mockStorage.sections.getSection.mockResolvedValue(null);
+
+    const request = new NextRequest('http://localhost:3000/api/sessions/session-1/state');
+    const params = Promise.resolve({ id: 'session-1' });
+
+    const response = await GET(request, { params });
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.session.joinCode).toBeUndefined();
   });
 
   it('returns 401 when not authenticated', async () => {
