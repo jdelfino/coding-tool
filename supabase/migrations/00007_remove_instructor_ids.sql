@@ -8,6 +8,7 @@
 -- 1. Migrate existing instructor_ids entries to section_memberships
 -- 2. Update is_section_instructor() RLS function to only check memberships
 -- 3. Drop the instructor_ids column
+-- 4. Fix RLS SELECT policy for section_memberships
 
 -- ============================================================================
 -- STEP 1: Migrate instructor_ids to section_memberships
@@ -50,3 +51,22 @@ COMMENT ON FUNCTION is_section_instructor IS 'Returns true if authenticated user
 -- ============================================================================
 
 ALTER TABLE sections DROP COLUMN instructor_ids;
+
+-- ============================================================================
+-- STEP 4: Fix SELECT policy for section_memberships
+-- ============================================================================
+-- The SELECT policy needs to allow users to see their own memberships.
+-- This fixes a circular dependency when inserting a new membership and trying
+-- to return it (user needs to see the row they just inserted).
+
+DROP POLICY IF EXISTS "memberships_select" ON section_memberships;
+
+CREATE POLICY "memberships_select" ON section_memberships
+  FOR SELECT USING (
+    is_system_admin()
+    OR user_id = auth.uid()
+    OR is_section_member(section_id)
+    OR is_section_instructor(section_id)
+  );
+
+COMMENT ON POLICY "memberships_select" ON section_memberships IS 'Users can see their own memberships, plus memberships of sections they belong to';

@@ -50,8 +50,8 @@ describeE2E('Public View Feature', () => {
       // Wait for class to appear in dashboard table
       await expect(instructorPage.locator('td:has-text("Test Class"), div:has-text("Test Class")').first()).toBeVisible({ timeout: 5000 });
 
-      // Click "Edit" link to go to class details page
-      await instructorPage.locator('a:has-text("Edit")').first().click();
+      // Click the class name link to go to class details page where we can create sections
+      await instructorPage.locator('a:has-text("Test Class")').first().click();
       await expect(instructorPage.locator('h1:has-text("Test Class")')).toBeVisible({ timeout: 5000 });
 
       // Create section from class details page
