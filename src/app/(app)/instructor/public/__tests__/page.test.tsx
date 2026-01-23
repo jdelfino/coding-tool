@@ -160,6 +160,40 @@ describe('PublicInstructorView', () => {
     });
   });
 
+  test('renders problem description with markdown support', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        sessionId: 'test-session-id',
+        joinCode: 'ABC-123',
+        problem: {
+          title: 'Test Problem',
+          description: '## Markdown Header\n\nThis has **bold** text.',
+        },
+        featuredStudentId: null,
+        featuredCode: null,
+        hasFeaturedSubmission: false,
+      }),
+    });
+
+    const PublicInstructorView = require('../page').default;
+    render(<PublicInstructorView />);
+
+    // Wait for content to load
+    await waitFor(() => {
+      expect(mockFetch).toHaveBeenCalled();
+    });
+
+    // Verify markdown is rendered (h2 for ## header, strong for **bold**)
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { level: 2, name: 'Markdown Header' })).toBeInTheDocument();
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('bold')).toBeInTheDocument();
+    });
+  });
+
   test('passes debugger prop to CodeEditor when featured submission exists', async () => {
     lastCodeEditorProps = null;
 
@@ -256,7 +290,7 @@ describe('PublicInstructorView', () => {
     expect(mockChannel).toHaveBeenCalledWith('session:test-session-id');
   });
 
-  test('updates state when broadcast message is received', async () => {
+  test('updates state when featured_student_changed broadcast message is received', async () => {
     // Track the broadcast callback
     let broadcastCallback: ((payload: any) => void) | null = null;
 
@@ -318,6 +352,80 @@ describe('PublicInstructorView', () => {
     // Verify state was updated from broadcast (not from re-fetch)
     await waitFor(() => {
       expect(screen.getByTestId('code-content')).toHaveTextContent('print("Updated code")');
+    });
+
+    // Should NOT have re-fetched - broadcast updates state directly
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+  });
+
+  test('updates problem state when problem_updated broadcast message is received', async () => {
+    // Track the broadcast callbacks
+    let problemUpdatedCallback: ((payload: any) => void) | null = null;
+
+    // Create a chainable mock for .on()
+    const createChainableMock = () => {
+      const mock: any = {
+        on: jest.fn((type, options, callback) => {
+          if (type === 'broadcast' && options?.event === 'problem_updated') {
+            problemUpdatedCallback = callback;
+          }
+          return mock;
+        }),
+        subscribe: jest.fn((callback) => {
+          callback('SUBSCRIBED');
+        }),
+      };
+      return mock;
+    };
+
+    mockChannel.mockImplementation(createChainableMock);
+
+    // First fetch returns initial state with a problem
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        sessionId: 'test-session-id',
+        joinCode: 'ABC-123',
+        problem: {
+          title: 'Original Problem',
+          description: 'Original description',
+        },
+        featuredStudentId: null,
+        featuredCode: null,
+        hasFeaturedSubmission: false,
+      }),
+    });
+
+    const PublicInstructorView = require('../page').default;
+    render(<PublicInstructorView />);
+
+    // Wait for loading to complete and content to render
+    await waitFor(() => {
+      expect(screen.getByText('Original description')).toBeInTheDocument();
+    });
+
+    // Verify initial fetch happened
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+
+    // Simulate problem_updated broadcast message
+    await act(async () => {
+      if (problemUpdatedCallback) {
+        problemUpdatedCallback({
+          payload: {
+            sessionId: 'test-session-id',
+            problem: {
+              title: 'Updated Problem',
+              description: 'Updated description from broadcast',
+            },
+            timestamp: Date.now(),
+          },
+        });
+      }
+    });
+
+    // Verify state was updated from broadcast (not from re-fetch)
+    await waitFor(() => {
+      expect(screen.getByText('Updated description from broadcast')).toBeInTheDocument();
     });
 
     // Should NOT have re-fetched - broadcast updates state directly

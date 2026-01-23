@@ -7,6 +7,7 @@ import { Problem } from '@/server/types/problem';
 import CodeEditor from '@/app/(fullscreen)/student/components/CodeEditor';
 import { useApiDebugger } from '@/hooks/useApiDebugger';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
+import MarkdownContent from '@/components/MarkdownContent';
 
 interface PublicSessionState {
   sessionId: string;
@@ -70,6 +71,15 @@ function PublicViewContent() {
             featuredStudentId,
             featuredCode,
             hasFeaturedSubmission: !!featuredStudentId,
+          } : prev);
+        }
+      })
+      .on('broadcast', { event: 'problem_updated' }, (payload) => {
+        if (payload.payload) {
+          const { problem } = payload.payload;
+          setState(prev => prev ? {
+            ...prev,
+            problem,
           } : prev);
         }
       })
@@ -200,15 +210,7 @@ function PublicViewContent() {
         <div style={{ flex: 1, minWidth: 0 }}>
           <h2 style={{ marginTop: 0, marginBottom: '0.5rem', fontSize: '1.25rem' }}>Problem</h2>
           {problemText ? (
-            <pre style={{
-              whiteSpace: 'pre-wrap',
-              color: '#333',
-              fontFamily: 'inherit',
-              fontSize: '0.9rem',
-              margin: 0
-            }}>
-              {problemText}
-            </pre>
+            <MarkdownContent content={problemText} className="text-sm" />
           ) : (
             <p style={{ color: '#999', fontStyle: 'italic', margin: 0 }}>No problem set yet</p>
           )}

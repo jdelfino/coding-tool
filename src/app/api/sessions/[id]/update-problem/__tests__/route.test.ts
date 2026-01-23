@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { POST } from '../route';
+import { POST, broadcastProblemUpdated } from '../route';
 import { getAuthProvider } from '@/server/auth';
 import type { User } from '@/server/auth/types';
 
@@ -7,6 +7,21 @@ import type { User } from '@/server/auth/types';
 jest.mock('@/server/auth');
 jest.mock('@/server/persistence');
 jest.mock('@/server/services/session-service');
+
+// Mock Supabase client for broadcast functionality
+const mockSend = jest.fn().mockResolvedValue({});
+const mockSubscribe = jest.fn();
+const mockRemoveChannel = jest.fn();
+
+jest.mock('@supabase/supabase-js', () => ({
+  createClient: jest.fn(() => ({
+    channel: jest.fn(() => ({
+      subscribe: mockSubscribe,
+      send: mockSend,
+    })),
+    removeChannel: mockRemoveChannel,
+  })),
+}));
 
 import { createStorage } from '@/server/persistence';
 import * as SessionService from '@/server/services/session-service';
@@ -47,6 +62,10 @@ describe('POST /api/sessions/[sessionId]/update-problem', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+
+    // Set required env vars for broadcast
+    process.env.NEXT_PUBLIC_SUPABASE_URL = 'http://localhost:54321';
+    process.env.SUPABASE_SECRET_KEY = 'test-secret-key';
 
     mockAuthProvider = {
       getSessionFromRequest: jest.fn(),
@@ -279,5 +298,82 @@ describe('POST /api/sessions/[sessionId]/update-problem', () => {
     });
 
     expect(response.status).toBe(200);
+  });
+});
+
+describe('broadcastProblemUpdated', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    process.env.NEXT_PUBLIC_SUPABASE_URL = 'http://localhost:54321';
+    process.env.SUPABASE_SECRET_KEY = 'test-secret-key';
+  });
+
+  it('throws error when NEXT_PUBLIC_SUPABASE_URL is missing', () => {
+    delete process.env.NEXT_PUBLIC_SUPABASE_URL;
+
+    expect(() => broadcastProblemUpdated('session-1', {
+      id: 'prob-1',
+      namespaceId: 'default',
+      title: 'Test',
+      description: 'Test',
+      starterCode: '',
+      testCases: [],
+      authorId: 'user-1',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    })).toThrow('NEXT_PUBLIC_SUPABASE_URL is required for broadcast');
+  });
+
+  it('throws error when SUPABASE_SECRET_KEY is missing', () => {
+    delete process.env.SUPABASE_SECRET_KEY;
+
+    expect(() => broadcastProblemUpdated('session-1', {
+      id: 'prob-1',
+      namespaceId: 'default',
+      title: 'Test',
+      description: 'Test',
+      starterCode: '',
+      testCases: [],
+      authorId: 'user-1',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    })).toThrow('SUPABASE_SECRET_KEY is required for broadcast');
+  });
+
+  it('broadcasts problem update on subscribe', async () => {
+    // Set up mock to call callback with SUBSCRIBED
+    mockSubscribe.mockImplementation((callback) => {
+      callback('SUBSCRIBED');
+    });
+
+    const problem = {
+      id: 'prob-1',
+      namespaceId: 'default',
+      title: 'Test Problem',
+      description: 'Test description',
+      starterCode: 'print("test")',
+      testCases: [],
+      authorId: 'user-1',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    const executionSettings = { stdin: 'test input' };
+
+    broadcastProblemUpdated('session-1', problem, executionSettings);
+
+    // Wait for async subscribe callback
+    await new Promise(resolve => setTimeout(resolve, 10));
+
+    expect(mockSend).toHaveBeenCalledWith({
+      type: 'broadcast',
+      event: 'problem_updated',
+      payload: expect.objectContaining({
+        sessionId: 'session-1',
+        problem,
+        executionSettings,
+        timestamp: expect.any(Number),
+      }),
+    });
   });
 });
