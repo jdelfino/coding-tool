@@ -85,10 +85,10 @@ describe('StudentList', () => {
       expect(screen.getByText(/No code yet/)).toBeInTheDocument();
     });
 
-    it('should call onSelectStudent when View Code button is clicked', () => {
+    it('should call onSelectStudent when View button is clicked', () => {
       render(<StudentList {...defaultProps} students={students} />);
 
-      const viewButtons = screen.getAllByRole('button', { name: /View Code/i });
+      const viewButtons = screen.getAllByRole('button', { name: /^View$/i });
       fireEvent.click(viewButtons[0]);
 
       expect(mockOnSelectStudent).toHaveBeenCalledWith('student-1');
@@ -100,7 +100,7 @@ describe('StudentList', () => {
       { id: 'student-1', name: 'Alice', hasCode: true },
     ];
 
-    it('should show View History button when onViewHistory is provided', () => {
+    it('should show History button when onViewHistory is provided', () => {
       render(
         <StudentList
           {...defaultProps}
@@ -109,14 +109,14 @@ describe('StudentList', () => {
         />
       );
 
-      const historyButton = screen.getByRole('button', { name: /View History/i });
+      const historyButton = screen.getByRole('button', { name: /^History$/i });
       expect(historyButton).toBeInTheDocument();
 
       fireEvent.click(historyButton);
       expect(mockOnViewHistory).toHaveBeenCalledWith('student-1', 'Alice');
     });
 
-    it('should show Show on Public View button when onShowOnPublicView is provided', () => {
+    it('should show Feature button when onShowOnPublicView is provided', () => {
       render(
         <StudentList
           {...defaultProps}
@@ -125,18 +125,18 @@ describe('StudentList', () => {
         />
       );
 
-      const publicViewButton = screen.getByRole('button', { name: /Show on Public View/i });
-      expect(publicViewButton).toBeInTheDocument();
+      const featureButton = screen.getByRole('button', { name: /^Feature$/i });
+      expect(featureButton).toBeInTheDocument();
 
-      fireEvent.click(publicViewButton);
+      fireEvent.click(featureButton);
       expect(mockOnShowOnPublicView).toHaveBeenCalledWith('student-1');
     });
 
     it('should not show optional buttons when handlers are not provided', () => {
       render(<StudentList {...defaultProps} students={students} />);
 
-      expect(screen.queryByRole('button', { name: /View History/i })).not.toBeInTheDocument();
-      expect(screen.queryByRole('button', { name: /Show on Public View/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /^History$/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /^Feature$/i })).not.toBeInTheDocument();
     });
   });
 });

@@ -73,8 +73,8 @@ describe('SessionStudentPane', () => {
     it('displays code editor when student is selected', async () => {
       render(<SessionStudentPane {...defaultProps} />);
 
-      // Click "View Code" button for Alice
-      const viewCodeButtons = screen.getAllByRole('button', { name: /view code/i });
+      // Click "View" button for Alice
+      const viewCodeButtons = screen.getAllByRole('button', { name: /^view$/i });
       fireEvent.click(viewCodeButtons[0]);
 
       // Wait for code editor to appear
@@ -90,7 +90,7 @@ describe('SessionStudentPane', () => {
       render(<SessionStudentPane {...defaultProps} />);
 
       // Select Alice
-      const viewCodeButtons = screen.getAllByRole('button', { name: /view code/i });
+      const viewCodeButtons = screen.getAllByRole('button', { name: /^view$/i });
       fireEvent.click(viewCodeButtons[0]);
 
       // Check Alice's code is shown
@@ -103,7 +103,7 @@ describe('SessionStudentPane', () => {
       render(<SessionStudentPane {...defaultProps} />);
 
       // Select Alice
-      const viewCodeButtons = screen.getAllByRole('button', { name: /view code/i });
+      const viewCodeButtons = screen.getAllByRole('button', { name: /^view$/i });
       fireEvent.click(viewCodeButtons[0]);
 
       await waitFor(() => {
@@ -120,7 +120,7 @@ describe('SessionStudentPane', () => {
         />
       );
 
-      const viewCodeButtons = screen.getAllByRole('button', { name: /view code/i });
+      const viewCodeButtons = screen.getAllByRole('button', { name: /^view$/i });
       fireEvent.click(viewCodeButtons[0]);
 
       expect(mockOnSelectStudent).toHaveBeenCalledWith('student-1');
@@ -130,7 +130,7 @@ describe('SessionStudentPane', () => {
       render(<SessionStudentPane {...defaultProps} />);
 
       // Select Alice first
-      const viewCodeButtons = screen.getAllByRole('button', { name: /view code/i });
+      const viewCodeButtons = screen.getAllByRole('button', { name: /^view$/i });
       fireEvent.click(viewCodeButtons[0]);
 
       await waitFor(() => {
@@ -152,7 +152,7 @@ describe('SessionStudentPane', () => {
     it('renders the code editor in read-only mode', async () => {
       render(<SessionStudentPane {...defaultProps} />);
 
-      const viewCodeButtons = screen.getAllByRole('button', { name: /view code/i });
+      const viewCodeButtons = screen.getAllByRole('button', { name: /^view$/i });
       fireEvent.click(viewCodeButtons[0]);
 
       await waitFor(() => {
@@ -172,7 +172,7 @@ describe('SessionStudentPane', () => {
         />
       );
 
-      expect(screen.getAllByRole('button', { name: /show on public view/i })).toHaveLength(3);
+      expect(screen.getAllByRole('button', { name: /^feature$/i })).toHaveLength(3);
     });
 
     it('calls onShowOnPublicView with correct student ID', () => {
@@ -184,7 +184,7 @@ describe('SessionStudentPane', () => {
         />
       );
 
-      const buttons = screen.getAllByRole('button', { name: /show on public view/i });
+      const buttons = screen.getAllByRole('button', { name: /^feature$/i });
       fireEvent.click(buttons[1]); // Click for Bob (second student)
 
       expect(mockShowOnPublicView).toHaveBeenCalledWith('student-2');
@@ -199,7 +199,7 @@ describe('SessionStudentPane', () => {
         />
       );
 
-      expect(screen.getAllByRole('button', { name: /view history/i })).toHaveLength(3);
+      expect(screen.getAllByRole('button', { name: /^history$/i })).toHaveLength(3);
     });
 
     it('calls onViewHistory with correct student ID and name', () => {
@@ -211,7 +211,7 @@ describe('SessionStudentPane', () => {
         />
       );
 
-      const buttons = screen.getAllByRole('button', { name: /view history/i });
+      const buttons = screen.getAllByRole('button', { name: /^history$/i });
       fireEvent.click(buttons[2]); // Click for Carol
 
       expect(mockViewHistory).toHaveBeenCalledWith('student-3', 'Carol');
@@ -223,7 +223,7 @@ describe('SessionStudentPane', () => {
       const { rerender } = render(<SessionStudentPane {...defaultProps} />);
 
       // Select Alice
-      const viewCodeButtons = screen.getAllByRole('button', { name: /view code/i });
+      const viewCodeButtons = screen.getAllByRole('button', { name: /^view$/i });
       fireEvent.click(viewCodeButtons[0]);
 
       await waitFor(() => {

@@ -52,24 +52,25 @@ export default function StudentList({ students, onSelectStudent, onShowOnPublicV
           {students.map((student) => (
             <div
               key={student.id}
-              className={`p-3 border border-gray-200 rounded flex justify-between items-center ${
+              className={`p-3 border border-gray-200 rounded flex flex-col gap-2 ${
                 student.hasCode ? 'bg-blue-50' : 'bg-white'
               }`}
             >
-              <div className="flex items-center gap-3">
-                <span className="font-semibold text-gray-900">{student.name}</span>
-                <Badge variant={student.hasCode ? 'success' : 'default'}>
+              <div className="flex items-center gap-3 min-w-0">
+                <span className="font-semibold text-gray-900 truncate">{student.name}</span>
+                <Badge variant={student.hasCode ? 'success' : 'default'} className="shrink-0">
                   {student.hasCode ? 'Has code' : 'No code yet'}
                 </Badge>
               </div>
-              <div className="flex gap-2">
+              <div className="flex gap-2 flex-wrap">
                 <Button
                   variant="primary"
                   size="sm"
                   onClick={() => onSelectStudent(student.id)}
+                  title="View student's code"
                   className="from-blue-600 to-blue-600 hover:from-blue-700 hover:to-blue-700"
                 >
-                  View Code
+                  View
                 </Button>
                 {onViewHistory && (
                   <Button
@@ -79,7 +80,7 @@ export default function StudentList({ students, onSelectStudent, onShowOnPublicV
                     title="View code revision history"
                     className="from-purple-600 to-purple-600 hover:from-purple-700 hover:to-purple-700"
                   >
-                    View History
+                    History
                   </Button>
                 )}
                 {onShowOnPublicView && (
@@ -90,7 +91,7 @@ export default function StudentList({ students, onSelectStudent, onShowOnPublicV
                     title="Display this submission on the public view"
                     className="from-emerald-500 to-emerald-500 hover:from-emerald-600 hover:to-emerald-600"
                   >
-                    Show on Public View
+                    Feature
                   </Button>
                 )}
               </div>
