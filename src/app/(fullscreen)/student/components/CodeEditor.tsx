@@ -4,6 +4,7 @@ import Editor from '@monaco-editor/react';
 import React, { useEffect, useRef, useState } from 'react';
 import ExecutionSettingsComponent from './ExecutionSettings';
 import { DebuggerSidebar } from './DebuggerSidebar';
+import MarkdownContent from '@/components/MarkdownContent';
 import type { ExecutionSettings } from '@/server/types/problem';
 import { useResponsiveLayout, useSidebarSection, useMobileViewport } from '@/hooks/useResponsiveLayout';
 import type { Problem } from '@/server/types/problem';
@@ -573,9 +574,7 @@ export default function CodeEditor({
               <h2 className="text-xl font-bold mb-4 text-gray-100">{problem.title}</h2>
               {problem.description && (
                 <div className="prose prose-invert prose-sm max-w-none">
-                  <pre className="whitespace-pre-wrap text-gray-300 text-sm font-sans">
-                    {problem.description}
-                  </pre>
+                  <MarkdownContent content={problem.description} className="text-gray-300" />
                 </div>
               )}
               {problem.starterCode && onLoadStarterCode && !editableProblem && (
@@ -788,9 +787,7 @@ export default function CodeEditor({
                       <h2 className="text-xl font-bold mb-4">{problem.title}</h2>
                       {problem.description && (
                         <div className="prose prose-invert prose-sm max-w-none">
-                          <pre className="whitespace-pre-wrap text-gray-300 text-sm font-sans">
-                            {problem.description}
-                          </pre>
+                          <MarkdownContent content={problem.description} className="text-gray-300" />
                         </div>
                       )}
                       {problem.starterCode && onLoadStarterCode && !editableProblem && (

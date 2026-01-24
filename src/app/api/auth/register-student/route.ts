@@ -5,13 +5,14 @@
  * 1. Student gets join code from instructor
  * 2. GET /api/auth/register-student?code=X validates code and returns section info
  * 3. Student fills out registration form
- * 4. POST /api/auth/register-student creates account and enrolls in section
+ * 4. POST /api/auth/register-student creates account, enrolls in section, and auto-logs in
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { createServerClient, type CookieOptions } from '@supabase/ssr';
+import { cookies } from 'next/headers';
 import {
   getStudentRegistrationService,
-  StudentRegistrationError,
 } from '@/server/invitations';
 import { getSupabaseClient } from '@/server/supabase/client';
 import { rateLimit } from '@/server/rate-limit';
@@ -140,7 +141,7 @@ export async function GET(request: NextRequest) {
       instructors,
       capacityAvailable,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[API] Register student GET error:', error);
     return NextResponse.json(
       { error: 'Failed to validate join code' },
@@ -153,6 +154,7 @@ export async function GET(request: NextRequest) {
  * POST /api/auth/register-student
  *
  * Creates a new student account and enrolls in the section.
+ * After successful registration, automatically logs in the user.
  *
  * Request body:
  * - code: Section join code (required)
@@ -161,7 +163,7 @@ export async function GET(request: NextRequest) {
  * - displayName: Optional display name
  *
  * Response:
- * - 201: { user, section }
+ * - 201: { user, section, autoLoginFailed? }
  * - 400: Validation error (missing fields, invalid code, capacity, etc.)
  */
 export async function POST(request: NextRequest) {
@@ -225,6 +227,53 @@ export async function POST(request: NextRequest) {
       displayName?.trim()
     );
 
+    // Auto-login: Sign in the newly created user to establish a session
+    // This provides a seamless UX - students are immediately authenticated after registration
+    const cookieStore = await cookies();
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
+      {
+        cookies: {
+          get(name: string) {
+            return cookieStore.get(name)?.value;
+          },
+          set(name: string, value: string, options: CookieOptions) {
+            cookieStore.set(name, value, options);
+          },
+          remove(name: string, options: CookieOptions) {
+            cookieStore.set(name, '', options);
+          },
+        },
+      }
+    );
+
+    // Sign in with the credentials used for registration
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: email.trim(),
+      password,
+    });
+
+    if (signInError) {
+      // Registration succeeded but auto-login failed
+      // Still return success, but indicate login is needed
+      console.warn('[API] Auto-login after registration failed:', signInError.message);
+      return NextResponse.json(
+        {
+          user: result.user,
+          section: {
+            id: result.section.id,
+            name: result.section.name,
+            semester: result.section.semester,
+          },
+          autoLoginFailed: true,
+        },
+        { status: 201 }
+      );
+    }
+
+    // Return success with user and section info
+    // The session cookie is automatically set by Supabase SSR
     return NextResponse.json(
       {
         user: result.user,
@@ -236,12 +285,13 @@ export async function POST(request: NextRequest) {
       },
       { status: 201 }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const err = error as Error & { name?: string; code?: string; message?: string };
     console.error('[API] Register student POST error:', error);
 
     // Handle StudentRegistrationError (check by name for mock compatibility)
-    if (error.name === 'StudentRegistrationError' && error.code) {
-      const statusCode = error.code === 'USER_CREATION_FAILED' ? 409 : 400;
+    if (err.name === 'StudentRegistrationError' && err.code) {
+      const statusCode = err.code === 'USER_CREATION_FAILED' ? 409 : 400;
 
       const errorMessages: Record<string, string> = {
         INVALID_CODE: 'Invalid join code',
@@ -256,15 +306,15 @@ export async function POST(request: NextRequest) {
 
       return NextResponse.json(
         {
-          error: errorMessages[error.code] || error.message,
-          code: error.code,
+          error: errorMessages[err.code] || err.message,
+          code: err.code,
         },
         { status: statusCode }
       );
     }
 
     // Handle duplicate email from Supabase
-    if (error.message?.includes('already') || error.message?.includes('duplicate')) {
+    if (err.message?.includes('already') || err.message?.includes('duplicate')) {
       return NextResponse.json(
         {
           error: 'An account with this email already exists',
@@ -275,10 +325,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Pass through password validation errors from Supabase (e.g., pwned password check)
-    if (error.message?.toLowerCase().includes('password')) {
+    if (err.message?.toLowerCase().includes('password')) {
       return NextResponse.json(
         {
-          error: error.message,
+          error: err.message,
           code: 'WEAK_PASSWORD',
         },
         { status: 400 }

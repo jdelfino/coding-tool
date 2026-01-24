@@ -4,13 +4,15 @@
 
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import SignInPage from '../page';
 import { useAuth } from '@/contexts/AuthContext';
 
 // Mock next/navigation
+const mockSearchParams = new URLSearchParams();
 jest.mock('next/navigation', () => ({
   useRouter: jest.fn(),
+  useSearchParams: jest.fn(() => mockSearchParams),
 }));
 
 // Mock AuthContext
@@ -24,9 +26,12 @@ describe('SignInPage', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    // Reset search params
+    mockSearchParams.delete('registered');
     (useRouter as jest.Mock).mockReturnValue({
       push: mockPush,
     });
+    (useSearchParams as jest.Mock).mockReturnValue(mockSearchParams);
     (useAuth as jest.Mock).mockReturnValue({
       signIn: mockSignIn,
       isAuthenticated: false,
@@ -366,6 +371,24 @@ describe('SignInPage', () => {
       await waitFor(() => {
         expect(screen.queryByRole('alert')).not.toBeInTheDocument();
       });
+    });
+  });
+
+  describe('Registration Success Message', () => {
+    it('shows success message when redirected from registration', () => {
+      // Set the registered query param
+      mockSearchParams.set('registered', 'true');
+      (useSearchParams as jest.Mock).mockReturnValue(mockSearchParams);
+
+      render(<SignInPage />);
+
+      expect(screen.getByText('Registration successful! Please sign in with your email and password.')).toBeInTheDocument();
+    });
+
+    it('does not show success message when registered param is not set', () => {
+      render(<SignInPage />);
+
+      expect(screen.queryByText(/Registration successful/i)).not.toBeInTheDocument();
     });
   });
 });

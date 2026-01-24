@@ -6,22 +6,51 @@
  * Includes MFA verification for system-admin users.
  */
 
-import React from 'react';
+import React, { Suspense } from 'react';
 import { useState, useCallback, useEffect, FormEvent } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { ErrorAlert } from '@/components/ErrorAlert';
 
+// Main page wrapper with Suspense for useSearchParams
 export default function SignInPage() {
+  return (
+    <Suspense fallback={<SignInPageLoading />}>
+      <SignInPageContent />
+    </Suspense>
+  );
+}
+
+// Loading fallback
+function SignInPageLoading() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto" />
+      </div>
+    </div>
+  );
+}
+
+function SignInPageContent() {
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [mfaCode, setMfaCode] = useState('');
   const [mfaSent, setMfaSent] = useState(false);
   const router = useRouter();
   const { signIn, isAuthenticated, mfaPending, pendingEmail, sendMfaCode, verifyMfaCode, cancelMfa } = useAuth();
+
+  // Show success message if redirected from registration
+  useEffect(() => {
+    if (searchParams.get('registered') === 'true') {
+      setSuccessMessage('Registration successful! Please sign in with your email and password.');
+    }
+  }, [searchParams]);
 
   // Auto-send OTP when mfaPending becomes true
   useEffect(() => {
@@ -226,6 +255,17 @@ export default function SignInPage() {
               />
             </div>
           </div>
+
+          {successMessage && (
+            <div className="rounded-lg bg-green-50 border border-green-200 p-4">
+              <div className="flex items-center">
+                <svg className="w-5 h-5 text-green-400 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+                <p className="text-sm font-medium text-green-800">{successMessage}</p>
+              </div>
+            </div>
+          )}
 
           {error && (
             <ErrorAlert
