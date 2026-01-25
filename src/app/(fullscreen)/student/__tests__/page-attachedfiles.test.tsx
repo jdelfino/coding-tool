@@ -9,14 +9,14 @@
  * - [] = explicitly cleared by student → show empty (no fallback)
  * - [...] = student has specific files → use those
  * 
- * These tests verify the WebSocket message handling and state management
- * logic that implements the fallback behavior.
+ * These tests verify the state management logic that implements the
+ * fallback behavior (triggered by broadcast events).
  */
 
 describe('Student Page - AttachedFiles State Management', () => {
   describe('SESSION_JOINED handler behavior', () => {
     it('should convert undefined studentAttachedFiles to null (internal state)', () => {
-      // Simulates the line: setAttachedFiles(lastMessage.payload.studentAttachedFiles !== undefined ? lastMessage.payload.studentAttachedFiles : null);
+      // Simulates state update when broadcast payload has studentAttachedFiles
       
       const studentAttachedFiles = undefined;
       const result = studentAttachedFiles !== undefined ? studentAttachedFiles : null;
@@ -25,7 +25,7 @@ describe('Student Page - AttachedFiles State Management', () => {
     });
 
     it('should preserve empty array when studentAttachedFiles is []', () => {
-      // Simulates the line: setAttachedFiles(lastMessage.payload.studentAttachedFiles !== undefined ? lastMessage.payload.studentAttachedFiles : null);
+      // Simulates state update when broadcast payload has studentAttachedFiles
       
       const studentAttachedFiles: any[] = [];
       const result = studentAttachedFiles !== undefined ? studentAttachedFiles : null;
@@ -35,7 +35,7 @@ describe('Student Page - AttachedFiles State Management', () => {
     });
 
     it('should preserve sessionAttachedFiles as undefined when not provided', () => {
-      // Simulates the line: setSessionAttachedFiles(lastMessage.payload.attachedFiles);
+      // Simulates state update when broadcast payload has attachedFiles
       
       const attachedFiles = undefined;
       const result = attachedFiles;

@@ -112,7 +112,7 @@ await sessionRepo.shutdown();
 
 ### Phase 3: Integration (COMPLETE)
 - API routes use Supabase repositories
-- Realtime handled via Supabase Realtime (useRealtime hook)
+- Realtime handled via Supabase Broadcast (useRealtimeSession hook)
 - Clean separation of persistence from business logic
 
 ### Phase 4: Remote Backend (FUTURE)

@@ -10,8 +10,7 @@ See [README.md](README.md) for full project description, tech stack, architectur
 
 ## Key Files for Navigation
 
-- `src/hooks/useRealtime.ts` - Supabase Realtime subscriptions
-- `src/hooks/useRealtimeSession.ts` - Session-specific realtime logic
+- `src/hooks/useRealtimeSession.ts` - Session-specific realtime logic with Broadcast subscriptions
 - `src/server/persistence/` - Supabase repositories (all data access)
 - `src/server/auth/rbac.ts` - Permission matrix and RBAC logic
 - `src/server/services/` - Business logic layer

@@ -1,9 +1,45 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
 import { getAuthenticatedUserWithToken } from '@/server/auth/api-auth';
 import { createStorage } from '@/server/persistence';
 import * as SessionService from '@/server/services/session-service';
 import { getExecutorService } from '@/server/code-execution';
 import { rateLimit } from '@/server/rate-limit';
+
+/**
+ * Send a broadcast message to notify clients when a session ends.
+ * Uses Broadcast instead of postgres_changes for reliability (recommended by Supabase).
+ * Exported for testing.
+ */
+export function broadcastSessionEnded(sessionId: string) {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = process.env.SUPABASE_SECRET_KEY;
+
+  if (!supabaseUrl) {
+    throw new Error('NEXT_PUBLIC_SUPABASE_URL is required for broadcast');
+  }
+  if (!supabaseKey) {
+    throw new Error('SUPABASE_SECRET_KEY is required for broadcast');
+  }
+
+  const supabase = createClient(supabaseUrl, supabaseKey);
+  const channel = supabase.channel(`session:${sessionId}`);
+
+  // Fire and forget - don't await to avoid blocking the response
+  channel.subscribe(async (status) => {
+    if (status === 'SUBSCRIBED') {
+      await channel.send({
+        type: 'broadcast',
+        event: 'session_ended',
+        payload: {
+          sessionId,
+          endedAt: new Date().toISOString(),
+        },
+      });
+      supabase.removeChannel(channel);
+    }
+  });
+}
 
 /**
  * DELETE /api/sessions/:id
@@ -46,6 +82,9 @@ export async function DELETE(
 
     // End the session via service
     await SessionService.endSession(storage, sessionId);
+
+    // Broadcast session ended event to all connected clients (more reliable than postgres_changes)
+    broadcastSessionEnded(sessionId);
 
     // Clean up backend resources (sandbox cleanup on Vercel, no-op locally)
     // Do this after endSession to avoid race conditions with in-flight executions

@@ -4,18 +4,8 @@
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { useRealtimeSession } from '../useRealtimeSession';
 
-// Mock useRealtime hook
-const mockUseRealtime: any = {
-  isConnected: true,
-  connectionStatus: 'connected' as const,
-  connectionError: null,
-  lastMessage: null,
-  onlineUsers: {},
-};
-
-jest.mock('../useRealtime', () => ({
-  useRealtime: jest.fn(() => mockUseRealtime),
-}));
+// Note: useRealtime hook has been removed. Connection status is now managed
+// directly by the broadcast channel in useRealtimeSession.
 
 // Mock Supabase client for broadcast functionality
 type BroadcastCallback = (payload: { event: string; payload: any }) => void;
@@ -60,15 +50,6 @@ describe('useRealtimeSession', () => {
     jest.clearAllMocks();
     // Don't use fake timers globally - only enable for tests that need them (debounce tests)
     // jest.useFakeTimers() interferes with async Promise resolution in waitFor()
-
-    // Reset mock useRealtime
-    Object.assign(mockUseRealtime, {
-      isConnected: true,
-      connectionStatus: 'connected' as const,
-      connectionError: null,
-      lastMessage: null,
-      onlineUsers: {},
-    });
 
     // Reset broadcast mocks
     mockBroadcastCallbacks.clear();
@@ -173,187 +154,6 @@ describe('useRealtimeSession', () => {
       });
 
       expect(mockFetch).toHaveBeenCalledTimes(1);
-    });
-  });
-
-  describe('Realtime message handling', () => {
-    beforeEach(async () => {
-      // Setup initial state
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          session: { id: 'session-1' },
-          students: [],
-          featuredStudent: {},
-        }),
-      });
-    });
-
-    it('should handle session_students INSERT messages', async () => {
-      const { result, rerender } = renderHook(() =>
-        useRealtimeSession({
-          sessionId: 'session-1',
-        })
-      );
-
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false);
-      });
-
-      // Simulate Realtime message and rerender to trigger effect
-      mockUseRealtime.lastMessage = {
-        type: 'INSERT' as const,
-        table: 'session_students',
-        payload: {
-          user_id: 'student-1',
-          name: 'Alice',
-          code: 'print("hello")',
-          last_update: new Date().toISOString(),
-        },
-      };
-      rerender();
-
-      expect(result.current.students).toHaveLength(1);
-      expect(result.current.students[0].userId).toBe('student-1');
-      expect(result.current.students[0].name).toBe('Alice');
-      expect(result.current.students[0].code).toBe('print("hello")');
-    });
-
-    it('should handle session_students UPDATE messages', async () => {
-      const { result, rerender } = renderHook(() =>
-        useRealtimeSession({
-          sessionId: 'session-1',
-        })
-      );
-
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false);
-      });
-
-      // Insert student first
-      mockUseRealtime.lastMessage = {
-        type: 'INSERT' as const,
-        table: 'session_students',
-        payload: {
-          user_id: 'student-1',
-          name: 'Alice',
-          code: '',
-          last_update: new Date().toISOString(),
-        },
-      };
-      rerender();
-
-      expect(result.current.students).toHaveLength(1);
-
-      // Update student code
-      mockUseRealtime.lastMessage = {
-        type: 'UPDATE' as const,
-        table: 'session_students',
-        payload: {
-          user_id: 'student-1',
-          name: 'Alice',
-          code: 'print("updated")',
-          last_update: new Date().toISOString(),
-        },
-      };
-      rerender();
-
-      expect(result.current.students[0].code).toBe('print("updated")');
-    });
-
-    it('should handle session_students DELETE messages', async () => {
-      const { result, rerender } = renderHook(() =>
-        useRealtimeSession({
-          sessionId: 'session-1',
-        })
-      );
-
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false);
-      });
-
-      // Insert student
-      mockUseRealtime.lastMessage = {
-        type: 'INSERT' as const,
-        table: 'session_students',
-        payload: {
-          user_id: 'student-1',
-          name: 'Alice',
-          code: '',
-          last_update: new Date().toISOString(),
-        },
-      };
-      rerender();
-
-      expect(result.current.students).toHaveLength(1);
-
-      // Delete student
-      mockUseRealtime.lastMessage = {
-        type: 'DELETE' as const,
-        table: 'session_students',
-        payload: {
-          user_id: 'student-1',
-        },
-      };
-      rerender();
-
-      expect(result.current.students).toHaveLength(0);
-    });
-
-    it('should handle sessions UPDATE messages (featured student)', async () => {
-      const { result, rerender } = renderHook(() =>
-        useRealtimeSession({
-          sessionId: 'session-1',
-        })
-      );
-
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false);
-      });
-
-      mockUseRealtime.lastMessage = {
-        type: 'UPDATE' as const,
-        table: 'sessions',
-        payload: {
-          featured_student_id: 'student-1',
-          featured_code: 'print("featured")',
-        },
-      };
-      rerender();
-
-      expect(result.current.featuredStudent.studentId).toBe('student-1');
-      expect(result.current.featuredStudent.code).toBe('print("featured")');
-    });
-
-    it('should handle sessions UPDATE messages (session status change to completed)', async () => {
-      const { result, rerender } = renderHook(() =>
-        useRealtimeSession({
-          sessionId: 'session-1',
-        })
-      );
-
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false);
-      });
-
-      // Initially session has no status set (or 'active')
-      expect(result.current.session?.status).toBeUndefined();
-
-      // Simulate session being ended by instructor
-      mockUseRealtime.lastMessage = {
-        type: 'UPDATE' as const,
-        table: 'sessions',
-        payload: {
-          status: 'completed',
-          ended_at: '2026-01-09T12:00:00Z',
-          featured_student_id: null,
-          featured_code: null,
-        },
-      };
-      rerender();
-
-      expect(result.current.session?.status).toBe('completed');
-      expect(result.current.session?.endedAt).toBe('2026-01-09T12:00:00Z');
     });
   });
 
@@ -709,7 +509,7 @@ describe('useRealtimeSession', () => {
   });
 
   describe('Connection status', () => {
-    it('should expose connection status from useRealtime', async () => {
+    it('should expose connection status from broadcast channel', async () => {
       mockFetch.mockResolvedValue({
         ok: true,
         json: async () => ({
@@ -725,19 +525,22 @@ describe('useRealtimeSession', () => {
           userId: 'user-1',
         })
       );
-
-      // Connection status comes from useRealtime mock, available immediately
-      expect(result.current.isConnected).toBe(true);
-      expect(result.current.connectionStatus).toBe('connected');
-      expect(result.current.connectionError).toBe(null);
 
       // Wait for initial load to complete
       await waitFor(() => {
         expect(result.current.loading).toBe(false);
       });
+
+      // Connection status comes from broadcast channel subscription
+      expect(result.current.isConnected).toBe(true);
+      expect(result.current.connectionStatus).toBe('connected');
+      expect(result.current.connectionError).toBe(null);
     });
 
-    it('should expose online users from presence', async () => {
+    it('should report connection error when broadcast channel fails', async () => {
+      // Configure broadcast as disconnected with error
+      mockBroadcastSubscribeStatus = 'CHANNEL_ERROR';
+
       mockFetch.mockResolvedValue({
         ok: true,
         json: async () => ({
@@ -746,11 +549,6 @@ describe('useRealtimeSession', () => {
           featuredStudent: {},
         }),
       });
-
-      mockUseRealtime.onlineUsers = {
-        'user-1': [{ user_id: 'user-1' }],
-        'user-2': [{ user_id: 'user-2' }],
-      };
 
       const { result } = renderHook(() =>
         useRealtimeSession({
@@ -763,7 +561,9 @@ describe('useRealtimeSession', () => {
         expect(result.current.loading).toBe(false);
       });
 
-      expect(result.current.onlineUsers).toEqual(mockUseRealtime.onlineUsers);
+      expect(result.current.isConnected).toBe(false);
+      expect(result.current.connectionStatus).toBe('failed');
+      expect(result.current.connectionError).toBe('Failed to connect to real-time server');
     });
   });
 
@@ -947,6 +747,258 @@ describe('useRealtimeSession', () => {
       unmount();
 
       expect(mockSupabaseClient.removeChannel).toHaveBeenCalled();
+    });
+
+    it('should subscribe to session_ended broadcast event', async () => {
+      const { result } = renderHook(() =>
+        useRealtimeSession({
+          sessionId: 'session-1',
+        })
+      );
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      // Should subscribe to session_ended event
+      expect(mockBroadcastChannel.on).toHaveBeenCalledWith(
+        'broadcast',
+        { event: 'session_ended' },
+        expect.any(Function)
+      );
+    });
+
+    it('should handle session_ended broadcast event', async () => {
+      const { result } = renderHook(() =>
+        useRealtimeSession({
+          sessionId: 'session-1',
+        })
+      );
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      // Verify initial session status
+      expect(result.current.session?.status).toBeUndefined();
+
+      // Simulate session_ended broadcast event
+      const sessionEndedCallback = mockBroadcastCallbacks.get('session_ended');
+      expect(sessionEndedCallback).toBeDefined();
+
+      const endedAt = '2026-01-25T12:00:00Z';
+      act(() => {
+        sessionEndedCallback!({
+          event: 'session_ended',
+          payload: {
+            sessionId: 'session-1',
+            endedAt,
+            timestamp: Date.now(),
+          },
+        });
+      });
+
+      expect(result.current.session?.status).toBe('completed');
+      expect(result.current.session?.endedAt).toEqual(new Date(endedAt));
+    });
+
+    it('should handle session_ended broadcast event with default endedAt', async () => {
+      const { result } = renderHook(() =>
+        useRealtimeSession({
+          sessionId: 'session-1',
+        })
+      );
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      // Simulate session_ended broadcast event without endedAt
+      const sessionEndedCallback = mockBroadcastCallbacks.get('session_ended');
+      expect(sessionEndedCallback).toBeDefined();
+
+      const beforeTime = new Date();
+      act(() => {
+        sessionEndedCallback!({
+          event: 'session_ended',
+          payload: {
+            sessionId: 'session-1',
+            timestamp: Date.now(),
+          },
+        });
+      });
+      const afterTime = new Date();
+
+      expect(result.current.session?.status).toBe('completed');
+      // endedAt should default to current time
+      const endedAt = result.current.session?.endedAt;
+      expect(endedAt).toBeInstanceOf(Date);
+      expect((endedAt as Date).getTime()).toBeGreaterThanOrEqual(beforeTime.getTime());
+      expect((endedAt as Date).getTime()).toBeLessThanOrEqual(afterTime.getTime());
+    });
+
+    it('should subscribe to featured_student_changed broadcast event', async () => {
+      const { result } = renderHook(() =>
+        useRealtimeSession({
+          sessionId: 'session-1',
+        })
+      );
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      // Should subscribe to featured_student_changed event
+      expect(mockBroadcastChannel.on).toHaveBeenCalledWith(
+        'broadcast',
+        { event: 'featured_student_changed' },
+        expect.any(Function)
+      );
+    });
+
+    it('should handle featured_student_changed broadcast event', async () => {
+      const { result } = renderHook(() =>
+        useRealtimeSession({
+          sessionId: 'session-1',
+        })
+      );
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      // Verify initial featured student
+      expect(result.current.featuredStudent.studentId).toBeUndefined();
+      expect(result.current.featuredStudent.code).toBeUndefined();
+
+      // Simulate featured_student_changed broadcast event
+      const featuredChangedCallback = mockBroadcastCallbacks.get('featured_student_changed');
+      expect(featuredChangedCallback).toBeDefined();
+
+      act(() => {
+        featuredChangedCallback!({
+          event: 'featured_student_changed',
+          payload: {
+            sessionId: 'session-1',
+            featuredStudentId: 'student-1',
+            featuredCode: 'print("featured code")',
+            timestamp: Date.now(),
+          },
+        });
+      });
+
+      // Verify featuredStudent state is updated
+      expect(result.current.featuredStudent.studentId).toBe('student-1');
+      expect(result.current.featuredStudent.code).toBe('print("featured code")');
+
+      // Verify session state is also updated
+      expect(result.current.session?.featuredStudentId).toBe('student-1');
+      expect(result.current.session?.featuredCode).toBe('print("featured code")');
+    });
+
+    it('should handle featured_student_changed broadcast event to clear featured student', async () => {
+      // Setup with initial featured student
+      mockFetch.mockReset();
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          session: { id: 'session-1', featuredStudentId: 'student-1', featuredCode: 'old code' },
+          students: [],
+          featuredStudent: { studentId: 'student-1', code: 'old code' },
+        }),
+      });
+
+      const { result } = renderHook(() =>
+        useRealtimeSession({
+          sessionId: 'session-1',
+        })
+      );
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      // Verify initial featured student is set
+      expect(result.current.featuredStudent.studentId).toBe('student-1');
+
+      // Simulate clearing featured student
+      const featuredChangedCallback = mockBroadcastCallbacks.get('featured_student_changed');
+      act(() => {
+        featuredChangedCallback!({
+          event: 'featured_student_changed',
+          payload: {
+            sessionId: 'session-1',
+            featuredStudentId: null,
+            featuredCode: null,
+            timestamp: Date.now(),
+          },
+        });
+      });
+
+      // Verify featured student is cleared
+      expect(result.current.featuredStudent.studentId).toBeNull();
+      expect(result.current.featuredStudent.code).toBeNull();
+      expect(result.current.session?.featuredStudentId).toBeNull();
+      expect(result.current.session?.featuredCode).toBeNull();
+    });
+
+    it('should subscribe to problem_updated broadcast event', async () => {
+      const { result } = renderHook(() =>
+        useRealtimeSession({
+          sessionId: 'session-1',
+        })
+      );
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      // Should subscribe to problem_updated event
+      expect(mockBroadcastChannel.on).toHaveBeenCalledWith(
+        'broadcast',
+        { event: 'problem_updated' },
+        expect.any(Function)
+      );
+    });
+
+    it('should handle problem_updated broadcast event', async () => {
+      const { result } = renderHook(() =>
+        useRealtimeSession({
+          sessionId: 'session-1',
+        })
+      );
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      // Verify initial session has no problem
+      expect(result.current.session?.problem).toBeUndefined();
+
+      // Simulate problem_updated broadcast event
+      const problemUpdatedCallback = mockBroadcastCallbacks.get('problem_updated');
+      expect(problemUpdatedCallback).toBeDefined();
+
+      const newProblem = {
+        id: 'problem-1',
+        title: 'New Problem',
+        description: 'Solve this problem',
+        starterCode: 'def solve():\n    pass',
+      };
+
+      act(() => {
+        problemUpdatedCallback!({
+          event: 'problem_updated',
+          payload: {
+            sessionId: 'session-1',
+            problem: newProblem,
+            timestamp: Date.now(),
+          },
+        });
+      });
+
+      // Verify session problem is updated
+      expect(result.current.session?.problem).toEqual(newProblem);
     });
   });
 

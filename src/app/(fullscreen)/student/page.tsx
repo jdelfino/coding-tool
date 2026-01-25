@@ -49,11 +49,6 @@ function StudentPage() {
     isConnected,
     connectionStatus,
     connectionError,
-    reconnectAttempt,
-    maxReconnectAttempts,
-    connectionStartTime,
-    isReconnecting,
-    reconnect,
     updateCode: realtimeUpdateCode,
     executeCode: realtimeExecuteCode,
     joinSession,
@@ -286,11 +281,6 @@ function StudentPage() {
           <ConnectionStatus
             status={connectionStatus}
             error={connectionError}
-            onReconnect={reconnect}
-            isReconnecting={isReconnecting}
-            reconnectAttempt={reconnectAttempt}
-            maxReconnectAttempts={maxReconnectAttempts}
-            connectionStartTime={connectionStartTime ?? undefined}
             variant="badge"
           />
         </div>
