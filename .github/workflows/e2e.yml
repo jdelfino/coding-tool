@@ -58,7 +58,10 @@ jobs:
 
       - name: Start Supabase
         run: |
-          supabase start
+          # Exclude services not needed for E2E tests to speed up startup
+          # We need: postgres, gotrue (auth), postgrest (API), realtime, kong (gateway), mailpit (email)
+          # We don't need: studio (UI), storage-api, imgproxy, edge-runtime, logflare, vector, postgres-meta, supavisor
+          supabase start --exclude studio,storage-api,imgproxy,edge-runtime,logflare,vector,postgres-meta,supavisor
           supabase status --output env | grep -E '^(ANON_KEY|SERVICE_ROLE_KEY)=' | sed 's/"//g' >> $GITHUB_ENV
 
       - name: Run E2E tests
