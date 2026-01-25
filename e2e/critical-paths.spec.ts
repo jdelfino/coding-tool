@@ -287,11 +287,25 @@ describeE2E('Critical User Paths', () => {
       // Wait for debounced sync (500ms debounce + network time)
       await page.waitForTimeout(2000);
 
+      // Log the actual state after waiting
+      const studentCodeInEditor = await page.evaluate(() => {
+        const editor = document.querySelector('.monaco-editor');
+        return editor?.textContent?.replace(/\s+/g, ' ').trim().substring(0, 100) || 'no editor found';
+      });
+      console.log('Student code after wait:', studentCodeInEditor);
+
       console.log('Waited for code sync');
 
       // ===== VERIFY INSTRUCTOR SEES STUDENT WITH CODE =====
       // Student should appear in the connected students list
       await expect(instructorPage.locator(`text=${studentName}`)).toBeVisible({ timeout: 10000 });
+
+      // Log what instructor sees
+      const instructorStudentList = await instructorPage.evaluate(() => {
+        const students = document.querySelectorAll('div.border');
+        return Array.from(students).map(s => s.textContent?.replace(/\s+/g, ' ').trim().substring(0, 100)).join(' | ');
+      });
+      console.log('Instructor student list:', instructorStudentList);
 
       // Wait for the "Has code" badge to appear - this confirms the code synced
       const studentRow = instructorPage.locator(`div.border:has-text("${studentName}")`).first();
