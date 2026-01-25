@@ -231,7 +231,6 @@ export function useRealtimeSession({
     const channel = supabase
       .channel(channelName)
       .on('broadcast', { event: 'student_joined' }, (payload) => {
-        console.log('[Broadcast] Received student_joined:', JSON.stringify(payload.payload));
         if (payload.payload?.student) {
           const { student } = payload.payload;
           setStudents(prev => {
@@ -263,7 +262,6 @@ export function useRealtimeSession({
         }
       })
       .on('broadcast', { event: 'student_code_updated' }, (payload) => {
-        console.log('[Broadcast] Received student_code_updated:', JSON.stringify(payload.payload));
         if (payload.payload) {
           const { studentId, code, executionSettings, lastUpdate } = payload.payload;
           setStudents(prev => {
@@ -323,12 +321,10 @@ export function useRealtimeSession({
         }
       })
       .subscribe((status) => {
-        console.log(`[Broadcast] Channel ${channelName} status: ${status}`);
         const isConnected = status === 'SUBSCRIBED';
         setIsBroadcastConnected(isConnected);
 
         if (status === 'SUBSCRIBED') {
-          console.log(`[Broadcast] Channel ${channelName} SUBSCRIBED successfully`);
           setConnectionStatus('connected');
           setConnectionError(null);
         } else if (status === 'CHANNEL_ERROR') {

@@ -32,7 +32,6 @@ interface BroadcastOptions {
  */
 export async function sendBroadcast(options: BroadcastOptions): Promise<void> {
   const { channel: channelName, event, payload, timeout = 5000 } = options;
-  const startTime = Date.now();
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseKey = process.env.SUPABASE_SECRET_KEY;
@@ -44,20 +43,16 @@ export async function sendBroadcast(options: BroadcastOptions): Promise<void> {
     throw new Error('SUPABASE_SECRET_KEY is required for broadcast');
   }
 
-  console.log(`[sendBroadcast] Starting: channel=${channelName}, event=${event}`);
-
   const supabase = createClient(supabaseUrl, supabaseKey);
   const channel = supabase.channel(channelName);
 
   return new Promise((resolve, reject) => {
     const timeoutId = setTimeout(() => {
-      console.log(`[sendBroadcast] TIMEOUT after ${timeout}ms: channel=${channelName}, event=${event}`);
       supabase.removeChannel(channel);
       reject(new Error('Broadcast subscription timed out'));
     }, timeout);
 
     channel.subscribe(async (status) => {
-      console.log(`[sendBroadcast] Channel status: ${status}, channel=${channelName}, event=${event}, elapsed=${Date.now() - startTime}ms`);
       if (status === 'SUBSCRIBED') {
         clearTimeout(timeoutId);
         try {
@@ -66,16 +61,13 @@ export async function sendBroadcast(options: BroadcastOptions): Promise<void> {
             event,
             payload,
           });
-          console.log(`[sendBroadcast] Message sent successfully: channel=${channelName}, event=${event}, total=${Date.now() - startTime}ms`);
           supabase.removeChannel(channel);
           resolve();
         } catch (error) {
-          console.log(`[sendBroadcast] Send failed: channel=${channelName}, event=${event}, error=${error}`);
           supabase.removeChannel(channel);
           reject(error);
         }
       } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-        console.log(`[sendBroadcast] Channel error: ${status}, channel=${channelName}, event=${event}`);
         clearTimeout(timeoutId);
         supabase.removeChannel(channel);
         reject(new Error(`Broadcast channel error: ${status}`));

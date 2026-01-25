@@ -129,9 +129,7 @@ export async function POST(
 
     // Broadcast the code update to all connected clients (more reliable than postgres_changes)
     // Await to ensure message is sent before response - critical for real-time sync
-    console.log(`[API] Sending broadcast for student_code_updated: session=${sessionId}, student=${studentId}, codeLen=${code.length}`);
     await broadcastStudentCodeUpdated(sessionId, studentId, code, executionSettings, lastUpdate);
-    console.log(`[API] Broadcast sent successfully for student_code_updated: session=${sessionId}, student=${studentId}`);
 
     // Track revision using revision buffer (for batched persistence)
     const revisionBuffer = await getRevisionBuffer();

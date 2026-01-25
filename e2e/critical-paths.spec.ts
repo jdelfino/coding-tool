@@ -179,14 +179,6 @@ describeE2E('Critical User Paths', () => {
       // ===== INSTRUCTOR SETUP =====
       instructorContext = await browser.newContext();
       const instructorPage = await instructorContext.newPage();
-
-      // Capture console logs from instructor page to debug broadcast timing
-      instructorPage.on('console', (msg) => {
-        const text = msg.text();
-        if (text.includes('[Broadcast]') || text.includes('[useRealtimeSession]')) {
-          console.log(`[INSTRUCTOR] ${text}`);
-        }
-      });
       await loginAsInstructor(instructorPage, `instructor-${namespaceId}`, namespaceId);
       await instructorPage.goto('/instructor');
 
@@ -252,15 +244,6 @@ describeE2E('Critical User Paths', () => {
       // ===== STUDENT JOINS AND WRITES CODE =====
       const studentName = `student-${namespaceId}`;
       await loginAsStudent(page, studentName, namespaceId);
-
-      // Capture console logs from student page
-      page.on('console', (msg) => {
-        const text = msg.text();
-        if (text.includes('[Broadcast]') || text.includes('[useRealtimeSession]') || text.includes('[CodeUpdate]')) {
-          console.log(`[STUDENT] ${text}`);
-        }
-      });
-
       await page.goto('/sections');
       await expect(page.locator('h1:has-text("My Sections")')).toBeVisible({ timeout: 5000 });
 
