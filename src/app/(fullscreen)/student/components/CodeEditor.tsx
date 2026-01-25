@@ -574,7 +574,7 @@ export default function CodeEditor({
               <h2 className="text-xl font-bold mb-4 text-gray-100">{problem.title}</h2>
               {problem.description && (
                 <div className="prose prose-invert prose-sm max-w-none">
-                  <MarkdownContent content={problem.description} className="text-gray-300" />
+                  <MarkdownContent content={problem.description} darkTheme={true} />
                 </div>
               )}
               {problem.starterCode && onLoadStarterCode && !editableProblem && (
@@ -787,7 +787,7 @@ export default function CodeEditor({
                       <h2 className="text-xl font-bold mb-4">{problem.title}</h2>
                       {problem.description && (
                         <div className="prose prose-invert prose-sm max-w-none">
-                          <MarkdownContent content={problem.description} className="text-gray-300" />
+                          <MarkdownContent content={problem.description} darkTheme={true} />
                         </div>
                       )}
                       {problem.starterCode && onLoadStarterCode && !editableProblem && (

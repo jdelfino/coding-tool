@@ -197,6 +197,39 @@ For more information, see [Python docs](https://docs.python.org).`;
     });
   });
 
+  describe('Dark theme', () => {
+    it('applies dark theme classes when darkTheme is true', () => {
+      const { container } = render(<MarkdownContent content="# Title" darkTheme={true} />);
+      const header = screen.getByRole('heading', { level: 1 });
+      expect(header).toHaveClass('text-gray-100');
+    });
+
+    it('applies light theme classes by default', () => {
+      const { container } = render(<MarkdownContent content="# Title" />);
+      const header = screen.getByRole('heading', { level: 1 });
+      expect(header).toHaveClass('text-gray-900');
+    });
+
+    it('applies dark theme to paragraphs', () => {
+      render(<MarkdownContent content="Some text" darkTheme={true} />);
+      const paragraph = screen.getByText('Some text');
+      expect(paragraph).toHaveClass('text-gray-300');
+    });
+
+    it('applies dark theme to inline code', () => {
+      render(<MarkdownContent content="Use `code` here" darkTheme={true} />);
+      const code = screen.getByText('code');
+      expect(code).toHaveClass('bg-gray-700');
+      expect(code).toHaveClass('text-gray-200');
+    });
+
+    it('applies dark theme to links', () => {
+      render(<MarkdownContent content="[Link](https://example.com)" darkTheme={true} />);
+      const link = screen.getByRole('link');
+      expect(link).toHaveClass('text-blue-400');
+    });
+  });
+
   describe('Edge cases', () => {
     it('handles empty content', () => {
       const { container } = render(<MarkdownContent content="" />);
