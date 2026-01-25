@@ -701,6 +701,69 @@ describe('useRealtimeSession', () => {
       expect(result.current.students[0].executionSettings).toEqual({ showTests: true });
     });
 
+    it('should handle out-of-order broadcasts (code update before student join)', async () => {
+      // This tests the race condition fix: when student_code_updated arrives
+      // before student_joined, the code should still be applied
+      const { result } = renderHook(() =>
+        useRealtimeSession({
+          sessionId: 'session-1',
+        })
+      );
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      // Initially no students
+      expect(result.current.students).toHaveLength(0);
+
+      // Simulate code update arriving BEFORE student join
+      const codeUpdatedCallback = mockBroadcastCallbacks.get('student_code_updated');
+      expect(codeUpdatedCallback).toBeDefined();
+
+      act(() => {
+        codeUpdatedCallback!({
+          event: 'student_code_updated',
+          payload: {
+            sessionId: 'session-1',
+            studentId: 'student-1',
+            code: 'print("early update")',
+            executionSettings: { randomSeed: 42 },
+            lastUpdate: new Date().toISOString(),
+            timestamp: Date.now(),
+          },
+        });
+      });
+
+      // Student should not appear yet (we don't have their name)
+      expect(result.current.students).toHaveLength(0);
+
+      // Now simulate student join arriving after
+      const studentJoinedCallback = mockBroadcastCallbacks.get('student_joined');
+      act(() => {
+        studentJoinedCallback!({
+          event: 'student_joined',
+          payload: {
+            sessionId: 'session-1',
+            student: {
+              userId: 'student-1',
+              name: 'Alice',
+              code: '', // Initial join has empty code
+              executionSettings: undefined,
+            },
+            timestamp: Date.now(),
+          },
+        });
+      });
+
+      // Student should now appear with the code from the earlier update
+      expect(result.current.students).toHaveLength(1);
+      expect(result.current.students[0].userId).toBe('student-1');
+      expect(result.current.students[0].name).toBe('Alice');
+      expect(result.current.students[0].code).toBe('print("early update")');
+      expect(result.current.students[0].executionSettings).toEqual({ randomSeed: 42 });
+    });
+
     it('should expose isBroadcastConnected status', async () => {
       const { result } = renderHook(() =>
         useRealtimeSession({

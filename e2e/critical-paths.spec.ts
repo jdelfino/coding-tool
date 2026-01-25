@@ -264,6 +264,10 @@ describeE2E('Critical User Paths', () => {
 
       console.log('Student joined session');
 
+      // Wait for initial empty code sync to complete (500ms debounce + buffer)
+      // This prevents the initial empty code update from racing with our typed code
+      await page.waitForTimeout(800);
+
       // ===== STUDENT TYPES CODE =====
       // Type distinctive code that we can verify later
       const studentCode = 'print("SYNC_TEST_12345")';
@@ -271,22 +275,37 @@ describeE2E('Critical User Paths', () => {
       await monacoEditor.click();
       // Clear any existing code first (select all and delete)
       await page.keyboard.press('ControlOrMeta+a');
-      await page.waitForTimeout(100); // Small wait for selection
+      await page.waitForTimeout(200); // Wait for selection to complete
       await page.keyboard.press('Backspace');
-      await page.waitForTimeout(100); // Small wait for clear
+      await page.waitForTimeout(300); // Wait for Monaco to clear and stabilize
       // Type the new code slowly to ensure Monaco captures it
-      await page.keyboard.type(studentCode, { delay: 20 });
+      // Use 50ms delay to give Monaco time to process each keystroke
+      await page.keyboard.type(studentCode, { delay: 50 });
 
       console.log('Student typed code:', studentCode);
 
       // Wait for debounced sync (500ms debounce + network time)
       await page.waitForTimeout(2000);
 
+      // Log the actual state after waiting
+      const studentCodeInEditor = await page.evaluate(() => {
+        const editor = document.querySelector('.monaco-editor');
+        return editor?.textContent?.replace(/\s+/g, ' ').trim().substring(0, 100) || 'no editor found';
+      });
+      console.log('Student code after wait:', studentCodeInEditor);
+
       console.log('Waited for code sync');
 
       // ===== VERIFY INSTRUCTOR SEES STUDENT WITH CODE =====
       // Student should appear in the connected students list
       await expect(instructorPage.locator(`text=${studentName}`)).toBeVisible({ timeout: 10000 });
+
+      // Log what instructor sees
+      const instructorStudentList = await instructorPage.evaluate(() => {
+        const students = document.querySelectorAll('div.border');
+        return Array.from(students).map(s => s.textContent?.replace(/\s+/g, ' ').trim().substring(0, 100)).join(' | ');
+      });
+      console.log('Instructor student list:', instructorStudentList);
 
       // Wait for the "Has code" badge to appear - this confirms the code synced
       const studentRow = instructorPage.locator(`div.border:has-text("${studentName}")`).first();

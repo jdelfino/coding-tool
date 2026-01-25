@@ -15,14 +15,14 @@ export default defineConfig({
   /* Run tests in files in parallel - SAFE with namespace isolation */
   fullyParallel: true,
 
-  /* Use single worker to avoid race conditions during development */
-  workers: 1,
+  /* Let Playwright auto-detect worker count based on CPU cores */
+  workers: undefined,
 
   /* Fail the build on CI if you accidentally left test.only in the source code */
   forbidOnly: !!process.env.CI,
 
-  /* Retry on CI only */
-  retries: process.env.CI ? 2 : 0,
+  /* No retries - flaky tests should fail immediately so they get fixed */
+  retries: 0,
 
   /* Reporter to use */
   reporter: [

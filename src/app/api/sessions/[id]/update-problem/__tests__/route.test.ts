@@ -10,15 +10,19 @@ jest.mock('@/server/services/session-service');
 
 // Mock Supabase client for broadcast functionality
 const mockSend = jest.fn().mockResolvedValue({});
-const mockSubscribe = jest.fn();
 const mockRemoveChannel = jest.fn();
+// Mock subscribe to immediately call callback with 'SUBSCRIBED'
+const mockSubscribe = jest.fn((callback) => {
+  setImmediate(() => callback('SUBSCRIBED'));
+});
+const mockChannelObj = {
+  subscribe: mockSubscribe,
+  send: mockSend,
+};
 
 jest.mock('@supabase/supabase-js', () => ({
   createClient: jest.fn(() => ({
-    channel: jest.fn(() => ({
-      subscribe: mockSubscribe,
-      send: mockSend,
-    })),
+    channel: jest.fn(() => mockChannelObj),
     removeChannel: mockRemoveChannel,
   })),
 }));
@@ -308,10 +312,10 @@ describe('broadcastProblemUpdated', () => {
     process.env.SUPABASE_SECRET_KEY = 'test-secret-key';
   });
 
-  it('throws error when NEXT_PUBLIC_SUPABASE_URL is missing', () => {
+  it('throws error when NEXT_PUBLIC_SUPABASE_URL is missing', async () => {
     delete process.env.NEXT_PUBLIC_SUPABASE_URL;
 
-    expect(() => broadcastProblemUpdated('session-1', {
+    await expect(broadcastProblemUpdated('session-1', {
       id: 'prob-1',
       namespaceId: 'default',
       title: 'Test',
@@ -321,13 +325,13 @@ describe('broadcastProblemUpdated', () => {
       authorId: 'user-1',
       createdAt: new Date(),
       updatedAt: new Date(),
-    })).toThrow('NEXT_PUBLIC_SUPABASE_URL is required for broadcast');
+    })).rejects.toThrow('NEXT_PUBLIC_SUPABASE_URL is required for broadcast');
   });
 
-  it('throws error when SUPABASE_SECRET_KEY is missing', () => {
+  it('throws error when SUPABASE_SECRET_KEY is missing', async () => {
     delete process.env.SUPABASE_SECRET_KEY;
 
-    expect(() => broadcastProblemUpdated('session-1', {
+    await expect(broadcastProblemUpdated('session-1', {
       id: 'prob-1',
       namespaceId: 'default',
       title: 'Test',
@@ -337,15 +341,10 @@ describe('broadcastProblemUpdated', () => {
       authorId: 'user-1',
       createdAt: new Date(),
       updatedAt: new Date(),
-    })).toThrow('SUPABASE_SECRET_KEY is required for broadcast');
+    })).rejects.toThrow('SUPABASE_SECRET_KEY is required for broadcast');
   });
 
   it('broadcasts problem update on subscribe', async () => {
-    // Set up mock to call callback with SUBSCRIBED
-    mockSubscribe.mockImplementation((callback) => {
-      callback('SUBSCRIBED');
-    });
-
     const problem = {
       id: 'prob-1',
       namespaceId: 'default',
@@ -360,10 +359,8 @@ describe('broadcastProblemUpdated', () => {
 
     const executionSettings = { stdin: 'test input' };
 
-    broadcastProblemUpdated('session-1', problem, executionSettings);
-
-    // Wait for async subscribe callback
-    await new Promise(resolve => setTimeout(resolve, 10));
+    // Await the broadcast - mock will call callback with SUBSCRIBED via setImmediate
+    await broadcastProblemUpdated('session-1', problem, executionSettings);
 
     expect(mockSend).toHaveBeenCalledWith({
       type: 'broadcast',

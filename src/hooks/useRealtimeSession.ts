@@ -103,6 +103,14 @@ export function useRealtimeSession({
   // Track if initial state has been loaded
   const initialLoadRef = useRef(false);
 
+  // Store pending code updates that arrive before student_joined events
+  // This handles race conditions where student_code_updated arrives before student_joined
+  const pendingCodeUpdatesRef = useRef<Map<string, {
+    code: string;
+    executionSettings?: ExecutionSettings;
+    lastUpdate?: string;
+  }>>(new Map());
+
   /**
    * Load initial session state from API
    */
@@ -227,13 +235,28 @@ export function useRealtimeSession({
           const { student } = payload.payload;
           setStudents(prev => {
             const updated = new Map(prev);
-            updated.set(student.userId, {
-              userId: student.userId,
-              name: student.name,
-              code: student.code || '',
-              lastUpdate: new Date(),
-              executionSettings: student.executionSettings,
-            });
+
+            // Check for pending code updates that arrived before this student_joined event
+            const pendingUpdate = pendingCodeUpdatesRef.current.get(student.userId);
+            if (pendingUpdate) {
+              // Apply pending code update and clear it
+              updated.set(student.userId, {
+                userId: student.userId,
+                name: student.name,
+                code: pendingUpdate.code,
+                lastUpdate: pendingUpdate.lastUpdate ? new Date(pendingUpdate.lastUpdate) : new Date(),
+                executionSettings: pendingUpdate.executionSettings ?? student.executionSettings,
+              });
+              pendingCodeUpdatesRef.current.delete(student.userId);
+            } else {
+              updated.set(student.userId, {
+                userId: student.userId,
+                name: student.name,
+                code: student.code || '',
+                lastUpdate: new Date(),
+                executionSettings: student.executionSettings,
+              });
+            }
             return updated;
           });
         }
@@ -250,6 +273,14 @@ export function useRealtimeSession({
                 code: code || '',
                 lastUpdate: lastUpdate ? new Date(lastUpdate) : new Date(),
                 executionSettings: executionSettings ?? student.executionSettings,
+              });
+            } else {
+              // Student not yet known - store as pending update
+              // Will be applied when student_joined event arrives
+              pendingCodeUpdatesRef.current.set(studentId, {
+                code: code || '',
+                executionSettings,
+                lastUpdate,
               });
             }
             return updated;

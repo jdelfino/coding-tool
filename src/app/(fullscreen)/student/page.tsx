@@ -236,7 +236,8 @@ function StudentPage() {
   }
 
   // Show loading state while connecting
-  if (!isConnected || loading) {
+  // Show loading state while connecting, loading, or joining
+  if (!isConnected || loading || isJoining) {
     return (
       <main className="p-8 text-center">
         <h1 className="text-2xl font-bold mb-4">Live Coding Classroom</h1>

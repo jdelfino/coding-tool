@@ -18,13 +18,21 @@ jest.mock('@/server/persistence');
 jest.mock('@/server/services/session-service');
 
 // Mock Supabase client for broadcast functionality
+const mockSend = jest.fn().mockResolvedValue({});
+const mockRemoveChannel = jest.fn();
+// Mock subscribe to immediately call callback with 'SUBSCRIBED'
+const mockSubscribe = jest.fn((callback) => {
+  setImmediate(() => callback('SUBSCRIBED'));
+});
+const mockChannelObj = {
+  subscribe: mockSubscribe,
+  send: mockSend,
+};
+
 jest.mock('@supabase/supabase-js', () => ({
   createClient: jest.fn(() => ({
-    channel: jest.fn(() => ({
-      subscribe: jest.fn(),
-      send: jest.fn(),
-    })),
-    removeChannel: jest.fn(),
+    channel: jest.fn(() => mockChannelObj),
+    removeChannel: mockRemoveChannel,
   })),
 }));
 
