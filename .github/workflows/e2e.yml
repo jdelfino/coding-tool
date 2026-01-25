@@ -20,6 +20,19 @@ jobs:
           node-version: '20'
           cache: 'npm'
 
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      # Start Supabase in background early - it will initialize while other steps run
+      - name: Start Supabase (background)
+        run: |
+          # Exclude services not needed for E2E tests to speed up startup
+          # We need: postgres, gotrue (auth), postgrest (API), realtime, kong (gateway), mailpit (email)
+          supabase start --exclude studio,storage-api,imgproxy,edge-runtime,logflare,vector,postgres-meta,supavisor &
+          echo "Supabase starting in background..."
+
       - name: Install dependencies
         run: npm ci
 
@@ -51,17 +64,20 @@ jobs:
         if: steps.playwright-cache.outputs.cache-hit == 'true'
         run: npx playwright install-deps chromium
 
-      - name: Setup Supabase CLI
-        uses: supabase/setup-cli@v1
-        with:
-          version: latest
-
-      - name: Start Supabase
+      # Wait for Supabase to be ready and extract keys
+      - name: Wait for Supabase
         run: |
-          # Exclude services not needed for E2E tests to speed up startup
-          # We need: postgres, gotrue (auth), postgrest (API), realtime, kong (gateway), mailpit (email)
-          # We don't need: studio (UI), storage-api, imgproxy, edge-runtime, logflare, vector, postgres-meta, supavisor
-          supabase start --exclude studio,storage-api,imgproxy,edge-runtime,logflare,vector,postgres-meta,supavisor
+          echo "Waiting for Supabase to be ready..."
+          # Poll until Supabase REST endpoint responds (max 120 seconds)
+          for i in {1..60}; do
+            if curl -s http://127.0.0.1:54321/rest/v1/ > /dev/null 2>&1; then
+              echo "Supabase is ready!"
+              break
+            fi
+            echo "Waiting... ($i/60)"
+            sleep 2
+          done
+          # Extract keys for tests
           supabase status --output env | grep -E '^(ANON_KEY|SERVICE_ROLE_KEY)=' | sed 's/"//g' >> $GITHUB_ENV
 
       - name: Run E2E tests
