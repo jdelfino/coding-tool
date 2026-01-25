@@ -72,7 +72,7 @@ describe('Student Page - Session Ended Detection', () => {
     isConnected: true,
     connectionStatus: 'connected',
     connectionError: null,
-    onlineUsers: {},
+    isBroadcastConnected: true,
     updateCode: jest.fn(),
     executeCode: jest.fn(),
     featureStudent: jest.fn(),

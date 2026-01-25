@@ -4,17 +4,8 @@
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { useRealtimeSession } from '../useRealtimeSession';
 
-// Mock useRealtime hook
-const mockUseRealtime: any = {
-  isConnected: true,
-  connectionStatus: 'connected' as const,
-  connectionError: null,
-  onlineUsers: {},
-};
-
-jest.mock('../useRealtime', () => ({
-  useRealtime: jest.fn(() => mockUseRealtime),
-}));
+// Note: useRealtime hook has been removed. Connection status is now managed
+// directly by the broadcast channel in useRealtimeSession.
 
 // Mock Supabase client for broadcast functionality
 type BroadcastCallback = (payload: { event: string; payload: any }) => void;
@@ -59,14 +50,6 @@ describe('useRealtimeSession', () => {
     jest.clearAllMocks();
     // Don't use fake timers globally - only enable for tests that need them (debounce tests)
     // jest.useFakeTimers() interferes with async Promise resolution in waitFor()
-
-    // Reset mock useRealtime
-    Object.assign(mockUseRealtime, {
-      isConnected: true,
-      connectionStatus: 'connected' as const,
-      connectionError: null,
-      onlineUsers: {},
-    });
 
     // Reset broadcast mocks
     mockBroadcastCallbacks.clear();
@@ -526,7 +509,7 @@ describe('useRealtimeSession', () => {
   });
 
   describe('Connection status', () => {
-    it('should expose connection status from useRealtime', async () => {
+    it('should expose connection status from broadcast channel', async () => {
       mockFetch.mockResolvedValue({
         ok: true,
         json: async () => ({
@@ -542,19 +525,22 @@ describe('useRealtimeSession', () => {
           userId: 'user-1',
         })
       );
-
-      // Connection status comes from useRealtime mock, available immediately
-      expect(result.current.isConnected).toBe(true);
-      expect(result.current.connectionStatus).toBe('connected');
-      expect(result.current.connectionError).toBe(null);
 
       // Wait for initial load to complete
       await waitFor(() => {
         expect(result.current.loading).toBe(false);
       });
+
+      // Connection status comes from broadcast channel subscription
+      expect(result.current.isConnected).toBe(true);
+      expect(result.current.connectionStatus).toBe('connected');
+      expect(result.current.connectionError).toBe(null);
     });
 
-    it('should expose online users from presence', async () => {
+    it('should report connection error when broadcast channel fails', async () => {
+      // Configure broadcast as disconnected with error
+      mockBroadcastSubscribeStatus = 'CHANNEL_ERROR';
+
       mockFetch.mockResolvedValue({
         ok: true,
         json: async () => ({
@@ -563,11 +549,6 @@ describe('useRealtimeSession', () => {
           featuredStudent: {},
         }),
       });
-
-      mockUseRealtime.onlineUsers = {
-        'user-1': [{ user_id: 'user-1' }],
-        'user-2': [{ user_id: 'user-2' }],
-      };
 
       const { result } = renderHook(() =>
         useRealtimeSession({
@@ -580,7 +561,9 @@ describe('useRealtimeSession', () => {
         expect(result.current.loading).toBe(false);
       });
 
-      expect(result.current.onlineUsers).toEqual(mockUseRealtime.onlineUsers);
+      expect(result.current.isConnected).toBe(false);
+      expect(result.current.connectionStatus).toBe('failed');
+      expect(result.current.connectionError).toBe('Failed to connect to real-time server');
     });
   });
 

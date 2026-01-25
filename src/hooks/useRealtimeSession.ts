@@ -2,10 +2,11 @@
 
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { RealtimeChannel } from '@supabase/supabase-js';
-import { useRealtime } from './useRealtime';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { Session, Student, ExecutionResult } from '@/server/types';
 import { ExecutionSettings } from '@/server/types/problem';
+
+export type ConnectionStatus = 'connected' | 'connecting' | 'disconnected' | 'failed';
 
 /**
  * Debounce function
@@ -80,7 +81,6 @@ export interface FeaturedStudent {
  * - Falls back to polling (every 2s) when broadcast is disconnected
  * - Provides debounced code updates (300ms)
  * - Handles errors with retry logic
- * - Tracks online users via presence (using useRealtime hook)
  */
 export function useRealtimeSession({
   sessionId,
@@ -96,27 +96,12 @@ export function useRealtimeSession({
 
   // Broadcast connection state
   const [isBroadcastConnected, setIsBroadcastConnected] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('disconnected');
+  const [connectionError, setConnectionError] = useState<string | null>(null);
   const broadcastChannelRef = useRef<RealtimeChannel | null>(null);
 
   // Track if initial state has been loaded
   const initialLoadRef = useRef(false);
-
-  // Realtime connection (used for presence tracking)
-  const {
-    isConnected,
-    connectionStatus,
-    connectionError,
-    onlineUsers,
-    reconnectAttempt,
-    maxReconnectAttempts,
-    connectionStartTime,
-    isReconnecting,
-    reconnect,
-  } = useRealtime({
-    sessionId,
-    userId,
-    presenceData: userName ? { user_name: userName } : {},
-  });
 
   /**
    * Load initial session state from API
@@ -229,6 +214,9 @@ export function useRealtimeSession({
   useEffect(() => {
     if (!sessionId) return;
 
+    // Set initial connecting status before creating channel
+    setConnectionStatus('connecting');
+
     const supabase = getSupabaseBrowserClient();
     const channelName = `session:${sessionId}`;
 
@@ -302,7 +290,24 @@ export function useRealtimeSession({
         }
       })
       .subscribe((status) => {
-        setIsBroadcastConnected(status === 'SUBSCRIBED');
+        const isConnected = status === 'SUBSCRIBED';
+        setIsBroadcastConnected(isConnected);
+
+        if (status === 'SUBSCRIBED') {
+          setConnectionStatus('connected');
+          setConnectionError(null);
+        } else if (status === 'CHANNEL_ERROR') {
+          setConnectionStatus('failed');
+          setConnectionError('Failed to connect to real-time server');
+        } else if (status === 'TIMED_OUT') {
+          setConnectionStatus('failed');
+          setConnectionError('Connection timed out');
+        } else if (status === 'CLOSED') {
+          setConnectionStatus('disconnected');
+          setConnectionError(null);
+        } else {
+          setConnectionStatus('connecting');
+        }
       });
 
     broadcastChannelRef.current = channel;
@@ -310,6 +315,7 @@ export function useRealtimeSession({
     return () => {
       supabase.removeChannel(channel);
       broadcastChannelRef.current = null;
+      setConnectionStatus('disconnected');
     };
   }, [sessionId]);
 
@@ -487,15 +493,10 @@ export function useRealtimeSession({
     loading,
     error,
 
-    // Connection status
-    isConnected,
+    // Connection status (based on broadcast channel)
+    isConnected: isBroadcastConnected,
     connectionStatus,
     connectionError,
-    onlineUsers,
-    reconnectAttempt,
-    maxReconnectAttempts,
-    connectionStartTime,
-    isReconnecting,
     isBroadcastConnected,
 
     // Actions
@@ -503,6 +504,5 @@ export function useRealtimeSession({
     executeCode,
     featureStudent,
     joinSession,
-    reconnect,
   };
 }
