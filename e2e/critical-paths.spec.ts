@@ -264,6 +264,10 @@ describeE2E('Critical User Paths', () => {
 
       console.log('Student joined session');
 
+      // Wait for initial empty code sync to complete (500ms debounce + buffer)
+      // This prevents the initial empty code update from racing with our typed code
+      await page.waitForTimeout(800);
+
       // ===== STUDENT TYPES CODE =====
       // Type distinctive code that we can verify later
       const studentCode = 'print("SYNC_TEST_12345")';

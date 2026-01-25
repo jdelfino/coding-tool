@@ -277,7 +277,6 @@ export function useRealtimeSession({
             } else {
               // Student not yet known - store as pending update
               // Will be applied when student_joined event arrives
-              // Student not yet known - store for when student_joined arrives
               pendingCodeUpdatesRef.current.set(studentId, {
                 code: code || '',
                 executionSettings,
