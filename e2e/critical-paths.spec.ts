@@ -271,11 +271,12 @@ describeE2E('Critical User Paths', () => {
       await monacoEditor.click();
       // Clear any existing code first (select all and delete)
       await page.keyboard.press('ControlOrMeta+a');
-      await page.waitForTimeout(100); // Small wait for selection
+      await page.waitForTimeout(200); // Wait for selection to complete
       await page.keyboard.press('Backspace');
-      await page.waitForTimeout(100); // Small wait for clear
+      await page.waitForTimeout(300); // Wait for Monaco to clear and stabilize
       // Type the new code slowly to ensure Monaco captures it
-      await page.keyboard.type(studentCode, { delay: 20 });
+      // Use 50ms delay to give Monaco time to process each keystroke
+      await page.keyboard.type(studentCode, { delay: 50 });
 
       console.log('Student typed code:', studentCode);
 
