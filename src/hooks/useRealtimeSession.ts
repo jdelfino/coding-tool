@@ -269,6 +269,39 @@ export function useRealtimeSession({
           });
         }
       })
+      .on('broadcast', { event: 'session_ended' }, (payload) => {
+        if (payload.payload) {
+          const { endedAt } = payload.payload;
+          setSession(prev => prev ? {
+            ...prev,
+            status: 'completed',
+            endedAt: endedAt ? new Date(endedAt) : new Date(),
+          } : prev);
+        }
+      })
+      .on('broadcast', { event: 'featured_student_changed' }, (payload) => {
+        if (payload.payload) {
+          const { featuredStudentId, featuredCode } = payload.payload;
+          setSession(prev => prev ? {
+            ...prev,
+            featuredStudentId,
+            featuredCode,
+          } : prev);
+          setFeaturedStudent({
+            studentId: featuredStudentId,
+            code: featuredCode,
+          });
+        }
+      })
+      .on('broadcast', { event: 'problem_updated' }, (payload) => {
+        if (payload.payload) {
+          const { problem } = payload.payload;
+          setSession(prev => prev ? {
+            ...prev,
+            problem,
+          } : prev);
+        }
+      })
       .subscribe((status) => {
         setIsBroadcastConnected(status === 'SUBSCRIBED');
       });
