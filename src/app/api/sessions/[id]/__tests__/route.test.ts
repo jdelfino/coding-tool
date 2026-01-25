@@ -18,6 +18,22 @@ jest.mock('@/server/persistence', () => ({
 jest.mock('@/server/services/session-service');
 jest.mock('@/server/code-execution');
 
+// Mock Supabase client for broadcast functionality
+const mockSend = jest.fn().mockResolvedValue({});
+const mockSubscribe = jest.fn();
+const mockChannel = jest.fn(() => ({
+  subscribe: mockSubscribe,
+  send: mockSend,
+}));
+const mockRemoveChannel = jest.fn();
+
+jest.mock('@supabase/supabase-js', () => ({
+  createClient: jest.fn(() => ({
+    channel: mockChannel,
+    removeChannel: mockRemoveChannel,
+  })),
+}));
+
 import { createStorage } from '@/server/persistence';
 
 const mockGetAuthenticatedUserWithToken = getAuthenticatedUserWithToken as jest.MockedFunction<typeof getAuthenticatedUserWithToken>;
@@ -81,6 +97,10 @@ describe('DELETE /api/sessions/[id]', () => {
     };
     mockCreateStorage.mockResolvedValue(mockStorage as any);
     mockCleanupSession.mockResolvedValue(undefined);
+
+    // Set required env vars for broadcast
+    process.env.NEXT_PUBLIC_SUPABASE_URL = 'http://localhost:54321';
+    process.env.SUPABASE_SECRET_KEY = 'test-secret-key';
   });
 
   it('should successfully end session and cleanup sandbox', async () => {
@@ -240,5 +260,78 @@ describe('DELETE /api/sessions/[id]', () => {
     expect(response.status).toBe(200);
     expect(mockEndSession).toHaveBeenCalled();
     expect(mockCleanupSession).toHaveBeenCalledWith('session-1');
+  });
+
+  it('should broadcast session_ended event after successful delete', async () => {
+    mockGetAuthenticatedUserWithToken.mockResolvedValue({ user: mockUser, accessToken: 'test-token' });
+    mockStorage.sessions.getSession.mockResolvedValue(mockSession);
+    mockEndSession.mockResolvedValue(undefined);
+
+    const request = new NextRequest('http://localhost:3000/api/sessions/session-1', {
+      method: 'DELETE',
+    });
+    const params = Promise.resolve({ id: 'session-1' });
+
+    const response = await DELETE(request, { params });
+
+    expect(response.status).toBe(200);
+
+    // Verify channel was created for the session
+    expect(mockChannel).toHaveBeenCalledWith('session:session-1');
+
+    // Verify subscribe was called
+    expect(mockSubscribe).toHaveBeenCalled();
+
+    // Simulate the subscribe callback being invoked with 'SUBSCRIBED'
+    const subscribeCallback = mockSubscribe.mock.calls[0][0];
+    await subscribeCallback('SUBSCRIBED');
+
+    // Verify the broadcast was sent with correct payload
+    expect(mockSend).toHaveBeenCalledWith({
+      type: 'broadcast',
+      event: 'session_ended',
+      payload: expect.objectContaining({
+        sessionId: 'session-1',
+        endedAt: expect.any(String),
+      }),
+    });
+
+    // Verify channel cleanup
+    expect(mockRemoveChannel).toHaveBeenCalled();
+  });
+
+  it('should not broadcast when session is not found', async () => {
+    mockGetAuthenticatedUserWithToken.mockResolvedValue({ user: mockUser, accessToken: 'test-token' });
+    mockStorage.sessions.getSession.mockResolvedValue(null);
+
+    const request = new NextRequest('http://localhost:3000/api/sessions/session-1', {
+      method: 'DELETE',
+    });
+    const params = Promise.resolve({ id: 'session-1' });
+
+    const response = await DELETE(request, { params });
+
+    expect(response.status).toBe(404);
+    expect(mockChannel).not.toHaveBeenCalled();
+  });
+
+  it('should not broadcast when user is not authorized', async () => {
+    const otherUser = {
+      ...mockUser,
+      id: 'other-user',
+      role: 'instructor' as const,
+    };
+    mockGetAuthenticatedUserWithToken.mockResolvedValue({ user: otherUser, accessToken: 'test-token' });
+    mockStorage.sessions.getSession.mockResolvedValue(mockSession);
+
+    const request = new NextRequest('http://localhost:3000/api/sessions/session-1', {
+      method: 'DELETE',
+    });
+    const params = Promise.resolve({ id: 'session-1' });
+
+    const response = await DELETE(request, { params });
+
+    expect(response.status).toBe(403);
+    expect(mockChannel).not.toHaveBeenCalled();
   });
 });
