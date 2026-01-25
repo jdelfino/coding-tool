@@ -4,20 +4,20 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
 import { getAuthenticatedUserWithToken } from '@/server/auth/api-auth';
 import { createStorage } from '@/server/persistence';
 import * as SessionService from '@/server/services/session-service';
 import { rateLimit } from '@/server/rate-limit';
 import { SERVICE_ROLE_MARKER } from '@/server/supabase/client';
 import { ExecutionSettings } from '@/server/types';
+import { sendBroadcast } from '@/lib/supabase/broadcast';
 
 /**
  * Send a broadcast message to notify clients when a student joins a session.
  * Uses Broadcast instead of postgres_changes for reliability (recommended by Supabase).
  * Exported for testing.
  */
-export function broadcastStudentJoined(
+export async function broadcastStudentJoined(
   sessionId: string,
   student: {
     userId: string;
@@ -25,34 +25,15 @@ export function broadcastStudentJoined(
     code: string | null;
     executionSettings: ExecutionSettings | undefined;
   }
-) {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey = process.env.SUPABASE_SECRET_KEY;
-
-  if (!supabaseUrl) {
-    throw new Error('NEXT_PUBLIC_SUPABASE_URL is required for broadcast');
-  }
-  if (!supabaseKey) {
-    throw new Error('SUPABASE_SECRET_KEY is required for broadcast');
-  }
-
-  const supabase = createClient(supabaseUrl, supabaseKey);
-  const channel = supabase.channel(`session:${sessionId}`);
-
-  // Fire and forget - don't await to avoid blocking the response
-  channel.subscribe(async (status) => {
-    if (status === 'SUBSCRIBED') {
-      await channel.send({
-        type: 'broadcast',
-        event: 'student_joined',
-        payload: {
-          sessionId,
-          student,
-          timestamp: Date.now(),
-        },
-      });
-      supabase.removeChannel(channel);
-    }
+): Promise<void> {
+  return sendBroadcast({
+    channel: `session:${sessionId}`,
+    event: 'student_joined',
+    payload: {
+      sessionId,
+      student,
+      timestamp: Date.now(),
+    },
   });
 }
 
@@ -122,7 +103,7 @@ export async function POST(
     const studentData = SessionService.getStudentData(session, user.id);
 
     // Broadcast the student join event to all connected clients (more reliable than postgres_changes)
-    broadcastStudentJoined(sessionId, {
+    await broadcastStudentJoined(sessionId, {
       userId: student.userId,
       name: student.name,
       code: student.code || null,
