@@ -9,7 +9,6 @@ const mockUseRealtime: any = {
   isConnected: true,
   connectionStatus: 'connected' as const,
   connectionError: null,
-  lastMessage: null,
   onlineUsers: {},
 };
 
@@ -66,7 +65,6 @@ describe('useRealtimeSession', () => {
       isConnected: true,
       connectionStatus: 'connected' as const,
       connectionError: null,
-      lastMessage: null,
       onlineUsers: {},
     });
 
@@ -173,187 +171,6 @@ describe('useRealtimeSession', () => {
       });
 
       expect(mockFetch).toHaveBeenCalledTimes(1);
-    });
-  });
-
-  describe('Realtime message handling', () => {
-    beforeEach(async () => {
-      // Setup initial state
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          session: { id: 'session-1' },
-          students: [],
-          featuredStudent: {},
-        }),
-      });
-    });
-
-    it('should handle session_students INSERT messages', async () => {
-      const { result, rerender } = renderHook(() =>
-        useRealtimeSession({
-          sessionId: 'session-1',
-        })
-      );
-
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false);
-      });
-
-      // Simulate Realtime message and rerender to trigger effect
-      mockUseRealtime.lastMessage = {
-        type: 'INSERT' as const,
-        table: 'session_students',
-        payload: {
-          user_id: 'student-1',
-          name: 'Alice',
-          code: 'print("hello")',
-          last_update: new Date().toISOString(),
-        },
-      };
-      rerender();
-
-      expect(result.current.students).toHaveLength(1);
-      expect(result.current.students[0].userId).toBe('student-1');
-      expect(result.current.students[0].name).toBe('Alice');
-      expect(result.current.students[0].code).toBe('print("hello")');
-    });
-
-    it('should handle session_students UPDATE messages', async () => {
-      const { result, rerender } = renderHook(() =>
-        useRealtimeSession({
-          sessionId: 'session-1',
-        })
-      );
-
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false);
-      });
-
-      // Insert student first
-      mockUseRealtime.lastMessage = {
-        type: 'INSERT' as const,
-        table: 'session_students',
-        payload: {
-          user_id: 'student-1',
-          name: 'Alice',
-          code: '',
-          last_update: new Date().toISOString(),
-        },
-      };
-      rerender();
-
-      expect(result.current.students).toHaveLength(1);
-
-      // Update student code
-      mockUseRealtime.lastMessage = {
-        type: 'UPDATE' as const,
-        table: 'session_students',
-        payload: {
-          user_id: 'student-1',
-          name: 'Alice',
-          code: 'print("updated")',
-          last_update: new Date().toISOString(),
-        },
-      };
-      rerender();
-
-      expect(result.current.students[0].code).toBe('print("updated")');
-    });
-
-    it('should handle session_students DELETE messages', async () => {
-      const { result, rerender } = renderHook(() =>
-        useRealtimeSession({
-          sessionId: 'session-1',
-        })
-      );
-
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false);
-      });
-
-      // Insert student
-      mockUseRealtime.lastMessage = {
-        type: 'INSERT' as const,
-        table: 'session_students',
-        payload: {
-          user_id: 'student-1',
-          name: 'Alice',
-          code: '',
-          last_update: new Date().toISOString(),
-        },
-      };
-      rerender();
-
-      expect(result.current.students).toHaveLength(1);
-
-      // Delete student
-      mockUseRealtime.lastMessage = {
-        type: 'DELETE' as const,
-        table: 'session_students',
-        payload: {
-          user_id: 'student-1',
-        },
-      };
-      rerender();
-
-      expect(result.current.students).toHaveLength(0);
-    });
-
-    it('should handle sessions UPDATE messages (featured student)', async () => {
-      const { result, rerender } = renderHook(() =>
-        useRealtimeSession({
-          sessionId: 'session-1',
-        })
-      );
-
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false);
-      });
-
-      mockUseRealtime.lastMessage = {
-        type: 'UPDATE' as const,
-        table: 'sessions',
-        payload: {
-          featured_student_id: 'student-1',
-          featured_code: 'print("featured")',
-        },
-      };
-      rerender();
-
-      expect(result.current.featuredStudent.studentId).toBe('student-1');
-      expect(result.current.featuredStudent.code).toBe('print("featured")');
-    });
-
-    it('should handle sessions UPDATE messages (session status change to completed)', async () => {
-      const { result, rerender } = renderHook(() =>
-        useRealtimeSession({
-          sessionId: 'session-1',
-        })
-      );
-
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false);
-      });
-
-      // Initially session has no status set (or 'active')
-      expect(result.current.session?.status).toBeUndefined();
-
-      // Simulate session being ended by instructor
-      mockUseRealtime.lastMessage = {
-        type: 'UPDATE' as const,
-        table: 'sessions',
-        payload: {
-          status: 'completed',
-          ended_at: '2026-01-09T12:00:00Z',
-          featured_student_id: null,
-          featured_code: null,
-        },
-      };
-      rerender();
-
-      expect(result.current.session?.status).toBe('completed');
-      expect(result.current.session?.endedAt).toBe('2026-01-09T12:00:00Z');
     });
   });
 

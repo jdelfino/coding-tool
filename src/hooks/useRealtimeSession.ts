@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { RealtimeChannel } from '@supabase/supabase-js';
-import { useRealtime, RealtimeMessage } from './useRealtime';
+import { useRealtime } from './useRealtime';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { Session, Student, ExecutionResult } from '@/server/types';
 import { ExecutionSettings } from '@/server/types/problem';
@@ -75,12 +75,12 @@ export interface FeaturedStudent {
  *
  * Features:
  * - Loads initial session state from API
- * - Subscribes to Realtime updates via postgres_changes
- * - Subscribes to Broadcast events for faster updates (student_joined, student_code_updated)
+ * - Subscribes to Broadcast events for real-time updates (student_joined, student_code_updated,
+ *   session_ended, featured_student_changed, problem_updated)
  * - Falls back to polling (every 2s) when broadcast is disconnected
  * - Provides debounced code updates (300ms)
  * - Handles errors with retry logic
- * - Tracks online users via presence
+ * - Tracks online users via presence (using useRealtime hook)
  */
 export function useRealtimeSession({
   sessionId,
@@ -101,12 +101,11 @@ export function useRealtimeSession({
   // Track if initial state has been loaded
   const initialLoadRef = useRef(false);
 
-  // Realtime connection
+  // Realtime connection (used for presence tracking)
   const {
     isConnected,
     connectionStatus,
     connectionError,
-    lastMessage,
     onlineUsers,
     reconnectAttempt,
     maxReconnectAttempts,
@@ -328,63 +327,6 @@ export function useRealtimeSession({
 
     return () => clearInterval(pollInterval);
   }, [sessionId, isBroadcastConnected, loading, fetchState]);
-
-  /**
-   * Handle Realtime messages
-   */
-  useEffect(() => {
-    if (!lastMessage) {
-      return;
-    }
-
-    const { type, table, payload } = lastMessage;
-
-    // Handle session_students updates
-    if (table === 'session_students') {
-      if (type === 'INSERT' || type === 'UPDATE') {
-        setStudents(prev => {
-          const updated = new Map(prev);
-          updated.set(payload.user_id, {
-            userId: payload.user_id,
-            name: payload.name,
-            code: payload.code || '',
-            lastUpdate: new Date(payload.last_update),
-            executionSettings: payload.execution_settings,
-          });
-          return updated;
-        });
-      } else if (type === 'DELETE') {
-        setStudents(prev => {
-          const updated = new Map(prev);
-          updated.delete(payload.user_id);
-          return updated;
-        });
-      }
-    }
-
-    // Handle sessions updates (featured student changes, status changes)
-    if (table === 'sessions') {
-      if (type === 'UPDATE') {
-        setSession(prev => ({
-          ...prev,
-          featuredStudentId: payload.featured_student_id,
-          featuredCode: payload.featured_code,
-          status: payload.status,
-          endedAt: payload.ended_at,
-        }));
-        setFeaturedStudent({
-          studentId: payload.featured_student_id,
-          code: payload.featured_code,
-        });
-      }
-    }
-
-    // Handle revisions (execution results)
-    if (table === 'revisions') {
-      // You could emit events here if needed
-      console.log('[useRealtimeSession] Execution result:', payload);
-    }
-  }, [lastMessage]);
 
   /**
    * Update student code (debounced)
