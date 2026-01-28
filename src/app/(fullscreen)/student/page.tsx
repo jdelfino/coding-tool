@@ -87,6 +87,11 @@ function StudentPage() {
       return;
     }
 
+    // Check if the student explicitly left this session
+    if (sessionStorage.getItem(`left-session:${sessionIdFromUrl}`)) {
+      return;
+    }
+
     // Join the session from the URL
     if (isConnected && session) {
       joinAttemptedRef.current = sessionIdFromUrl;
@@ -155,10 +160,15 @@ function StudentPage() {
   }, [code, joined, studentId, sessionIdFromUrl, sessionEnded, studentExecutionSettings, realtimeUpdateCode]);
 
   const handleLeaveSession = useCallback(() => {
+    // Persist the "left" flag so auto-join doesn't re-join this session
+    if (sessionIdFromUrl) {
+      sessionStorage.setItem(`left-session:${sessionIdFromUrl}`, 'true');
+    }
+
     // Navigate to sections page
     refetchSessions();
     router.push('/sections');
-  }, [refetchSessions, router]);
+  }, [sessionIdFromUrl, refetchSessions, router]);
 
   const editorRef = useRef<any>(null);
 
