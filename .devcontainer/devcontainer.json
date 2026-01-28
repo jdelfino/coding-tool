@@ -1,53 +1,46 @@
 {
-	"name": "Node.js",
-	"image": "mcr.microsoft.com/devcontainers/javascript-node:1-22-bookworm",
+  "name": "coding-tool",
+  "image": "mcr.microsoft.com/devcontainers/base:trixie",
 
-	"workspaceMount": "source=coding-tool-${devcontainerId},target=/workspaces/coding-tool,type=volume",
-	"workspaceFolder": "/workspaces/coding-tool",
+  "workspaceMount": "source=${localWorkspaceFolder},target=/workspaces/coding-tool,type=bind,consistency=cached",
+  "workspaceFolder": "/workspaces/coding-tool",
 
-	"mounts": [
-		"source=coding-tool-cache,target=/home/node/.cache,type=volume",
-		"source=coding-tool-npm-cache,target=/home/node/.npm,type=volume"
-	],
+  "mounts": [
+    "source=coding-tool-node-modules,target=/workspaces/coding-tool/node_modules,type=volume",
+    "source=${localEnv:HOME}/.claude,target=/home/vscode/.claude,type=bind,consistency=cached"
+  ],
 
-	"features": {
-		"ghcr.io/devcontainers/features/python:1": {
-			"installTools": true,
-			"version": "3.11"
-		},
-		"ghcr.io/devcontainers/features/docker-in-docker:2": {},
-		"ghcr.io/devcontainers/features/github-cli:1": {},
-		"ghcr.io/devcontainers-extra/features/supabase-cli:1": {}
-	},
+  "features": {
+    "ghcr.io/devcontainers/features/python:1": { "version": "3.12" },
+    "ghcr.io/devcontainers/features/node:1": { "version": "22", "installYarnUsingApt": false },
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {},
+    "ghcr.io/devcontainers/features/github-cli:1": {},
+    "ghcr.io/devcontainers-extra/features/supabase-cli:1": {}
+  },
 
-	"onCreateCommand": "sudo chown -R node:node /home/node/.cache /home/node/.npm && curl -fsSL https://raw.githubusercontent.com/steveyegge/beads/main/scripts/install.sh | bash && npx playwright install-deps chromium && npx playwright install chromium && curl -fsSL https://claude.ai/install.sh | bash && ./.devcontainer/install-nsjail.sh && ./.devcontainer/install-1password-cli.sh && npm install",
-	"postCreateCommand": "./.devcontainer/setup.sh",
-	"postStartCommand": "./.devcontainer/setup-secrets.sh",
+  "initializeCommand": "./.devcontainer/init-1password.sh",
+  "postCreateCommand": "./.devcontainer/post-create.sh",
+  "postStartCommand": "./.devcontainer/setup-secrets.sh",
 
-	"forwardPorts": [3000, 3001, 54321, 54322, 54323],
-	"portsAttributes": {
-		"3000": {
-			"label": "Next.js Dev Server"
-		},
-		"3001": {
-			"label": "Express Backend"
-		},
-		"54321": {
-			"label": "Supabase API"
-		},
-		"54322": {
-			"label": "Supabase Database"
-		},
-		"54323": {
-			"label": "Supabase Studio"
-		}
-	},
-	"customizations": {
-		"vscode": {
-			"extensions": [
-				"planet57.vscode-beads",
-				"ms-playwright.playwright"
-			]
-		}
-	}
+  "forwardPorts": [3000, 3001, 54321, 54322, 54323],
+  "portsAttributes": {
+    "3000": { "label": "Next.js Dev Server" },
+    "3001": { "label": "Express Backend" },
+    "54321": { "label": "Supabase API" },
+    "54322": { "label": "Supabase Database" },
+    "54323": { "label": "Supabase Studio" }
+  },
+
+  "remoteEnv": {
+    "BD_SOCKET": "/tmp/beads.sock"
+  },
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "planet57.vscode-beads",
+        "ms-playwright.playwright"
+      ]
+    }
+  }
 }

@@ -106,7 +106,7 @@ git commit -m "$(cat <<'EOF'
 
 <optional body>
 
-Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>
+Co-Authored-By: Claude <noreply@anthropic.com>
 EOF
 )"
 ```
@@ -131,9 +131,7 @@ When ending a work session, complete ALL steps:
    ```
 
 2. **Run quality gates** (if code changed)
-   ```bash
-   npm test && npx tsc --noEmit
-   ```
+   Run your project's test and lint commands.
 
 3. **Update issue status**
    ```bash

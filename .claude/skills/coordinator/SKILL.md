@@ -5,16 +5,17 @@ description: Coordinate work across implementer and reviewer agents. Owns all be
 
 # Coordinator
 
-You orchestrate work by delegating to implementer and reviewer agents. You own all issue management - subagents never close issues or modify labels.
+You orchestrate work by delegating to implementer agents. You own all issue management — subagents never close issues or modify labels. Code review happens once at PR time via specialized reviewers, not per-task.
 
 ## Your Responsibilities
 
 1. **Issue ownership**: You create, update labels, and close all issues
 2. **Worktree management**: Create isolated worktrees, run npm install before delegating
-3. **Work delegation**: Spawn implementers and reviewers as subagents
+3. **Work delegation**: Spawn implementers as subagents
 4. **Conflict avoidance**: Never parallelize work that touches the same files
-5. **Quality assurance**: Verify subagent work before closing issues
-6. **PR lifecycle**: Create PRs, watch CI, prompt user for merge
+5. **Quality assurance**: Verify implementer work before closing issues
+6. **Pre-PR review**: Run 3 specialized reviewers before creating the PR
+7. **PR lifecycle**: Create PRs, watch CI, prompt user for merge
 
 ## Workflow States (Labels)
 
@@ -23,9 +24,6 @@ Track task progress with labels:
 | Label | Meaning |
 |-------|---------|
 | `wip` | Implementer is working |
-| `needs-review` | Implementation complete, awaiting review |
-| `changes-needed` | Reviewer found issues |
-| `approved` | Review passed, ready to close |
 
 ## Setup Phase
 
@@ -61,7 +59,7 @@ npm install
 cd /workspaces/coding-tool
 ```
 
-**IMPORTANT**: Always `npm install` in the worktree before any subagent work to avoid concurrent install corruption.
+**IMPORTANT**: Always install dependencies in the worktree before any subagent work to avoid concurrent install corruption.
 
 ## Conflict Avoidance
 
@@ -107,33 +105,15 @@ This is safer than risking merge conflicts or broken builds.
 
 **Independent tasks CAN run in parallel:**
 ```
-Task A (no dependencies): implement → review → close  ─┬─ parallel
-Task B (no dependencies): implement → review → close  ─┘
+Task A (no dependencies): implement → close  ─┬─ parallel
+Task B (no dependencies): implement → close  ─┘
 ```
 
-**Dependent tasks MUST wait for blockers to be fully closed:**
+**Dependent tasks MUST wait for blockers to be closed:**
 ```
-Task A: implement → review → close
-Task B (blocked by A): wait... → implement → review → close
+Task A: implement → close
+Task B (blocked by A): wait... → implement → close
 ```
-
-**"Closed" means implemented AND reviewed.** A task is not complete until reviewed.
-
-**Each task MUST be reviewed before closing - never batch implementations without reviews:**
-```
-WRONG: implement A → implement B → review A → review B
-RIGHT: implement A → review A → close A (parallel with B if independent)
-```
-
-### Adding Dependencies During Analysis
-
-When analyzing tasks, if you notice Task X should block Task Y (e.g., X creates an interface that Y uses), add the dependency:
-
-```bash
-bd dep add <dependent-id> <blocker-id> --json
-```
-
-This ensures Y won't appear in `bd ready` until X is closed.
 
 ### For Each Task
 
@@ -164,62 +144,74 @@ The implementer skill contains all instructions for test-first development, qual
 
 **On SUCCESS:**
 ```bash
-bd update <task-id> --set-labels needs-review --json
+bd close <task-id> --reason "Implemented" --json
 ```
-→ Proceed to Review Phase. This task must be reviewed before it can be closed.
 
 **On FAILURE:**
 - If recoverable: fix directly or spawn new implementer with clarification
 - If blocked: note the blocker, move to next task
 - Do NOT close the task
 
-**Note:** You may start implementing independent tasks in parallel, but each task must complete its own review cycle. Don't start a dependent task until its blockers are closed.
+## Pre-PR Review Phase
 
-## Review Phase
+After all tasks are complete, before creating the PR, run 3 specialized reviews **in parallel**.
 
-### 1. Spawn Reviewer
+### 1. Spawn All 3 Reviewers in Parallel
 
+Use the Task tool to spawn 3 agents simultaneously in a single message:
+
+**Correctness Reviewer:**
 ```
-ROLE: Reviewer
-SKILL: Read and follow .claude/skills/reviewer/SKILL.md
+ROLE: Correctness Reviewer
+SKILL: Read and follow .claude/skills/reviewer-correctness/SKILL.md
 
 WORKTREE: ../coding-tool-<work-name>
-TASK: <task-id>
-COMMIT: <commit-hash>
-SUMMARY: <what implementer reported in their summary>
+BASE: origin/main
+SUMMARY: <what this PR implements>
 ```
 
-The reviewer skill contains all instructions for quality gates, review checklist, severity assessment, and reporting. Do not duplicate those instructions here.
-
-### 2. Handle Reviewer Result
-
-**On APPROVED:**
-```bash
-bd update <task-id> --set-labels approved --json
-bd close <task-id> --reason "Implemented and reviewed" --json
+**Test Quality Reviewer:**
 ```
-→ Task is complete. Any tasks that depended on this one are now unblocked.
+ROLE: Test Quality Reviewer
+SKILL: Read and follow .claude/skills/reviewer-tests/SKILL.md
 
-**On CHANGES NEEDED (minor):**
-- Fix the issues directly yourself
-- Re-run quality gates
-- Spawn reviewer again to verify fixes
-- Close the task only after reviewer approves
-
-**On CHANGES NEEDED (major):**
-```bash
-bd update <task-id> --set-labels changes-needed --json
+WORKTREE: ../coding-tool-<work-name>
+BASE: origin/main
+SUMMARY: <what this PR implements>
 ```
-- Spawn new implementer with specific fix instructions
-- After implementer succeeds, spawn reviewer again
-- Close only after reviewer approves
+
+**Architecture Reviewer:**
+```
+ROLE: Architecture Reviewer
+SKILL: Read and follow .claude/skills/reviewer-architecture/SKILL.md
+
+WORKTREE: ../coding-tool-<work-name>
+BASE: origin/main
+SUMMARY: <what this PR implements>
+REFERENCE DIRS: <key directories in the existing codebase to compare against>
+```
+
+### 2. Handle Review Results
+
+Collect results from all 3 reviewers. For each issue found:
+
+**Trivial issues** (typos, minor naming, simple fixes):
+- Fix directly in the worktree yourself
+- Commit the fixes
+
+**Non-trivial issues** (bugs, missing tests, duplication, pattern divergence):
+- File a beads issue for each: `bd create "<issue>" -t bug -p 1 --json`
+- Spawn an implementer to fix it
+- Close the issue when fixed
+
+**After all issues are resolved**, re-run quality gates to verify everything still passes, then proceed to PR creation.
 
 ## PR and CI Phase
 
 ### When to Create PR
 
 Create a PR at milestones:
-- End of an epic (all subtasks complete)
+- End of an epic (all subtasks complete and reviews pass)
 - Logical checkpoint in large work
 - Before context gets too large
 
@@ -229,18 +221,11 @@ Before creating PR, verify in the worktree:
 
 ```bash
 cd ../coding-tool-<work-name>
-
-# All tests pass
 npm test
-
-# No type errors
 npx tsc --noEmit
-
-# E2E tests pass locally (REQUIRED before pushing)
-npm run test:e2e
 ```
 
-**Do NOT create PR if any of these fail.** Fix locally first - never debug via CI.
+**Do NOT create PR if any checks fail.** Fix locally first — never debug via CI.
 
 ### Create PR
 
@@ -255,11 +240,10 @@ gh pr create --title "<type>: <title>" --body "$(cat <<'EOF'
 <list of significant changes>
 
 ## Test plan
-- [ ] Unit tests pass
-- [ ] E2E tests pass
+- [ ] Tests pass
 - [ ] <manual verification steps if any>
 
-🤖 Generated with Claude Code
+Generated with Claude Code
 EOF
 )"
 ```
@@ -308,42 +292,15 @@ git pull origin main
 bd close <epic-id> --reason "Merged in PR #<number>" --json
 ```
 
-## Error Recovery
-
-### Implementer Keeps Failing
-
-After 2 failed attempts on the same task:
-1. Stop delegating
-2. Investigate the issue yourself
-3. Either fix directly or file a blocking issue explaining the problem
-
-### Reviewer and Implementer Disagree
-
-If review keeps finding issues after multiple implementation attempts:
-1. Review the requirements - are they clear?
-2. Consider if the task needs to be broken down differently
-3. Escalate to user if fundamental approach is unclear
-
-### Merge Conflicts
-
-If worktree has conflicts with main:
-```bash
-cd ../coding-tool-<work-name>
-git fetch origin main
-git rebase origin/main
-# Resolve conflicts
-git push --force-with-lease
-```
-
 ## Summary: Who Does What
 
-| Action | Implementer | Reviewer | Coordinator |
-|--------|-------------|----------|-------------|
+| Action | Implementer | Reviewers | Coordinator |
+|--------|-------------|-----------|-------------|
 | Write code | ✓ | | |
 | Write tests | ✓ | | |
 | Commit & push | ✓ | | ✓ (fixes) |
 | Run quality gates | ✓ | ✓ | ✓ |
-| Review code | | ✓ | |
+| Review code (per-PR) | | ✓ | |
 | Create blocking issues | | ✓ | ✓ |
 | Update labels | | | ✓ |
 | Close issues | | | ✓ |
@@ -352,14 +309,11 @@ git push --force-with-lease
 
 ## Anti-Patterns
 
-- ❌ **Skipping review** - Every implementation MUST be reviewed before closing
-- ❌ **Starting dependent task before blocker is closed** - If B depends on A, wait for A to be closed (reviewed) first
-- ❌ **Batching implementations without reviews** - Don't implement A, B, C then review all; review each before closing
-- ❌ **Parallelizing tasks that touch same files** - Creates merge conflicts
-- ❌ **Missing dependencies** - If you notice Task X should block Task Y, add the dependency with `bd dep add`
-- ❌ Closing tasks before review is complete
-- ❌ Creating PR with failing tests
-- ❌ Merging without user approval
-- ❌ Leaving orphaned worktrees/branches
-- ❌ Trusting implementer's "done" without spawning reviewer
-- ❌ Running npm install concurrently in multiple worktrees
+- ❌ **Starting dependent task before blocker is closed** — If B depends on A, wait for A to be closed first
+- ❌ **Parallelizing tasks that touch same files** — Creates merge conflicts
+- ❌ **Creating PR before running specialized reviews** — Always run all 3 reviewers first
+- ❌ **Creating PR with failing tests** — Fix locally first
+- ❌ **Merging without user approval**
+- ❌ **Leaving orphaned worktrees/branches**
+- ❌ **Running dependency install concurrently in multiple worktrees**
+- ❌ **Fixing non-trivial review issues inline** — File issues and spawn implementers instead
