@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { useRealtimeSession } from '@/hooks/useRealtimeSession';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSessionHistory } from '@/hooks/useSessionHistory';
@@ -16,6 +16,7 @@ import { ConnectionStatus } from '@/components/ConnectionStatus';
 
 function StudentPage() {
   const { user } = useAuth();
+  const router = useRouter();
   const searchParams = useSearchParams();
   const sessionIdFromUrl = searchParams.get('sessionId');
   const { refetch: refetchSessions } = useSessionHistory();
@@ -89,6 +90,16 @@ function StudentPage() {
     // Join the session from the URL
     if (isConnected && session) {
       joinAttemptedRef.current = sessionIdFromUrl;
+
+      // If session is completed, skip joining and show read-only view
+      if (session.status === 'completed') {
+        setJoined(true);
+        setStudentId(user.id);
+        setSessionEnded(true);
+        setError(null);
+        return;
+      }
+
       setIsJoining(true);
 
       joinSession(user.id, user.displayName || user.email || 'Student')
@@ -132,30 +143,22 @@ function StudentPage() {
   }, [session?.status]);
 
   // Debounced code update (keeping 500ms to match original behavior)
+  // Skip saving when session has ended (API would reject it anyway)
   useEffect(() => {
-    if (!joined || !studentId || !sessionIdFromUrl) return;
+    if (!joined || !studentId || !sessionIdFromUrl || sessionEnded) return;
 
     const timeout = setTimeout(() => {
       realtimeUpdateCode(studentId, code, studentExecutionSettings || undefined);
     }, 500);
 
     return () => clearTimeout(timeout);
-  }, [code, joined, studentId, sessionIdFromUrl, studentExecutionSettings, realtimeUpdateCode]);
+  }, [code, joined, studentId, sessionIdFromUrl, sessionEnded, studentExecutionSettings, realtimeUpdateCode]);
 
-  const handleLeaveSession = () => {
-    // Reset session state
-    setJoined(false);
-    setStudentId(null);
-    setProblem(null);
-    setSessionExecutionSettings({});
-    setStudentExecutionSettings(null);
-    setCode('');
-    setExecutionResult(null);
-    setSessionEnded(false);
-
-    // Refresh sessions
+  const handleLeaveSession = useCallback(() => {
+    // Navigate to sections page
     refetchSessions();
-  };
+    router.push('/sections');
+  }, [refetchSessions, router]);
 
   const editorRef = useRef<any>(null);
 
@@ -311,17 +314,13 @@ function StudentPage() {
         />
       )}
 
-      {/* Session Ended Notification - rendered as overlay inside EditorContainer */}
+      {/* Session Ended Banner */}
       {sessionEnded && (
-        <div className="absolute inset-0 z-50">
-          <SessionEndedNotification
-            onLeaveToDashboard={handleLeaveSession}
-            code={code}
-            codeSaved={true}
-            onTimeout={handleLeaveSession}
-            countdownSeconds={30}
-          />
-        </div>
+        <SessionEndedNotification
+          onLeaveToDashboard={handleLeaveSession}
+          code={code}
+          codeSaved={true}
+        />
       )}
 
       <EditorContainer variant="flex">
