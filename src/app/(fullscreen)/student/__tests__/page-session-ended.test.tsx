@@ -95,6 +95,7 @@ describe('Student Page - Session Ended Detection', () => {
     jest.clearAllMocks();
     mockCodeEditorProps.mockClear();
     mockPush.mockClear();
+    sessionStorage.clear();
   });
 
   it('should not show SessionEndedNotification when session is active', async () => {
