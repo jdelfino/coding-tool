@@ -193,9 +193,11 @@ export async function addStudent(
     session.participants.push(userId);
   }
 
-  // Persist
+  // Persist - only upsert the single student being added, not all students.
+  // RLS policies restrict students to updating their own rows (user_id = auth.uid()).
+  const singleStudentMap = new Map([[userId, student]]);
   await storage.sessions.updateSession(session.id, {
-    students: session.students,
+    students: singleStudentMap,
     participants: session.participants,
     lastActivity: new Date(),
   });
@@ -228,8 +230,12 @@ export async function updateStudentCode(
     };
   }
 
+  // Only upsert the single student being updated, not all students.
+  // RLS policies restrict students to updating their own rows (user_id = auth.uid()),
+  // so sending all students would fail for any student besides the caller.
+  const singleStudentMap = new Map([[userId, student]]);
   await storage.sessions.updateSession(session.id, {
-    students: session.students,
+    students: singleStudentMap,
     lastActivity: new Date(),
   });
 }

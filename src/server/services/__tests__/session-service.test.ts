@@ -226,6 +226,88 @@ describe('session-service', () => {
     });
   });
 
+  describe('updateStudentCode', () => {
+    it('only upserts the single student being updated, not all students', async () => {
+      const storage = createMockStorage();
+      const session: Session = {
+        id: 'session-1',
+        namespaceId: 'default',
+        problem: {
+          id: 'prob-1',
+          namespaceId: 'default',
+          title: 'Test',
+          description: '',
+          starterCode: '',
+          authorId: 'a',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+        students: new Map([
+          ['user-1', { userId: 'user-1', name: 'Alice', code: 'old', lastUpdate: new Date() }],
+          ['user-2', { userId: 'user-2', name: 'Bob', code: 'bob-code', lastUpdate: new Date() }],
+        ]),
+        participants: ['user-1', 'user-2'],
+        createdAt: new Date(),
+        lastActivity: new Date(),
+        creatorId: 'instructor-1',
+        status: 'active',
+        sectionId: 'section-1',
+        sectionName: 'Test',
+      };
+
+      await updateStudentCode(storage as any, session, 'user-1', 'new-code');
+
+      const updateCall = storage.sessions.updateSession.mock.calls[0];
+      const studentsMap = updateCall[1].students as Map<string, any>;
+
+      // Should only contain the updated student, not all students
+      expect(studentsMap.size).toBe(1);
+      expect(studentsMap.has('user-1')).toBe(true);
+      expect(studentsMap.has('user-2')).toBe(false);
+      expect(studentsMap.get('user-1').code).toBe('new-code');
+    });
+  });
+
+  describe('addStudent - RLS safety', () => {
+    it('only upserts the single student being added, not all students', async () => {
+      const storage = createMockStorage();
+      const session: Session = {
+        id: 'session-1',
+        namespaceId: 'default',
+        problem: {
+          id: 'prob-1',
+          namespaceId: 'default',
+          title: 'Test',
+          description: '',
+          starterCode: 'print("starter")',
+          authorId: 'a',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+        students: new Map([
+          ['user-1', { userId: 'user-1', name: 'Alice', code: 'alice-code', lastUpdate: new Date() }],
+        ]),
+        participants: ['user-1'],
+        createdAt: new Date(),
+        lastActivity: new Date(),
+        creatorId: 'instructor-1',
+        status: 'active',
+        sectionId: 'section-1',
+        sectionName: 'Test',
+      };
+
+      await addStudent(storage as any, session, 'user-2', 'Bob');
+
+      const updateCall = storage.sessions.updateSession.mock.calls[0];
+      const studentsMap = updateCall[1].students as Map<string, any>;
+
+      // Should only contain the new student, not all students
+      expect(studentsMap.size).toBe(1);
+      expect(studentsMap.has('user-2')).toBe(true);
+      expect(studentsMap.has('user-1')).toBe(false);
+    });
+  });
+
   describe('getStudentData', () => {
     it('merges problem and student execution settings', () => {
       const session: Session = {
