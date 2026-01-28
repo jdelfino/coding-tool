@@ -31,6 +31,7 @@ interface SessionStateFromAPI {
   joinCode?: string;
   problem?: Problem | null;
   status?: 'active' | 'completed';
+  featuredStudentId?: string | null;
 }
 
 export default function InstructorSessionPage() {
@@ -270,6 +271,7 @@ export default function InstructorSessionPage() {
           onUpdateProblem={handleUpdateProblem}
           onFeatureStudent={handleFeatureStudent}
           executeCode={handleExecuteCode}
+          featuredStudentId={realtimeSession?.featuredStudentId}
         />
       )}
     </div>
