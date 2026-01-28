@@ -11,6 +11,12 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import CodeEditor from '../CodeEditor';
 
+// Mock lucide-react icons
+jest.mock('lucide-react', () => ({
+  Undo2: (props: any) => <svg data-testid="undo-icon" {...props} />,
+  Redo2: (props: any) => <svg data-testid="redo-icon" {...props} />,
+}));
+
 // Mock Monaco Editor with undo/redo support
 let mockEditorInstance: any;
 jest.mock('@monaco-editor/react', () => {
@@ -226,6 +232,21 @@ describe('CodeEditor Undo/Redo Functionality', () => {
     expect(() => fireEvent.click(undoButton)).not.toThrow();
 
     jest.restoreAllMocks();
+  });
+
+  it('should render Lucide Undo2 and Redo2 icons inside the buttons', () => {
+    const mockOnChange = jest.fn();
+
+    render(
+      <CodeEditor
+        code="print('hello')"
+        onChange={mockOnChange}
+        readOnly={false}
+      />
+    );
+
+    expect(screen.getByTestId('undo-icon')).toBeInTheDocument();
+    expect(screen.getByTestId('redo-icon')).toBeInTheDocument();
   });
 
   it('should display undo/redo buttons with proper styling', () => {
