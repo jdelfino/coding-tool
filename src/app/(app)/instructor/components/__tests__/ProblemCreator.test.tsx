@@ -98,6 +98,14 @@ describe('ProblemCreator Component', () => {
     (global.fetch as jest.Mock).mockClear();
   });
 
+  describe('Layout', () => {
+    it('should use flex layout classes for full-height rendering', () => {
+      const { container } = render(<ProblemCreator />);
+      const outerDiv = container.firstElementChild;
+      expect(outerDiv).toHaveClass('flex-1', 'min-h-0', 'flex', 'flex-col');
+    });
+  });
+
   describe('Create Mode', () => {
     it('should render form in create mode when no problemId provided', () => {
       render(<ProblemCreator />);

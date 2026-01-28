@@ -78,6 +78,31 @@ describe('ProblemsPage', () => {
     expect(screen.getByTestId('editing-problem-id')).toHaveTextContent('problem-1');
   });
 
+  it('uses full-height flex layout when showing creator', () => {
+    render(<ProblemsPageWrapper />);
+
+    fireEvent.click(screen.getByTestId('create-new-btn'));
+
+    // The creator wrapper should use full-height flex layout
+    const creatorWrapper = screen.getByTestId('problem-creator').parentElement;
+    expect(creatorWrapper).toHaveClass('h-full', 'flex', 'flex-col', '-m-6');
+  });
+
+  it('does not show namespace header when creator is open', () => {
+    render(<ProblemsPageWrapper />);
+
+    fireEvent.click(screen.getByTestId('create-new-btn'));
+
+    expect(screen.queryByTestId('namespace-header')).not.toBeInTheDocument();
+  });
+
+  it('uses space-y-6 layout when showing library', () => {
+    render(<ProblemsPageWrapper />);
+
+    const libraryWrapper = screen.getByTestId('problem-library').parentElement;
+    expect(libraryWrapper).toHaveClass('space-y-6');
+  });
+
   it('returns to library when canceling from creator', () => {
     render(<ProblemsPageWrapper />);
 
