@@ -15,7 +15,7 @@ bd hooks install 2>/dev/null || true
 # Install Claude Code
 curl -fsSL https://claude.ai/install.sh | bash
 
-# Fix ownership of node_modules volume (Docker volumes default to root)
+# Fix ownership of node_modules volume (Docker named volumes default to root)
 sudo chown vscode:vscode /workspaces/coding-tool/node_modules
 
 # Project-specific tools
