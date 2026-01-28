@@ -35,6 +35,14 @@ jest.mock('next/navigation', () => ({
   useSearchParams: () => ({
     get: (key: string) => key === 'sessionId' ? 'session-123' : null,
   }),
+  useRouter: () => ({
+    push: jest.fn(),
+    replace: jest.fn(),
+    back: jest.fn(),
+    forward: jest.fn(),
+    refresh: jest.fn(),
+    prefetch: jest.fn(),
+  }),
 }));
 jest.mock('../components/CodeEditor', () => ({
   __esModule: true,
