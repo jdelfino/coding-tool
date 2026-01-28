@@ -5,9 +5,9 @@
 /**
  * Tests for student page viewport layout
  *
- * The student session page should fill the viewport like an app/codespace,
- * not scroll like a webpage. Overflow must be contained, and the header
- * must be compact to maximize editor space.
+ * The student session page should fill the viewport like an app/codespace.
+ * No page-level header or toolbar — the editor should be the main content,
+ * with connection status shown in the global app navbar via HeaderSlotContext.
  */
 
 import React from 'react';
@@ -27,6 +27,10 @@ jest.mock('@/contexts/AuthContext', () => ({
     user: { id: 'user-1', username: 'TestStudent' },
     signOut: jest.fn(),
   }),
+}));
+const mockSetHeaderSlot = jest.fn();
+jest.mock('@/contexts/HeaderSlotContext', () => ({
+  useHeaderSlot: () => ({ setHeaderSlot: mockSetHeaderSlot }),
 }));
 jest.mock('@/components/ProtectedRoute', () => ({
   ProtectedRoute: ({ children }: { children: React.ReactNode }) => <>{children}</>,
@@ -81,6 +85,7 @@ describe('Student Page - Viewport Layout', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    sessionStorage.clear();
   });
 
   it('should have overflow-hidden on main to prevent page-level scrolling', async () => {
@@ -96,35 +101,7 @@ describe('Student Page - Viewport Layout', () => {
     expect(main).toHaveClass('overflow-hidden');
   });
 
-  it('should use compact text size for the header title', async () => {
-    mockUseRealtimeSession.mockReturnValue(activeSessionState);
-
-    render(<StudentPage />);
-
-    await waitFor(() => {
-      expect(screen.getByText('Live Coding Session')).toBeInTheDocument();
-    });
-
-    const heading = screen.getByText('Live Coding Session');
-    expect(heading).toHaveClass('text-lg');
-  });
-
-  it('should use compact spacing on the header row', async () => {
-    mockUseRealtimeSession.mockReturnValue(activeSessionState);
-
-    render(<StudentPage />);
-
-    await waitFor(() => {
-      expect(screen.getByText('Live Coding Session')).toBeInTheDocument();
-    });
-
-    const heading = screen.getByText('Live Coding Session');
-    const headerRow = heading.closest('div.flex');
-    // Parent header row should have mb-2 not mb-4
-    expect(headerRow?.parentElement).toHaveClass('mb-2');
-  });
-
-  it('should use compact padding on main element', async () => {
+  it('should use h-full instead of h-screen to fit within AppShell', async () => {
     mockUseRealtimeSession.mockReturnValue(activeSessionState);
 
     render(<StudentPage />);
@@ -134,7 +111,32 @@ describe('Student Page - Viewport Layout', () => {
     });
 
     const main = screen.getByTestId('code-editor').closest('main');
-    expect(main).toHaveClass('p-2');
-    expect(main).toHaveClass('px-4');
+    expect(main).toHaveClass('h-full');
+    expect(main).not.toHaveClass('h-screen');
+  });
+
+  it('should not render a page-level header or Leave Session button', async () => {
+    mockUseRealtimeSession.mockReturnValue(activeSessionState);
+
+    render(<StudentPage />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('code-editor')).toBeInTheDocument();
+    });
+
+    expect(screen.queryByText('Live Coding Session')).not.toBeInTheDocument();
+    expect(screen.queryByText('Leave Session')).not.toBeInTheDocument();
+  });
+
+  it('should set connection status in the global header slot', async () => {
+    mockUseRealtimeSession.mockReturnValue(activeSessionState);
+
+    render(<StudentPage />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('code-editor')).toBeInTheDocument();
+    });
+
+    expect(mockSetHeaderSlot).toHaveBeenCalled();
   });
 });

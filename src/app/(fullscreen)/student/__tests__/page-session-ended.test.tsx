@@ -36,6 +36,9 @@ jest.mock('@/contexts/AuthContext', () => ({
 jest.mock('@/components/ProtectedRoute', () => ({
   ProtectedRoute: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
+jest.mock('@/contexts/HeaderSlotContext', () => ({
+  useHeaderSlot: () => ({ setHeaderSlot: jest.fn() }),
+}));
 jest.mock('next/navigation', () => ({
   useSearchParams: () => ({
     get: (key: string) => key === 'sessionId' ? 'session-123' : null,

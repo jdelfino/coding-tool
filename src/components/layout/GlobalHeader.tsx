@@ -8,6 +8,7 @@
 import { Menu } from 'lucide-react';
 import { ActiveSessionBanner } from './ActiveSessionBanner';
 import { UserMenu } from './UserMenu';
+import { useHeaderSlot } from '@/contexts/HeaderSlotContext';
 
 interface GlobalHeaderProps {
   /** Callback when mobile menu button is clicked */
@@ -17,6 +18,8 @@ interface GlobalHeaderProps {
 }
 
 export function GlobalHeader({ onMobileMenuToggle, showMobileMenu = false }: GlobalHeaderProps) {
+  const { headerSlot } = useHeaderSlot();
+
   return (
     <header className="h-14 bg-white border-b border-gray-200 flex items-center justify-between px-4 flex-shrink-0">
       {/* Left section: Logo and mobile menu */}
@@ -44,8 +47,9 @@ export function GlobalHeader({ onMobileMenuToggle, showMobileMenu = false }: Glo
         <ActiveSessionBanner />
       </div>
 
-      {/* Right section: User menu */}
-      <div className="flex items-center">
+      {/* Right section: Header slot (e.g., connection status) + User menu */}
+      <div className="flex items-center gap-3">
+        {headerSlot}
         <UserMenu />
       </div>
     </header>

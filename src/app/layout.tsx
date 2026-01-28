@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { AuthProvider } from '@/contexts/AuthContext'
+import { HeaderSlotProvider } from '@/contexts/HeaderSlotContext'
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -16,7 +17,9 @@ export default function RootLayout({
     <html lang="en">
       <body>
         <AuthProvider>
-          {children}
+          <HeaderSlotProvider>
+            {children}
+          </HeaderSlotProvider>
         </AuthProvider>
       </body>
     </html>

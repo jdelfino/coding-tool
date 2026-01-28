@@ -21,6 +21,8 @@ interface AppShellProps {
   showRightPanels?: boolean;
   /** Right panel content */
   rightPanels?: ReactNode;
+  /** Fullscreen mode: no padding, no scroll on main content area */
+  fullscreen?: boolean;
 }
 
 export function AppShell({
@@ -28,6 +30,7 @@ export function AppShell({
   sidebarCollapsed: sidebarCollapsedProp,
   showRightPanels = true,
   rightPanels,
+  fullscreen = false,
 }: AppShellProps) {
   const [storedCollapsed, , toggleCollapsed] = useSidebarCollapsed();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
@@ -61,7 +64,7 @@ export function AppShell({
         </Suspense>
 
         {/* Main content */}
-        <main className="flex-1 overflow-auto p-6">
+        <main className={`flex-1 ${fullscreen ? 'overflow-hidden' : 'overflow-auto p-6'}`}>
           {children}
         </main>
 

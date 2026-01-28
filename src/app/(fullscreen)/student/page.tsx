@@ -13,10 +13,12 @@ import CodeEditor from './components/CodeEditor';
 import { EditorContainer } from './components/EditorContainer';
 import SessionEndedNotification from './components/SessionEndedNotification';
 import { ConnectionStatus } from '@/components/ConnectionStatus';
+import { useHeaderSlot } from '@/contexts/HeaderSlotContext';
 
 function StudentPage() {
   const { user } = useAuth();
   const router = useRouter();
+  const { setHeaderSlot } = useHeaderSlot();
   const searchParams = useSearchParams();
   const sessionIdFromUrl = searchParams.get('sessionId');
   const { refetch: refetchSessions } = useSessionHistory();
@@ -61,6 +63,20 @@ function StudentPage() {
 
   // Debugger state - uses API-based trace requests
   const debuggerHook = useApiDebugger(sessionIdFromUrl);
+
+  // Show connection status in the global header
+  useEffect(() => {
+    if (joined) {
+      setHeaderSlot(
+        <ConnectionStatus
+          status={connectionStatus}
+          error={connectionError}
+          variant="badge"
+        />
+      );
+    }
+    return () => setHeaderSlot(null);
+  }, [joined, connectionStatus, connectionError, setHeaderSlot]);
 
   // Track if we've already initiated a join for this sessionId to prevent loops
   const joinAttemptedRef = useRef<string | null>(null);
@@ -287,40 +303,20 @@ function StudentPage() {
 
   // Active session view
   return (
-    <main className="p-2 px-4 w-full h-screen box-border flex flex-col relative overflow-hidden">
-      {/* Header */}
-      <div className="flex justify-between items-center mb-2 flex-shrink-0">
-        <div className="flex items-center gap-4">
-          <h1 className="m-0 text-lg">Live Coding Session</h1>
-          <ConnectionStatus
-            status={connectionStatus}
-            error={connectionError}
-            variant="badge"
-          />
-        </div>
-        <button
-          onClick={handleLeaveSession}
-          className="px-4 py-2 bg-transparent text-blue-500 border border-blue-500 rounded cursor-pointer text-sm hover:bg-blue-50"
-        >
-          Leave Session
-        </button>
-      </div>
-
-      {/* Connection Error */}
+    <main className="w-full h-full box-border flex flex-col relative overflow-hidden">
+      {/* Errors - shown inline above editor */}
       {connectionError && (
         <ErrorAlert
           error={connectionError}
           variant="warning"
-          className="mb-4 flex-shrink-0"
+          className="mx-3 my-1 flex-shrink-0"
         />
       )}
-
-      {/* Application Error */}
       {error && (
         <ErrorAlert
           error={error}
           onDismiss={() => setError(null)}
-          className="mb-4 flex-shrink-0"
+          className="mx-3 my-1 flex-shrink-0"
         />
       )}
 

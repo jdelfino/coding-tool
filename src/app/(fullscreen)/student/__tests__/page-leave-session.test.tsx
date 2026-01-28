@@ -36,6 +36,9 @@ jest.mock('@/contexts/AuthContext', () => ({
 jest.mock('@/components/ProtectedRoute', () => ({
   ProtectedRoute: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
+jest.mock('@/contexts/HeaderSlotContext', () => ({
+  useHeaderSlot: () => ({ setHeaderSlot: jest.fn() }),
+}));
 jest.mock('next/navigation', () => ({
   useSearchParams: () => ({
     get: (key: string) => key === 'sessionId' ? 'session-123' : null,
@@ -87,35 +90,6 @@ describe('Student Page - Leave Session', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     sessionStorage.clear();
-  });
-
-  it('should navigate to /sections when Leave Session is clicked', async () => {
-    mockUseRealtimeSession.mockReturnValue(baseSessionState);
-
-    render(<StudentPage />);
-
-    // Wait for join to complete
-    await waitFor(() => {
-      expect(screen.getByText('Leave Session')).toBeInTheDocument();
-    });
-
-    fireEvent.click(screen.getByText('Leave Session'));
-
-    expect(mockRouterPush).toHaveBeenCalledWith('/sections');
-  });
-
-  it('should store left-session flag in sessionStorage when leaving', async () => {
-    mockUseRealtimeSession.mockReturnValue(baseSessionState);
-
-    render(<StudentPage />);
-
-    await waitFor(() => {
-      expect(screen.getByText('Leave Session')).toBeInTheDocument();
-    });
-
-    fireEvent.click(screen.getByText('Leave Session'));
-
-    expect(sessionStorage.getItem('left-session:session-123')).toBe('true');
   });
 
   it('should not auto-join when left-session flag is set in sessionStorage', async () => {

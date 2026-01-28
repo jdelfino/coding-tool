@@ -41,7 +41,7 @@ export default function FullscreenLayout({ children }: { children: React.ReactNo
   return (
     <ActiveSessionProvider>
       <PanelProvider pageId="fullscreen">
-        <AppShell sidebarCollapsed={true} showRightPanels={false}>
+        <AppShell sidebarCollapsed={true} showRightPanels={false} fullscreen={true}>
           {children}
         </AppShell>
       </PanelProvider>
