@@ -19,10 +19,10 @@ curl -fsSL https://claude.ai/install.sh | bash
 sudo chown vscode:vscode /workspaces/coding-tool/node_modules
 
 # Project-specific tools
+npm install
 npx playwright install-deps chromium
 npx playwright install chromium
 "$SCRIPT_DIR/install-nsjail.sh"
-npm install
 
 # Configure 1Password vault access
 "$SCRIPT_DIR/setup.sh"
