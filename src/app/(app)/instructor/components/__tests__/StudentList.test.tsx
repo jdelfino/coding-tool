@@ -139,4 +139,82 @@ describe('StudentList', () => {
       expect(screen.queryByRole('button', { name: /^Feature$/i })).not.toBeInTheDocument();
     });
   });
+
+  describe('Featured student indicator', () => {
+    const students = [
+      { id: 'student-1', name: 'Alice', hasCode: true },
+      { id: 'student-2', name: 'Bob', hasCode: false },
+    ];
+
+    it('should highlight the featured student row', () => {
+      render(
+        <StudentList
+          {...defaultProps}
+          students={students}
+          featuredStudentId="student-1"
+          onShowOnPublicView={mockOnShowOnPublicView}
+        />
+      );
+
+      expect(screen.getByText('Featured')).toBeInTheDocument();
+    });
+
+    it('should not show featured badge when no student is featured', () => {
+      render(
+        <StudentList
+          {...defaultProps}
+          students={students}
+          onShowOnPublicView={mockOnShowOnPublicView}
+        />
+      );
+
+      expect(screen.queryByText('Featured')).not.toBeInTheDocument();
+    });
+
+    it('should show featured badge only on the featured student', () => {
+      render(
+        <StudentList
+          {...defaultProps}
+          students={students}
+          featuredStudentId="student-2"
+          onShowOnPublicView={mockOnShowOnPublicView}
+        />
+      );
+
+      const featuredBadge = screen.getByText('Featured');
+      expect(featuredBadge).toBeInTheDocument();
+
+      const bobRow = screen.getByTestId('student-row-student-2');
+      expect(bobRow.className).toContain('border-emerald');
+
+      const aliceRow = screen.getByTestId('student-row-student-1');
+      expect(aliceRow.className).not.toContain('border-emerald');
+    });
+
+    it('should update highlight when featuredStudentId changes', () => {
+      const { rerender } = render(
+        <StudentList
+          {...defaultProps}
+          students={students}
+          featuredStudentId="student-1"
+          onShowOnPublicView={mockOnShowOnPublicView}
+        />
+      );
+
+      expect(screen.getByTestId('student-row-student-1').className).toContain('border-emerald');
+      expect(screen.getByTestId('student-row-student-2').className).not.toContain('border-emerald');
+
+      rerender(
+        <StudentList
+          {...defaultProps}
+          students={students}
+          featuredStudentId="student-2"
+          onShowOnPublicView={mockOnShowOnPublicView}
+        />
+      );
+
+      expect(screen.getByTestId('student-row-student-1').className).not.toContain('border-emerald');
+      expect(screen.getByTestId('student-row-student-2').className).toContain('border-emerald');
+    });
+  });
 });

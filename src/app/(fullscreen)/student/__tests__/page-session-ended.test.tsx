@@ -3,18 +3,21 @@
  */
 
 /**
- * Tests for session ended detection in student page
+ * Tests for session ended behavior in student page.
  *
- * Bug: sessionEnded state was defined but never set to true when
- * instructor closed the session (status changed to 'completed').
- *
- * Fix: Added useEffect to detect session.status === 'completed' and
- * set sessionEnded to true, which triggers SessionEndedNotification.
+ * Covers:
+ * - Session ended detection (active -> completed transition)
+ * - Read-only mode with banner (not overlay)
+ * - Navigation via handleLeaveSession
+ * - Graceful handling of navigating to a completed session
+ * - Code save skipped when session is ended
  */
 
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
+
+const mockPush = jest.fn();
 
 // Mock the hooks and components used by the student page
 jest.mock('@/hooks/useRealtimeSession');
@@ -36,6 +39,14 @@ jest.mock('@/components/ProtectedRoute', () => ({
 jest.mock('next/navigation', () => ({
   useSearchParams: () => ({
     get: (key: string) => key === 'sessionId' ? 'session-123' : null,
+  }),
+  useRouter: () => ({
+    push: mockPush,
+    replace: jest.fn(),
+    back: jest.fn(),
+    forward: jest.fn(),
+    refresh: jest.fn(),
+    prefetch: jest.fn(),
   }),
 }));
 // Mock CodeEditor to avoid Monaco complexity - capture props for testing
@@ -83,6 +94,8 @@ describe('Student Page - Session Ended Detection', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockCodeEditorProps.mockClear();
+    mockPush.mockClear();
+    sessionStorage.clear();
   });
 
   it('should not show SessionEndedNotification when session is active', async () => {
@@ -91,11 +104,11 @@ describe('Student Page - Session Ended Detection', () => {
     render(<StudentPage />);
 
     await waitFor(() => {
-      expect(screen.queryByText('Session Ended')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('session-ended-notification')).not.toBeInTheDocument();
     });
   });
 
-  it('should show SessionEndedNotification when session status is completed', async () => {
+  it('should show SessionEndedNotification as a banner when session status is completed', async () => {
     mockUseRealtimeSession.mockReturnValue({
       ...baseSessionState,
       session: {
@@ -108,8 +121,13 @@ describe('Student Page - Session Ended Detection', () => {
     render(<StudentPage />);
 
     await waitFor(() => {
-      expect(screen.getByText('Session Ended')).toBeInTheDocument();
+      expect(screen.getByTestId('session-ended-notification')).toBeInTheDocument();
     });
+
+    // Verify it is a banner (not an overlay)
+    const notification = screen.getByTestId('session-ended-notification');
+    expect(notification.className).not.toContain('absolute');
+    expect(notification.className).not.toContain('inset-0');
   });
 
   it('should show notification when session transitions from active to completed', async () => {
@@ -119,7 +137,7 @@ describe('Student Page - Session Ended Detection', () => {
     const { rerender } = render(<StudentPage />);
 
     // Verify no notification initially
-    expect(screen.queryByText('Session Ended')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('session-ended-notification')).not.toBeInTheDocument();
 
     // Simulate session ending (status changes to completed via Realtime)
     mockUseRealtimeSession.mockReturnValue({
@@ -134,7 +152,7 @@ describe('Student Page - Session Ended Detection', () => {
     rerender(<StudentPage />);
 
     await waitFor(() => {
-      expect(screen.getByText('Session Ended')).toBeInTheDocument();
+      expect(screen.getByTestId('session-ended-notification')).toBeInTheDocument();
     });
   });
 
@@ -195,7 +213,7 @@ describe('Student Page - Session Ended Detection', () => {
     });
   });
 
-  it('should display code saved message when session ends', async () => {
+  it('should not show countdown or auto-redirect', async () => {
     mockUseRealtimeSession.mockReturnValue({
       ...baseSessionState,
       session: {
@@ -208,11 +226,15 @@ describe('Student Page - Session Ended Detection', () => {
     render(<StudentPage />);
 
     await waitFor(() => {
-      expect(screen.getByText('Your code has been saved automatically.')).toBeInTheDocument();
+      expect(screen.getByTestId('session-ended-notification')).toBeInTheDocument();
     });
+
+    // No countdown should be present
+    expect(screen.queryByTestId('countdown-message')).not.toBeInTheDocument();
+    expect(screen.queryByText(/Returning to sections/)).not.toBeInTheDocument();
   });
 
-  it('should display message about not being able to run code', async () => {
+  it('should navigate to /sections when Back to Sections is clicked', async () => {
     mockUseRealtimeSession.mockReturnValue({
       ...baseSessionState,
       session: {
@@ -225,11 +247,17 @@ describe('Student Page - Session Ended Detection', () => {
     render(<StudentPage />);
 
     await waitFor(() => {
-      expect(screen.getByText('You can no longer run code, but you can copy your work below.')).toBeInTheDocument();
+      expect(screen.getByTestId('go-to-dashboard-button')).toBeInTheDocument();
     });
+
+    fireEvent.click(screen.getByTestId('go-to-dashboard-button'));
+
+    expect(mockPush).toHaveBeenCalledWith('/sections');
   });
 
-  it('should display countdown message with auto-redirect when session ends', async () => {
+  it('should handle navigating to a completed session without errors', async () => {
+    // Simulate navigating directly to a completed session
+    // The join API would reject this, but the page should handle it gracefully
     mockUseRealtimeSession.mockReturnValue({
       ...baseSessionState,
       session: {
@@ -242,12 +270,17 @@ describe('Student Page - Session Ended Detection', () => {
     render(<StudentPage />);
 
     await waitFor(() => {
-      expect(screen.getByTestId('countdown-message')).toBeInTheDocument();
-      expect(screen.getByText('Returning to sections in 30 seconds...')).toBeInTheDocument();
+      // Should show the editor in read-only mode
+      expect(screen.getByTestId('code-editor')).toBeInTheDocument();
+      // Should show the session ended banner
+      expect(screen.getByTestId('session-ended-notification')).toBeInTheDocument();
     });
+
+    // Should NOT have called joinSession (session is already completed)
+    expect(baseSessionState.joinSession).not.toHaveBeenCalled();
   });
 
-  it('should render session-ended notification as an overlay', async () => {
+  it('should show code editor alongside banner (not hidden behind overlay)', async () => {
     mockUseRealtimeSession.mockReturnValue({
       ...baseSessionState,
       session: {
@@ -260,10 +293,9 @@ describe('Student Page - Session Ended Detection', () => {
     render(<StudentPage />);
 
     await waitFor(() => {
-      const notification = screen.getByTestId('session-ended-notification');
-      expect(notification).toBeInTheDocument();
-      // Check it has overlay styling (z-50 class)
-      expect(notification.className).toContain('z-50');
+      // Both the banner and the editor should be visible
+      expect(screen.getByTestId('session-ended-notification')).toBeInTheDocument();
+      expect(screen.getByTestId('code-editor')).toBeInTheDocument();
     });
   });
 });

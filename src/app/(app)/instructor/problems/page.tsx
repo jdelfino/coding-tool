@@ -31,6 +31,18 @@ function ProblemsPage() {
     setEditingProblemId(null);
   };
 
+  if (showCreator) {
+    return (
+      <div className="h-full flex flex-col -m-6">
+        <ProblemCreator
+          problemId={editingProblemId}
+          onCancel={handleCloseCreator}
+          onProblemCreated={handleCloseCreator}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Page header */}
@@ -39,18 +51,10 @@ function ProblemsPage() {
       </div>
 
       {/* Main content */}
-      {showCreator ? (
-        <ProblemCreator
-          problemId={editingProblemId}
-          onCancel={handleCloseCreator}
-          onProblemCreated={handleCloseCreator}
-        />
-      ) : (
-        <ProblemLibrary
-          onCreateNew={handleCreateNew}
-          onEdit={handleEdit}
-        />
-      )}
+      <ProblemLibrary
+        onCreateNew={handleCreateNew}
+        onEdit={handleEdit}
+      />
     </div>
   );
 }
