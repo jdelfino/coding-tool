@@ -274,11 +274,11 @@ function StudentPage() {
 
   // Active session view
   return (
-    <main className="p-4 w-full h-screen box-border flex flex-col relative">
+    <main className="p-2 px-4 w-full h-screen box-border flex flex-col relative overflow-hidden">
       {/* Header */}
-      <div className="flex justify-between items-center mb-4 flex-shrink-0">
+      <div className="flex justify-between items-center mb-2 flex-shrink-0">
         <div className="flex items-center gap-4">
-          <h1 className="m-0">Live Coding Session</h1>
+          <h1 className="m-0 text-lg">Live Coding Session</h1>
           <ConnectionStatus
             status={connectionStatus}
             error={connectionError}
