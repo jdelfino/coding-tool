@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { useRealtimeSession } from '@/hooks/useRealtimeSession';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSessionHistory } from '@/hooks/useSessionHistory';
@@ -16,6 +16,7 @@ import { ConnectionStatus } from '@/components/ConnectionStatus';
 
 function StudentPage() {
   const { user } = useAuth();
+  const router = useRouter();
   const searchParams = useSearchParams();
   const sessionIdFromUrl = searchParams.get('sessionId');
   const { refetch: refetchSessions } = useSessionHistory();
@@ -86,6 +87,11 @@ function StudentPage() {
       return;
     }
 
+    // Check if the student explicitly left this session
+    if (sessionStorage.getItem(`left-session:${sessionIdFromUrl}`)) {
+      return;
+    }
+
     // Join the session from the URL
     if (isConnected && session) {
       joinAttemptedRef.current = sessionIdFromUrl;
@@ -143,6 +149,11 @@ function StudentPage() {
   }, [code, joined, studentId, sessionIdFromUrl, studentExecutionSettings, realtimeUpdateCode]);
 
   const handleLeaveSession = () => {
+    // Persist the "left" flag so auto-join doesn't re-join this session
+    if (sessionIdFromUrl) {
+      sessionStorage.setItem(`left-session:${sessionIdFromUrl}`, 'true');
+    }
+
     // Reset session state
     setJoined(false);
     setStudentId(null);
@@ -153,8 +164,9 @@ function StudentPage() {
     setExecutionResult(null);
     setSessionEnded(false);
 
-    // Refresh sessions
+    // Refresh sessions and navigate away
     refetchSessions();
+    router.push('/sections');
   };
 
   const editorRef = useRef<any>(null);

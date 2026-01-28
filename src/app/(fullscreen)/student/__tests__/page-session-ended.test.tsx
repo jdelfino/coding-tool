@@ -37,6 +37,9 @@ jest.mock('next/navigation', () => ({
   useSearchParams: () => ({
     get: (key: string) => key === 'sessionId' ? 'session-123' : null,
   }),
+  useRouter: () => ({
+    push: jest.fn(),
+  }),
 }));
 // Mock CodeEditor to avoid Monaco complexity - capture props for testing
 const mockCodeEditorProps = jest.fn();
