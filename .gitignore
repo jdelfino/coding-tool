@@ -19,6 +19,7 @@ out/
 .env.prod
 .op-token
 .op-vault
+.gh-token
 
 # IDE
 .idea/
