@@ -63,6 +63,8 @@ interface SessionStudentPaneProps {
   onViewHistory?: (studentId: string, studentName: string) => void;
   /** Callback to execute student code */
   onExecuteCode?: (studentId: string, code: string, settings: ExecutionSettings) => Promise<ExecutionResult | undefined>;
+  /** ID of the currently featured student */
+  featuredStudentId?: string | null;
 }
 
 /**
@@ -80,6 +82,7 @@ export function SessionStudentPane({
   onShowOnPublicView,
   onViewHistory,
   onExecuteCode,
+  featuredStudentId,
 }: SessionStudentPaneProps) {
   // Local state for student selection and code
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
@@ -131,6 +134,7 @@ export function SessionStudentPane({
           onShowOnPublicView={onShowOnPublicView}
           onViewHistory={onViewHistory}
           joinCode={joinCode}
+          featuredStudentId={featuredStudentId}
         />
       </div>
 

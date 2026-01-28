@@ -94,6 +94,8 @@ interface SessionViewProps {
   ) => Promise<ExecutionResult>;
   /** Callback when problem is loaded from library */
   onProblemLoaded?: (problemId: string) => void;
+  /** ID of the currently featured student */
+  featuredStudentId?: string | null;
 }
 
 type SessionTab = 'students' | 'problem' | 'walkthrough';
@@ -120,6 +122,7 @@ export function SessionView({
   onFeatureStudent,
   executeCode,
   onProblemLoaded,
+  featuredStudentId,
 }: SessionViewProps) {
   // Tab state
   const [activeTab, setActiveTab] = useState<SessionTab>('students');
@@ -204,6 +207,7 @@ export function SessionView({
             onShowOnPublicView={onFeatureStudent}
             onViewHistory={handleViewRevisions}
             onExecuteCode={handleExecuteCode}
+            featuredStudentId={featuredStudentId}
           />
         </Tabs.Panel>
 
