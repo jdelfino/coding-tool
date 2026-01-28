@@ -153,7 +153,7 @@ export default function ProblemCreator({
   const debuggerHook = useDebugger(noopSendMessage);
 
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+    <div className="flex-1 min-h-0 flex flex-col">
       {/* Compact header bar matching student view style */}
       <div style={{
         flexShrink: 0,
