@@ -9,6 +9,7 @@ import type { ExecutionSettings } from '@/server/types/problem';
 import { useResponsiveLayout, useSidebarSection, useMobileViewport } from '@/hooks/useResponsiveLayout';
 import type { Problem } from '@/server/types/problem';
 import type * as Monaco from 'monaco-editor';
+import { Undo2, Redo2 } from 'lucide-react';
 
 interface ExecutionResult {
   success: boolean;
@@ -444,7 +445,7 @@ export default function CodeEditor({
                 title="Undo (Ctrl+Z)"
                 aria-label="Undo"
               >
-                ↶
+                <Undo2 size={16} />
               </button>
               <button
                 type="button"
@@ -453,7 +454,7 @@ export default function CodeEditor({
                 title="Redo (Ctrl+Y)"
                 aria-label="Redo"
               >
-                ↷
+                <Redo2 size={16} />
               </button>
             </>
           )}
