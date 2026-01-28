@@ -1,9 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card } from '@/components/ui/Card';
 import type { Session } from '@/server/types';
+
+export const ACTIVE_SESSION_POLL_INTERVAL_MS = 10000;
 
 interface SectionWithClass {
   id: string;
@@ -29,8 +31,8 @@ export default function SectionCard({ section, getActiveSessions }: SectionCardP
 
   useEffect(() => {
     loadActiveSessions();
-    // Poll for active sessions every 30 seconds
-    const interval = setInterval(loadActiveSessions, 30000);
+    // Poll for active sessions
+    const interval = setInterval(loadActiveSessions, ACTIVE_SESSION_POLL_INTERVAL_MS);
     return () => clearInterval(interval);
   }, [section.id]);
 
@@ -100,8 +102,8 @@ export default function SectionCard({ section, getActiveSessions }: SectionCardP
           <div className="mt-4 pt-4 border-t border-gray-200">
             <div className="space-y-2">
               {activeSessions.map((session) => (
-                <div 
-                  key={session.id} 
+                <div
+                  key={session.id}
                   className="flex items-center justify-between bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 p-4 rounded-lg hover:border-green-300 transition-colors"
                 >
                   <div className="flex items-center gap-4 flex-1 min-w-0">

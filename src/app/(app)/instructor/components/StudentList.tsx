@@ -18,9 +18,10 @@ interface StudentListProps {
   onViewHistory?: (studentId: string, studentName: string) => void;
   joinCode?: string;
   isLoading?: boolean;
+  featuredStudentId?: string | null;
 }
 
-export default function StudentList({ students, onSelectStudent, onShowOnPublicView, onViewHistory, joinCode, isLoading = false }: StudentListProps) {
+export default function StudentList({ students, onSelectStudent, onShowOnPublicView, onViewHistory, joinCode, isLoading = false, featuredStudentId }: StudentListProps) {
   return (
     <Card variant="default" className="p-4">
       <h3 className="text-lg font-semibold text-gray-900 mb-3">Connected Students ({students.length})</h3>
@@ -49,54 +50,65 @@ export default function StudentList({ students, onSelectStudent, onShowOnPublicV
         </div>
       ) : (
         <div className="space-y-2">
-          {students.map((student) => (
-            <div
-              key={student.id}
-              className={`p-3 border border-gray-200 rounded flex flex-col gap-2 ${
-                student.hasCode ? 'bg-blue-50' : 'bg-white'
-              }`}
-            >
-              <div className="flex items-center gap-3 min-w-0">
-                <span className="font-semibold text-gray-900 truncate">{student.name}</span>
-                <Badge variant={student.hasCode ? 'success' : 'default'} className="shrink-0">
-                  {student.hasCode ? 'Has code' : 'No code yet'}
-                </Badge>
-              </div>
-              <div className="flex gap-2 flex-wrap">
-                <Button
-                  variant="primary"
-                  size="sm"
-                  onClick={() => onSelectStudent(student.id)}
-                  title="View student's code"
-                  className="from-blue-600 to-blue-600 hover:from-blue-700 hover:to-blue-700"
-                >
-                  View
-                </Button>
-                {onViewHistory && (
+          {students.map((student) => {
+            const isFeatured = featuredStudentId === student.id;
+            return (
+              <div
+                key={student.id}
+                data-testid={`student-row-${student.id}`}
+                className={`p-3 border rounded flex flex-col gap-2 ${
+                  isFeatured
+                    ? 'border-emerald-500 bg-emerald-50 ring-1 ring-emerald-500'
+                    : `border-gray-200 ${student.hasCode ? 'bg-blue-50' : 'bg-white'}`
+                }`}
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <span className="font-semibold text-gray-900 truncate">{student.name}</span>
+                  {isFeatured && (
+                    <Badge variant="success" className="shrink-0">
+                      Featured
+                    </Badge>
+                  )}
+                  <Badge variant={student.hasCode ? 'success' : 'default'} className="shrink-0">
+                    {student.hasCode ? 'Has code' : 'No code yet'}
+                  </Badge>
+                </div>
+                <div className="flex gap-2 flex-wrap">
                   <Button
                     variant="primary"
                     size="sm"
-                    onClick={() => onViewHistory(student.id, student.name)}
-                    title="View code revision history"
-                    className="from-purple-600 to-purple-600 hover:from-purple-700 hover:to-purple-700"
+                    onClick={() => onSelectStudent(student.id)}
+                    title="View student's code"
+                    className="from-blue-600 to-blue-600 hover:from-blue-700 hover:to-blue-700"
                   >
-                    History
+                    View
                   </Button>
-                )}
-                {onShowOnPublicView && (
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    onClick={() => onShowOnPublicView(student.id)}
-                    title="Display this submission on the public view"
-                    className="from-emerald-500 to-emerald-500 hover:from-emerald-600 hover:to-emerald-600"
-                  >
-                    Feature
-                  </Button>
-                )}
+                  {onViewHistory && (
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      onClick={() => onViewHistory(student.id, student.name)}
+                      title="View code revision history"
+                      className="from-purple-600 to-purple-600 hover:from-purple-700 hover:to-purple-700"
+                    >
+                      History
+                    </Button>
+                  )}
+                  {onShowOnPublicView && (
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      onClick={() => onShowOnPublicView(student.id)}
+                      title="Display this submission on the public view"
+                      className="from-emerald-500 to-emerald-500 hover:from-emerald-600 hover:to-emerald-600"
+                    >
+                      Feature
+                    </Button>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </Card>
