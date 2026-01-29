@@ -115,7 +115,7 @@ export function useRealtimeSession({
    * Load initial session state from API
    */
   useEffect(() => {
-    if (!sessionId || initialLoadRef.current) {
+    if (!sessionId || !userId || initialLoadRef.current) {
       return;
     }
 
@@ -167,7 +167,7 @@ export function useRealtimeSession({
     };
 
     loadState();
-  }, [sessionId]);
+  }, [sessionId, userId]);
 
   /**
    * Fetch session state (used for initial load and polling fallback)

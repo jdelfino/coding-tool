@@ -116,6 +116,7 @@ describe('useRealtimeSession', () => {
       const { result } = renderHook(() =>
         useRealtimeSession({
           sessionId: 'nonexistent',
+          userId: 'user-1',
         })
       );
 
@@ -139,6 +140,7 @@ describe('useRealtimeSession', () => {
       const { rerender } = renderHook(() =>
         useRealtimeSession({
           sessionId: 'session-1',
+          userId: 'user-1',
         })
       );
 
@@ -185,6 +187,7 @@ describe('useRealtimeSession', () => {
       const { result } = renderHook(() =>
         useRealtimeSession({
           sessionId: 'session-1',
+          userId: 'user-1',
         })
       );
 
@@ -250,6 +253,7 @@ describe('useRealtimeSession', () => {
       const { result } = renderHook(() =>
         useRealtimeSession({
           sessionId: 'session-1',
+          userId: 'user-1',
         })
       );
 
@@ -295,6 +299,7 @@ describe('useRealtimeSession', () => {
       const { result } = renderHook(() =>
         useRealtimeSession({
           sessionId: 'session-1',
+          userId: 'user-1',
         })
       );
 
@@ -345,6 +350,7 @@ describe('useRealtimeSession', () => {
       const { result } = renderHook(() =>
         useRealtimeSession({
           sessionId: 'session-1',
+          userId: 'user-1',
         })
       );
 
@@ -388,6 +394,7 @@ describe('useRealtimeSession', () => {
       const { result } = renderHook(() =>
         useRealtimeSession({
           sessionId: 'session-1',
+          userId: 'user-1',
         })
       );
 
@@ -433,6 +440,7 @@ describe('useRealtimeSession', () => {
       const { result } = renderHook(() =>
         useRealtimeSession({
           sessionId: 'session-1',
+          userId: 'user-1',
         })
       );
 
@@ -492,6 +500,7 @@ describe('useRealtimeSession', () => {
       renderHook(() =>
         useRealtimeSession({
           sessionId: 'session-1',
+          userId: 'user-1',
         })
       );
 
@@ -584,6 +593,7 @@ describe('useRealtimeSession', () => {
       const { result } = renderHook(() =>
         useRealtimeSession({
           sessionId: 'session-1',
+          userId: 'user-1',
         })
       );
 
@@ -613,6 +623,7 @@ describe('useRealtimeSession', () => {
       const { result } = renderHook(() =>
         useRealtimeSession({
           sessionId: 'session-1',
+          userId: 'user-1',
         })
       );
 
@@ -652,6 +663,7 @@ describe('useRealtimeSession', () => {
       const { result, rerender } = renderHook(() =>
         useRealtimeSession({
           sessionId: 'session-1',
+          userId: 'user-1',
         })
       );
 
@@ -707,6 +719,7 @@ describe('useRealtimeSession', () => {
       const { result } = renderHook(() =>
         useRealtimeSession({
           sessionId: 'session-1',
+          userId: 'user-1',
         })
       );
 
@@ -768,6 +781,7 @@ describe('useRealtimeSession', () => {
       const { result } = renderHook(() =>
         useRealtimeSession({
           sessionId: 'session-1',
+          userId: 'user-1',
         })
       );
 
@@ -786,6 +800,7 @@ describe('useRealtimeSession', () => {
       const { result } = renderHook(() =>
         useRealtimeSession({
           sessionId: 'session-1',
+          userId: 'user-1',
         })
       );
 
@@ -800,6 +815,7 @@ describe('useRealtimeSession', () => {
       const { result, unmount } = renderHook(() =>
         useRealtimeSession({
           sessionId: 'session-1',
+          userId: 'user-1',
         })
       );
 
@@ -816,6 +832,7 @@ describe('useRealtimeSession', () => {
       const { result } = renderHook(() =>
         useRealtimeSession({
           sessionId: 'session-1',
+          userId: 'user-1',
         })
       );
 
@@ -835,6 +852,7 @@ describe('useRealtimeSession', () => {
       const { result } = renderHook(() =>
         useRealtimeSession({
           sessionId: 'session-1',
+          userId: 'user-1',
         })
       );
 
@@ -869,6 +887,7 @@ describe('useRealtimeSession', () => {
       const { result } = renderHook(() =>
         useRealtimeSession({
           sessionId: 'session-1',
+          userId: 'user-1',
         })
       );
 
@@ -904,6 +923,7 @@ describe('useRealtimeSession', () => {
       const { result } = renderHook(() =>
         useRealtimeSession({
           sessionId: 'session-1',
+          userId: 'user-1',
         })
       );
 
@@ -923,6 +943,7 @@ describe('useRealtimeSession', () => {
       const { result } = renderHook(() =>
         useRealtimeSession({
           sessionId: 'session-1',
+          userId: 'user-1',
         })
       );
 
@@ -974,6 +995,7 @@ describe('useRealtimeSession', () => {
       const { result } = renderHook(() =>
         useRealtimeSession({
           sessionId: 'session-1',
+          userId: 'user-1',
         })
       );
 
@@ -1009,6 +1031,7 @@ describe('useRealtimeSession', () => {
       const { result } = renderHook(() =>
         useRealtimeSession({
           sessionId: 'session-1',
+          userId: 'user-1',
         })
       );
 
@@ -1028,6 +1051,7 @@ describe('useRealtimeSession', () => {
       const { result } = renderHook(() =>
         useRealtimeSession({
           sessionId: 'session-1',
+          userId: 'user-1',
         })
       );
 
@@ -1091,6 +1115,7 @@ describe('useRealtimeSession', () => {
       const { result } = renderHook(() =>
         useRealtimeSession({
           sessionId: 'session-1',
+          userId: 'user-1',
         })
       );
 
@@ -1145,6 +1170,7 @@ describe('useRealtimeSession', () => {
       const { result } = renderHook(() =>
         useRealtimeSession({
           sessionId: 'session-1',
+          userId: 'user-1',
         })
       );
 
@@ -1185,6 +1211,7 @@ describe('useRealtimeSession', () => {
       const { result, unmount } = renderHook(() =>
         useRealtimeSession({
           sessionId: 'session-1',
+          userId: 'user-1',
         })
       );
 
@@ -1233,6 +1260,7 @@ describe('useRealtimeSession', () => {
       const { result: result2 } = renderHook(() =>
         useRealtimeSession({
           sessionId: 'session-1',
+          userId: 'user-1',
         })
       );
 
