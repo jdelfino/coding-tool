@@ -146,7 +146,7 @@ describeE2E('Public View Feature', () => {
       const joinNowButton = page.locator('button:has-text("Join Now")');
       await expect(joinNowButton).toBeVisible({ timeout: 10000 });
       await joinNowButton.click();
-      await expect(page.locator('h1:has-text("Live Coding Session")')).toBeVisible({ timeout: 10000 });
+      await expect(page.locator('.monaco-editor')).toBeVisible({ timeout: 10000 });
       await expect(page.locator('text=Connected')).toBeVisible({ timeout: 5000 });
 
       console.log('Student joined session');

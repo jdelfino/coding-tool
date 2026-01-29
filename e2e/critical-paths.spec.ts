@@ -136,10 +136,10 @@ describeE2E('Critical User Paths', () => {
       // Click "Join Now" to join the active session
       await joinNowButton.click();
 
-      // Verify student entered session
-      await expect(page.locator('h1:has-text("Live Coding Session")')).toBeVisible({ timeout: 10000 });
+      // Verify student entered session (editor loads directly, no page header)
+      await expect(page.locator('.monaco-editor')).toBeVisible({ timeout: 10000 });
 
-      // Verify connected status
+      // Verify connected status (shown in global header badge)
       await expect(page.locator('text=Connected')).toBeVisible({ timeout: 5000 });
 
       // Verify the Run Code button is present (confirms editor loaded)
@@ -259,7 +259,7 @@ describeE2E('Critical User Paths', () => {
       const joinNowButton = page.locator('button:has-text("Join Now")');
       await expect(joinNowButton).toBeVisible({ timeout: 10000 });
       await joinNowButton.click();
-      await expect(page.locator('h1:has-text("Live Coding Session")')).toBeVisible({ timeout: 10000 });
+      await expect(page.locator('.monaco-editor')).toBeVisible({ timeout: 10000 });
       await expect(page.locator('text=Connected')).toBeVisible({ timeout: 5000 });
 
       console.log('Student joined session');
