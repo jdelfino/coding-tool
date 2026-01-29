@@ -34,12 +34,14 @@ jest.mock('../SessionControls', () => {
 
 jest.mock('../SessionStudentPane', () => ({
   SessionStudentPane: function MockSessionStudentPane({
+    sessionId,
     students,
     onShowOnPublicView,
     onViewHistory,
   }: any) {
     return (
       <div data-testid="session-student-pane">
+        <span data-testid="student-pane-session-id">{sessionId}</span>
         <span data-testid="student-count-pane">{students.length}</span>
         <button
           onClick={() => onShowOnPublicView?.('student-1')}
@@ -87,27 +89,6 @@ const TabsMock = require('@/components/ui/Tabs').Tabs;
 TabsMock.List = ({ children }: { children: React.ReactNode }) => <div data-testid="tabs-list">{children}</div>;
 TabsMock.Tab = ({ children }: { children: React.ReactNode }) => <button>{children}</button>;
 TabsMock.Panel = ({ children }: { children: React.ReactNode }) => <div>{children}</div>;
-
-jest.mock('../WalkthroughPanelWrapper', () => ({
-  WalkthroughPanelWrapper: function MockWalkthroughPanelWrapper({
-    sessionId,
-    onFeatureStudent,
-    studentCount,
-  }: any) {
-    return (
-      <div data-testid="walkthrough-panel">
-        <span data-testid="walkthrough-session-id">{sessionId}</span>
-        <span data-testid="walkthrough-student-count">{studentCount}</span>
-        <button
-          onClick={() => onFeatureStudent('student-2')}
-          data-testid="walkthrough-feature-btn"
-        >
-          Feature from Walkthrough
-        </button>
-      </div>
-    );
-  },
-}));
 
 jest.mock('../RevisionViewer', () => {
   return function MockRevisionViewer({ studentId, studentName, onClose }: any) {
@@ -213,13 +194,20 @@ describe('SessionView', () => {
       expect(screen.getByTestId('problem-title')).toHaveTextContent('Test Problem');
     });
 
-    it('renders walkthrough panel in tab', () => {
+    it('passes sessionId to SessionStudentPane', () => {
       render(<SessionView {...defaultProps} />);
 
-      // Now rendered once in the AI Walkthrough tab
-      expect(screen.getByTestId('walkthrough-panel')).toBeInTheDocument();
-      expect(screen.getByTestId('walkthrough-session-id')).toHaveTextContent('session-123');
-      expect(screen.getByTestId('walkthrough-student-count')).toHaveTextContent('2');
+      expect(screen.getByTestId('student-pane-session-id')).toHaveTextContent('session-123');
+    });
+
+    it('renders only 2 tabs (Students and Problem Setup)', () => {
+      render(<SessionView {...defaultProps} />);
+
+      const tabs = screen.getByTestId('tabs-list');
+      const buttons = tabs.querySelectorAll('button');
+      expect(buttons).toHaveLength(2);
+      expect(buttons[0]).toHaveTextContent(/Students/);
+      expect(buttons[1]).toHaveTextContent('Problem Setup');
     });
 
     it('renders tabs container', () => {
@@ -328,15 +316,7 @@ describe('SessionView', () => {
       expect(defaultProps.onFeatureStudent).toHaveBeenCalledWith('student-1');
     });
 
-    it('calls onFeatureStudent from walkthrough panel', () => {
-      render(<SessionView {...defaultProps} />);
-
-      // Now only one walkthrough panel rendered in tab
-      fireEvent.click(screen.getByTestId('walkthrough-feature-btn'));
-
-      expect(defaultProps.onFeatureStudent).toHaveBeenCalledWith('student-2');
-    });
-  });
+});
 
   describe('problem updates', () => {
     it('calls onUpdateProblem when problem is updated', () => {

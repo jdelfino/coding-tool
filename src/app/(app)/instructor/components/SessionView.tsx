@@ -3,53 +3,23 @@
 /**
  * SessionView - Main session layout component for instructors.
  * Uses a tabbed interface where instructor can switch between:
- * - Students: Student list + code editor
+ * - Students: Student list + code editor + AI analysis
  * - Problem Setup: Configure the session problem (full width for editor)
- * - AI Walkthrough: Generate AI analysis of submissions
  */
 
 import React, { useState, useCallback } from 'react';
 import SessionControls from './SessionControls';
 import { SessionStudentPane } from './SessionStudentPane';
 import { ProblemSetupPanel } from './ProblemSetupPanel';
-import { WalkthroughPanelWrapper } from './WalkthroughPanelWrapper';
 import RevisionViewer from './RevisionViewer';
 import ProblemLoader from './ProblemLoader';
 import { Tabs } from '@/components/ui/Tabs';
 import { Problem, ExecutionSettings } from '@/server/types/problem';
-
-interface Student {
-  id: string;
-  name: string;
-  hasCode: boolean;
-  executionSettings?: {
-    randomSeed?: number;
-    stdin?: string;
-    attachedFiles?: Array<{ name: string; content: string }>;
-  };
-}
-
-interface RealtimeStudent {
-  id: string;
-  name: string;
-  code?: string;
-  executionSettings?: {
-    randomSeed?: number;
-    stdin?: string;
-    attachedFiles?: Array<{ name: string; content: string }>;
-  };
-}
+import { Student, RealtimeStudent, ExecutionResult } from '../types';
 
 interface SessionContext {
   sectionId: string;
   sectionName: string;
-}
-
-interface ExecutionResult {
-  success: boolean;
-  output: string;
-  error: string;
-  executionTime: number;
 }
 
 interface SessionViewProps {
@@ -98,14 +68,14 @@ interface SessionViewProps {
   featuredStudentId?: string | null;
 }
 
-type SessionTab = 'students' | 'problem' | 'walkthrough';
+type SessionTab = 'students' | 'problem';
 
 /**
  * SessionView provides the main layout for an active instructor session.
  *
  * Layout:
  * - Header: SessionControls (join code, end/leave buttons)
- * - Tabs: Students | Problem Setup | AI Walkthrough
+ * - Tabs: Students | Problem Setup
  * - Content: Full-width content for selected tab
  */
 export function SessionView({
@@ -191,14 +161,12 @@ export function SessionView({
           <Tabs.Tab tabId="problem">
             Problem Setup
           </Tabs.Tab>
-          <Tabs.Tab tabId="walkthrough">
-            AI Walkthrough
-          </Tabs.Tab>
         </Tabs.List>
 
         {/* Students Tab - Student list + code editor */}
         <Tabs.Panel tabId="students" className="pt-4">
           <SessionStudentPane
+            sessionId={sessionId}
             students={students}
             realtimeStudents={realtimeStudents}
             sessionProblem={sessionProblem}
@@ -221,15 +189,6 @@ export function SessionView({
           />
         </Tabs.Panel>
 
-        {/* AI Walkthrough Tab */}
-        <Tabs.Panel tabId="walkthrough" className="pt-4" keepMounted>
-          <WalkthroughPanelWrapper
-            sessionId={sessionId}
-            onFeatureStudent={onFeatureStudent}
-            studentCount={students.length}
-            isFullWidth
-          />
-        </Tabs.Panel>
       </Tabs>
 
       {/* Modals */}
