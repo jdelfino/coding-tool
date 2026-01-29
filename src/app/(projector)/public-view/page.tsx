@@ -10,6 +10,7 @@ import { ProtectedRoute } from '@/components/ProtectedRoute';
 import MarkdownContent from '@/components/MarkdownContent';
 import { ConnectionStatus, ConnectionState } from '@/components/ConnectionStatus';
 import { useHeaderSlot } from '@/contexts/HeaderSlotContext';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 
 interface PublicSessionState {
   sessionId: string;
@@ -28,6 +29,9 @@ function PublicViewContent() {
   const [state, setState] = useState<PublicSessionState | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Header collapse state - starts collapsed to maximize code space
+  const [headerCollapsed, setHeaderCollapsed] = useState(false);
 
   // Local code state for editing (changes don't propagate back to student)
   const [localCode, setLocalCode] = useState<string>('');
@@ -175,25 +179,39 @@ function PublicViewContent() {
 
   return (
     <main className="h-full w-full flex flex-col p-2 box-border">
-      {/* Compact Header with Problem and Join Code */}
-      <div className="flex justify-between items-start gap-4 flex-shrink-0 pb-2 border-b border-gray-200 mb-2">
-        <div className="flex-1 min-w-0">
-          <h2 className="mt-0 mb-1 text-base font-semibold">Problem</h2>
-          {problemText ? (
-            <MarkdownContent content={problemText} className="text-sm" />
-          ) : (
-            <p className="text-gray-400 italic m-0 text-sm">No problem set yet</p>
-          )}
-        </div>
-        <div className="text-right flex-shrink-0 border-l-2 border-gray-200 pl-4">
-          <p className="text-xs text-gray-500 mb-0.5 mt-0">Section Join Code</p>
-          <p className="text-2xl font-bold text-blue-500 font-mono m-0 mb-1">
-            {state?.joinCode || '------'}
-          </p>
-          <p className="text-xs text-gray-500 mt-1 mb-0">
-            Students join your section with this code
-          </p>
-        </div>
+      {/* Collapsible Header with Problem and Join Code */}
+      <div className="flex-shrink-0 border-b border-gray-200 mb-2">
+        <button
+          onClick={() => setHeaderCollapsed(prev => !prev)}
+          className="w-full flex justify-between items-center gap-4 pb-2 text-left bg-transparent border-none cursor-pointer p-0"
+          aria-expanded={!headerCollapsed}
+          aria-label={headerCollapsed ? 'Expand problem header' : 'Collapse problem header'}
+        >
+          <div className="flex items-center gap-2 min-w-0">
+            {headerCollapsed ? (
+              <ChevronDown className="h-4 w-4 text-gray-400 flex-shrink-0" />
+            ) : (
+              <ChevronUp className="h-4 w-4 text-gray-400 flex-shrink-0" />
+            )}
+            <h2 className="mt-0 mb-0 text-base font-semibold truncate">
+              {state?.problem?.title || 'Problem'}
+            </h2>
+          </div>
+          <div className="flex-shrink-0 text-right">
+            <span className="text-sm font-bold text-blue-500 font-mono">
+              {state?.joinCode || '------'}
+            </span>
+          </div>
+        </button>
+        {!headerCollapsed && (
+          <div className="pl-6 pb-2 pt-1">
+            {problemText ? (
+              <MarkdownContent content={problemText} className="text-sm" />
+            ) : (
+              <p className="text-gray-400 italic m-0 text-sm">No problem set yet</p>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Featured Submission */}
