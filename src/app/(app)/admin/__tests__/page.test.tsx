@@ -91,6 +91,46 @@ beforeEach(() => {
   });
 });
 
+describe('Admin Page - Namespace URL', () => {
+  it('fetches data with namespace query param', async () => {
+    render(<AdminPageWrapper />);
+
+    await waitFor(() => {
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.stringContaining('?namespace=ns-1'),
+        expect.anything()
+      );
+    });
+  });
+});
+
+describe('Admin Page - Namespace change reloads data', () => {
+  it('reloads data when selectedNamespace changes', async () => {
+    let mockNamespace = 'ns-1';
+    // Re-mock useSelectedNamespace to return a mutable value
+    const useSelectedNamespaceMock = jest.requireMock('@/hooks/useSelectedNamespace');
+    useSelectedNamespaceMock.useSelectedNamespace = () => mockNamespace;
+
+    const { rerender } = render(<AdminPageWrapper />);
+
+    await waitFor(() => {
+      expect(mockFetch).toHaveBeenCalled();
+    });
+
+    const callCountBefore = mockFetch.mock.calls.length;
+
+    // Change namespace
+    mockNamespace = 'ns-2';
+    useSelectedNamespaceMock.useSelectedNamespace = () => mockNamespace;
+
+    rerender(<AdminPageWrapper />);
+
+    await waitFor(() => {
+      expect(mockFetch.mock.calls.length).toBeGreaterThan(callCountBefore);
+    });
+  });
+});
+
 describe('Admin Page - Overview Stats Panel', () => {
   it('shows stats cards without an Overview tab', async () => {
     render(<AdminPageWrapper />);

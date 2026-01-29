@@ -22,7 +22,7 @@ jest.mock('@/server/auth/api-helpers', () => ({
   getNamespaceContext: jest.fn((req: any, user: any) => user.namespaceId || 'default'),
 }));
 
-import { requireAuth } from '@/server/auth/api-helpers';
+import { requireAuth, getNamespaceContext } from '@/server/auth/api-helpers';
 
 function createAuthContext(user: User) {
   return {
@@ -179,6 +179,23 @@ describe('POST /api/sessions', () => {
 
     expect(response.status).toBe(403);
     expect(data.error).toContain('Only instructors');
+  });
+
+  it('returns 400 when namespaceId is undefined (system-admin with no namespace)', async () => {
+    (requireAuth as jest.Mock).mockResolvedValue(createAuthContext(mockUser));
+    (getNamespaceContext as jest.Mock).mockReturnValueOnce(undefined);
+
+    const request = new NextRequest('http://localhost/api/sessions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sectionId: 'section-1' }),
+    });
+
+    const response = await POST(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(data.error).toContain('Namespace is required');
   });
 
   it('returns 400 when sectionId is missing', async () => {

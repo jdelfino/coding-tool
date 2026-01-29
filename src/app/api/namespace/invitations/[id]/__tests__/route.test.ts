@@ -153,6 +153,35 @@ describe('/api/namespace/invitations/[id]', () => {
       expect(typeof data.invitation.createdAt).toBe('string');
       expect(typeof data.invitation.expiresAt).toBe('string');
     });
+
+    it('allows system-admin with no namespace (undefined) to access any invitation', async () => {
+      const systemAdmin = {
+        id: 'sysadmin-1',
+        email: 'sysadmin@example.com',
+        role: 'system-admin' as const,
+        createdAt: new Date('2024-01-01'),
+      };
+
+      (requirePermission as jest.Mock).mockResolvedValue({
+        user: systemAdmin,
+        rbac: { hasPermission: () => true },
+        accessToken: 'test-token',
+      });
+
+      // namespaceId is undefined for system-admin with no namespace param
+      (getNamespaceContext as jest.Mock).mockReturnValue(undefined);
+
+      // Invitation belongs to some namespace
+      mockInvitationRepository.getInvitation.mockResolvedValue(mockOtherNamespaceInvitation);
+
+      const request = new NextRequest('http://localhost/api/namespace/invitations/other-invitation-123');
+      const response = await GET(request, createContext('other-invitation-123'));
+
+      // Should succeed (200), not 403
+      expect(response.status).toBe(200);
+      const data = await response.json();
+      expect(data.invitation.id).toBe('other-invitation-123');
+    });
   });
 
   describe('DELETE /api/namespace/invitations/[id]', () => {
@@ -222,6 +251,39 @@ describe('/api/namespace/invitations/[id]', () => {
       expect(response.status).toBe(400);
       const data = await response.json();
       expect(data.code).toBe('INVITATION_CONSUMED');
+    });
+
+    it('allows system-admin with no namespace (undefined) to delete any invitation', async () => {
+      const systemAdmin = {
+        id: 'sysadmin-1',
+        email: 'sysadmin@example.com',
+        role: 'system-admin' as const,
+        createdAt: new Date('2024-01-01'),
+      };
+
+      (requirePermission as jest.Mock).mockResolvedValue({
+        user: systemAdmin,
+        rbac: { hasPermission: () => true },
+        accessToken: 'test-token',
+      });
+
+      (getNamespaceContext as jest.Mock).mockReturnValue(undefined);
+
+      const revokedInvitation = {
+        ...mockOtherNamespaceInvitation,
+        revokedAt: new Date('2024-01-02'),
+      };
+      mockInvitationRepository.getInvitation
+        .mockResolvedValueOnce(mockOtherNamespaceInvitation)
+        .mockResolvedValueOnce(revokedInvitation);
+
+      const request = new NextRequest('http://localhost/api/namespace/invitations/other-invitation-123', {
+        method: 'DELETE',
+      });
+      const response = await DELETE(request, createContext('other-invitation-123'));
+
+      expect(response.status).toBe(200);
+      expect(mockInvitationService.revokeInvitation).toHaveBeenCalledWith('other-invitation-123');
     });
 
     it('revokes invitation in user namespace successfully', async () => {

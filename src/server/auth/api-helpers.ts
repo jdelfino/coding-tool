@@ -205,12 +205,13 @@ export async function requireSystemAdmin(
 
 /**
  * Get the namespace ID to use for a request.
- * - For system-admin: Uses ?namespace=xxx query param if provided, otherwise defaults to 'default'
+ * - For system-admin: Uses ?namespace=xxx query param if provided, otherwise returns undefined
+ *   (meaning "all namespaces", no filtering)
  * - For all other users: Always uses user's namespaceId (required, never null)
  *
  * @param request - Next.js request object
  * @param user - Authenticated user
- * @returns Namespace ID to use for filtering
+ * @returns Namespace ID to use for filtering, or undefined for system-admins with no namespace param (all namespaces)
  */
 export function getNamespaceContext(request: NextRequest, user: User): string | undefined {
   // System admin can specify namespace via query param
