@@ -5,7 +5,7 @@
  * Admins have full access, instructors have limited access.
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { hasRolePermission } from '@/server/auth/permissions';
 import { useSelectedNamespace } from '@/hooks/useSelectedNamespace';
@@ -49,7 +49,7 @@ interface SystemStats {
 function AdminPage() {
   const { user } = useAuth();
   const selectedNamespace = useSelectedNamespace();
-  const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'instructors' | 'students'>('overview');
+  const [activeTab, setActiveTab] = useState<'users' | 'instructors' | 'students'>('users');
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [instructors, setInstructors] = useState<User[]>([]);
   const [students, setStudents] = useState<User[]>([]);
@@ -261,8 +261,8 @@ function AdminPage() {
     }
   };
 
-  // Set default tab based on user role
-  const effectiveTab = !isAdmin && activeTab === 'overview' ? 'instructors' : activeTab;
+  // Non-admins default to instructors tab
+  const effectiveTab = !isAdmin && activeTab === 'users' ? 'instructors' : activeTab;
 
   return (
     <main className="max-w-6xl mx-auto">
@@ -285,10 +285,39 @@ function AdminPage() {
         </div>
       )}
 
+      {/* Overview Stats Panel (Admin Only, always visible) */}
+      {isAdmin && stats && (
+        <div className="mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Card variant="outlined" className="p-6">
+              <div className="text-sm text-gray-500 mb-2">Total Users</div>
+              <div className="text-3xl font-bold">{stats.users.total}</div>
+              <div className="text-xs text-gray-500 mt-2">
+                {stats.users.byRole.admin} admin · {stats.users.byRole.instructor} instructors · {stats.users.byRole.student} students
+              </div>
+            </Card>
+
+            <Card variant="outlined" className="p-6">
+              <div className="text-sm text-gray-500 mb-2">Classes</div>
+              <div className="text-3xl font-bold">{stats.classes.total}</div>
+            </Card>
+
+            <Card variant="outlined" className="p-6">
+              <div className="text-sm text-gray-500 mb-2">Sections</div>
+              <div className="text-3xl font-bold">{stats.sections.total}</div>
+            </Card>
+
+            <Card variant="outlined" className="p-6 bg-success-50 border-success-200">
+              <div className="text-sm text-success-700 mb-2">Active Sessions</div>
+              <div className="text-3xl font-bold text-success-700">{stats.sessions.active}</div>
+            </Card>
+          </div>
+        </div>
+      )}
+
       {/* Tabs */}
       <Tabs activeTab={effectiveTab} onTabChange={(tab) => setActiveTab(tab as typeof activeTab)}>
         <Tabs.List className="mb-6">
-          {isAdmin && <Tabs.Tab tabId="overview">Overview</Tabs.Tab>}
           {isAdmin && <Tabs.Tab tabId="users">All Users ({allUsers.length})</Tabs.Tab>}
           <Tabs.Tab tabId="instructors">Instructors ({instructors.length})</Tabs.Tab>
           <Tabs.Tab tabId="students">Students ({students.length})</Tabs.Tab>
@@ -301,39 +330,6 @@ function AdminPage() {
           </div>
         ) : (
           <>
-            {/* Overview Tab (Admin Only) */}
-            <Tabs.Panel tabId="overview">
-              {isAdmin && stats && (
-                <div>
-                  <h2 className="text-xl font-semibold mb-6">System Overview</h2>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-                    <Card variant="outlined" className="p-6">
-                      <div className="text-sm text-gray-500 mb-2">Total Users</div>
-                      <div className="text-3xl font-bold">{stats.users.total}</div>
-                      <div className="text-xs text-gray-500 mt-2">
-                        {stats.users.byRole.admin} admin · {stats.users.byRole.instructor} instructors · {stats.users.byRole.student} students
-                      </div>
-                    </Card>
-
-                    <Card variant="outlined" className="p-6">
-                      <div className="text-sm text-gray-500 mb-2">Classes</div>
-                      <div className="text-3xl font-bold">{stats.classes.total}</div>
-                    </Card>
-
-                    <Card variant="outlined" className="p-6">
-                      <div className="text-sm text-gray-500 mb-2">Sections</div>
-                      <div className="text-3xl font-bold">{stats.sections.total}</div>
-                    </Card>
-
-                    <Card variant="outlined" className="p-6 bg-success-50 border-success-200">
-                      <div className="text-sm text-success-700 mb-2">Active Sessions</div>
-                      <div className="text-3xl font-bold text-success-700">{stats.sessions.active}</div>
-                    </Card>
-                  </div>
-                </div>
-              )}
-            </Tabs.Panel>
-
             {/* All Users Tab (Admin Only) */}
             <Tabs.Panel tabId="users">
               {isAdmin && (
