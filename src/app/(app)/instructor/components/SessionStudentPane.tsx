@@ -231,6 +231,11 @@ export function SessionStudentPane({
                 {selectedStudent?.name || 'Student'}'s Code
               </h3>
             </div>
+            {selectedStudentEntries.length > 0 && (
+              <div className="p-4" data-testid="student-analysis-details">
+                <StudentAnalysisDetails entries={selectedStudentEntries} />
+              </div>
+            )}
             <EditorContainer height="500px">
               <CodeEditor
                 code={selectedStudentCode}
@@ -245,11 +250,6 @@ export function SessionStudentPane({
                 executionResult={executionResult}
               />
             </EditorContainer>
-            {selectedStudentEntries.length > 0 && (
-              <div className="p-4" data-testid="student-analysis-details">
-                <StudentAnalysisDetails entries={selectedStudentEntries} />
-              </div>
-            )}
           </div>
         ) : (
           <div

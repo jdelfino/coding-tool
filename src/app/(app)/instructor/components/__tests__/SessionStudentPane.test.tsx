@@ -335,6 +335,21 @@ describe('SessionStudentPane', () => {
       });
     });
 
+    it('renders analysis details above the code editor', async () => {
+      setAnalysisReady();
+      mockActiveGroupIndex = 1;
+      render(<SessionStudentPane {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('student-analysis-details')).toBeInTheDocument();
+      });
+
+      const detailsEl = screen.getByTestId('student-analysis-details');
+      const editorEl = screen.getByTestId('code-editor');
+      // Analysis details should come before the editor in DOM order
+      expect(detailsEl.compareDocumentPosition(editorEl) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    });
+
     it('does not show analysis details when analysis is not ready', async () => {
       render(<SessionStudentPane {...defaultProps} />);
 
