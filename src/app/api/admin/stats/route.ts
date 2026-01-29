@@ -11,7 +11,7 @@ import { getAuthProvider } from '@/server/auth/instance';
 import { getSectionRepository } from '@/server/classes';
 import { getMembershipRepository } from '@/server/classes';
 import { createStorage } from '@/server/persistence';
-import { requirePermission } from '@/server/auth/api-helpers';
+import { requirePermission, getNamespaceContext } from '@/server/auth/api-helpers';
 
 export async function GET(request: NextRequest) {
   try {
@@ -21,7 +21,8 @@ export async function GET(request: NextRequest) {
       return auth; // Return 401/403 error response
     }
 
-    const { accessToken } = auth;
+    const { user, accessToken } = auth;
+    const namespaceId = getNamespaceContext(request, user);
 
     // Get auth provider for user queries
     const authProvider = await getAuthProvider();
@@ -31,8 +32,11 @@ export async function GET(request: NextRequest) {
     const membershipRepo = getMembershipRepository(accessToken);
     const storage = await createStorage(accessToken);
 
-    // Get all users
-    const users = await authProvider.getAllUsers();
+    // Get users, optionally filtered by namespace
+    const userRepo = authProvider.userRepository;
+    const users = namespaceId
+      ? await userRepo.listUsers(undefined, namespaceId)
+      : await authProvider.getAllUsers();
     const usersByRole = users.reduce((acc: Record<string, number>, u) => {
       acc[u.role] = (acc[u.role] || 0) + 1;
       return acc;

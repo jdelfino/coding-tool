@@ -22,7 +22,11 @@ export function useSelectedNamespace(): string | null {
     // For system-admin, use the selected namespace from localStorage
     if (user.role === 'system-admin') {
       const saved = localStorage.getItem('selectedNamespaceId');
-      setSelectedNamespaceId(saved || user.namespaceId || 'default');
+      if (saved === 'all') {
+        setSelectedNamespaceId(null);
+      } else {
+        setSelectedNamespaceId(saved || user.namespaceId || 'default');
+      }
     } else {
       // For other users, use their own namespace
       setSelectedNamespaceId(user.namespaceId);

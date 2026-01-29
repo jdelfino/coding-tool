@@ -7,7 +7,7 @@ import { renderHook } from '@testing-library/react';
 import { useSelectedNamespace, useNamespaceQueryParam } from '../useSelectedNamespace';
 
 // Mock useAuth
-const mockUser = { role: 'system-admin', namespaceId: 'default' };
+const mockUser: any = { role: 'system-admin', namespaceId: 'default' };
 jest.mock('@/contexts/AuthContext', () => ({
   useAuth: () => ({ user: mockUser }),
 }));
@@ -37,6 +37,12 @@ describe('useSelectedNamespace', () => {
     const { result } = renderHook(() => useSelectedNamespace());
     expect(result.current).toBe('instructor-ns');
   });
+
+  it('returns null when "all" is selected from localStorage', () => {
+    localStorage.setItem('selectedNamespaceId', 'all');
+    const { result } = renderHook(() => useSelectedNamespace());
+    expect(result.current).toBeNull();
+  });
 });
 
 describe('useNamespaceQueryParam', () => {
@@ -62,5 +68,11 @@ describe('useNamespaceQueryParam', () => {
   it('returns default namespace when no localStorage set for system-admin', () => {
     const { result } = renderHook(() => useNamespaceQueryParam());
     expect(result.current).toBe('?namespace=default');
+  });
+
+  it('returns empty string when "all" is selected for system-admin', () => {
+    localStorage.setItem('selectedNamespaceId', 'all');
+    const { result } = renderHook(() => useNamespaceQueryParam());
+    expect(result.current).toBe('');
   });
 });

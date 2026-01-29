@@ -75,10 +75,10 @@ describe('getNamespaceContext', () => {
     expect(namespaceId).toBe('namespace-1');
   });
 
-  it('returns user namespace for system-admin without query param', () => {
+  it('returns undefined (all namespaces) for system-admin without query param', () => {
     const request = new NextRequest('http://localhost/api/classes');
     const namespaceId = apiHelpers.getNamespaceContext(request, systemAdminUser);
-    expect(namespaceId).toBe('default');
+    expect(namespaceId).toBeUndefined();
   });
 
   it('returns query param namespace for system-admin when provided', () => {
@@ -141,10 +141,10 @@ describe('API Namespace Isolation Patterns', () => {
   });
 
   describe('System admin access patterns', () => {
-    it('can access default namespace without query param', () => {
+    it('returns undefined (all namespaces) without query param', () => {
       const request = new NextRequest('http://localhost/api/classes');
       const namespaceId = apiHelpers.getNamespaceContext(request, systemAdminUser);
-      expect(namespaceId).toBe('default');
+      expect(namespaceId).toBeUndefined();
     });
 
     it('can access specific namespace via query param', () => {
@@ -331,16 +331,16 @@ describe('Multi-tenant data isolation scenarios', () => {
     }
   });
 
-  it('system-admin defaults to their namespace when no query param provided', () => {
+  it('system-admin gets undefined (all namespaces) when no query param provided', () => {
     const request = new NextRequest('http://localhost/api/classes');
     const namespaceId = apiHelpers.getNamespaceContext(request, systemAdminUser);
-    expect(namespaceId).toBe('default');
+    expect(namespaceId).toBeUndefined();
   });
 
-  it('empty namespace query param is ignored for system-admin', () => {
+  it('empty namespace query param returns undefined for system-admin', () => {
     const request = new NextRequest('http://localhost/api/classes?namespace=');
     const namespaceId = apiHelpers.getNamespaceContext(request, systemAdminUser);
-    // Empty string should fall back to user's namespace
-    expect(namespaceId).toBe('default');
+    // Empty string means "all namespaces" for system-admin
+    expect(namespaceId).toBeUndefined();
   });
 });

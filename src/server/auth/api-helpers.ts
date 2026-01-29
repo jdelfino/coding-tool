@@ -212,18 +212,19 @@ export async function requireSystemAdmin(
  * @param user - Authenticated user
  * @returns Namespace ID to use for filtering
  */
-export function getNamespaceContext(request: NextRequest, user: User): string {
+export function getNamespaceContext(request: NextRequest, user: User): string | undefined {
   // System admin can specify namespace via query param
   if (user.role === 'system-admin') {
     const url = new URL(request.url);
     const requestedNamespace = url.searchParams.get('namespace');
 
+    // If a specific namespace is provided, use it; otherwise return undefined
+    // to indicate "all namespaces" (no filtering)
     if (requestedNamespace) {
       return requestedNamespace;
     }
 
-    // System admin without query param defaults to 'default' namespace
-    return 'default';
+    return undefined;
   }
 
   // All other users MUST have a namespaceId (enforced at user creation)

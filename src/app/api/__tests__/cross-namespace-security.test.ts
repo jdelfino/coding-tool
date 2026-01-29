@@ -113,10 +113,10 @@ describe('Cross-namespace query param protection (getNamespaceContext)', () => {
       expect(result).toBe('namespace-b');
     });
 
-    it('system-admin defaults to their namespace without query param', () => {
+    it('system-admin gets undefined (all namespaces) without query param', () => {
       const request = new NextRequest('http://localhost/api/classes');
       const result = getNamespaceContext(request, systemAdmin);
-      expect(result).toBe('default');
+      expect(result).toBeUndefined();
     });
 
     it('system-admin can switch between namespaces', () => {
@@ -218,11 +218,11 @@ describe('Namespace isolation security scenarios', () => {
     }
   });
 
-  it('empty namespace query param is handled correctly for system-admin', () => {
+  it('empty namespace query param returns undefined (all namespaces) for system-admin', () => {
     const request = new NextRequest('http://localhost/api/classes?namespace=');
     const result = getNamespaceContext(request, systemAdmin);
-    // Empty string falls back to user's namespace
-    expect(result).toBe('default');
+    // Empty string means "all namespaces" for system-admin
+    expect(result).toBeUndefined();
   });
 
   it('whitespace namespace query param is passed through for system-admin', () => {
