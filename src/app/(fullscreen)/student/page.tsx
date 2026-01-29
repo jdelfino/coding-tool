@@ -109,7 +109,8 @@ function StudentPage() {
     }
 
     // Join the session from the URL
-    if (isConnected && session) {
+    // For completed sessions, don't require broadcast connection - data is already loaded
+    if (session && (isConnected || session.status === 'completed')) {
       joinAttemptedRef.current = sessionIdFromUrl;
 
       // If session is completed, skip joining and show read-only view
@@ -264,9 +265,10 @@ function StudentPage() {
     );
   }
 
-  // Show loading state while connecting
   // Show loading state while connecting, loading, or joining
-  if (!isConnected || loading || isJoining) {
+  // For completed sessions, don't block on broadcast connection
+  const needsConnection = !isConnected && session?.status !== 'completed';
+  if (needsConnection || loading || isJoining) {
     return (
       <main className="p-8 text-center">
         <h1 className="text-2xl font-bold mb-4">Live Coding Classroom</h1>

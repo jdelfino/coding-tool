@@ -283,6 +283,33 @@ describe('Student Page - Session Ended Detection', () => {
     expect(baseSessionState.joinSession).not.toHaveBeenCalled();
   });
 
+  it('should not get stuck loading when viewing a completed session without broadcast connection', async () => {
+    // Regression: students viewing past sessions got infinite "Connecting..." because
+    // the page blocked on broadcast connection, which never connects for completed sessions
+    mockUseRealtimeSession.mockReturnValue({
+      ...baseSessionState,
+      isConnected: false,
+      isBroadcastConnected: false,
+      connectionStatus: 'disconnected',
+      session: {
+        ...baseSessionState.session,
+        status: 'completed',
+        endedAt: '2026-01-09T12:00:00Z',
+      },
+    });
+
+    render(<StudentPage />);
+
+    await waitFor(() => {
+      // Should render the editor, NOT the loading screen
+      expect(screen.getByTestId('code-editor')).toBeInTheDocument();
+    });
+
+    // Should NOT show "Connecting..." or "Loading session..."
+    expect(screen.queryByText('Connecting...')).not.toBeInTheDocument();
+    expect(screen.queryByText('Loading session...')).not.toBeInTheDocument();
+  });
+
   it('should show code editor alongside banner (not hidden behind overlay)', async () => {
     mockUseRealtimeSession.mockReturnValue({
       ...baseSessionState,
