@@ -45,6 +45,7 @@ export default function InstructorSessionPage() {
 
   // Local state
   const [error, setError] = useState<string | null>(null);
+  const [reopening, setReopening] = useState(false);
   const [sessionProblem, setSessionProblem] = useState<Problem | null>(null);
   const [sessionExecutionSettings, setSessionExecutionSettings] = useState<{
     stdin?: string;
@@ -140,6 +141,27 @@ export default function InstructorSessionPage() {
   // Handle session ended state - status is 'active' or 'completed', not 'ended'
   const isSessionEnded = realtimeSession?.status === 'completed';
 
+  const handleReopenSession = useCallback(async () => {
+    if (!sessionId) return;
+    try {
+      setReopening(true);
+      const response = await fetch(`/api/sessions/${sessionId}/reopen`, {
+        method: 'POST',
+      });
+      if (!response.ok) {
+        const data = await response.json();
+        setError(data.error || 'Failed to reopen session');
+        return;
+      }
+      // Reload the page to get fresh active session state
+      window.location.reload();
+    } catch (err: any) {
+      setError(err.message || 'Failed to reopen session');
+    } finally {
+      setReopening(false);
+    }
+  }, [sessionId]);
+
   // Handlers
   const handleEndSession = useCallback(async () => {
     if (!sessionId) return;
@@ -229,32 +251,33 @@ export default function InstructorSessionPage() {
     );
   }
 
-  // Session ended state
-  if (isSessionEnded) {
-    return (
-      <div className="min-h-screen flex items-center justify-center" data-testid="session-ended-state">
-        <div className="max-w-md mx-auto text-center">
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
-            <h2 className="text-lg font-semibold text-yellow-900 mb-2">Session Ended</h2>
-            <p className="text-yellow-700 mb-4">
-              This session has ended and is no longer active.
-            </p>
-            <button
-              onClick={() => router.push('/instructor')}
-              className="px-4 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700 transition-colors"
-            >
-              Back to Sessions
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-6">
+      {/* Session ended banner with reopen option */}
+      {isSessionEnded && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 flex items-center justify-between" data-testid="session-ended-banner">
+          <div className="flex items-center gap-3">
+            <svg className="w-5 h-5 text-yellow-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4.5c-.77-.833-2.694-.833-3.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+            <span className="text-yellow-800 font-medium">This session has ended. You are viewing it in read-only mode.</span>
+          </div>
+          <button
+            onClick={handleReopenSession}
+            disabled={reopening}
+            className="px-4 py-2 bg-yellow-600 text-white text-sm font-medium rounded-lg hover:bg-yellow-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            data-testid="reopen-session-btn"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            {reopening ? 'Reopening...' : 'Reopen Session'}
+          </button>
+        </div>
+      )}
+
       {/* Errors */}
-      {connectionError && (
+      {connectionError && !isSessionEnded && (
         <ErrorAlert error={connectionError} title="Connection Error" variant="warning" showHelpText={true} />
       )}
 

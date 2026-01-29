@@ -119,6 +119,8 @@ describe('InstructorSessionPage', () => {
     { id: 'student-2', name: 'Bob', code: '', executionSettings: {} },
   ];
 
+  const mockClearFeaturedStudent = jest.fn();
+
   const defaultRealtimeSessionReturn = {
     session: mockSession,
     students: mockStudents,
@@ -129,6 +131,7 @@ describe('InstructorSessionPage', () => {
     connectionError: null,
     executeCode: mockExecuteCode,
     featureStudent: mockFeatureStudent,
+    clearFeaturedStudent: mockClearFeaturedStudent,
   };
 
   const defaultSessionOperationsReturn = {
@@ -205,7 +208,7 @@ describe('InstructorSessionPage', () => {
   });
 
   describe('Session Ended State', () => {
-    it('shows session ended state when session is completed', () => {
+    it('shows ended banner with reopen button when session is completed', () => {
       (useRealtimeSession as jest.Mock).mockReturnValue({
         ...defaultRealtimeSessionReturn,
         session: { ...mockSession, status: 'completed' },
@@ -213,11 +216,12 @@ describe('InstructorSessionPage', () => {
 
       render(<InstructorSessionPage />);
 
-      expect(screen.getByTestId('session-ended-state')).toBeInTheDocument();
-      expect(screen.getByText('Session Ended')).toBeInTheDocument();
+      expect(screen.getByTestId('session-ended-banner')).toBeInTheDocument();
+      expect(screen.getByText(/This session has ended/)).toBeInTheDocument();
+      expect(screen.getByTestId('reopen-session-btn')).toBeInTheDocument();
     });
 
-    it('navigates back to sessions from ended state', () => {
+    it('still renders SessionView for completed sessions (read-only browsing)', () => {
       (useRealtimeSession as jest.Mock).mockReturnValue({
         ...defaultRealtimeSessionReturn,
         session: { ...mockSession, status: 'completed' },
@@ -225,9 +229,39 @@ describe('InstructorSessionPage', () => {
 
       render(<InstructorSessionPage />);
 
-      fireEvent.click(screen.getByText('Back to Sessions'));
+      expect(screen.getByTestId('session-view')).toBeInTheDocument();
+    });
 
-      expect(mockPush).toHaveBeenCalledWith('/instructor');
+    it('suppresses connection errors when session is ended', () => {
+      (useRealtimeSession as jest.Mock).mockReturnValue({
+        ...defaultRealtimeSessionReturn,
+        session: { ...mockSession, status: 'completed' },
+        connectionError: 'Connection lost',
+      });
+
+      render(<InstructorSessionPage />);
+
+      // Should not show connection error for ended sessions
+      expect(screen.queryByText('Connection lost')).not.toBeInTheDocument();
+    });
+
+    it('calls reopen API when reopen button is clicked', async () => {
+      global.fetch = jest.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve({}) });
+
+      (useRealtimeSession as jest.Mock).mockReturnValue({
+        ...defaultRealtimeSessionReturn,
+        session: { ...mockSession, status: 'completed' },
+      });
+
+      render(<InstructorSessionPage />);
+
+      fireEvent.click(screen.getByTestId('reopen-session-btn'));
+
+      await waitFor(() => {
+        expect(global.fetch).toHaveBeenCalledWith('/api/sessions/session-123/reopen', {
+          method: 'POST',
+        });
+      });
     });
   });
 
