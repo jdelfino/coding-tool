@@ -5,9 +5,8 @@ import GroupNavigationHeader from '../GroupNavigationHeader';
 import { AnalysisGroup } from '../../hooks/useAnalysisGroups';
 
 const makeGroup = (overrides: Partial<AnalysisGroup> = {}): AnalysisGroup => ({
-  id: 'common-error',
-  label: 'Common Errors',
-  entries: [],
+  id: '0',
+  label: 'Missing base case',
   studentIds: ['s1', 's2'],
   recommendedStudentId: 's1',
   ...overrides,
@@ -16,15 +15,14 @@ const makeGroup = (overrides: Partial<AnalysisGroup> = {}): AnalysisGroup => ({
 const allGroup: AnalysisGroup = {
   id: 'all',
   label: 'All Submissions',
-  entries: [],
   studentIds: [],
   recommendedStudentId: null,
 };
 
 const groups: AnalysisGroup[] = [
   allGroup,
-  makeGroup({ id: 'common-error', label: 'Common Errors', studentIds: ['s1', 's2'] }),
-  makeGroup({ id: 'edge-case', label: 'Edge Cases', studentIds: ['s3'] }),
+  makeGroup({ id: '0', label: 'Missing base case', studentIds: ['s1', 's2'] }),
+  makeGroup({ id: '1', label: 'Off-by-one error', studentIds: ['s3'] }),
 ];
 
 describe('GroupNavigationHeader', () => {
@@ -38,11 +36,11 @@ describe('GroupNavigationHeader', () => {
       />
     );
 
-    expect(screen.getByText('Common Errors')).toBeInTheDocument();
+    expect(screen.getByText('Missing base case')).toBeInTheDocument();
     expect(screen.getByText(/2 of 3/)).toBeInTheDocument();
   });
 
-  it('renders student count for active group', () => {
+  it('renders student count for non-all groups', () => {
     render(
       <GroupNavigationHeader
         groups={groups}
@@ -53,6 +51,19 @@ describe('GroupNavigationHeader', () => {
     );
 
     expect(screen.getByText(/2 students/)).toBeInTheDocument();
+  });
+
+  it('does not render student count for "All Submissions" group', () => {
+    render(
+      <GroupNavigationHeader
+        groups={groups}
+        activeGroupIndex={0}
+        onNavigate={jest.fn()}
+        onDismiss={jest.fn()}
+      />
+    );
+
+    expect(screen.queryByText(/students/)).not.toBeInTheDocument();
   });
 
   it('disables prev button on first group', () => {
@@ -130,11 +141,11 @@ describe('GroupNavigationHeader', () => {
     );
 
     await user.click(screen.getByRole('button', { name: /dismiss/i }));
-    expect(onDismiss).toHaveBeenCalledWith('common-error');
+    expect(onDismiss).toHaveBeenCalledWith('0');
   });
 
-  it('shows common patterns only for "all" group', () => {
-    const patterns = ['Most students used a for loop', 'Several forgot edge cases'];
+  it('shows completion summary only for "all" group', () => {
+    const completionEstimate = { finished: 10, inProgress: 3, notStarted: 2 };
 
     const { rerender } = render(
       <GroupNavigationHeader
@@ -142,12 +153,14 @@ describe('GroupNavigationHeader', () => {
         activeGroupIndex={0}
         onNavigate={jest.fn()}
         onDismiss={jest.fn()}
-        commonPatterns={patterns}
+        completionEstimate={completionEstimate}
       />
     );
 
-    expect(screen.getByText('Most students used a for loop')).toBeInTheDocument();
-    expect(screen.getByText('Several forgot edge cases')).toBeInTheDocument();
+    expect(screen.getByTestId('completion-summary')).toBeInTheDocument();
+    expect(screen.getByText(/10 finished/)).toBeInTheDocument();
+    expect(screen.getByText(/3 in progress/)).toBeInTheDocument();
+    expect(screen.getByText(/2 not started/)).toBeInTheDocument();
 
     // Not shown for non-all group
     rerender(
@@ -156,10 +169,38 @@ describe('GroupNavigationHeader', () => {
         activeGroupIndex={1}
         onNavigate={jest.fn()}
         onDismiss={jest.fn()}
-        commonPatterns={patterns}
+        completionEstimate={completionEstimate}
       />
     );
 
-    expect(screen.queryByText('Most students used a for loop')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('completion-summary')).not.toBeInTheDocument();
+  });
+
+  it('shows overallNote only for "all" group', () => {
+    const { rerender } = render(
+      <GroupNavigationHeader
+        groups={groups}
+        activeGroupIndex={0}
+        onNavigate={jest.fn()}
+        onDismiss={jest.fn()}
+        overallNote="Most students did well"
+      />
+    );
+
+    expect(screen.getByTestId('overall-note')).toBeInTheDocument();
+    expect(screen.getByText('Most students did well')).toBeInTheDocument();
+
+    // Not shown for non-all group
+    rerender(
+      <GroupNavigationHeader
+        groups={groups}
+        activeGroupIndex={1}
+        onNavigate={jest.fn()}
+        onDismiss={jest.fn()}
+        overallNote="Most students did well"
+      />
+    );
+
+    expect(screen.queryByTestId('overall-note')).not.toBeInTheDocument();
   });
 });

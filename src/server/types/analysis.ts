@@ -6,35 +6,53 @@
  */
 
 /**
- * Category of a walkthrough entry
+ * Severity level for an analysis issue
  */
-export type WalkthroughCategory =
-  | 'common-error'
-  | 'edge-case'
-  | 'interesting-approach'
-  | 'exemplary';
+export type IssueSeverity = 'error' | 'misconception' | 'style' | 'good-pattern';
 
 /**
- * A single entry in the walkthrough script
+ * A single issue identified across student submissions
  */
-export interface WalkthroughEntry {
-  /** Position in the ordered sequence (1-indexed for display) */
-  position: number;
+export interface AnalysisIssue {
+  /** Short title describing the issue */
+  title: string;
 
-  /** Anonymous student reference (e.g., "Student A", "Student B") */
-  studentLabel: string;
+  /** Detailed explanation of the issue for instructor context */
+  explanation: string;
 
-  /** Internal student ID (used for featuring on public view) */
-  studentId: string;
+  /** Number of students exhibiting this issue */
+  count: number;
 
-  /** Short discussion points (2-4 bullets, 5-15 words each) */
-  discussionPoints: string[];
+  /** Internal student IDs of all students with this issue */
+  studentIds: string[];
 
-  /** Brief explanation of why this submission is worth discussing */
-  pedagogicalNote: string;
+  /** Anonymous label for the representative student (e.g., "Student A") */
+  representativeStudentLabel: string;
 
-  /** Category for filtering/visual distinction */
-  category: WalkthroughCategory;
+  /** Internal ID of the representative student (used for featuring) */
+  representativeStudentId: string;
+
+  /** Severity/type classification */
+  severity: IssueSeverity;
+}
+
+/**
+ * Raw response structure expected from Gemini API (v2 issue-based format)
+ */
+export interface GeminiAnalysisResponseV2 {
+  /** Issues identified across submissions */
+  issues: Array<{
+    title: string;
+    explanation: string;
+    studentLabels: string[];
+    severity: IssueSeverity;
+  }>;
+
+  /** Labels of students who have finished/submitted */
+  finishedStudentLabels: string[];
+
+  /** Optional high-level note about the class overall */
+  overallNote?: string;
 }
 
 /**
@@ -50,8 +68,12 @@ export interface WalkthroughSummary {
   /** Number of submissions sent to LLM for analysis */
   analyzedSubmissions: number;
 
-  /** Common patterns observed across submissions (2-3 items) */
-  commonPatterns: string[];
+  /** Estimate of how many students are finished, in progress, or not started */
+  completionEstimate: {
+    finished: number;
+    inProgress: number;
+    notStarted: number;
+  };
 
   /** Warning message if many submissions were filtered */
   warning?: string;
@@ -64,11 +86,14 @@ export interface WalkthroughScript {
   /** Session ID this script was generated for */
   sessionId: string;
 
-  /** Ordered list of submissions to discuss */
-  entries: WalkthroughEntry[];
+  /** Ordered list of issues to discuss */
+  issues: AnalysisIssue[];
 
-  /** Summary statistics and patterns */
+  /** Summary statistics */
   summary: WalkthroughSummary;
+
+  /** Optional high-level note about the class overall */
+  overallNote?: string;
 
   /** Timestamp when this script was generated */
   generatedAt: Date;
@@ -109,17 +134,4 @@ export interface AnalysisInput {
     studentId: string;
     code: string;
   }>;
-}
-
-/**
- * Raw response structure expected from Gemini API
- */
-export interface GeminiAnalysisResponse {
-  entries: Array<{
-    studentLabel: string;
-    discussionPoints: string[];
-    pedagogicalNote: string;
-    category: string;
-  }>;
-  commonPatterns: string[];
 }

@@ -13,7 +13,6 @@ import StudentAnalysisDetails from './StudentAnalysisDetails';
 import CodeEditor from '@/app/(fullscreen)/student/components/CodeEditor';
 import { EditorContainer } from '@/app/(fullscreen)/student/components/EditorContainer';
 import { Problem, ExecutionSettings } from '@/server/types/problem';
-import { WalkthroughEntry } from '@/server/types/analysis';
 import useAnalysisGroups from '../hooks/useAnalysisGroups';
 import { Student, RealtimeStudent, ExecutionResult } from '../types';
 
@@ -80,6 +79,8 @@ export function SessionStudentPane({
     script,
     groups,
     activeGroupIndex,
+    overallNote,
+    completionEstimate,
     analyze,
     navigateGroup,
     dismissGroup,
@@ -130,23 +131,14 @@ export function SessionStudentPane({
 
   const selectedStudent = students.find(s => s.id === selectedStudentId);
 
-  // Filter students when a category group is active
+  // Filter students when an issue group is active
   const activeGroup = groups.length > 0 ? groups[activeGroupIndex] ?? null : null;
   const filteredStudents = activeGroup && activeGroup.id !== 'all'
     ? students.filter(s => activeGroup.studentIds.includes(s.id))
     : students;
 
-  // Find analysis entries for the selected student
-  const selectedStudentEntries: WalkthroughEntry[] = [];
-  if (selectedStudentId && analysisState === 'ready') {
-    for (const group of groups) {
-      for (const entry of group.entries) {
-        if (entry.studentId === selectedStudentId) {
-          selectedStudentEntries.push(entry);
-        }
-      }
-    }
-  }
+  // Get the active issue for the selected student's details
+  const activeIssue = activeGroup?.issue;
 
   // Analyze button label
   const analyzeButtonLabel = analysisState === 'loading'
@@ -197,7 +189,8 @@ export function SessionStudentPane({
               activeGroupIndex={activeGroupIndex}
               onNavigate={navigateGroup}
               onDismiss={dismissGroup}
-              commonPatterns={script?.summary?.commonPatterns}
+              overallNote={overallNote}
+              completionEstimate={completionEstimate}
             />
           </div>
         )}
@@ -222,9 +215,9 @@ export function SessionStudentPane({
                 {selectedStudent?.name || 'Student'}'s Code
               </h3>
             </div>
-            {selectedStudentEntries.length > 0 && (
+            {analysisState === 'ready' && activeIssue && (
               <div className="p-4" data-testid="student-analysis-details">
-                <StudentAnalysisDetails entries={selectedStudentEntries} />
+                <StudentAnalysisDetails issue={activeIssue} />
               </div>
             )}
             <EditorContainer height="500px">

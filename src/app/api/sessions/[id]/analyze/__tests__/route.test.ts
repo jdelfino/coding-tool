@@ -84,21 +84,22 @@ describe('POST /api/sessions/[id]/analyze', () => {
 
   const mockScript: WalkthroughScript = {
     sessionId: 'session-1',
-    entries: [
+    issues: [
       {
-        position: 1,
-        studentLabel: 'Student A',
-        studentId: 'user-1',
-        discussionPoints: ['Missing edge case handling'],
-        pedagogicalNote: 'Common beginner mistake',
-        category: 'common-error',
+        title: 'Missing edge case handling',
+        explanation: 'Common beginner mistake',
+        count: 1,
+        studentIds: ['user-1'],
+        representativeStudentLabel: 'Student A',
+        representativeStudentId: 'user-1',
+        severity: 'error',
       },
     ],
     summary: {
       totalSubmissions: 2,
       filteredOut: 0,
       analyzedSubmissions: 2,
-      commonPatterns: ['Most students used print statements'],
+      completionEstimate: { finished: 1, inProgress: 1, notStarted: 0 },
     },
     generatedAt: new Date(),
   };
@@ -138,7 +139,7 @@ describe('POST /api/sessions/[id]/analyze', () => {
     expect(response.status).toBe(200);
     expect(data.success).toBe(true);
     expect(data.script).toBeDefined();
-    expect(data.script.entries).toHaveLength(1);
+    expect(data.script.issues).toHaveLength(1);
     expect(data.script.summary.totalSubmissions).toBe(2);
   });
 
@@ -406,12 +407,12 @@ describe('POST /api/sessions/[id]/analyze', () => {
 
     const emptyScript: WalkthroughScript = {
       sessionId: 'session-1',
-      entries: [],
+      issues: [],
       summary: {
         totalSubmissions: 0,
         filteredOut: 0,
         analyzedSubmissions: 0,
-        commonPatterns: [],
+        completionEstimate: { finished: 0, inProgress: 0, notStarted: 0 },
         warning: 'No submissions to analyze',
       },
       generatedAt: new Date(),

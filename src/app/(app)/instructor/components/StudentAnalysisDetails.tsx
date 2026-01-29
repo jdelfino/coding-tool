@@ -1,17 +1,19 @@
 'use client';
 
 import React from 'react';
-import { WalkthroughEntry } from '@/server/types/analysis';
-import { categoryStyles } from '../constants/analysis';
+import { AnalysisIssue } from '@/server/types/analysis';
+import { severityStyles } from '../constants/analysis';
 
 interface StudentAnalysisDetailsProps {
-  entries: WalkthroughEntry[];
+  issue?: AnalysisIssue;
 }
 
-export default function StudentAnalysisDetails({ entries }: StudentAnalysisDetailsProps) {
-  if (entries.length === 0) {
+export default function StudentAnalysisDetails({ issue }: StudentAnalysisDetailsProps) {
+  if (!issue) {
     return null;
   }
+
+  const style = severityStyles[issue.severity];
 
   return (
     <div
@@ -22,65 +24,42 @@ export default function StudentAnalysisDetails({ entries }: StudentAnalysisDetai
         padding: '0.75rem 1rem',
       }}
     >
-      {entries.map((entry, index) => {
-        const style = categoryStyles[entry.category];
-        return (
-          <React.Fragment key={`${entry.studentId}-${entry.category}-${index}`}>
-            {index > 0 && (
-              <hr
-                style={{
-                  border: 'none',
-                  borderTop: '1px solid #e5e7eb',
-                  margin: '0.5rem 0',
-                }}
-              />
-            )}
-            <div>
-              <span
-                style={{
-                  display: 'inline-block',
-                  padding: '0.125rem 0.5rem',
-                  backgroundColor: style.bg,
-                  color: style.text,
-                  borderRadius: '9999px',
-                  fontSize: '0.7rem',
-                  fontWeight: 500,
-                  marginBottom: '0.375rem',
-                }}
-              >
-                {style.label}
-              </span>
-              <ul
-                style={{
-                  margin: '0.25rem 0',
-                  paddingLeft: '1.25rem',
-                  color: '#4b5563',
-                  fontSize: '0.8125rem',
-                  lineHeight: 1.5,
-                }}
-              >
-                {entry.discussionPoints.map((point, i) => (
-                  <li key={i} style={{ marginBottom: '0.125rem' }}>
-                    {point}
-                  </li>
-                ))}
-              </ul>
-              {entry.pedagogicalNote && (
-                <p
-                  style={{
-                    margin: '0.25rem 0 0',
-                    fontSize: '0.75rem',
-                    color: '#6b7280',
-                    fontStyle: 'italic',
-                  }}
-                >
-                  {entry.pedagogicalNote}
-                </p>
-              )}
-            </div>
-          </React.Fragment>
-        );
-      })}
+      <span
+        style={{
+          display: 'inline-block',
+          padding: '0.125rem 0.5rem',
+          backgroundColor: style.bg,
+          color: style.text,
+          borderRadius: '9999px',
+          fontSize: '0.7rem',
+          fontWeight: 500,
+          marginBottom: '0.375rem',
+        }}
+        data-testid="severity-badge"
+      >
+        {style.label}
+      </span>
+      <p
+        style={{
+          margin: '0.25rem 0 0',
+          fontSize: '0.8125rem',
+          color: '#4b5563',
+          fontWeight: 500,
+        }}
+        data-testid="issue-title"
+      >
+        {issue.title}
+      </p>
+      <p
+        style={{
+          margin: '0.25rem 0 0',
+          fontSize: '0.75rem',
+          color: '#6b7280',
+        }}
+        data-testid="issue-explanation"
+      >
+        {issue.explanation}
+      </p>
     </div>
   );
 }
