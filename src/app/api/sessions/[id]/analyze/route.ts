@@ -75,12 +75,21 @@ export async function POST(
       submissions,
     };
 
+    // Build code snapshots map (studentId -> code at analysis time)
+    const codeSnapshots: Record<string, string> = {};
+    for (const sub of submissions) {
+      codeSnapshots[sub.studentId] = sub.code;
+    }
+
     // Run analysis
     const script = await geminiService.analyzeSubmissions(analysisInput);
 
     return NextResponse.json({
       success: true,
-      script,
+      script: {
+        ...script,
+        codeSnapshots,
+      },
     });
   } catch (error: unknown) {
     // Handle authentication errors

@@ -249,6 +249,41 @@ describe('useAnalysisGroups', () => {
     expect(result.current.groups).toEqual([]);
   });
 
+  it('stores codeSnapshots from the API response', async () => {
+    const script = makeScript(sampleEntries);
+    const snapshots = { s1: 'code1', s2: 'code2' };
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ script: { ...script, codeSnapshots: snapshots } }),
+    });
+
+    const { result } = renderHook(() => useAnalysisGroups());
+
+    await act(async () => {
+      await result.current.analyze('session-1');
+    });
+
+    expect(result.current.codeSnapshots).toEqual(snapshots);
+  });
+
+  it('defaults codeSnapshots to empty object when not in response', async () => {
+    const script = makeScript(sampleEntries);
+    mockSuccessResponse(script);
+
+    const { result } = renderHook(() => useAnalysisGroups());
+
+    await act(async () => {
+      await result.current.analyze('session-1');
+    });
+
+    expect(result.current.codeSnapshots).toEqual({});
+  });
+
+  it('codeSnapshots is empty in idle state', () => {
+    const { result } = renderHook(() => useAnalysisGroups());
+    expect(result.current.codeSnapshots).toEqual({});
+  });
+
   it('activeGroup reflects current activeGroupIndex', async () => {
     const script = makeScript(sampleEntries);
     mockSuccessResponse(script);

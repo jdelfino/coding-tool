@@ -70,6 +70,10 @@ export interface WalkthroughScript {
   /** Summary statistics and patterns */
   summary: WalkthroughSummary;
 
+  /** Snapshot of each student's code at analysis time (studentId -> code).
+   *  Populated by the analyze API route, not by the analysis service. */
+  codeSnapshots?: Record<string, string>;
+
   /** Timestamp when this script was generated */
   generatedAt: Date;
 }

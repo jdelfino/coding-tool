@@ -142,6 +142,25 @@ describe('POST /api/sessions/[id]/analyze', () => {
     expect(data.script.summary.totalSubmissions).toBe(2);
   });
 
+  it('includes codeSnapshots mapping studentId to code at analysis time', async () => {
+    mockGetAuthenticatedUserWithToken.mockResolvedValue({ user: mockInstructor, accessToken: 'test-token' });
+    mockCheckPermission.mockReturnValue(true);
+
+    const request = new NextRequest('http://localhost:3000/api/sessions/session-1/analyze', {
+      method: 'POST',
+    });
+    const params = Promise.resolve({ id: 'session-1' });
+
+    const response = await POST(request, { params });
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.script.codeSnapshots).toEqual({
+      'user-1': 'print("Alice solution here")',
+      'user-2': 'print("Bob solution here")',
+    });
+  });
+
   it('passes correct input to Gemini service', async () => {
     mockGetAuthenticatedUserWithToken.mockResolvedValue({ user: mockInstructor, accessToken: 'test-token' });
     mockCheckPermission.mockReturnValue(true);

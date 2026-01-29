@@ -22,6 +22,7 @@ export default function useAnalysisGroups() {
   const [analysisState, setAnalysisState] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
   const [error, setError] = useState<string | null>(null);
   const [script, setScript] = useState<WalkthroughScript | null>(null);
+  const [codeSnapshots, setCodeSnapshots] = useState<Record<string, string>>({});
   const [dismissedCategories, setDismissedCategories] = useState<Set<string>>(new Set());
   const [activeGroupIndex, setActiveGroupIndex] = useState(0);
 
@@ -72,6 +73,7 @@ export default function useAnalysisGroups() {
       }
 
       setScript(data.script);
+      setCodeSnapshots(data.script.codeSnapshots ?? {});
       setDismissedCategories(new Set());
       setActiveGroupIndex(0);
       setAnalysisState('ready');
@@ -114,6 +116,7 @@ export default function useAnalysisGroups() {
     analysisState,
     error,
     script,
+    codeSnapshots,
     groups,
     activeGroup,
     activeGroupIndex,

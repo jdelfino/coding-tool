@@ -75,6 +75,7 @@ export function SessionStudentPane({
     analysisState,
     error: analysisError,
     script,
+    codeSnapshots,
     groups,
     activeGroupIndex,
     analyze,
@@ -85,15 +86,22 @@ export function SessionStudentPane({
   // Track previous analysis state for auto-feature on completion
   const prevAnalysisStateRef = useRef(analysisState);
 
-  // Update selected student code when realtime data changes
+  // Update selected student code when realtime data changes.
+  // When analysis is active and a snapshot exists, prefer the snapshot code
+  // so the instructor sees the code that was actually analyzed.
   useEffect(() => {
     if (!selectedStudentId) return;
+
+    if (analysisState === 'ready' && codeSnapshots[selectedStudentId] !== undefined) {
+      setSelectedStudentCode(codeSnapshots[selectedStudentId]);
+      return;
+    }
 
     const student = realtimeStudents.find(s => s.id === selectedStudentId);
     if (student) {
       setSelectedStudentCode(student.code || '');
     }
-  }, [realtimeStudents, selectedStudentId]);
+  }, [realtimeStudents, selectedStudentId, analysisState, codeSnapshots]);
 
   // Auto-feature first student when analysis completes
   useEffect(() => {

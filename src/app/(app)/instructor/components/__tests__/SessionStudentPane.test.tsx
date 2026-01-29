@@ -42,12 +42,14 @@ let mockGroups: Array<{
   recommendedStudentId: string | null;
 }> = [];
 let mockActiveGroupIndex = 0;
+let mockCodeSnapshots: Record<string, string> = {};
 
 jest.mock('../../hooks/useAnalysisGroups', () => {
   return () => ({
     analysisState: mockAnalysisState,
     error: mockError,
     script: mockScript,
+    codeSnapshots: mockCodeSnapshots,
     groups: mockGroups,
     activeGroup: mockGroups.length > 0 ? mockGroups[mockActiveGroupIndex] ?? null : null,
     activeGroupIndex: mockActiveGroupIndex,
@@ -123,6 +125,7 @@ describe('SessionStudentPane', () => {
     mockScript = null;
     mockGroups = [];
     mockActiveGroupIndex = 0;
+    mockCodeSnapshots = {};
   });
 
   const mockWalkthroughEntries: WalkthroughEntry[] = [
@@ -530,6 +533,57 @@ describe('SessionStudentPane', () => {
 
       await waitFor(() => {
         expect(screen.getByText('print("Updated code!")')).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe('code snapshot during analysis', () => {
+    it('displays snapshot code instead of realtime code when analysis is active', async () => {
+      setAnalysisReady();
+      mockActiveGroupIndex = 1; // common-error group, auto-selects student-1
+      mockCodeSnapshots = {
+        'student-1': 'print("snapshot code from analysis time")',
+        'student-3': 'def snapshot():\n  pass',
+      };
+
+      render(<SessionStudentPane {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByText('print("snapshot code from analysis time")')).toBeInTheDocument();
+      });
+
+      // Should NOT show the realtime code
+      expect(screen.queryByText('print("Hello from Alice")')).not.toBeInTheDocument();
+    });
+
+    it('displays realtime code when analysis is not active', async () => {
+      // No analysis active (idle state), so realtime code should be shown
+      render(<SessionStudentPane {...defaultProps} />);
+
+      const viewCodeButtons = screen.getAllByRole('button', { name: /^view$/i });
+      fireEvent.click(viewCodeButtons[0]);
+
+      await waitFor(() => {
+        expect(screen.getByText('print("Hello from Alice")')).toBeInTheDocument();
+      });
+    });
+
+    it('displays realtime code for students without a snapshot', async () => {
+      setAnalysisReady();
+      mockActiveGroupIndex = 0; // 'all' group, no auto-select
+      // Only student-3 has a snapshot; student-1 does not
+      mockCodeSnapshots = {
+        'student-3': 'def snapshot():\n  pass',
+      };
+
+      render(<SessionStudentPane {...defaultProps} />);
+
+      // Manually select student-1 who has no snapshot
+      const viewCodeButtons = screen.getAllByRole('button', { name: /^view$/i });
+      fireEvent.click(viewCodeButtons[0]);
+
+      await waitFor(() => {
+        expect(screen.getByText('print("Hello from Alice")')).toBeInTheDocument();
       });
     });
   });
