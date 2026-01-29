@@ -63,6 +63,8 @@ export interface TabsTabProps extends Omit<ButtonHTMLAttributes<HTMLButtonElemen
 export interface TabsPanelProps extends HTMLAttributes<HTMLDivElement> {
   /** Tab identifier this panel corresponds to */
   tabId: string;
+  /** Keep the panel mounted when inactive instead of unmounting it */
+  keepMounted?: boolean;
   /** Additional CSS classes */
   className?: string;
   /** Panel content */
@@ -127,11 +129,11 @@ TabsTab.displayName = 'Tabs.Tab';
  * Tab panel content component
  */
 const TabsPanel = forwardRef<HTMLDivElement, TabsPanelProps>(
-  ({ tabId, className, children, ...props }, ref) => {
+  ({ tabId, keepMounted, className, children, ...props }, ref) => {
     const { activeTab } = useTabsContext();
     const isActive = activeTab === tabId;
 
-    if (!isActive) {
+    if (!isActive && !keepMounted) {
       return null;
     }
 
@@ -143,6 +145,7 @@ const TabsPanel = forwardRef<HTMLDivElement, TabsPanelProps>(
         aria-labelledby={tabId}
         tabIndex={0}
         className={cn('py-4 focus:outline-none', className)}
+        hidden={!isActive}
         {...props}
       >
         {children}

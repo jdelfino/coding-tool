@@ -247,6 +247,44 @@ describe('Tabs', () => {
     });
   });
 
+  describe('keepMounted', () => {
+    it('should keep inactive panel in the DOM when keepMounted is true', () => {
+      render(
+        <ControlledTabs defaultTab="tab1">
+          <Tabs.List>
+            <Tabs.Tab tabId="tab1">Tab 1</Tabs.Tab>
+            <Tabs.Tab tabId="tab2">Tab 2</Tabs.Tab>
+          </Tabs.List>
+          <Tabs.Panel tabId="tab1">Content 1</Tabs.Panel>
+          <Tabs.Panel tabId="tab2" keepMounted>Content 2</Tabs.Panel>
+        </ControlledTabs>
+      );
+
+      expect(screen.getByText('Content 1')).toBeVisible();
+      expect(screen.getByText('Content 2')).not.toBeVisible();
+    });
+
+    it('should preserve state across tab switches with keepMounted', () => {
+      render(<ControlledTabs defaultTab="tab1">
+        <Tabs.List>
+          <Tabs.Tab tabId="tab1">Tab 1</Tabs.Tab>
+          <Tabs.Tab tabId="tab2">Tab 2</Tabs.Tab>
+        </Tabs.List>
+        <Tabs.Panel tabId="tab1">Content 1</Tabs.Panel>
+        <Tabs.Panel tabId="tab2" keepMounted>Content 2</Tabs.Panel>
+      </ControlledTabs>);
+
+      // Switch to tab2, then back to tab1
+      fireEvent.click(screen.getByText('Tab 2'));
+      expect(screen.getByText('Content 2')).toBeVisible();
+
+      fireEvent.click(screen.getByText('Tab 1'));
+      // Content 2 should still be in the DOM, just hidden
+      expect(screen.getByText('Content 2')).not.toBeVisible();
+      expect(screen.getByText('Content 2')).toBeInTheDocument();
+    });
+  });
+
   describe('custom classNames', () => {
     it('should apply custom className to Tabs.List', () => {
       const handleChange = jest.fn();

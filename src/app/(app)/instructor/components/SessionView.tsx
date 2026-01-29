@@ -222,7 +222,7 @@ export function SessionView({
         </Tabs.Panel>
 
         {/* AI Walkthrough Tab */}
-        <Tabs.Panel tabId="walkthrough" className="pt-4">
+        <Tabs.Panel tabId="walkthrough" className="pt-4" keepMounted>
           <WalkthroughPanelWrapper
             sessionId={sessionId}
             onFeatureStudent={onFeatureStudent}
