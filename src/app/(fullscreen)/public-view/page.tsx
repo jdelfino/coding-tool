@@ -8,6 +8,8 @@ import CodeEditor from '@/app/(fullscreen)/student/components/CodeEditor';
 import { useApiDebugger } from '@/hooks/useApiDebugger';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import MarkdownContent from '@/components/MarkdownContent';
+import { ConnectionStatus, ConnectionState } from '@/components/ConnectionStatus';
+import { useHeaderSlot } from '@/contexts/HeaderSlotContext';
 
 interface PublicSessionState {
   sessionId: string;
@@ -21,6 +23,7 @@ interface PublicSessionState {
 function PublicViewContent() {
   const searchParams = useSearchParams();
   const sessionId = searchParams.get('sessionId');
+  const { setHeaderSlot } = useHeaderSlot();
 
   const [state, setState] = useState<PublicSessionState | null>(null);
   const [loading, setLoading] = useState(true);
@@ -54,6 +57,20 @@ function PublicViewContent() {
 
   // Listen for Broadcast messages (more reliable than postgres_changes, recommended by Supabase)
   const [isConnected, setIsConnected] = useState(false);
+
+  // Show connection status in the global header
+  const connectionState: ConnectionState = isConnected ? 'connected' : 'connecting';
+  useEffect(() => {
+    if (sessionId) {
+      setHeaderSlot(
+        <ConnectionStatus
+          status={connectionState}
+          variant="badge"
+        />
+      );
+    }
+    return () => setHeaderSlot(null);
+  }, [sessionId, connectionState, setHeaderSlot]);
 
   useEffect(() => {
     if (!sessionId) return;

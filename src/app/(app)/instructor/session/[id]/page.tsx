@@ -21,6 +21,8 @@ import { SessionView } from '../../components/SessionView';
 import { ErrorAlert } from '@/components/ErrorAlert';
 import { Spinner } from '@/components/ui/Spinner';
 import { Problem, ExecutionSettings } from '@/server/types/problem';
+import { ConnectionStatus } from '@/components/ConnectionStatus';
+import { useHeaderSlot } from '@/contexts/HeaderSlotContext';
 
 /**
  * Extended session state from API that includes joinCode from section
@@ -38,6 +40,7 @@ export default function InstructorSessionPage() {
   const params = useParams();
   const router = useRouter();
   const { user, isLoading: authLoading } = useAuth();
+  const { setHeaderSlot } = useHeaderSlot();
   const sessionId = params.id as string;
 
   // Local state
@@ -55,7 +58,6 @@ export default function InstructorSessionPage() {
     students: realtimeStudents,
     loading: sessionLoading,
     error: sessionError,
-    isConnected,
     connectionStatus,
     connectionError,
     executeCode,
@@ -119,6 +121,20 @@ export default function InstructorSessionPage() {
     setSessionProblem(realtimeSession.problem || null);
     setSessionExecutionSettings(realtimeSession.problem?.executionSettings || {});
   }, [realtimeSession]);
+
+  // Show connection status in the global header
+  useEffect(() => {
+    if (!sessionLoading) {
+      setHeaderSlot(
+        <ConnectionStatus
+          status={connectionStatus}
+          error={connectionError}
+          variant="badge"
+        />
+      );
+    }
+    return () => setHeaderSlot(null);
+  }, [sessionLoading, connectionStatus, connectionError, setHeaderSlot]);
 
   // Handle session ended state - status is 'active' or 'completed', not 'ended'
   const isSessionEnded = realtimeSession?.status === 'completed';
@@ -230,23 +246,6 @@ export default function InstructorSessionPage() {
 
   return (
     <div className="space-y-6">
-      {/* Page header with connection status */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <button
-            onClick={handleLeaveSession}
-            className="text-gray-600 hover:text-gray-900 flex items-center gap-1"
-          >
-            <span>&larr;</span>
-            <span>Back to Sessions</span>
-          </button>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
-          <span className="text-sm text-gray-600">{connectionStatus}</span>
-        </div>
-      </div>
-
       {/* Errors */}
       {connectionError && (
         <ErrorAlert error={connectionError} title="Connection Error" variant="warning" showHelpText={true} />
