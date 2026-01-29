@@ -38,6 +38,8 @@ interface SessionStudentPaneProps {
   onSelectStudent?: (studentId: string) => void;
   /** Callback to show student on public view */
   onShowOnPublicView?: (studentId: string) => void;
+  /** Callback to clear the public view */
+  onClearPublicView?: () => void;
   /** Callback to view student history */
   onViewHistory?: (studentId: string, studentName: string) => void;
   /** Callback to execute student code */
@@ -60,6 +62,7 @@ export function SessionStudentPane({
   joinCode,
   onSelectStudent,
   onShowOnPublicView,
+  onClearPublicView,
   onViewHistory,
   onExecuteCode,
   featuredStudentId,
@@ -203,6 +206,7 @@ export function SessionStudentPane({
           students={filteredStudents}
           onSelectStudent={handleSelectStudent}
           onShowOnPublicView={onShowOnPublicView}
+          onClearPublicView={onClearPublicView}
           onViewHistory={onViewHistory}
           joinCode={joinCode}
           featuredStudentId={featuredStudentId}

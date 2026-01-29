@@ -488,6 +488,32 @@ export function useRealtimeSession({
   }, [sessionId, students]);
 
   /**
+   * Clear the featured student from public view
+   */
+  const clearFeaturedStudent = useCallback(async () => {
+    try {
+      const res = await fetchWithRetry(`/api/sessions/${sessionId}/feature`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({}),
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({ error: 'Failed to clear public view' }));
+        throw new Error(errorData.error || 'Failed to clear public view');
+      }
+
+      // Optimistically clear local state
+      setFeaturedStudent({});
+    } catch (e: any) {
+      console.error('[useRealtimeSession] Failed to clear featured student:', e);
+      throw e;
+    }
+  }, [sessionId]);
+
+  /**
    * Join session
    */
   const joinSession = useCallback(async (studentId: string, name: string) => {
@@ -534,6 +560,7 @@ export function useRealtimeSession({
     updateCode,
     executeCode,
     featureStudent,
+    clearFeaturedStudent,
     joinSession,
   };
 }

@@ -11,6 +11,7 @@ import StudentList from '../StudentList';
 describe('StudentList', () => {
   const mockOnSelectStudent = jest.fn();
   const mockOnShowOnPublicView = jest.fn();
+  const mockOnClearPublicView = jest.fn();
   const mockOnViewHistory = jest.fn();
 
   const defaultProps = {
@@ -215,6 +216,64 @@ describe('StudentList', () => {
 
       expect(screen.getByTestId('student-row-student-1').className).not.toContain('border-emerald');
       expect(screen.getByTestId('student-row-student-2').className).toContain('border-emerald');
+    });
+  });
+
+  describe('Clear Public View button', () => {
+    const students = [
+      { id: 'student-1', name: 'Alice', hasCode: true },
+    ];
+
+    it('should show Clear Public View button when a student is featured and handler is provided', () => {
+      render(
+        <StudentList
+          {...defaultProps}
+          students={students}
+          featuredStudentId="student-1"
+          onClearPublicView={mockOnClearPublicView}
+        />
+      );
+
+      expect(screen.getByTestId('clear-public-view-button')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Clear Public View/i })).toBeInTheDocument();
+    });
+
+    it('should not show Clear Public View button when no student is featured', () => {
+      render(
+        <StudentList
+          {...defaultProps}
+          students={students}
+          onClearPublicView={mockOnClearPublicView}
+        />
+      );
+
+      expect(screen.queryByTestId('clear-public-view-button')).not.toBeInTheDocument();
+    });
+
+    it('should not show Clear Public View button when handler is not provided', () => {
+      render(
+        <StudentList
+          {...defaultProps}
+          students={students}
+          featuredStudentId="student-1"
+        />
+      );
+
+      expect(screen.queryByTestId('clear-public-view-button')).not.toBeInTheDocument();
+    });
+
+    it('should call onClearPublicView when clicked', () => {
+      render(
+        <StudentList
+          {...defaultProps}
+          students={students}
+          featuredStudentId="student-1"
+          onClearPublicView={mockOnClearPublicView}
+        />
+      );
+
+      fireEvent.click(screen.getByTestId('clear-public-view-button'));
+      expect(mockOnClearPublicView).toHaveBeenCalledTimes(1);
     });
   });
 });

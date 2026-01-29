@@ -56,6 +56,8 @@ interface SessionViewProps {
   ) => Promise<void>;
   /** Callback to feature a student on public view */
   onFeatureStudent: (studentId: string) => Promise<void>;
+  /** Callback to clear the public view */
+  onClearPublicView?: () => Promise<void>;
   /** Callback to execute student code */
   executeCode: (
     studentId: string,
@@ -90,6 +92,7 @@ export function SessionView({
   onLeaveSession,
   onUpdateProblem,
   onFeatureStudent,
+  onClearPublicView,
   executeCode,
   onProblemLoaded,
   featuredStudentId,
@@ -173,6 +176,7 @@ export function SessionView({
             sessionExecutionSettings={sessionExecutionSettings}
             joinCode={joinCode || undefined}
             onShowOnPublicView={onFeatureStudent}
+            onClearPublicView={onClearPublicView}
             onViewHistory={handleViewRevisions}
             onExecuteCode={handleExecuteCode}
             featuredStudentId={featuredStudentId}

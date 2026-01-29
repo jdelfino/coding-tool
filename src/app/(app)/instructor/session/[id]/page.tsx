@@ -62,6 +62,7 @@ export default function InstructorSessionPage() {
     connectionError,
     executeCode,
     featureStudent,
+    clearFeaturedStudent,
   } = useRealtimeSession({
     sessionId: sessionId || '',
     userId: user?.id,
@@ -182,6 +183,16 @@ export default function InstructorSessionPage() {
     }
   }, [sessionId, featureStudent]);
 
+  const handleClearPublicView = useCallback(async () => {
+    if (!sessionId) return;
+
+    try {
+      await clearFeaturedStudent();
+    } catch (err: any) {
+      setError(err.message || 'Failed to clear public view');
+    }
+  }, [sessionId, clearFeaturedStudent]);
+
   const handleExecuteCode = useCallback(async (
     studentId: string,
     code: string,
@@ -269,6 +280,7 @@ export default function InstructorSessionPage() {
           onLeaveSession={handleLeaveSession}
           onUpdateProblem={handleUpdateProblem}
           onFeatureStudent={handleFeatureStudent}
+          onClearPublicView={handleClearPublicView}
           executeCode={handleExecuteCode}
           featuredStudentId={realtimeSession?.featuredStudentId}
         />
