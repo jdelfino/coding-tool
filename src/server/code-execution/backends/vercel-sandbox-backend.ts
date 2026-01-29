@@ -256,18 +256,20 @@ export class VercelSandboxBackend implements ISessionScopedBackend {
       // Write all files
       await sandbox.writeFiles(filesToWrite);
 
-      // Build command arguments
-      const pythonArgs = ['main.py'];
-
       // Execute with timeout using AbortController
       const controller = new AbortController();
       const timeout = options?.timeout ?? EXECUTION_TIMEOUT_MS;
       const timeoutId = setTimeout(() => controller.abort(), timeout);
 
       try {
+        // Vercel Sandbox runCommand doesn't support stdin piping, so when
+        // stdin is provided we use shell redirection from the stdin file.
+        const hasStdin = stdin !== undefined && stdin !== null;
         const result = await sandbox.runCommand({
-          cmd: 'python3',
-          args: pythonArgs,
+          cmd: hasStdin ? 'bash' : 'python3',
+          args: hasStdin
+            ? ['-c', 'python3 main.py < /tmp/stdin.txt']
+            : ['main.py'],
           cwd: SANDBOX_CWD,
           signal: controller.signal,
         });

@@ -158,9 +158,14 @@ export async function POST(request: NextRequest) {
     const timeoutId = setTimeout(() => controller.abort(), timeout);
 
     try {
+      // Vercel Sandbox runCommand doesn't support stdin piping, so when
+      // stdin is provided we use shell redirection from the stdin file.
+      const hasStdin = stdin !== undefined && stdin !== null;
       const result = await sandbox.runCommand({
-        cmd: 'python3',
-        args: ['main.py'],
+        cmd: hasStdin ? 'bash' : 'python3',
+        args: hasStdin
+          ? ['-c', 'python3 main.py < /tmp/stdin.txt']
+          : ['main.py'],
         cwd: SANDBOX_CWD,
         signal: controller.signal,
       });
