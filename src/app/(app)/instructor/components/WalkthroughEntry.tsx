@@ -1,7 +1,8 @@
 'use client';
 
 import React from 'react';
-import { WalkthroughEntry as WalkthroughEntryType, WalkthroughCategory } from '@/server/types/analysis';
+import { WalkthroughEntry as WalkthroughEntryType } from '@/server/types/analysis';
+import { categoryStyles } from '../constants/analysis';
 
 interface WalkthroughEntryProps {
   entry: WalkthroughEntryType;
@@ -9,13 +10,6 @@ interface WalkthroughEntryProps {
   onClick: () => void;
   onShow: () => void;
 }
-
-const categoryStyles: Record<WalkthroughCategory, { bg: string; text: string; label: string }> = {
-  'common-error': { bg: '#fef2f2', text: '#991b1b', label: 'Error' },
-  'edge-case': { bg: '#fef9c3', text: '#854d0e', label: 'Edge Case' },
-  'interesting-approach': { bg: '#f0fdf4', text: '#166534', label: 'Interesting' },
-  'exemplary': { bg: '#eff6ff', text: '#1e40af', label: 'Exemplary' },
-};
 
 export default function WalkthroughEntry({ entry, isActive, onClick, onShow }: WalkthroughEntryProps) {
   const categoryStyle = categoryStyles[entry.category];
