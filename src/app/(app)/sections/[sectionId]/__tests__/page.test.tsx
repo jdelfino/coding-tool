@@ -1,10 +1,10 @@
 /**
- * Unit tests for SectionDetailPage - Reopen button
+ * Unit tests for SectionDetailPage
  * @jest-environment jsdom
  */
 
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import SectionDetailPage from '../page';
 
@@ -29,11 +29,11 @@ const pastSession = {
   status: 'completed',
   createdAt: '2026-01-15T10:00:00Z',
   problem: { title: 'Past Problem', description: 'A completed problem' },
-  students: new Map(),
+  participants: ['student-1', 'student-2'],
 };
 
 function mockSectionFetch(role: 'instructor' | 'student', sessions: object[] = [pastSession]) {
-  return (url: string, options?: RequestInit) => {
+  return (url: string) => {
     if (url === '/api/sections/my') {
       return Promise.resolve({
         ok: true,
@@ -51,99 +51,45 @@ function mockSectionFetch(role: 'instructor' | 'student', sessions: object[] = [
         json: () => Promise.resolve({ sessions }),
       });
     }
-    if (url === '/api/sessions/session-past-1/reopen' && options?.method === 'POST') {
-      return Promise.resolve({
-        ok: true,
-        json: () => Promise.resolve({ sessionId: 'session-past-1' }),
-      });
-    }
     return Promise.resolve({ ok: true, json: () => Promise.resolve({}) });
   };
 }
 
-const mockAlert = jest.fn();
-
-describe('SectionDetailPage - Reopen button', () => {
+describe('SectionDetailPage', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    global.alert = mockAlert;
   });
 
-  it('shows Reopen button for instructors on past sessions', async () => {
+  it('shows View button that navigates instructors to instructor session view', async () => {
     global.fetch = jest.fn(mockSectionFetch('instructor')) as jest.Mock;
     render(<SectionDetailPage />);
-    expect(await screen.findByText('Reopen')).toBeInTheDocument();
+
+    const viewBtn = await screen.findByText('View');
+    await userEvent.click(viewBtn);
+
+    expect(mockPush).toHaveBeenCalledWith('/instructor/session/session-past-1');
   });
 
-  it('does not show Reopen button for students on past sessions', async () => {
+  it('shows View button that navigates students to student view', async () => {
     global.fetch = jest.fn(mockSectionFetch('student')) as jest.Mock;
+    render(<SectionDetailPage />);
+
+    const viewBtn = await screen.findByText('View');
+    await userEvent.click(viewBtn);
+
+    expect(mockPush).toHaveBeenCalledWith('/student?sessionId=session-past-1');
+  });
+
+  it('does not show Reopen button on section detail page', async () => {
+    global.fetch = jest.fn(mockSectionFetch('instructor')) as jest.Mock;
     render(<SectionDetailPage />);
     expect(await screen.findByText('Past Problem')).toBeInTheDocument();
     expect(screen.queryByText('Reopen')).not.toBeInTheDocument();
   });
 
-  it('calls reopen API and navigates on success', async () => {
+  it('shows student count on past sessions', async () => {
     global.fetch = jest.fn(mockSectionFetch('instructor')) as jest.Mock;
     render(<SectionDetailPage />);
-    const reopenBtn = await screen.findByText('Reopen');
-
-    await userEvent.click(reopenBtn);
-
-    await waitFor(() => {
-      expect(global.fetch).toHaveBeenCalledWith('/api/sessions/session-past-1/reopen', {
-        method: 'POST',
-      });
-      expect(mockPush).toHaveBeenCalledWith('/instructor/session/session-past-1');
-    });
-  });
-
-  it('shows alert on reopen error', async () => {
-    const baseFetch = mockSectionFetch('instructor');
-    global.fetch = jest.fn((url: string, options?: RequestInit) => {
-      if (url === '/api/sessions/session-past-1/reopen' && options?.method === 'POST') {
-        return Promise.resolve({
-          ok: false,
-          json: () => Promise.resolve({ error: 'Cannot reopen session: active session already exists' }),
-        });
-      }
-      return baseFetch(url, options);
-    }) as jest.Mock;
-
-    render(<SectionDetailPage />);
-    const reopenBtn = await screen.findByText('Reopen');
-    await userEvent.click(reopenBtn);
-
-    await waitFor(() => {
-      expect(mockAlert).toHaveBeenCalledWith('Cannot reopen session: active session already exists');
-    });
-    expect(mockPush).not.toHaveBeenCalledWith('/instructor/session/session-past-1');
-  });
-
-  it('disables button while reopening', async () => {
-    let resolveReopen!: (value: unknown) => void;
-    const baseFetch = mockSectionFetch('instructor');
-    global.fetch = jest.fn((url: string, options?: RequestInit) => {
-      if (url === '/api/sessions/session-past-1/reopen' && options?.method === 'POST') {
-        return new Promise((resolve) => { resolveReopen = resolve; });
-      }
-      return baseFetch(url, options);
-    }) as jest.Mock;
-
-    render(<SectionDetailPage />);
-    const reopenBtn = await screen.findByText('Reopen');
-    await userEvent.click(reopenBtn);
-
-    // Button should show "Reopening..." and be disabled
-    expect(await screen.findByText('Reopening...')).toBeDisabled();
-
-    // Resolve the request
-    resolveReopen({
-      ok: true,
-      json: () => Promise.resolve({ sessionId: 'session-past-1' }),
-    });
-
-    await waitFor(() => {
-      expect(mockPush).toHaveBeenCalledWith('/instructor/session/session-past-1');
-    });
+    expect(await screen.findByText('2 students')).toBeInTheDocument();
   });
 });
