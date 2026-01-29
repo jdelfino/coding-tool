@@ -118,8 +118,7 @@ describeE2E('Public View Feature', () => {
       });
 
       // Verify public view loaded
-      await expect(publicViewPage.locator('h1:has-text("Public Display")')).toBeVisible({ timeout: 10000 });
-      await expect(publicViewPage.locator(`text=${joinCode}`)).toBeVisible({ timeout: 5000 });
+      await expect(publicViewPage.locator(`text=${joinCode}`)).toBeVisible({ timeout: 10000 });
       await expect(publicViewPage.locator('text=No submission selected for display')).toBeVisible({ timeout: 5000 });
 
       console.log('Public view opened, shows no submission');

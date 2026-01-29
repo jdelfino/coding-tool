@@ -126,21 +126,10 @@ function PublicViewContent() {
 
   if (!sessionId) {
     return (
-      <div style={{
-        minHeight: '100vh',
-        backgroundColor: '#f9fafb',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center'
-      }}>
-        <div style={{
-          backgroundColor: 'white',
-          padding: '2rem',
-          border: '1px solid #ccc',
-          borderRadius: '4px'
-        }}>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1rem' }}>No Session</h1>
-          <p style={{ color: '#666' }}>Please provide a sessionId in the URL.</p>
+      <div className="h-full bg-gray-50 flex items-center justify-center">
+        <div className="bg-white p-8 border border-gray-300 rounded">
+          <h1 className="text-xl font-bold mb-4">No Session</h1>
+          <p className="text-gray-500">Please provide a sessionId in the URL.</p>
         </div>
       </div>
     );
@@ -148,35 +137,18 @@ function PublicViewContent() {
 
   if (loading) {
     return (
-      <div style={{
-        minHeight: '100vh',
-        backgroundColor: '#f9fafb',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center'
-      }}>
-        <div style={{ fontSize: '1.25rem', color: '#666' }}>Loading...</div>
+      <div className="h-full bg-gray-50 flex items-center justify-center">
+        <div className="text-lg text-gray-500">Loading...</div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div style={{
-        minHeight: '100vh',
-        backgroundColor: '#f9fafb',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center'
-      }}>
-        <div style={{
-          backgroundColor: 'white',
-          padding: '2rem',
-          border: '1px solid #fca5a5',
-          borderRadius: '4px'
-        }}>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1rem', color: '#dc2626' }}>Error</h1>
-          <p style={{ color: '#666' }}>{error}</p>
+      <div className="h-full bg-gray-50 flex items-center justify-center">
+        <div className="bg-white p-8 border border-red-300 rounded">
+          <h1 className="text-xl font-bold mb-4 text-red-600">Error</h1>
+          <p className="text-gray-500">{error}</p>
         </div>
       </div>
     );
@@ -185,54 +157,23 @@ function PublicViewContent() {
   const problemText = state?.problem?.description || '';
 
   return (
-    <main style={{
-      padding: '1rem',
-      width: '100%',
-      height: '100vh',
-      boxSizing: 'border-box',
-      display: 'flex',
-      flexDirection: 'column'
-    }}>
-      <h1 style={{ marginBottom: '1rem', flexShrink: 0 }}>Public Display</h1>
-
+    <main className="h-full w-full flex flex-col p-2 box-border">
       {/* Compact Header with Problem and Join Code */}
-      <div style={{
-        padding: '1rem',
-        border: '1px solid #ccc',
-        borderRadius: '4px',
-        marginBottom: '1rem',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'flex-start',
-        gap: '1.5rem',
-        flexShrink: 0
-      }}>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <h2 style={{ marginTop: 0, marginBottom: '0.5rem', fontSize: '1.25rem' }}>Problem</h2>
+      <div className="flex justify-between items-start gap-4 flex-shrink-0 pb-2 border-b border-gray-200 mb-2">
+        <div className="flex-1 min-w-0">
+          <h2 className="mt-0 mb-1 text-base font-semibold">Problem</h2>
           {problemText ? (
             <MarkdownContent content={problemText} className="text-sm" />
           ) : (
-            <p style={{ color: '#999', fontStyle: 'italic', margin: 0 }}>No problem set yet</p>
+            <p className="text-gray-400 italic m-0 text-sm">No problem set yet</p>
           )}
         </div>
-        <div style={{
-          textAlign: 'right',
-          flexShrink: 0,
-          borderLeft: '2px solid #ddd',
-          paddingLeft: '1.5rem'
-        }}>
-          <p style={{ fontSize: '0.75rem', color: '#666', marginBottom: '0.25rem', marginTop: 0 }}>Section Join Code</p>
-          <p style={{
-            fontSize: '2rem',
-            fontWeight: 'bold',
-            color: '#0070f3',
-            fontFamily: 'monospace',
-            margin: 0,
-            marginBottom: '0.5rem'
-          }}>
+        <div className="text-right flex-shrink-0 border-l-2 border-gray-200 pl-4">
+          <p className="text-xs text-gray-500 mb-0.5 mt-0">Section Join Code</p>
+          <p className="text-2xl font-bold text-blue-500 font-mono m-0 mb-1">
             {state?.joinCode || '------'}
           </p>
-          <p style={{ fontSize: '0.7rem', color: '#666', marginTop: '0.5rem', marginBottom: 0 }}>
+          <p className="text-xs text-gray-500 mt-1 mb-0">
             Students join your section with this code
           </p>
         </div>
@@ -240,37 +181,22 @@ function PublicViewContent() {
 
       {/* Featured Submission */}
       {state?.hasFeaturedSubmission ? (
-        <div style={{
-          padding: '1rem',
-          border: '1px solid #ccc',
-          borderRadius: '4px',
-          flex: 1,
-          minHeight: 0,
-          display: 'flex',
-          flexDirection: 'column'
-        }}>
-          <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
-            <CodeEditor
-              code={localCode}
-              onChange={setLocalCode}
-              problem={state.problem}
-              title="Featured Code"
-              useApiExecution={true}
-              debugger={debuggerHook}
-            />
-          </div>
+        <div className="flex-1 min-h-0 flex flex-col">
+          <CodeEditor
+            code={localCode}
+            onChange={setLocalCode}
+            problem={state.problem}
+            title="Featured Code"
+            useApiExecution={true}
+            debugger={debuggerHook}
+          />
         </div>
       ) : (
-        <div style={{
-          padding: '3rem',
-          border: '1px solid #ccc',
-          borderRadius: '4px',
-          textAlign: 'center'
-        }}>
-          <p style={{ color: '#999', fontSize: '1.125rem', fontStyle: 'italic', marginBottom: '0.5rem' }}>
+        <div className="p-8 border border-gray-300 rounded text-center">
+          <p className="text-gray-400 text-lg italic mb-1">
             No submission selected for display
           </p>
-          <p style={{ color: '#666', fontSize: '0.875rem' }}>
+          <p className="text-gray-500 text-sm">
             Select a student submission from the instructor dashboard
           </p>
         </div>
@@ -283,14 +209,8 @@ export default function PublicInstructorView() {
   return (
     <ProtectedRoute requiredRole="instructor">
       <Suspense fallback={
-        <div style={{
-          minHeight: '100vh',
-          backgroundColor: '#f9fafb',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center'
-        }}>
-          <div style={{ fontSize: '1.25rem', color: '#666' }}>Loading...</div>
+        <div className="h-full bg-gray-50 flex items-center justify-center">
+          <div className="text-lg text-gray-500">Loading...</div>
         </div>
       }>
         <PublicViewContent />

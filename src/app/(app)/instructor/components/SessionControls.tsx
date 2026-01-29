@@ -25,7 +25,7 @@ export default function SessionControls({
   const [showEndSessionConfirm, setShowEndSessionConfirm] = useState(false);
 
   const handleOpenPublicView = () => {
-    const publicViewUrl = `/instructor/public?sessionId=${sessionId}`;
+    const publicViewUrl = `/public-view?sessionId=${sessionId}`;
     window.open(publicViewUrl, '_blank', 'width=1200,height=800');
   };
 
