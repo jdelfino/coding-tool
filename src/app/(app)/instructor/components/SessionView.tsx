@@ -3,16 +3,14 @@
 /**
  * SessionView - Main session layout component for instructors.
  * Uses a tabbed interface where instructor can switch between:
- * - Students: Student list + code editor
+ * - Students: Student list + code editor + AI analysis
  * - Problem Setup: Configure the session problem (full width for editor)
- * - AI Walkthrough: Generate AI analysis of submissions
  */
 
 import React, { useState, useCallback } from 'react';
 import SessionControls from './SessionControls';
 import { SessionStudentPane } from './SessionStudentPane';
 import { ProblemSetupPanel } from './ProblemSetupPanel';
-import { WalkthroughPanelWrapper } from './WalkthroughPanelWrapper';
 import RevisionViewer from './RevisionViewer';
 import ProblemLoader from './ProblemLoader';
 import { Tabs } from '@/components/ui/Tabs';
@@ -98,14 +96,14 @@ interface SessionViewProps {
   featuredStudentId?: string | null;
 }
 
-type SessionTab = 'students' | 'problem' | 'walkthrough';
+type SessionTab = 'students' | 'problem';
 
 /**
  * SessionView provides the main layout for an active instructor session.
  *
  * Layout:
  * - Header: SessionControls (join code, end/leave buttons)
- * - Tabs: Students | Problem Setup | AI Walkthrough
+ * - Tabs: Students | Problem Setup
  * - Content: Full-width content for selected tab
  */
 export function SessionView({
@@ -191,9 +189,6 @@ export function SessionView({
           <Tabs.Tab tabId="problem">
             Problem Setup
           </Tabs.Tab>
-          <Tabs.Tab tabId="walkthrough">
-            AI Walkthrough
-          </Tabs.Tab>
         </Tabs.List>
 
         {/* Students Tab - Student list + code editor */}
@@ -222,15 +217,6 @@ export function SessionView({
           />
         </Tabs.Panel>
 
-        {/* AI Walkthrough Tab */}
-        <Tabs.Panel tabId="walkthrough" className="pt-4" keepMounted>
-          <WalkthroughPanelWrapper
-            sessionId={sessionId}
-            onFeatureStudent={onFeatureStudent}
-            studentCount={students.length}
-            isFullWidth
-          />
-        </Tabs.Panel>
       </Tabs>
 
       {/* Modals */}
