@@ -141,10 +141,6 @@ export default function InstructorSessionPage() {
   const isSessionEnded = realtimeSession?.status === 'completed';
 
   // Handlers
-  const handleLeaveSession = useCallback(() => {
-    router.push('/instructor');
-  }, [router]);
-
   const handleEndSession = useCallback(async () => {
     if (!sessionId) return;
 
@@ -277,7 +273,6 @@ export default function InstructorSessionPage() {
           sessionProblem={sessionProblem}
           sessionExecutionSettings={sessionExecutionSettings}
           onEndSession={handleEndSession}
-          onLeaveSession={handleLeaveSession}
           onUpdateProblem={handleUpdateProblem}
           onFeatureStudent={handleFeatureStudent}
           onClearPublicView={handleClearPublicView}

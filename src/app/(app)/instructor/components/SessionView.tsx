@@ -43,8 +43,6 @@ interface SessionViewProps {
   };
   /** Callback to end the session */
   onEndSession: () => Promise<void>;
-  /** Callback to leave (but not end) the session */
-  onLeaveSession: () => void;
   /** Callback to update problem */
   onUpdateProblem: (
     problem: { title: string; description: string; starterCode: string },
@@ -89,7 +87,6 @@ export function SessionView({
   sessionProblem,
   sessionExecutionSettings,
   onEndSession,
-  onLeaveSession,
   onUpdateProblem,
   onFeatureStudent,
   onClearPublicView,
@@ -151,7 +148,6 @@ export function SessionView({
         joinCode={joinCode || undefined}
         connectedStudentCount={students.length}
         onEndSession={onEndSession}
-        onLeaveSession={onLeaveSession}
         onLoadProblem={handleOpenProblemLoader}
       />
 

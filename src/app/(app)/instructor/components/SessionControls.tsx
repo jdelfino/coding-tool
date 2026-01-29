@@ -9,7 +9,6 @@ interface SessionControlsProps {
   joinCode?: string;
   connectedStudentCount?: number;
   onEndSession: () => void;
-  onLeaveSession: () => void;
   onLoadProblem?: () => void;
 }
 
@@ -19,7 +18,6 @@ export default function SessionControls({
   joinCode,
   connectedStudentCount = 0,
   onEndSession,
-  onLeaveSession,
   onLoadProblem
 }: SessionControlsProps) {
   const [showEndSessionConfirm, setShowEndSessionConfirm] = useState(false);
@@ -62,12 +60,6 @@ export default function SessionControls({
             title="Open public view in a new window to display student code to the class"
           >
             Open Public View
-          </button>
-          <button
-            onClick={onLeaveSession}
-            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-          >
-            Leave Session
           </button>
           <button
             onClick={() => setShowEndSessionConfirm(true)}

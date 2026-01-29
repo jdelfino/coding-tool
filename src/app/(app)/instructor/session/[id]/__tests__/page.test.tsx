@@ -46,7 +46,6 @@ jest.mock('../../../components/SessionView', () => ({
     sessionContext,
     students,
     onEndSession,
-    onLeaveSession,
     onUpdateProblem,
     onFeatureStudent,
   }: any) {
@@ -57,7 +56,6 @@ jest.mock('../../../components/SessionView', () => ({
         <span data-testid="section-name">{sessionContext?.sectionName}</span>
         <span data-testid="student-count">{students.length}</span>
         <button onClick={onEndSession} data-testid="end-session-btn">End Session</button>
-        <button onClick={onLeaveSession} data-testid="leave-session-btn">Leave Session</button>
         <button onClick={() => onUpdateProblem({ title: 'Updated', description: '', starterCode: '' })} data-testid="update-problem-btn">Update Problem</button>
         <button onClick={() => onFeatureStudent('student-1')} data-testid="feature-student-btn">Feature Student</button>
       </div>
@@ -313,14 +311,6 @@ describe('InstructorSessionPage', () => {
       await waitFor(() => {
         expect(screen.getByTestId('error-message')).toHaveTextContent('Failed to end');
       });
-    });
-
-    it('navigates to sessions list when leave session is clicked', () => {
-      render(<InstructorSessionPage />);
-
-      fireEvent.click(screen.getByTestId('leave-session-btn'));
-
-      expect(mockPush).toHaveBeenCalledWith('/instructor');
     });
 
     it('sets connection status in header slot', () => {
