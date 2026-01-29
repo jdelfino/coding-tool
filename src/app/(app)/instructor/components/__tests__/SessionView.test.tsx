@@ -15,7 +15,6 @@ jest.mock('../SessionControls', () => {
     joinCode,
     connectedStudentCount,
     onEndSession,
-    onLeaveSession,
     onLoadProblem,
   }: any) {
     return (
@@ -25,7 +24,6 @@ jest.mock('../SessionControls', () => {
         <span data-testid="join-code">{joinCode}</span>
         <span data-testid="student-count">{connectedStudentCount}</span>
         <button onClick={onEndSession} data-testid="end-session-btn">End Session</button>
-        <button onClick={onLeaveSession} data-testid="leave-session-btn">Leave Session</button>
         <button onClick={onLoadProblem} data-testid="load-problem-btn">Load Problem</button>
       </div>
     );
@@ -151,7 +149,6 @@ describe('SessionView', () => {
     sessionProblem: mockProblem,
     sessionExecutionSettings: { stdin: 'test input' },
     onEndSession: jest.fn().mockResolvedValue(undefined),
-    onLeaveSession: jest.fn(),
     onUpdateProblem: jest.fn().mockResolvedValue(undefined),
     onFeatureStudent: jest.fn().mockResolvedValue(undefined),
     executeCode: jest.fn().mockResolvedValue({ success: true, output: '', error: '', executionTime: 100 }),
@@ -226,13 +223,6 @@ describe('SessionView', () => {
       expect(defaultProps.onEndSession).toHaveBeenCalled();
     });
 
-    it('calls onLeaveSession when leave session button is clicked', () => {
-      render(<SessionView {...defaultProps} />);
-
-      fireEvent.click(screen.getByTestId('leave-session-btn'));
-
-      expect(defaultProps.onLeaveSession).toHaveBeenCalled();
-    });
   });
 
   describe('problem loader modal', () => {

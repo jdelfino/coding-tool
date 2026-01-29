@@ -9,12 +9,10 @@ import SessionControls from '../SessionControls';
 
 describe('SessionControls', () => {
   const mockOnEndSession = jest.fn();
-  const mockOnLeaveSession = jest.fn();
 
   const defaultProps = {
     sessionId: 'session-123',
     onEndSession: mockOnEndSession,
-    onLeaveSession: mockOnLeaveSession,
   };
 
   beforeEach(() => {
@@ -40,32 +38,10 @@ describe('SessionControls', () => {
     expect(screen.queryByText(/Section/)).not.toBeInTheDocument();
   });
 
-  it('should call onLeaveSession when Leave Session button is clicked', () => {
+  it('should render End Session button', () => {
     render(<SessionControls {...defaultProps} />);
 
-    const leaveButton = screen.getByRole('button', { name: /Leave Session/ });
-    fireEvent.click(leaveButton);
-
-    expect(mockOnLeaveSession).toHaveBeenCalledTimes(1);
-    expect(mockOnEndSession).not.toHaveBeenCalled();
-  });
-
-  it('should render both action buttons', () => {
-    render(<SessionControls {...defaultProps} />);
-
-    expect(screen.getByRole('button', { name: /Leave Session/ })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /End Session/ })).toBeInTheDocument();
-  });
-
-  it('should not call handlers multiple times on multiple clicks', () => {
-    render(<SessionControls {...defaultProps} />);
-
-    const leaveButton = screen.getByRole('button', { name: /Leave Session/ });
-    fireEvent.click(leaveButton);
-    fireEvent.click(leaveButton);
-    fireEvent.click(leaveButton);
-
-    expect(mockOnLeaveSession).toHaveBeenCalledTimes(3);
   });
 
   describe('End Session confirmation dialog', () => {
