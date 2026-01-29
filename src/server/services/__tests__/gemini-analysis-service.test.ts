@@ -404,6 +404,27 @@ describe('GeminiAnalysisService', () => {
         jest.restoreAllMocks();
       });
 
+      it('handles model overloaded error (503)', async () => {
+        jest.spyOn(console, 'error').mockImplementation(() => {});
+
+        mockFetch.mockResolvedValueOnce({
+          ok: false,
+          status: 503,
+          text: () => Promise.resolve('Service Unavailable'),
+        });
+
+        const input: AnalysisInput = {
+          ...baseInput,
+          submissions: [{ studentId: 's1', code: 'print("Long enough code here")' }],
+        };
+
+        await expect(service.analyzeSubmissions(input)).rejects.toThrow(
+          'AI model is temporarily overloaded. Please try again in a few moments.'
+        );
+
+        jest.restoreAllMocks();
+      });
+
       it('handles invalid API key error', async () => {
         mockFetch.mockResolvedValueOnce({
           ok: false,

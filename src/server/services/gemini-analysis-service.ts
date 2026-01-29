@@ -376,6 +376,10 @@ export class GeminiAnalysisService {
           throw new Error('Rate limit exceeded. Please try again later.');
         }
 
+        if (response.status === 503) {
+          throw new Error('AI model is temporarily overloaded. Please try again in a few moments.');
+        }
+
         if (response.status === 401 || response.status === 403) {
           throw new Error('Invalid Gemini API key. Please check your configuration.');
         }

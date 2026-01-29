@@ -101,6 +101,14 @@ export async function POST(
         );
       }
 
+      // Model overloaded
+      if (error.message.includes('overloaded')) {
+        return NextResponse.json(
+          { error: error.message },
+          { status: 503 }
+        );
+      }
+
       // Timeout
       if (error.message.includes('timed out')) {
         return NextResponse.json(

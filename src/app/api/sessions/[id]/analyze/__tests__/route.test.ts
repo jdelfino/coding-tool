@@ -325,6 +325,25 @@ describe('POST /api/sessions/[id]/analyze', () => {
     expect(mockCheckAnalyzeDailyLimits).toHaveBeenCalledWith(request, 'instructor-1');
   });
 
+  it('returns 503 on model overloaded error', async () => {
+    mockGetAuthenticatedUserWithToken.mockResolvedValue({ user: mockInstructor, accessToken: 'test-token' });
+    mockCheckPermission.mockReturnValue(true);
+    (mockGeminiService.analyzeSubmissions as jest.Mock).mockRejectedValue(
+      new Error('AI model is temporarily overloaded. Please try again in a few moments.')
+    );
+
+    const request = new NextRequest('http://localhost:3000/api/sessions/session-1/analyze', {
+      method: 'POST',
+    });
+    const params = Promise.resolve({ id: 'session-1' });
+
+    const response = await POST(request, { params });
+    const data = await response.json();
+
+    expect(response.status).toBe(503);
+    expect(data.error).toContain('overloaded');
+  });
+
   it('returns 504 on timeout error', async () => {
     mockGetAuthenticatedUserWithToken.mockResolvedValue({ user: mockInstructor, accessToken: 'test-token' });
     mockCheckPermission.mockReturnValue(true);
