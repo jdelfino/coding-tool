@@ -6,7 +6,7 @@
  * Integrates analysis groups for walkthrough navigation.
  */
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import StudentList from './StudentList';
 import GroupNavigationHeader from './GroupNavigationHeader';
 import StudentAnalysisDetails from './StudentAnalysisDetails';
@@ -82,9 +82,6 @@ export function SessionStudentPane({
     dismissGroup,
   } = useAnalysisGroups();
 
-  // Track previous analysis state for auto-feature on completion
-  const prevAnalysisStateRef = useRef(analysisState);
-
   // Update selected student code when realtime data changes
   useEffect(() => {
     if (!selectedStudentId) return;
@@ -94,16 +91,6 @@ export function SessionStudentPane({
       setSelectedStudentCode(student.code || '');
     }
   }, [realtimeStudents, selectedStudentId]);
-
-  // Auto-feature first student when analysis completes
-  useEffect(() => {
-    if (prevAnalysisStateRef.current === 'loading' && analysisState === 'ready') {
-      if (script && script.entries.length > 0 && onShowOnPublicView) {
-        onShowOnPublicView(script.entries[0].studentId);
-      }
-    }
-    prevAnalysisStateRef.current = analysisState;
-  }, [analysisState, script, onShowOnPublicView]);
 
   // Auto-select recommended student on group change
   useEffect(() => {

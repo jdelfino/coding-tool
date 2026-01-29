@@ -248,8 +248,8 @@ describe('SessionStudentPane', () => {
     });
   });
 
-  describe('auto-feature on analysis completion', () => {
-    it('calls onShowOnPublicView with first entry studentId when analysis completes', () => {
+  describe('analysis completion does not auto-feature', () => {
+    it('does not call onShowOnPublicView when analysis completes', () => {
       const mockShowOnPublicView = jest.fn();
       mockAnalysisState = 'loading';
 
@@ -263,7 +263,7 @@ describe('SessionStudentPane', () => {
         <SessionStudentPane {...defaultProps} onShowOnPublicView={mockShowOnPublicView} />
       );
 
-      expect(mockShowOnPublicView).toHaveBeenCalledWith('student-1');
+      expect(mockShowOnPublicView).not.toHaveBeenCalled();
     });
   });
 
