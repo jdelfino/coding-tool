@@ -255,7 +255,13 @@ export function InstructorDashboard({
                       ) : null}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">{section.name}</div>
+                      <Link
+                        href={`/sections/${section.id}`}
+                        className="text-sm font-medium text-blue-600 hover:text-blue-900"
+                        data-testid={`section-link-${section.id}`}
+                      >
+                        {section.name}
+                      </Link>
                       <div className="text-xs text-gray-500 font-mono" data-testid="join-code">
                         {formatJoinCodeForDisplay(section.joinCode)}
                       </div>
