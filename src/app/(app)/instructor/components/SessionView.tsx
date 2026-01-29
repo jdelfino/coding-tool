@@ -199,6 +199,7 @@ export function SessionView({
         {/* Students Tab - Student list + code editor */}
         <Tabs.Panel tabId="students" className="pt-4">
           <SessionStudentPane
+            sessionId={sessionId}
             students={students}
             realtimeStudents={realtimeStudents}
             sessionProblem={sessionProblem}

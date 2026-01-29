@@ -3,13 +3,18 @@
 /**
  * SessionStudentPane - Combined student list and code editor pane.
  * Displays the student list on the left and selected student's code on the right.
+ * Integrates analysis groups for walkthrough navigation.
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import StudentList from './StudentList';
+import GroupNavigationHeader from './GroupNavigationHeader';
+import StudentAnalysisDetails from './StudentAnalysisDetails';
 import CodeEditor from '@/app/(fullscreen)/student/components/CodeEditor';
 import { EditorContainer } from '@/app/(fullscreen)/student/components/EditorContainer';
 import { Problem, ExecutionSettings } from '@/server/types/problem';
+import { WalkthroughEntry } from '@/server/types/analysis';
+import useAnalysisGroups from '../hooks/useAnalysisGroups';
 
 interface Student {
   id: string;
@@ -41,6 +46,8 @@ interface ExecutionResult {
 }
 
 interface SessionStudentPaneProps {
+  /** Session ID for analysis API calls */
+  sessionId: string;
   /** List of students in the session (derived from realtimeStudents) */
   students: Student[];
   /** Raw realtime students for code access */
@@ -69,10 +76,11 @@ interface SessionStudentPaneProps {
 
 /**
  * SessionStudentPane displays students and their code in a two-column layout.
- * Left: Student list with actions
+ * Left: Student list with actions and analysis controls
  * Right: Read-only code editor showing selected student's code
  */
 export function SessionStudentPane({
+  sessionId,
   students,
   realtimeStudents,
   sessionProblem,
@@ -90,6 +98,21 @@ export function SessionStudentPane({
   const [executionResult, setExecutionResult] = useState<ExecutionResult | null>(null);
   const [isExecutingCode, setIsExecutingCode] = useState(false);
 
+  // Analysis groups hook
+  const {
+    analysisState,
+    error: analysisError,
+    script,
+    groups,
+    activeGroupIndex,
+    analyze,
+    navigateGroup,
+    dismissGroup,
+  } = useAnalysisGroups();
+
+  // Track previous analysis state for auto-feature on completion
+  const prevAnalysisStateRef = useRef(analysisState);
+
   // Update selected student code when realtime data changes
   useEffect(() => {
     if (!selectedStudentId) return;
@@ -99,6 +122,23 @@ export function SessionStudentPane({
       setSelectedStudentCode(student.code || '');
     }
   }, [realtimeStudents, selectedStudentId]);
+
+  // Auto-feature first student when analysis completes
+  useEffect(() => {
+    if (prevAnalysisStateRef.current === 'loading' && analysisState === 'ready') {
+      if (script && script.entries.length > 0 && onShowOnPublicView) {
+        onShowOnPublicView(script.entries[0].studentId);
+      }
+    }
+    prevAnalysisStateRef.current = analysisState;
+  }, [analysisState, script, onShowOnPublicView]);
+
+  // Auto-select recommended student on group change
+  useEffect(() => {
+    if (groups.length > 0 && groups[activeGroupIndex]?.recommendedStudentId) {
+      setSelectedStudentId(groups[activeGroupIndex].recommendedStudentId);
+    }
+  }, [activeGroupIndex, groups]);
 
   const handleSelectStudent = (studentId: string) => {
     setSelectedStudentId(studentId);
@@ -122,14 +162,86 @@ export function SessionStudentPane({
     }
   };
 
+  const handleAnalyze = () => {
+    analyze(sessionId);
+  };
+
   const selectedStudent = students.find(s => s.id === selectedStudentId);
+
+  // Filter students when a category group is active
+  const activeGroup = groups.length > 0 ? groups[activeGroupIndex] ?? null : null;
+  const filteredStudents = activeGroup && activeGroup.id !== 'all'
+    ? students.filter(s => activeGroup.studentIds.includes(s.id))
+    : students;
+
+  // Find analysis entries for the selected student
+  const selectedStudentEntries: WalkthroughEntry[] = [];
+  if (selectedStudentId && analysisState === 'ready') {
+    for (const group of groups) {
+      for (const entry of group.entries) {
+        if (entry.studentId === selectedStudentId) {
+          selectedStudentEntries.push(entry);
+        }
+      }
+    }
+  }
+
+  // Analyze button label
+  const analyzeButtonLabel = analysisState === 'loading'
+    ? 'Analyzing...'
+    : analysisState === 'ready'
+      ? 'Re-analyze'
+      : `Analyze ${students.length} Submissions`;
 
   return (
     <div className="flex flex-col lg:flex-row gap-4" data-testid="session-student-pane">
       {/* Student List - Left Panel */}
       <div className="lg:w-1/3 flex-shrink-0">
+        {/* Analyze button */}
+        <div className="mb-3">
+          {analysisState === 'error' ? (
+            <div>
+              <p className="text-sm text-red-600 mb-1" data-testid="analysis-error">{analysisError}</p>
+              <button
+                onClick={handleAnalyze}
+                className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+              >
+                Try Again
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={handleAnalyze}
+              disabled={students.length === 0 || analysisState === 'loading'}
+              className="w-full px-3 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              data-testid="analyze-button"
+            >
+              {analysisState === 'loading' && (
+                <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" data-testid="analyze-spinner">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+              )}
+              {analyzeButtonLabel}
+            </button>
+          )}
+        </div>
+
+        {/* Group navigation header */}
+        {analysisState === 'ready' && groups.length > 0 && (
+          <div className="mb-3" data-testid="group-navigation">
+            <GroupNavigationHeader
+              groups={groups}
+              activeGroupIndex={activeGroupIndex}
+              onNavigate={navigateGroup}
+              onDismiss={dismissGroup}
+              commonPatterns={script?.summary?.commonPatterns}
+            />
+          </div>
+        )}
+
         <StudentList
-          students={students}
+          students={filteredStudents}
           onSelectStudent={handleSelectStudent}
           onShowOnPublicView={onShowOnPublicView}
           onViewHistory={onViewHistory}
@@ -161,6 +273,11 @@ export function SessionStudentPane({
                 executionResult={executionResult}
               />
             </EditorContainer>
+            {selectedStudentEntries.length > 0 && (
+              <div className="p-4" data-testid="student-analysis-details">
+                <StudentAnalysisDetails entries={selectedStudentEntries} />
+              </div>
+            )}
           </div>
         ) : (
           <div
