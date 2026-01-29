@@ -8,6 +8,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { hasRolePermission } from '@/server/auth/permissions';
+import { useSelectedNamespace } from '@/hooks/useSelectedNamespace';
 import NamespaceHeader from '@/components/NamespaceHeader';
 import { ErrorAlert } from '@/components/ErrorAlert';
 import UserList from './components/UserList';
@@ -47,6 +48,7 @@ interface SystemStats {
 
 function AdminPage() {
   const { user } = useAuth();
+  const selectedNamespace = useSelectedNamespace();
   const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'instructors' | 'students'>('overview');
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [instructors, setInstructors] = useState<User[]>([]);
@@ -62,11 +64,20 @@ function AdminPage() {
   if (!user) return null;
   const isAdmin = hasRolePermission(user.role, 'user.changeRole');
 
+  // Build URL with optional namespace param for system-admin
+  const buildUrl = (base: string, params: Record<string, string> = {}) => {
+    if (user.role === 'system-admin' && selectedNamespace) {
+      params.namespace = selectedNamespace;
+    }
+    const query = new URLSearchParams(params).toString();
+    return query ? `${base}?${query}` : base;
+  };
+
   const loadStats = async () => {
     if (!isAdmin) return;
 
     try {
-      const res = await fetch('/api/admin/stats', { credentials: 'include' });
+      const res = await fetch(buildUrl('/api/admin/stats'), { credentials: 'include' });
       if (res.ok) {
         const data = await res.json();
         setStats(data);
@@ -146,7 +157,7 @@ function AdminPage() {
     try {
       if (isAdmin) {
         // Admins can see all users including other admins
-        const res = await fetch('/api/admin/users', { credentials: 'include' });
+        const res = await fetch(buildUrl('/api/admin/users'), { credentials: 'include' });
         if (!res.ok) throw new Error('Failed to load users');
         const data = await res.json();
         const users = data.users || [];
@@ -156,8 +167,8 @@ function AdminPage() {
       } else {
         // Instructors can only see instructors and students
         const [instructorsRes, studentsRes] = await Promise.all([
-          fetch('/api/admin/users?role=instructor', { credentials: 'include' }),
-          fetch('/api/admin/users?role=student', { credentials: 'include' })
+          fetch(buildUrl('/api/admin/users', { role: 'instructor' }), { credentials: 'include' }),
+          fetch(buildUrl('/api/admin/users', { role: 'student' }), { credentials: 'include' })
         ]);
 
         if (!instructorsRes.ok || !studentsRes.ok) {
@@ -194,7 +205,7 @@ function AdminPage() {
     loadUsers();
     loadStats();
     loadInvitations();
-  }, [isAdmin]);
+  }, [isAdmin, selectedNamespace]);
 
   const handleChangeRole = async (userId: string, newRole: UserRole) => {
     if (!isAdmin) return;
