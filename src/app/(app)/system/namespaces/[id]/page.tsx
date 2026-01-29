@@ -163,7 +163,10 @@ export default function NamespaceUsersPage() {
             <Card key={user.id} variant="outlined" className="p-6">
               <div className="flex justify-between items-start">
                 <div className="flex-1">
-                  <h3 className="text-lg font-semibold mb-2">{user.displayName || user.email}</h3>
+                  <h3 className="text-lg font-semibold mb-1">{user.displayName || user.email}</h3>
+                  {user.displayName && (
+                    <p className="text-sm text-gray-500 mb-2">{user.email}</p>
+                  )}
 
                   {editingUserId === user.id ? (
                     <div className="flex gap-2 items-center mb-2">

@@ -4,7 +4,7 @@
  * User list component with actions.
  */
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Table } from '@/components/ui/Table';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
@@ -64,7 +64,8 @@ export default function UserList({ users, currentUserId, onDelete, showActions =
     <Table className="bg-white shadow-sm">
       <Table.Header>
         <Table.Row>
-          <Table.HeaderCell>Username</Table.HeaderCell>
+          <Table.HeaderCell>User</Table.HeaderCell>
+          <Table.HeaderCell>Email</Table.HeaderCell>
           <Table.HeaderCell>Role</Table.HeaderCell>
           <Table.HeaderCell>Created</Table.HeaderCell>
           <Table.HeaderCell>Last Login</Table.HeaderCell>
@@ -81,6 +82,9 @@ export default function UserList({ users, currentUserId, onDelete, showActions =
                   <Badge variant="info">You</Badge>
                 )}
               </div>
+            </Table.Cell>
+            <Table.Cell className="text-sm text-gray-500">
+              {user.email}
             </Table.Cell>
             <Table.Cell>
               <Badge variant={getRoleBadgeVariant(user.role)}>
