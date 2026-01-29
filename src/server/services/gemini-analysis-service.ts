@@ -322,12 +322,14 @@ export class GeminiAnalysisService {
     const parsedResponse = parseGeminiResponse(responseText, labelToStudentId);
 
     // Build AnalysisIssue[] from parsed response
-    const issues: AnalysisIssue[] = parsedResponse.issues.map((issue) => {
+    const issues: AnalysisIssue[] = parsedResponse.issues.filter(
+      (issue) => issue.studentLabels.length > 0
+    ).map((issue) => {
       const studentIds = issue.studentLabels
         .map((label) => labelToStudentId.get(label))
         .filter((id): id is string => id !== undefined);
 
-      const firstLabel = issue.studentLabels[0] || '';
+      const firstLabel = issue.studentLabels[0];
       const firstStudentId = labelToStudentId.get(firstLabel) || '';
 
       return {

@@ -82,17 +82,19 @@ export default function useAnalysisGroups() {
     setDismissedGroups(prev => {
       const next = new Set(prev);
       next.add(groupId);
+
+      // Clamp activeGroupIndex based on the new group count computed from
+      // the updated dismissedGroups set, avoiding stale closure over `groups`.
+      if (script) {
+        const newGroupCount = 1 + script.issues.filter((_, i) => !next.has(String(i))).length;
+        setActiveGroupIndex(prevIdx =>
+          prevIdx >= newGroupCount ? Math.max(newGroupCount - 1, 0) : prevIdx
+        );
+      }
+
       return next;
     });
-
-    setActiveGroupIndex(prev => {
-      const newGroupCount = groups.filter(g => g.id !== groupId).length;
-      if (prev >= newGroupCount) {
-        return Math.max(newGroupCount - 1, 0);
-      }
-      return prev;
-    });
-  }, [groups]);
+  }, [script]);
 
   return {
     analysisState,
