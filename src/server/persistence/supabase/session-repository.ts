@@ -254,7 +254,7 @@ export class SupabaseSessionRepository implements ISessionRepository {
     if (updates.creatorId !== undefined) sessionUpdates.creator_id = updates.creatorId;
     if (updates.participants !== undefined) sessionUpdates.participants = updates.participants;
     if (updates.status !== undefined) sessionUpdates.status = updates.status;
-    if (updates.endedAt !== undefined) sessionUpdates.ended_at = updates.endedAt?.toISOString() || null;
+    if ('endedAt' in updates) sessionUpdates.ended_at = updates.endedAt?.toISOString() || null;
 
     // Update session if there are session-level changes
     if (Object.keys(sessionUpdates).length > 0) {
