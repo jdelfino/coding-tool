@@ -11,6 +11,7 @@ import {
   setFeaturedSubmission,
   clearFeaturedSubmission,
   endSession,
+  reopenSession,
   cloneProblem,
   createEmptyProblem,
 } from '../session-service';
@@ -420,6 +421,90 @@ describe('session-service', () => {
           endedAt: expect.any(Date),
         })
       );
+    });
+  });
+
+  describe('reopenSession', () => {
+    const completedSession = {
+      id: 'session-1',
+      namespaceId: 'default',
+      status: 'completed',
+      sectionId: 'section-1',
+      sectionName: 'Test Section',
+      creatorId: 'instructor-1',
+      participants: [],
+      students: new Map(),
+      createdAt: new Date(),
+      lastActivity: new Date(),
+      endedAt: new Date(),
+      problem: {
+        id: 'prob-1',
+        namespaceId: 'default',
+        title: 'Test',
+        description: '',
+        starterCode: '',
+        testCases: [],
+        authorId: 'instructor-1',
+        classId: undefined,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    };
+
+    it('reopens a completed session', async () => {
+      const storage = createMockStorage();
+      storage.sessions.getSession.mockResolvedValue(completedSession);
+      storage.sessions.listAllSessions.mockResolvedValue([]);
+
+      await reopenSession(storage as any, 'session-1');
+
+      expect(storage.sessions.updateSession).toHaveBeenCalledWith(
+        'session-1',
+        expect.objectContaining({
+          status: 'active',
+          endedAt: undefined,
+          lastActivity: expect.any(Date),
+        })
+      );
+    });
+
+    it('throws if session not found', async () => {
+      const storage = createMockStorage();
+      storage.sessions.getSession.mockResolvedValue(null);
+
+      await expect(reopenSession(storage as any, 'session-1'))
+        .rejects.toThrow('Session not found');
+    });
+
+    it('throws if session is not completed', async () => {
+      const storage = createMockStorage();
+      storage.sessions.getSession.mockResolvedValue({ ...completedSession, status: 'active' });
+
+      await expect(reopenSession(storage as any, 'session-1'))
+        .rejects.toThrow('Only completed sessions can be reopened');
+    });
+
+    it('throws if active session exists for same section', async () => {
+      const storage = createMockStorage();
+      storage.sessions.getSession.mockResolvedValue(completedSession);
+      storage.sessions.listAllSessions.mockResolvedValue([
+        { ...completedSession, id: 'other-session', status: 'active', sectionId: 'section-1' },
+      ]);
+
+      await expect(reopenSession(storage as any, 'session-1'))
+        .rejects.toThrow('Cannot reopen session');
+    });
+
+    it('allows reopen when active session exists in different section', async () => {
+      const storage = createMockStorage();
+      storage.sessions.getSession.mockResolvedValue(completedSession);
+      storage.sessions.listAllSessions.mockResolvedValue([
+        { ...completedSession, id: 'other-session', status: 'active', sectionId: 'section-2' },
+      ]);
+
+      await reopenSession(storage as any, 'session-1');
+
+      expect(storage.sessions.updateSession).toHaveBeenCalled();
     });
   });
 });

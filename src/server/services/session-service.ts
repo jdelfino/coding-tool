@@ -371,6 +371,50 @@ export async function endSession(
   });
 }
 
+/**
+ * Reopen a completed session (set back to active)
+ *
+ * Business logic:
+ * - Session must be in 'completed' status
+ * - No other active session may exist for the same section
+ * - Clears endedAt, sets status to active, updates lastActivity
+ *
+ * @throws Error if session is not completed or active session exists for section
+ */
+export async function reopenSession(
+  storage: IStorageRepository,
+  sessionId: string
+): Promise<void> {
+  const session = await storage.sessions.getSession(sessionId);
+  if (!session) {
+    throw new Error('Session not found');
+  }
+
+  if (session.status !== 'completed') {
+    throw new Error('Only completed sessions can be reopened');
+  }
+
+  // Check for existing active sessions in the same section
+  const activeSessions = await storage.sessions.listAllSessions({
+    active: true,
+    namespaceId: session.namespaceId,
+  });
+
+  const activeInSection = activeSessions.filter(s => s.sectionId === session.sectionId);
+  if (activeInSection.length > 0) {
+    throw new Error(
+      'Cannot reopen session: An active session already exists for this section. ' +
+      'End the current session before reopening this one.'
+    );
+  }
+
+  await storage.sessions.updateSession(sessionId, {
+    status: 'active',
+    endedAt: undefined,
+    lastActivity: new Date(),
+  });
+}
+
 // ============================================================================
 // Helper Functions
 // ============================================================================
