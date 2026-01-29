@@ -209,6 +209,60 @@ describe('VercelSandboxBackend', () => {
       );
     });
 
+    it('should pipe stdin via shell redirection when stdin is provided', async () => {
+      const mockSandbox = createMockSandbox('test-sandbox');
+      mockSandbox.runCommand.mockResolvedValue({
+        exitCode: 0,
+        stdout: jest.fn().mockResolvedValue('10\n'),
+        stderr: jest.fn().mockResolvedValue(''),
+      });
+      mockStateRepository.getState.mockResolvedValue({ sandboxId: 'test-sandbox' });
+      mockSandboxGet.mockResolvedValue(mockSandbox);
+
+      const submission: CodeSubmission = {
+        code: 'print(input())',
+        executionSettings: { stdin: '10' },
+      };
+      const result = await backend.execute(submission, { sessionId: 'session-123' });
+
+      expect(result.success).toBe(true);
+      // When stdin is provided, should use bash with shell redirection
+      expect(mockSandbox.runCommand).toHaveBeenCalledWith(
+        expect.objectContaining({
+          cmd: 'bash',
+          args: ['-c', 'python3 main.py < /tmp/stdin.txt'],
+          cwd: '/vercel/sandbox',
+        })
+      );
+      // stdin file should be written
+      expect(mockSandbox.writeFiles).toHaveBeenCalledWith(
+        expect.arrayContaining([
+          expect.objectContaining({ path: '/tmp/stdin.txt' }),
+        ])
+      );
+    });
+
+    it('should run python3 directly when no stdin is provided', async () => {
+      const mockSandbox = createMockSandbox('test-sandbox');
+      mockSandbox.runCommand.mockResolvedValue({
+        exitCode: 0,
+        stdout: jest.fn().mockResolvedValue('hello\n'),
+        stderr: jest.fn().mockResolvedValue(''),
+      });
+      mockStateRepository.getState.mockResolvedValue({ sandboxId: 'test-sandbox' });
+      mockSandboxGet.mockResolvedValue(mockSandbox);
+
+      const submission: CodeSubmission = { code: 'print("hello")' };
+      await backend.execute(submission, { sessionId: 'session-123' });
+
+      expect(mockSandbox.runCommand).toHaveBeenCalledWith(
+        expect.objectContaining({
+          cmd: 'python3',
+          args: ['main.py'],
+        })
+      );
+    });
+
     it('should inject random seed when provided', async () => {
       const mockSandbox = createMockSandbox('test-sandbox');
       mockSandbox.runCommand.mockResolvedValue({
