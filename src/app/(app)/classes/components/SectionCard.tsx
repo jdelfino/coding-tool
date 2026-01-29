@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { Card } from '@/components/ui/Card';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import type { Section } from '@/server/classes/types';
@@ -121,7 +122,13 @@ export default function SectionCard({
   return (
     <Card variant="default" className="p-6 space-y-4">
       <div>
-        <h3 className="text-xl font-semibold text-gray-900">{section.name}</h3>
+        <Link
+          href={`/sections/${section.id}`}
+          className="text-xl font-semibold text-blue-600 hover:text-blue-900"
+          data-testid={`section-link-${section.id}`}
+        >
+          {section.name}
+        </Link>
         {section.semester && (
           <p className="text-sm text-gray-500">{section.semester}</p>
         )}

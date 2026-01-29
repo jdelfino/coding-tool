@@ -201,6 +201,20 @@ describe('InstructorDashboard', () => {
       });
     });
 
+    it('shows clickable section name linking to section detail page', async () => {
+      render(<InstructorDashboard {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('section-link-section-1')).toBeInTheDocument();
+      });
+
+      expect(screen.getByTestId('section-link-section-1')).toHaveAttribute('href', '/sections/section-1');
+      expect(screen.getByTestId('section-link-section-1')).toHaveTextContent('Section A');
+
+      expect(screen.getByTestId('section-link-section-2')).toHaveAttribute('href', '/sections/section-2');
+      expect(screen.getByTestId('section-link-section-2')).toHaveTextContent('Section B');
+    });
+
     it('shows clickable class name linking to class page', async () => {
       render(<InstructorDashboard {...defaultProps} />);
 
