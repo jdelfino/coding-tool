@@ -4,12 +4,7 @@ import React from 'react';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
-
-interface Student {
-  id: string;
-  name: string;
-  hasCode: boolean;
-}
+import { Student } from '../types';
 
 interface StudentListProps {
   students: Student[];

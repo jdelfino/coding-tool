@@ -15,35 +15,7 @@ import { EditorContainer } from '@/app/(fullscreen)/student/components/EditorCon
 import { Problem, ExecutionSettings } from '@/server/types/problem';
 import { WalkthroughEntry } from '@/server/types/analysis';
 import useAnalysisGroups from '../hooks/useAnalysisGroups';
-
-interface Student {
-  id: string;
-  name: string;
-  hasCode: boolean;
-  executionSettings?: {
-    randomSeed?: number;
-    stdin?: string;
-    attachedFiles?: Array<{ name: string; content: string }>;
-  };
-}
-
-interface RealtimeStudent {
-  id: string;
-  name: string;
-  code?: string;
-  executionSettings?: {
-    randomSeed?: number;
-    stdin?: string;
-    attachedFiles?: Array<{ name: string; content: string }>;
-  };
-}
-
-interface ExecutionResult {
-  success: boolean;
-  output: string;
-  error: string;
-  executionTime: number;
-}
+import { Student, RealtimeStudent, ExecutionResult } from '../types';
 
 interface SessionStudentPaneProps {
   /** Session ID for analysis API calls */

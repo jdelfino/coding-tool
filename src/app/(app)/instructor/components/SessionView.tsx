@@ -15,39 +15,11 @@ import RevisionViewer from './RevisionViewer';
 import ProblemLoader from './ProblemLoader';
 import { Tabs } from '@/components/ui/Tabs';
 import { Problem, ExecutionSettings } from '@/server/types/problem';
-
-interface Student {
-  id: string;
-  name: string;
-  hasCode: boolean;
-  executionSettings?: {
-    randomSeed?: number;
-    stdin?: string;
-    attachedFiles?: Array<{ name: string; content: string }>;
-  };
-}
-
-interface RealtimeStudent {
-  id: string;
-  name: string;
-  code?: string;
-  executionSettings?: {
-    randomSeed?: number;
-    stdin?: string;
-    attachedFiles?: Array<{ name: string; content: string }>;
-  };
-}
+import { Student, RealtimeStudent, ExecutionResult } from '../types';
 
 interface SessionContext {
   sectionId: string;
   sectionName: string;
-}
-
-interface ExecutionResult {
-  success: boolean;
-  output: string;
-  error: string;
-  executionTime: number;
 }
 
 interface SessionViewProps {
