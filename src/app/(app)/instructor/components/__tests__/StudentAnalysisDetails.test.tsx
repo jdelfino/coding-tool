@@ -1,72 +1,66 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import StudentAnalysisDetails from '../StudentAnalysisDetails';
-import { WalkthroughEntry } from '@/server/types/analysis';
+import { AnalysisIssue } from '@/server/types/analysis';
 
-const makeEntry = (overrides: Partial<WalkthroughEntry> = {}): WalkthroughEntry => ({
-  position: 1,
-  studentLabel: 'Student A',
-  studentId: 'stu-1',
-  discussionPoints: ['Uses a helper function', 'Handles edge case'],
-  pedagogicalNote: 'Good example of decomposition',
-  category: 'interesting-approach',
+const makeIssue = (overrides: Partial<AnalysisIssue> = {}): AnalysisIssue => ({
+  title: 'Missing base case',
+  explanation: 'Students forgot the base case in their recursive function',
+  count: 3,
+  studentIds: ['s1', 's2', 's3'],
+  representativeStudentLabel: 'Student A',
+  representativeStudentId: 's1',
+  severity: 'error',
   ...overrides,
 });
 
 describe('StudentAnalysisDetails', () => {
-  it('renders nothing when entries array is empty', () => {
-    const { container } = render(<StudentAnalysisDetails entries={[]} />);
+  it('renders nothing when no issue is provided', () => {
+    const { container } = render(<StudentAnalysisDetails />);
     expect(container.firstChild).toBeNull();
   });
 
-  it('renders discussion points and pedagogical note for a single entry', () => {
-    render(<StudentAnalysisDetails entries={[makeEntry()]} />);
-
-    expect(screen.getByText('Uses a helper function')).toBeInTheDocument();
-    expect(screen.getByText('Handles edge case')).toBeInTheDocument();
-    expect(screen.getByText('Good example of decomposition')).toBeInTheDocument();
+  it('renders nothing when issue is undefined', () => {
+    const { container } = render(<StudentAnalysisDetails issue={undefined} />);
+    expect(container.firstChild).toBeNull();
   });
 
-  it('renders the correct category badge for each entry', () => {
-    const entries = [
-      makeEntry({ category: 'common-error', position: 1 }),
-      makeEntry({ category: 'exemplary', position: 2, studentLabel: 'Student B', studentId: 'stu-2' }),
-    ];
-    render(<StudentAnalysisDetails entries={entries} />);
+  it('renders issue title and explanation', () => {
+    render(<StudentAnalysisDetails issue={makeIssue()} />);
 
-    expect(screen.getByText('Error')).toBeInTheDocument();
-    expect(screen.getByText('Exemplary')).toBeInTheDocument();
+    expect(screen.getByTestId('issue-title')).toHaveTextContent('Missing base case');
+    expect(screen.getByTestId('issue-explanation')).toHaveTextContent('Students forgot the base case in their recursive function');
   });
 
-  it('renders multiple entries with dividers between them', () => {
-    const entries = [
-      makeEntry({ position: 1, discussionPoints: ['Point A'] }),
-      makeEntry({
-        position: 2,
-        studentLabel: 'Student B',
-        studentId: 'stu-2',
-        discussionPoints: ['Point B'],
-        pedagogicalNote: 'Second note',
-        category: 'edge-case',
-      }),
-    ];
-    const { container } = render(<StudentAnalysisDetails entries={entries} />);
-
-    expect(screen.getByText('Point A')).toBeInTheDocument();
-    expect(screen.getByText('Point B')).toBeInTheDocument();
-    // Divider exists between entries (hr element)
-    expect(container.querySelectorAll('hr')).toHaveLength(1);
+  it('renders the correct severity badge for error', () => {
+    render(<StudentAnalysisDetails issue={makeIssue({ severity: 'error' })} />);
+    expect(screen.getByTestId('severity-badge')).toHaveTextContent('Error');
   });
 
-  it('renders pedagogical note in italic style', () => {
-    render(<StudentAnalysisDetails entries={[makeEntry()]} />);
-    const note = screen.getByText('Good example of decomposition');
-    expect(note).toHaveStyle({ fontStyle: 'italic' });
+  it('renders the correct severity badge for misconception', () => {
+    render(<StudentAnalysisDetails issue={makeIssue({ severity: 'misconception' })} />);
+    expect(screen.getByTestId('severity-badge')).toHaveTextContent('Misconception');
   });
 
-  it('renders discussion points as a bullet list', () => {
-    const { container } = render(<StudentAnalysisDetails entries={[makeEntry()]} />);
-    const listItems = container.querySelectorAll('li');
-    expect(listItems).toHaveLength(2);
+  it('renders the correct severity badge for style', () => {
+    render(<StudentAnalysisDetails issue={makeIssue({ severity: 'style' })} />);
+    expect(screen.getByTestId('severity-badge')).toHaveTextContent('Style');
+  });
+
+  it('renders the correct severity badge for good-pattern', () => {
+    render(<StudentAnalysisDetails issue={makeIssue({ severity: 'good-pattern' })} />);
+    expect(screen.getByTestId('severity-badge')).toHaveTextContent('Good Pattern');
+  });
+
+  it('applies correct background color for error severity badge', () => {
+    render(<StudentAnalysisDetails issue={makeIssue({ severity: 'error' })} />);
+    const badge = screen.getByTestId('severity-badge');
+    expect(badge).toHaveStyle({ backgroundColor: '#fef2f2', color: '#991b1b' });
+  });
+
+  it('applies correct background color for good-pattern severity badge', () => {
+    render(<StudentAnalysisDetails issue={makeIssue({ severity: 'good-pattern' })} />);
+    const badge = screen.getByTestId('severity-badge');
+    expect(badge).toHaveStyle({ backgroundColor: '#f0fdf4', color: '#166534' });
   });
 });

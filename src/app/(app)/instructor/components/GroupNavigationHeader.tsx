@@ -8,7 +8,8 @@ interface GroupNavigationHeaderProps {
   activeGroupIndex: number;
   onNavigate: (direction: 'prev' | 'next') => void;
   onDismiss: (groupId: string) => void;
-  commonPatterns?: string[];
+  overallNote?: string | null;
+  completionEstimate?: { finished: number; inProgress: number; notStarted: number } | null;
 }
 
 export default function GroupNavigationHeader({
@@ -16,7 +17,8 @@ export default function GroupNavigationHeader({
   activeGroupIndex,
   onNavigate,
   onDismiss,
-  commonPatterns,
+  overallNote,
+  completionEstimate,
 }: GroupNavigationHeaderProps) {
   const activeGroup = groups[activeGroupIndex];
   if (!activeGroup) return null;
@@ -42,8 +44,10 @@ export default function GroupNavigationHeader({
 
         <div className="flex items-center gap-1.5 text-sm">
           <span className="font-medium text-gray-900">{activeGroup.label}</span>
-          <span className="text-gray-500">({studentCount} {studentCount === 1 ? 'student' : 'students'})</span>
-          <span className="text-gray-400">·</span>
+          {!isAll && (
+            <span className="text-gray-500">({studentCount} {studentCount === 1 ? 'student' : 'students'})</span>
+          )}
+          <span className="text-gray-400">&middot;</span>
           <span className="text-gray-500">{activeGroupIndex + 1} of {groups.length}</span>
         </div>
 
@@ -71,15 +75,16 @@ export default function GroupNavigationHeader({
         </button>
       </div>
 
-      {isAll && commonPatterns && commonPatterns.length > 0 && (
-        <ul className="mt-2 space-y-0.5 text-xs text-gray-500">
-          {commonPatterns.map((pattern, i) => (
-            <li key={i} className="flex items-start gap-1.5">
-              <span className="mt-1.5 w-1 h-1 rounded-full bg-gray-400 shrink-0" />
-              {pattern}
-            </li>
-          ))}
-        </ul>
+      {isAll && completionEstimate && (
+        <p className="mt-2 text-xs text-gray-500 text-center" data-testid="completion-summary">
+          {completionEstimate.finished} finished &middot; {completionEstimate.inProgress} in progress &middot; {completionEstimate.notStarted} not started
+        </p>
+      )}
+
+      {isAll && overallNote && (
+        <p className="mt-2 text-xs text-gray-500 text-center italic" data-testid="overall-note">
+          {overallNote}
+        </p>
       )}
     </div>
   );

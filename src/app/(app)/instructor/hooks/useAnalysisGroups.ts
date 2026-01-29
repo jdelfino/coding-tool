@@ -1,28 +1,19 @@
 import { useState, useCallback, useMemo } from 'react';
-import { WalkthroughScript, WalkthroughEntry, WalkthroughCategory } from '@/server/types/analysis';
-import { categoryStyles } from '../constants/analysis';
+import { WalkthroughScript, AnalysisIssue } from '@/server/types/analysis';
 
 export interface AnalysisGroup {
   id: string;
   label: string;
-  entries: WalkthroughEntry[];
   studentIds: string[];
   recommendedStudentId: string | null;
+  issue?: AnalysisIssue;
 }
-
-/** Ordered list of categories for consistent group ordering */
-const CATEGORY_ORDER: WalkthroughCategory[] = [
-  'common-error',
-  'edge-case',
-  'interesting-approach',
-  'exemplary',
-];
 
 export default function useAnalysisGroups() {
   const [analysisState, setAnalysisState] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
   const [error, setError] = useState<string | null>(null);
   const [script, setScript] = useState<WalkthroughScript | null>(null);
-  const [dismissedCategories, setDismissedCategories] = useState<Set<string>>(new Set());
+  const [dismissedGroups, setDismissedGroups] = useState<Set<string>>(new Set());
   const [activeGroupIndex, setActiveGroupIndex] = useState(0);
 
   const groups = useMemo(() => {
@@ -31,30 +22,25 @@ export default function useAnalysisGroups() {
     const allGroup: AnalysisGroup = {
       id: 'all',
       label: 'All Submissions',
-      entries: [],
       studentIds: [],
       recommendedStudentId: null,
     };
 
-    const categoryGroups: AnalysisGroup[] = [];
+    const issueGroups: AnalysisGroup[] = script.issues.map((issue, index) => ({
+      id: String(index),
+      label: issue.title,
+      studentIds: issue.studentIds,
+      recommendedStudentId: issue.representativeStudentId,
+      issue,
+    }));
 
-    for (const category of CATEGORY_ORDER) {
-      const entries = script.entries.filter(e => e.category === category);
-      if (entries.length === 0) continue;
-
-      categoryGroups.push({
-        id: category,
-        label: categoryStyles[category].label,
-        entries,
-        studentIds: entries.map(e => e.studentId),
-        recommendedStudentId: entries[0].studentId,
-      });
-    }
-
-    return [allGroup, ...categoryGroups].filter(g => !dismissedCategories.has(g.id));
-  }, [script, dismissedCategories]);
+    return [allGroup, ...issueGroups].filter(g => !dismissedGroups.has(g.id));
+  }, [script, dismissedGroups]);
 
   const activeGroup = groups.length > 0 ? groups[activeGroupIndex] ?? null : null;
+
+  const overallNote = script?.overallNote ?? null;
+  const completionEstimate = script?.summary?.completionEstimate ?? null;
 
   const analyze = useCallback(async (sessionId: string) => {
     setAnalysisState('loading');
@@ -72,7 +58,7 @@ export default function useAnalysisGroups() {
       }
 
       setScript(data.script);
-      setDismissedCategories(new Set());
+      setDismissedGroups(new Set());
       setActiveGroupIndex(0);
       setAnalysisState('ready');
     } catch (err) {
@@ -93,14 +79,12 @@ export default function useAnalysisGroups() {
   const dismissGroup = useCallback((groupId: string) => {
     if (groupId === 'all') return;
 
-    setDismissedCategories(prev => {
+    setDismissedGroups(prev => {
       const next = new Set(prev);
       next.add(groupId);
       return next;
     });
 
-    // Clamp activeGroupIndex after dismissal.
-    // We need to compute new group count: current groups minus the dismissed one.
     setActiveGroupIndex(prev => {
       const newGroupCount = groups.filter(g => g.id !== groupId).length;
       if (prev >= newGroupCount) {
@@ -117,6 +101,8 @@ export default function useAnalysisGroups() {
     groups,
     activeGroup,
     activeGroupIndex,
+    overallNote,
+    completionEstimate,
     analyze,
     navigateGroup,
     setActiveGroupIndex,

@@ -1,14 +1,14 @@
-import { categoryStyles } from '../analysis';
+import { severityStyles } from '../analysis';
 
-describe('categoryStyles', () => {
-  it('has entries for all four walkthrough categories', () => {
-    expect(Object.keys(categoryStyles)).toEqual(
-      expect.arrayContaining(['common-error', 'edge-case', 'interesting-approach', 'exemplary'])
+describe('severityStyles', () => {
+  it('has entries for all four issue severity levels', () => {
+    expect(Object.keys(severityStyles)).toEqual(
+      expect.arrayContaining(['error', 'misconception', 'style', 'good-pattern'])
     );
-    expect(Object.keys(categoryStyles)).toHaveLength(4);
+    expect(Object.keys(severityStyles)).toHaveLength(4);
   });
 
-  it.each(Object.entries(categoryStyles))('category "%s" has bg, text, and label strings', (_key, style) => {
+  it.each(Object.entries(severityStyles))('severity "%s" has bg, text, and label strings', (_key, style) => {
     expect(typeof style.bg).toBe('string');
     expect(typeof style.text).toBe('string');
     expect(typeof style.label).toBe('string');

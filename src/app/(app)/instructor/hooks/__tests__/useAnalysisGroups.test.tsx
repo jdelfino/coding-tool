@@ -1,31 +1,35 @@
 import { renderHook, act } from '@testing-library/react';
 import useAnalysisGroups from '../useAnalysisGroups';
-import { WalkthroughScript, WalkthroughEntry } from '@/server/types/analysis';
+import { WalkthroughScript, AnalysisIssue } from '@/server/types/analysis';
 
 // Mock fetch
 const mockFetch = jest.fn();
 global.fetch = mockFetch;
 
-function makeEntry(overrides: Partial<WalkthroughEntry> & { studentId: string; category: WalkthroughEntry['category'] }): WalkthroughEntry {
+function makeIssue(overrides: Partial<AnalysisIssue> = {}): AnalysisIssue {
   return {
-    position: 1,
-    studentLabel: 'Student A',
-    discussionPoints: ['point 1'],
-    pedagogicalNote: 'note',
+    title: 'Missing base case',
+    explanation: 'Students forgot the base case in recursion',
+    count: 2,
+    studentIds: ['s1', 's2'],
+    representativeStudentLabel: 'Student A',
+    representativeStudentId: 's1',
+    severity: 'error',
     ...overrides,
   };
 }
 
-function makeScript(entries: WalkthroughEntry[]): WalkthroughScript {
+function makeScript(issues: AnalysisIssue[]): WalkthroughScript {
   return {
     sessionId: 'session-1',
-    entries,
+    issues,
     summary: {
-      totalSubmissions: entries.length,
+      totalSubmissions: 5,
       filteredOut: 0,
-      analyzedSubmissions: entries.length,
-      commonPatterns: [],
+      analyzedSubmissions: 5,
+      completionEstimate: { finished: 3, inProgress: 1, notStarted: 1 },
     },
+    overallNote: 'Most students did well overall',
     generatedAt: new Date(),
   };
 }
@@ -44,12 +48,11 @@ function mockErrorResponse(error: string) {
   });
 }
 
-const sampleEntries: WalkthroughEntry[] = [
-  makeEntry({ studentId: 's1', category: 'common-error', position: 1, studentLabel: 'Student A' }),
-  makeEntry({ studentId: 's2', category: 'edge-case', position: 2, studentLabel: 'Student B' }),
-  makeEntry({ studentId: 's3', category: 'interesting-approach', position: 3, studentLabel: 'Student C' }),
-  makeEntry({ studentId: 's4', category: 'exemplary', position: 4, studentLabel: 'Student D' }),
-  makeEntry({ studentId: 's5', category: 'common-error', position: 5, studentLabel: 'Student E' }),
+const sampleIssues: AnalysisIssue[] = [
+  makeIssue({ title: 'Missing base case', studentIds: ['s1', 's5'], representativeStudentId: 's1', severity: 'error', count: 2 }),
+  makeIssue({ title: 'Off-by-one error', studentIds: ['s2'], representativeStudentId: 's2', severity: 'misconception', count: 1 }),
+  makeIssue({ title: 'Good use of helper functions', studentIds: ['s3'], representativeStudentId: 's3', severity: 'good-pattern', count: 1 }),
+  makeIssue({ title: 'Inconsistent naming', studentIds: ['s4'], representativeStudentId: 's4', severity: 'style', count: 1 }),
 ];
 
 beforeEach(() => {
@@ -66,10 +69,12 @@ describe('useAnalysisGroups', () => {
     expect(result.current.groups).toEqual([]);
     expect(result.current.activeGroup).toBeNull();
     expect(result.current.activeGroupIndex).toBe(0);
+    expect(result.current.overallNote).toBeNull();
+    expect(result.current.completionEstimate).toBeNull();
   });
 
-  it('analyze() transitions idle → loading → ready and populates groups', async () => {
-    const script = makeScript(sampleEntries);
+  it('analyze() transitions idle -> loading -> ready and populates groups', async () => {
+    const script = makeScript(sampleIssues);
     mockSuccessResponse(script);
 
     const { result } = renderHook(() => useAnalysisGroups());
@@ -79,7 +84,6 @@ describe('useAnalysisGroups', () => {
       analyzePromise = result.current.analyze('session-1');
     });
 
-    // Should be loading
     expect(result.current.analysisState).toBe('loading');
 
     await act(async () => {
@@ -92,8 +96,8 @@ describe('useAnalysisGroups', () => {
     expect(mockFetch).toHaveBeenCalledWith('/api/sessions/session-1/analyze', { method: 'POST' });
   });
 
-  it('groups are ordered: "All Submissions" first, then by category order', async () => {
-    const script = makeScript(sampleEntries);
+  it('groups are ordered: "All Submissions" first, then issues by index', async () => {
+    const script = makeScript(sampleIssues);
     mockSuccessResponse(script);
 
     const { result } = renderHook(() => useAnalysisGroups());
@@ -103,19 +107,15 @@ describe('useAnalysisGroups', () => {
     });
 
     const groupIds = result.current.groups.map(g => g.id);
-    expect(groupIds).toEqual([
-      'all',
-      'common-error',
-      'edge-case',
-      'interesting-approach',
-      'exemplary',
-    ]);
+    expect(groupIds).toEqual(['all', '0', '1', '2', '3']);
 
     expect(result.current.groups[0].label).toBe('All Submissions');
+    expect(result.current.groups[1].label).toBe('Missing base case');
+    expect(result.current.groups[2].label).toBe('Off-by-one error');
   });
 
-  it('navigateGroup next/prev updates activeGroupIndex with bounds clamping', async () => {
-    const script = makeScript(sampleEntries);
+  it('each issue group carries the AnalysisIssue object', async () => {
+    const script = makeScript(sampleIssues);
     mockSuccessResponse(script);
 
     const { result } = renderHook(() => useAnalysisGroups());
@@ -124,17 +124,43 @@ describe('useAnalysisGroups', () => {
       await result.current.analyze('session-1');
     });
 
-    // Start at 0
+    expect(result.current.groups[0].issue).toBeUndefined(); // "all" group
+    expect(result.current.groups[1].issue).toEqual(sampleIssues[0]);
+    expect(result.current.groups[2].issue).toEqual(sampleIssues[1]);
+  });
+
+  it('exposes overallNote and completionEstimate from script', async () => {
+    const script = makeScript(sampleIssues);
+    mockSuccessResponse(script);
+
+    const { result } = renderHook(() => useAnalysisGroups());
+
+    await act(async () => {
+      await result.current.analyze('session-1');
+    });
+
+    expect(result.current.overallNote).toBe('Most students did well overall');
+    expect(result.current.completionEstimate).toEqual({ finished: 3, inProgress: 1, notStarted: 1 });
+  });
+
+  it('navigateGroup next/prev updates activeGroupIndex with bounds clamping', async () => {
+    const script = makeScript(sampleIssues);
+    mockSuccessResponse(script);
+
+    const { result } = renderHook(() => useAnalysisGroups());
+
+    await act(async () => {
+      await result.current.analyze('session-1');
+    });
+
     expect(result.current.activeGroupIndex).toBe(0);
 
-    // Navigate next
     act(() => { result.current.navigateGroup('next'); });
     expect(result.current.activeGroupIndex).toBe(1);
 
     act(() => { result.current.navigateGroup('next'); });
     expect(result.current.activeGroupIndex).toBe(2);
 
-    // Navigate prev
     act(() => { result.current.navigateGroup('prev'); });
     expect(result.current.activeGroupIndex).toBe(1);
 
@@ -152,7 +178,7 @@ describe('useAnalysisGroups', () => {
   });
 
   it('dismissGroup removes group, clamps activeGroupIndex, cannot dismiss "all"', async () => {
-    const script = makeScript(sampleEntries);
+    const script = makeScript(sampleIssues);
     mockSuccessResponse(script);
 
     const { result } = renderHook(() => useAnalysisGroups());
@@ -186,7 +212,7 @@ describe('useAnalysisGroups', () => {
   });
 
   it('re-analyze resets dismissals and index', async () => {
-    const script = makeScript(sampleEntries);
+    const script = makeScript(sampleIssues);
     mockSuccessResponse(script);
 
     const { result } = renderHook(() => useAnalysisGroups());
@@ -196,7 +222,7 @@ describe('useAnalysisGroups', () => {
     });
 
     // Dismiss a group and navigate
-    act(() => { result.current.dismissGroup('common-error'); });
+    act(() => { result.current.dismissGroup('0'); });
     act(() => { result.current.setActiveGroupIndex(2); });
 
     const dismissedCount = result.current.groups.length;
@@ -208,11 +234,11 @@ describe('useAnalysisGroups', () => {
     });
 
     expect(result.current.activeGroupIndex).toBe(0);
-    expect(result.current.groups.length).toBe(dismissedCount + 1); // restored dismissed group
+    expect(result.current.groups.length).toBe(dismissedCount + 1);
   });
 
-  it('recommendedStudentId is first entry studentId per group', async () => {
-    const script = makeScript(sampleEntries);
+  it('recommendedStudentId is representativeStudentId per issue group', async () => {
+    const script = makeScript(sampleIssues);
     mockSuccessResponse(script);
 
     const { result } = renderHook(() => useAnalysisGroups());
@@ -223,16 +249,14 @@ describe('useAnalysisGroups', () => {
 
     const allGroup = result.current.groups.find(g => g.id === 'all')!;
     expect(allGroup.recommendedStudentId).toBeNull();
-    expect(allGroup.entries).toEqual([]);
     expect(allGroup.studentIds).toEqual([]);
 
-    const errorGroup = result.current.groups.find(g => g.id === 'common-error')!;
-    expect(errorGroup.recommendedStudentId).toBe('s1');
-    expect(errorGroup.entries).toHaveLength(2);
-    expect(errorGroup.studentIds).toEqual(['s1', 's5']);
+    const firstIssueGroup = result.current.groups.find(g => g.id === '0')!;
+    expect(firstIssueGroup.recommendedStudentId).toBe('s1');
+    expect(firstIssueGroup.studentIds).toEqual(['s1', 's5']);
 
-    const edgeGroup = result.current.groups.find(g => g.id === 'edge-case')!;
-    expect(edgeGroup.recommendedStudentId).toBe('s2');
+    const secondIssueGroup = result.current.groups.find(g => g.id === '1')!;
+    expect(secondIssueGroup.recommendedStudentId).toBe('s2');
   });
 
   it('error state on fetch failure', async () => {
@@ -250,7 +274,7 @@ describe('useAnalysisGroups', () => {
   });
 
   it('activeGroup reflects current activeGroupIndex', async () => {
-    const script = makeScript(sampleEntries);
+    const script = makeScript(sampleIssues);
     mockSuccessResponse(script);
 
     const { result } = renderHook(() => useAnalysisGroups());

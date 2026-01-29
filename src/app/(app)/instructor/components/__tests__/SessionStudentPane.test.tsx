@@ -4,9 +4,10 @@
  */
 
 import React from 'react';
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { SessionStudentPane } from '../SessionStudentPane';
-import { WalkthroughScript, WalkthroughEntry } from '@/server/types/analysis';
+import { WalkthroughScript, AnalysisIssue } from '@/server/types/analysis';
+import { AnalysisGroup } from '../../hooks/useAnalysisGroups';
 
 // Mock the CodeEditor component since it depends on Monaco
 jest.mock('@/app/(fullscreen)/student/components/CodeEditor', () => {
@@ -34,14 +35,10 @@ const mockDismissGroup = jest.fn();
 let mockAnalysisState: 'idle' | 'loading' | 'ready' | 'error' = 'idle';
 let mockError: string | null = null;
 let mockScript: WalkthroughScript | null = null;
-let mockGroups: Array<{
-  id: string;
-  label: string;
-  entries: WalkthroughEntry[];
-  studentIds: string[];
-  recommendedStudentId: string | null;
-}> = [];
+let mockGroups: AnalysisGroup[] = [];
 let mockActiveGroupIndex = 0;
+let mockOverallNote: string | null = null;
+let mockCompletionEstimate: { finished: number; inProgress: number; notStarted: number } | null = null;
 
 jest.mock('../../hooks/useAnalysisGroups', () => {
   return () => ({
@@ -51,6 +48,8 @@ jest.mock('../../hooks/useAnalysisGroups', () => {
     groups: mockGroups,
     activeGroup: mockGroups.length > 0 ? mockGroups[mockActiveGroupIndex] ?? null : null,
     activeGroupIndex: mockActiveGroupIndex,
+    overallNote: mockOverallNote,
+    completionEstimate: mockCompletionEstimate,
     analyze: mockAnalyze,
     navigateGroup: mockNavigateGroup,
     setActiveGroupIndex: jest.fn(),
@@ -81,14 +80,13 @@ jest.mock('../GroupNavigationHeader', () => {
 
 // Mock StudentAnalysisDetails
 jest.mock('../StudentAnalysisDetails', () => {
-  return function MockStudentAnalysisDetails({ entries }: { entries: WalkthroughEntry[] }) {
+  return function MockStudentAnalysisDetails({ issue }: { issue?: AnalysisIssue }) {
+    if (!issue) return null;
     return (
       <div data-testid="mock-student-analysis-details">
-        {entries.map((e, i) => (
-          <div key={i} data-testid={`analysis-entry-${e.category}`}>
-            {e.discussionPoints.join(', ')}
-          </div>
-        ))}
+        <div data-testid={`analysis-issue-${issue.severity}`}>
+          {issue.title}: {issue.explanation}
+        </div>
       </div>
     );
   };
@@ -116,6 +114,27 @@ describe('SessionStudentPane', () => {
     joinCode: 'ABC123',
   };
 
+  const mockIssues: AnalysisIssue[] = [
+    {
+      title: 'Missing edge case handling',
+      explanation: 'Good teaching moment about edge cases',
+      count: 1,
+      studentIds: ['student-1'],
+      representativeStudentLabel: 'Student A',
+      representativeStudentId: 'student-1',
+      severity: 'error',
+    },
+    {
+      title: 'Clean solution with good naming',
+      explanation: 'Show as example of best practices',
+      count: 1,
+      studentIds: ['student-3'],
+      representativeStudentLabel: 'Student C',
+      representativeStudentId: 'student-3',
+      severity: 'good-pattern',
+    },
+  ];
+
   beforeEach(() => {
     jest.clearAllMocks();
     mockAnalysisState = 'idle';
@@ -123,63 +142,48 @@ describe('SessionStudentPane', () => {
     mockScript = null;
     mockGroups = [];
     mockActiveGroupIndex = 0;
+    mockOverallNote = null;
+    mockCompletionEstimate = null;
   });
-
-  const mockWalkthroughEntries: WalkthroughEntry[] = [
-    {
-      position: 1,
-      studentLabel: 'Student A',
-      studentId: 'student-1',
-      category: 'common-error',
-      discussionPoints: ['Missing edge case handling'],
-      pedagogicalNote: 'Good teaching moment',
-    },
-    {
-      position: 2,
-      studentLabel: 'Student C',
-      studentId: 'student-3',
-      category: 'exemplary',
-      discussionPoints: ['Clean solution', 'Good naming'],
-      pedagogicalNote: 'Show as example',
-    },
-  ];
 
   const mockWalkthroughScript: WalkthroughScript = {
     sessionId: 'session-123',
-    entries: mockWalkthroughEntries,
+    issues: mockIssues,
     summary: {
       totalSubmissions: 3,
       filteredOut: 1,
       analyzedSubmissions: 2,
-      commonPatterns: ['Most students used loops', 'Few handled edge cases'],
+      completionEstimate: { finished: 2, inProgress: 1, notStarted: 0 },
     },
+    overallNote: 'Students are progressing well',
     generatedAt: new Date('2026-01-29T00:00:00Z'),
   };
 
   function setAnalysisReady() {
     mockAnalysisState = 'ready';
     mockScript = mockWalkthroughScript;
+    mockOverallNote = 'Students are progressing well';
+    mockCompletionEstimate = { finished: 2, inProgress: 1, notStarted: 0 };
     mockGroups = [
       {
         id: 'all',
         label: 'All Submissions',
-        entries: [],
         studentIds: [],
         recommendedStudentId: null,
       },
       {
-        id: 'common-error',
-        label: 'Error',
-        entries: [mockWalkthroughEntries[0]],
+        id: '0',
+        label: 'Missing edge case handling',
         studentIds: ['student-1'],
         recommendedStudentId: 'student-1',
+        issue: mockIssues[0],
       },
       {
-        id: 'exemplary',
-        label: 'Exemplary',
-        entries: [mockWalkthroughEntries[1]],
+        id: '1',
+        label: 'Clean solution with good naming',
         studentIds: ['student-3'],
         recommendedStudentId: 'student-3',
+        issue: mockIssues[1],
       },
     ];
   }
@@ -300,9 +304,9 @@ describe('SessionStudentPane', () => {
       expect(screen.getByText('Carol')).toBeInTheDocument();
     });
 
-    it('filters students when a category group is active', () => {
+    it('filters students when an issue group is active', () => {
       setAnalysisReady();
-      mockActiveGroupIndex = 1; // 'common-error' group with only student-1
+      mockActiveGroupIndex = 1; // issue group with only student-1
       render(<SessionStudentPane {...defaultProps} />);
       expect(screen.getByText('Alice')).toBeInTheDocument();
       expect(screen.queryByText('Bob')).not.toBeInTheDocument();
@@ -313,10 +317,9 @@ describe('SessionStudentPane', () => {
   describe('auto-selection of recommended student on group change', () => {
     it('selects recommended student when group has one', () => {
       setAnalysisReady();
-      mockActiveGroupIndex = 1; // common-error group, recommendedStudentId = student-1
+      mockActiveGroupIndex = 1; // issue group, recommendedStudentId = student-1
       render(<SessionStudentPane {...defaultProps} />);
 
-      // The auto-select effect should trigger and show the student's code
       waitFor(() => {
         expect(screen.getByText('print("Hello from Alice")')).toBeInTheDocument();
       });
@@ -324,14 +327,14 @@ describe('SessionStudentPane', () => {
   });
 
   describe('analysis details in right panel', () => {
-    it('shows analysis details for selected student when analysis is ready', async () => {
+    it('shows analysis details for active issue when analysis is ready', async () => {
       setAnalysisReady();
       mockActiveGroupIndex = 1; // auto-selects student-1 via recommendedStudentId
       render(<SessionStudentPane {...defaultProps} />);
 
       await waitFor(() => {
         expect(screen.getByTestId('student-analysis-details')).toBeInTheDocument();
-        expect(screen.getByTestId('analysis-entry-common-error')).toBeInTheDocument();
+        expect(screen.getByTestId('analysis-issue-error')).toBeInTheDocument();
       });
     });
 
@@ -346,11 +349,25 @@ describe('SessionStudentPane', () => {
 
       const detailsEl = screen.getByTestId('student-analysis-details');
       const editorEl = screen.getByTestId('code-editor');
-      // Analysis details should come before the editor in DOM order
       expect(detailsEl.compareDocumentPosition(editorEl) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     });
 
     it('does not show analysis details when analysis is not ready', async () => {
+      render(<SessionStudentPane {...defaultProps} />);
+
+      const viewCodeButtons = screen.getAllByRole('button', { name: /^view$/i });
+      fireEvent.click(viewCodeButtons[0]);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('code-editor')).toBeInTheDocument();
+      });
+
+      expect(screen.queryByTestId('student-analysis-details')).not.toBeInTheDocument();
+    });
+
+    it('does not show analysis details when on "all" group (no issue)', async () => {
+      setAnalysisReady();
+      mockActiveGroupIndex = 0; // 'all' group has no issue
       render(<SessionStudentPane {...defaultProps} />);
 
       // Select a student manually
