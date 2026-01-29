@@ -53,7 +53,7 @@ describe('GeminiAnalysisService', () => {
     it('filters out empty submissions', () => {
       const submissions = [
         { studentId: 's1', code: '' },
-        { studentId: 's2', code: 'print("This is long enough code")' }, // > 20 chars
+        { studentId: 's2', code: 'print("This is long enough code")' },
         { studentId: 's3', code: '   ' },
       ];
 
@@ -66,7 +66,7 @@ describe('GeminiAnalysisService', () => {
 
     it('filters out tiny submissions', () => {
       const submissions = [
-        { studentId: 's1', code: 'x = 1' }, // 5 chars, too short
+        { studentId: 's1', code: 'x = 1' },
         { studentId: 's2', code: 'print("This is long enough code")' },
       ];
 
@@ -79,7 +79,7 @@ describe('GeminiAnalysisService', () => {
 
     it('filters submissions matching starter code', () => {
       const submissions = [
-        { studentId: 's1', code: 'print("Hello, World!")' }, // matches starter
+        { studentId: 's1', code: 'print("Hello, World!")' },
         { studentId: 's2', code: 'print("Different code here!")' },
       ];
 
@@ -120,7 +120,7 @@ describe('GeminiAnalysisService', () => {
   });
 
   describe('buildPrompt', () => {
-    it('builds prompt with problem and submissions', () => {
+    it('builds prompt mentioning issues and patterns', () => {
       const submissions = [
         { label: 'Student A', code: 'print("A")' },
         { label: 'Student B', code: 'print("B")' },
@@ -135,6 +135,11 @@ describe('GeminiAnalysisService', () => {
       expect(prompt).toContain('[B]:');
       expect(prompt).toContain('print("B")');
       expect(prompt).toContain('JSON only');
+      // v2: should mention issues/patterns and finished classification
+      expect(prompt).toContain('issues');
+      expect(prompt).toContain('patterns');
+      expect(prompt).toContain('finishedStudentLabels');
+      expect(prompt).toContain('severity');
     });
 
     it('handles missing description', () => {
@@ -147,57 +152,97 @@ describe('GeminiAnalysisService', () => {
     const labelToStudentId = new Map([
       ['A', 'student-1'],
       ['B', 'student-2'],
+      ['C', 'student-3'],
     ]);
 
-    it('parses valid JSON response', () => {
+    it('parses valid v2 JSON response', () => {
       const response = JSON.stringify({
-        entries: [
+        issues: [
           {
-            studentLabel: 'A',
-            discussionPoints: ['Point 1', 'Point 2'],
-            pedagogicalNote: 'This is interesting',
-            category: 'common-error',
+            title: 'Missing null check',
+            explanation: 'Students forgot to handle None input',
+            studentLabels: ['A', 'C'],
+            severity: 'error',
+          },
+          {
+            title: 'Clean variable naming',
+            explanation: 'Good use of descriptive names',
+            studentLabels: ['B'],
+            severity: 'good-pattern',
           },
         ],
-        commonPatterns: ['Pattern 1'],
+        finishedStudentLabels: ['B'],
+        overallNote: 'Most students are progressing well',
       });
 
       const result = parseGeminiResponse(response, labelToStudentId);
 
-      expect(result.entries).toHaveLength(1);
-      expect(result.entries[0].studentId).toBe('student-1');
-      expect(result.entries[0].studentLabel).toBe('Student A');
-      expect(result.entries[0].discussionPoints).toEqual(['Point 1', 'Point 2']);
-      expect(result.entries[0].category).toBe('common-error');
-      expect(result.commonPatterns).toEqual(['Pattern 1']);
+      expect(result.issues).toHaveLength(2);
+      expect(result.issues[0].title).toBe('Missing null check');
+      expect(result.issues[0].explanation).toBe('Students forgot to handle None input');
+      expect(result.issues[0].studentLabels).toEqual(['A', 'C']);
+      expect(result.issues[0].severity).toBe('error');
+      expect(result.issues[1].severity).toBe('good-pattern');
+      expect(result.finishedStudentLabels).toEqual(['B']);
+      expect(result.overallNote).toBe('Most students are progressing well');
     });
 
     it('handles JSON wrapped in markdown code blocks', () => {
-      const response = '```json\n{"entries": [], "commonPatterns": []}\n```';
+      const response = '```json\n{"issues": [], "finishedStudentLabels": []}\n```';
 
       const result = parseGeminiResponse(response, labelToStudentId);
 
-      expect(result.entries).toHaveLength(0);
+      expect(result.issues).toHaveLength(0);
+      expect(result.finishedStudentLabels).toEqual([]);
     });
 
     it('throws error for unknown student label', () => {
       const response = JSON.stringify({
-        entries: [{ studentLabel: 'Z', discussionPoints: [], pedagogicalNote: '', category: 'common-error' }],
-        commonPatterns: [],
+        issues: [
+          { title: 'Bug', explanation: 'x', studentLabels: ['Z'], severity: 'error' },
+        ],
+        finishedStudentLabels: [],
       });
 
       expect(() => parseGeminiResponse(response, labelToStudentId)).toThrow('Unknown student label');
     });
 
-    it('defaults invalid category to common-error', () => {
+    it('defaults invalid severity to error', () => {
       const response = JSON.stringify({
-        entries: [{ studentLabel: 'A', discussionPoints: [], pedagogicalNote: '', category: 'invalid' }],
-        commonPatterns: [],
+        issues: [
+          { title: 'Bug', explanation: 'x', studentLabels: ['A'], severity: 'invalid' },
+        ],
+        finishedStudentLabels: [],
       });
 
       const result = parseGeminiResponse(response, labelToStudentId);
 
-      expect(result.entries[0].category).toBe('common-error');
+      expect(result.issues[0].severity).toBe('error');
+    });
+
+    it('handles missing finishedStudentLabels gracefully', () => {
+      const response = JSON.stringify({
+        issues: [],
+      });
+
+      const result = parseGeminiResponse(response, labelToStudentId);
+
+      expect(result.finishedStudentLabels).toEqual([]);
+      expect(result.overallNote).toBeUndefined();
+    });
+
+    it('normalizes student labels to uppercase', () => {
+      const response = JSON.stringify({
+        issues: [
+          { title: 'Bug', explanation: 'x', studentLabels: ['a', 'b'], severity: 'error' },
+        ],
+        finishedStudentLabels: ['b'],
+      });
+
+      const result = parseGeminiResponse(response, labelToStudentId);
+
+      expect(result.issues[0].studentLabels).toEqual(['A', 'B']);
+      expect(result.finishedStudentLabels).toEqual(['B']);
     });
   });
 
@@ -228,8 +273,9 @@ describe('GeminiAnalysisService', () => {
       it('returns empty script for no submissions', async () => {
         const result = await service.analyzeSubmissions(baseInput);
 
-        expect(result.entries).toHaveLength(0);
+        expect(result.issues).toHaveLength(0);
         expect(result.summary.totalSubmissions).toBe(0);
+        expect(result.summary.completionEstimate).toEqual({ finished: 0, inProgress: 0, notStarted: 0 });
         expect(result.summary.warning).toBe('No submissions to analyze');
       });
 
@@ -241,12 +287,13 @@ describe('GeminiAnalysisService', () => {
 
         const result = await service.analyzeSubmissions(input);
 
-        expect(result.entries).toHaveLength(0);
+        expect(result.issues).toHaveLength(0);
         expect(result.summary.filteredOut).toBe(1);
+        expect(result.summary.completionEstimate).toEqual({ finished: 0, inProgress: 0, notStarted: 1 });
         expect(result.summary.warning).toContain("haven't modified");
       });
 
-      it('calls Gemini API and returns parsed script', async () => {
+      it('calls Gemini API and returns parsed issues and completionEstimate', async () => {
         const mockResponse = {
           candidates: [
             {
@@ -254,15 +301,16 @@ describe('GeminiAnalysisService', () => {
                 parts: [
                   {
                     text: JSON.stringify({
-                      entries: [
+                      issues: [
                         {
-                          studentLabel: 'A',
-                          discussionPoints: ['Missing edge case'],
-                          pedagogicalNote: 'Common beginner mistake',
-                          category: 'common-error',
+                          title: 'Missing edge case',
+                          explanation: 'Does not handle empty input',
+                          studentLabels: ['A'],
+                          severity: 'error',
                         },
                       ],
-                      commonPatterns: ['Most students forgot error handling'],
+                      finishedStudentLabels: ['B'],
+                      overallNote: 'Good progress overall',
                     }),
                   },
                 ],
@@ -278,16 +326,24 @@ describe('GeminiAnalysisService', () => {
 
         const input: AnalysisInput = {
           ...baseInput,
-          submissions: [{ studentId: 'student-1', code: 'print("Long enough code here")' }],
+          submissions: [
+            { studentId: 'student-1', code: 'print("Long enough code here")' },
+            { studentId: 'student-2', code: 'print("Another long enough code")' },
+          ],
         };
 
         const result = await service.analyzeSubmissions(input);
 
         expect(mockFetch).toHaveBeenCalledTimes(1);
-        expect(result.entries).toHaveLength(1);
-        expect(result.entries[0].position).toBe(1);
-        expect(result.entries[0].studentId).toBe('student-1');
-        expect(result.summary.commonPatterns).toContain('Most students forgot error handling');
+        expect(result.issues).toHaveLength(1);
+        expect(result.issues[0].title).toBe('Missing edge case');
+        expect(result.issues[0].studentIds).toEqual(['student-1']);
+        expect(result.issues[0].count).toBe(1);
+        expect(result.issues[0].representativeStudentLabel).toBe('Student A');
+        expect(result.issues[0].representativeStudentId).toBe('student-1');
+        expect(result.issues[0].severity).toBe('error');
+        expect(result.summary.completionEstimate).toEqual({ finished: 1, inProgress: 1, notStarted: 0 });
+        expect(result.overallNote).toBe('Good progress overall');
       });
 
       it('passes API key in x-goog-api-key header, not in URL', async () => {
@@ -298,8 +354,8 @@ describe('GeminiAnalysisService', () => {
                 parts: [
                   {
                     text: JSON.stringify({
-                      entries: [],
-                      commonPatterns: [],
+                      issues: [],
+                      finishedStudentLabels: [],
                     }),
                   },
                 ],
@@ -323,11 +379,8 @@ describe('GeminiAnalysisService', () => {
         expect(mockFetch).toHaveBeenCalledTimes(1);
         const [url, options] = mockFetch.mock.calls[0];
 
-        // URL should NOT contain the API key
         expect(url).not.toContain('key=');
         expect(url).not.toContain('test-api-key');
-
-        // API key should be in the x-goog-api-key header
         expect(options.headers).toHaveProperty('x-goog-api-key', 'test-api-key');
       });
 
@@ -358,14 +411,6 @@ describe('GeminiAnalysisService', () => {
           'Rate limit exceeded. Please try again later.'
         );
 
-        // Verify the error was thrown WITHOUT the sensitive error body
-        try {
-          await service.analyzeSubmissions(input);
-        } catch (error) {
-          // This won't run because we already rejected above, but just in case
-        }
-
-        // Verify server-side logging still contains the full error for debugging
         expect(consoleErrorSpy).toHaveBeenCalledWith(
           '[Gemini] API error 429:',
           sensitiveErrorBody
@@ -395,9 +440,7 @@ describe('GeminiAnalysisService', () => {
         } catch (error) {
           expect(error).toBeInstanceOf(Error);
           const errorMessage = (error as Error).message;
-          // The error message should NOT contain the sensitive data
           expect(errorMessage).not.toContain(sensitiveData);
-          // It should have a generic message
           expect(errorMessage).toBe('Rate limit exceeded. Please try again later.');
         }
 
@@ -475,15 +518,12 @@ describe('GeminiAnalysisService', () => {
         } catch (error) {
           expect(error).toBeInstanceOf(Error);
           const errorMessage = (error as Error).message;
-          // The error message should NOT contain the sensitive error body
           expect(errorMessage).not.toContain(sensitiveErrorBody);
           expect(errorMessage).not.toContain('secret-host');
           expect(errorMessage).not.toContain('database');
-          // It should have a generic message with only the status code
           expect(errorMessage).toBe('Gemini API error (500). Please try again later.');
         }
 
-        // Verify server-side logging still contains the full error for debugging
         expect(consoleErrorSpy).toHaveBeenCalledWith(
           '[Gemini] API error 500:',
           sensitiveErrorBody

@@ -8,9 +8,9 @@
 import {
   AnalysisInput,
   WalkthroughScript,
-  WalkthroughEntry,
-  GeminiAnalysisResponse,
-  WalkthroughCategory,
+  AnalysisIssue,
+  GeminiAnalysisResponseV2,
+  IssueSeverity,
 } from '@/server/types/analysis';
 
 // Configuration constants
@@ -121,7 +121,7 @@ function filterSubmissions(
 }
 
 /**
- * Build the prompt for Gemini analysis
+ * Build the prompt for Gemini analysis (v2 issue-based format)
  */
 function buildPrompt(
   problemTitle: string,
@@ -142,39 +142,42 @@ ${problemDescription || '(No description provided)'}
 ${submissionsText}
 
 ## Task
-Create an ORDERED sequence of 3-8 submissions worth discussing. Order pedagogically:
-1. Common errors/misconceptions (teachable moments)
-2. Edge case handling issues
-3. Interesting or exemplary approaches
+Identify distinct bugs, misconceptions, or patterns across all submissions. Group students by issue. A student can appear in multiple issues. Order issues by frequency (most common first).
+
+Also classify each student as either finished (code appears complete and correct) or in-progress (still working, has bugs, or incomplete).
 
 ## Output (JSON only, no markdown code blocks)
 {
-  "entries": [
+  "issues": [
     {
-      "studentLabel": "A",
-      "discussionPoints": ["Point 1 (5-15 words)", "Point 2"],
-      "pedagogicalNote": "Brief reason to discuss this",
-      "category": "common-error|edge-case|interesting-approach|exemplary"
+      "title": "Short issue title",
+      "explanation": "One sentence explaining the issue",
+      "studentLabels": ["A", "C"],
+      "severity": "error|misconception|style|good-pattern"
     }
   ],
-  "commonPatterns": ["Pattern most students showed", "Another pattern"]
+  "finishedStudentLabels": ["B", "D"],
+  "overallNote": "Optional one-sentence note about the class overall"
 }
 
 ## Guidelines
 - Be CONCISE - instructor reads this live during lecture
-- Maximum 8 entries (classroom time constraints)
-- Discussion points: actionable, specific, 5-15 words each
-- Only include submissions that have interesting discussion points
-- studentLabel should be just the letter (A, B, C, etc.)`;
+- Maximum 10 issues
+- Title: short (3-8 words)
+- Explanation: one sentence, actionable
+- severity must be one of: error, misconception, style, good-pattern
+- studentLabels: just the letters (A, B, C, etc.)
+- finishedStudentLabels: letters of students whose code is complete and correct
+- Only include issues that are pedagogically interesting`;
 }
 
 /**
- * Parse Gemini response into structured format
+ * Parse Gemini response into structured format (v2 issue-based)
  */
 function parseGeminiResponse(
   responseText: string,
   labelToStudentId: Map<string, string>
-): { entries: Array<Omit<WalkthroughEntry, 'position'>>; commonPatterns: string[] } {
+): GeminiAnalysisResponseV2 {
   // Try to extract JSON from the response (handle markdown code blocks)
   let jsonText = responseText.trim();
   const jsonMatch = jsonText.match(/```(?:json)?\s*([\s\S]*?)```/);
@@ -182,43 +185,45 @@ function parseGeminiResponse(
     jsonText = jsonMatch[1].trim();
   }
 
-  const parsed: GeminiAnalysisResponse = JSON.parse(jsonText);
+  const parsed = JSON.parse(jsonText);
 
-  if (!Array.isArray(parsed.entries)) {
-    throw new Error('Invalid response: entries must be an array');
+  if (!Array.isArray(parsed.issues)) {
+    throw new Error('Invalid response: issues must be an array');
   }
 
-  const validCategories: WalkthroughCategory[] = [
-    'common-error',
-    'edge-case',
-    'interesting-approach',
-    'exemplary',
-  ];
+  const validSeverities: IssueSeverity[] = ['error', 'misconception', 'style', 'good-pattern'];
 
-  const entries = parsed.entries.map((entry) => {
-    const label = entry.studentLabel.toUpperCase();
-    const studentId = labelToStudentId.get(label);
+  const issues = parsed.issues.map((issue: { title?: string; explanation?: string; studentLabels?: string[]; severity?: string }) => {
+    const studentLabels = Array.isArray(issue.studentLabels) ? issue.studentLabels : [];
 
-    if (!studentId) {
-      throw new Error(`Unknown student label in response: ${entry.studentLabel}`);
+    // Validate all student labels exist
+    for (const label of studentLabels) {
+      const upper = label.toUpperCase();
+      if (!labelToStudentId.has(upper)) {
+        throw new Error(`Unknown student label in response: ${label}`);
+      }
     }
 
-    const category = validCategories.includes(entry.category as WalkthroughCategory)
-      ? (entry.category as WalkthroughCategory)
-      : 'common-error';
+    const severity = validSeverities.includes(issue.severity as IssueSeverity)
+      ? (issue.severity as IssueSeverity)
+      : 'error';
 
     return {
-      studentLabel: `Student ${label}`,
-      studentId,
-      discussionPoints: Array.isArray(entry.discussionPoints) ? entry.discussionPoints : [],
-      pedagogicalNote: entry.pedagogicalNote || '',
-      category,
+      title: issue.title || '',
+      explanation: issue.explanation || '',
+      studentLabels: studentLabels.map((l: string) => l.toUpperCase()),
+      severity,
     };
   });
 
+  const finishedStudentLabels = Array.isArray(parsed.finishedStudentLabels)
+    ? parsed.finishedStudentLabels.map((l: string) => l.toUpperCase())
+    : [];
+
   return {
-    entries,
-    commonPatterns: Array.isArray(parsed.commonPatterns) ? parsed.commonPatterns : [],
+    issues,
+    finishedStudentLabels,
+    overallNote: parsed.overallNote || undefined,
   };
 }
 
@@ -253,12 +258,12 @@ export class GeminiAnalysisService {
     if (totalSubmissions === 0) {
       return {
         sessionId: input.sessionId,
-        entries: [],
+        issues: [],
         summary: {
           totalSubmissions: 0,
           filteredOut: 0,
           analyzedSubmissions: 0,
-          commonPatterns: [],
+          completionEstimate: { finished: 0, inProgress: 0, notStarted: 0 },
           warning: 'No submissions to analyze',
         },
         generatedAt: new Date(),
@@ -275,12 +280,12 @@ export class GeminiAnalysisService {
     if (filtered.length === 0) {
       return {
         sessionId: input.sessionId,
-        entries: [],
+        issues: [],
         summary: {
           totalSubmissions,
           filteredOut: filteredOutCount,
           analyzedSubmissions: 0,
-          commonPatterns: [],
+          completionEstimate: { finished: 0, inProgress: 0, notStarted: filteredOutCount },
           warning: "Most students haven't modified the starter code yet",
         },
         generatedAt: new Date(),
@@ -314,24 +319,50 @@ export class GeminiAnalysisService {
     const responseText = await this.callGeminiAPI(prompt);
 
     // Parse response
-    const { entries, commonPatterns } = parseGeminiResponse(responseText, labelToStudentId);
+    const parsedResponse = parseGeminiResponse(responseText, labelToStudentId);
 
-    // Add position numbers
-    const entriesWithPosition: WalkthroughEntry[] = entries.map((entry, index) => ({
-      ...entry,
-      position: index + 1,
-    }));
+    // Build AnalysisIssue[] from parsed response
+    const issues: AnalysisIssue[] = parsedResponse.issues.map((issue) => {
+      const studentIds = issue.studentLabels
+        .map((label) => labelToStudentId.get(label))
+        .filter((id): id is string => id !== undefined);
+
+      const firstLabel = issue.studentLabels[0] || '';
+      const firstStudentId = labelToStudentId.get(firstLabel) || '';
+
+      return {
+        title: issue.title,
+        explanation: issue.explanation,
+        count: studentIds.length,
+        studentIds,
+        representativeStudentLabel: firstLabel ? `Student ${firstLabel}` : '',
+        representativeStudentId: firstStudentId,
+        severity: issue.severity,
+      };
+    });
+
+    // Compute completionEstimate
+    const finishedCount = parsedResponse.finishedStudentLabels.filter(
+      (label) => labelToStudentId.has(label)
+    ).length;
+    const inProgressCount = toAnalyze.length - finishedCount;
+    const notStartedCount = filteredOutCount;
 
     return {
       sessionId: input.sessionId,
-      entries: entriesWithPosition,
+      issues,
       summary: {
         totalSubmissions,
         filteredOut: filteredOutCount,
         analyzedSubmissions: toAnalyze.length,
-        commonPatterns,
+        completionEstimate: {
+          finished: finishedCount,
+          inProgress: inProgressCount,
+          notStarted: notStartedCount,
+        },
         warning,
       },
+      overallNote: parsedResponse.overallNote,
       generatedAt: new Date(),
     };
   }
