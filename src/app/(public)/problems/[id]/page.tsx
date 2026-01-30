@@ -13,6 +13,7 @@ import { codeToHtml } from 'shiki';
 import { getProblemRepository } from '@/server/persistence';
 import { SERVICE_ROLE_MARKER } from '@/server/supabase/client';
 import MarkdownContent from '@/components/MarkdownContent';
+import CopyButton from './CopyButton';
 
 type Params = {
   params: Promise<{ id: string }>;
@@ -62,8 +63,8 @@ export default async function PublicProblemPage({ params }: Params) {
     <div className="max-w-3xl mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold text-gray-900 mb-2">{problem.title}</h1>
 
-      <a href={publicUrl} className="text-sm text-blue-600 hover:underline mb-6 block">
-        {publicUrl}
+      <a href={publicUrl} className="text-sm text-blue-600 hover:underline mb-6 inline-block">
+        Link to this problem
       </a>
 
       {problem.description && (
@@ -77,10 +78,13 @@ export default async function PublicProblemPage({ params }: Params) {
           <summary className="cursor-pointer text-lg font-semibold text-gray-700 hover:text-gray-900 select-none">
             Show Solution
           </summary>
-          <div
-            className="mt-4 rounded-lg overflow-x-auto [&_pre]:p-4 [&_pre]:text-sm"
-            dangerouslySetInnerHTML={{ __html: solutionHtml }}
-          />
+          <div className="mt-4 relative">
+            <CopyButton text={problem.solution!} />
+            <div
+              className="rounded-lg overflow-x-auto [&_pre]:p-4 [&_pre]:text-sm"
+              dangerouslySetInnerHTML={{ __html: solutionHtml }}
+            />
+          </div>
         </details>
       )}
 

@@ -28,6 +28,12 @@ jest.mock('shiki', () => ({
   ),
 }));
 
+jest.mock('../CopyButton', () => {
+  return function MockCopyButton({ text }: { text: string }) {
+    return <button data-testid="copy-button" data-text={text}>Copy</button>;
+  };
+});
+
 // MarkdownContent is a client component; mock it
 jest.mock('@/components/MarkdownContent', () => {
   return function MockMarkdownContent({ content }: { content: string }) {
@@ -78,7 +84,7 @@ describe('Public Problem Page', () => {
       const page = await PublicProblemPage({ params: Promise.resolve({ id: 'problem-123' }) });
       render(page);
 
-      const link = screen.getByRole('link', { name: /\/problems\/problem-123/ });
+      const link = screen.getByRole('link', { name: /link to this problem/i });
       expect(link).toBeInTheDocument();
       expect(link).toHaveAttribute('href', '/problems/problem-123');
     });
@@ -116,6 +122,17 @@ describe('Public Problem Page', () => {
         theme: 'github-dark',
       });
       expect(document.querySelector('.shiki')).toBeInTheDocument();
+    });
+
+    it('renders copy button with solution text', async () => {
+      mockRepo(jest.fn().mockResolvedValue(mockProblem));
+
+      const page = await PublicProblemPage({ params: Promise.resolve({ id: 'problem-123' }) });
+      render(page);
+
+      const copyBtn = screen.getByTestId('copy-button');
+      expect(copyBtn).toBeInTheDocument();
+      expect(copyBtn).toHaveAttribute('data-text', mockProblem.solution);
     });
 
     it('calls notFound for missing problem', async () => {
