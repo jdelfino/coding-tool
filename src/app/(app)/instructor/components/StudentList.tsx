@@ -10,30 +10,19 @@ interface StudentListProps {
   students: Student[];
   onSelectStudent: (studentId: string) => void;
   onShowOnPublicView?: (studentId: string) => void;
-  onClearPublicView?: () => void;
+
   onViewHistory?: (studentId: string, studentName: string) => void;
   joinCode?: string;
   isLoading?: boolean;
   featuredStudentId?: string | null;
+  headerLabel?: string;
 }
 
-export default function StudentList({ students, onSelectStudent, onShowOnPublicView, onClearPublicView, onViewHistory, joinCode, isLoading = false, featuredStudentId }: StudentListProps) {
+export default function StudentList({ students, onSelectStudent, onShowOnPublicView, onViewHistory, joinCode, isLoading = false, featuredStudentId, headerLabel }: StudentListProps) {
   return (
     <Card variant="default" className="p-4">
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-lg font-semibold text-gray-900 m-0">Connected Students ({students.length})</h3>
-        {featuredStudentId && onClearPublicView && (
-          <Button
-            variant="primary"
-            size="sm"
-            onClick={onClearPublicView}
-            title="Clear the public view display"
-            className="from-red-500 to-red-500 hover:from-red-600 hover:to-red-600"
-            data-testid="clear-public-view-button"
-          >
-            Clear Public View
-          </Button>
-        )}
+        <h3 className="text-lg font-semibold text-gray-900 m-0">{headerLabel || 'Connected Students'} ({students.length})</h3>
       </div>
       {isLoading ? (
         <div className="text-gray-500 py-4">
@@ -80,7 +69,7 @@ export default function StudentList({ students, onSelectStudent, onShowOnPublicV
                     </Badge>
                   )}
                   <Badge variant={student.hasCode ? 'success' : 'default'} className="shrink-0">
-                    {student.hasCode ? 'Has code' : 'No code yet'}
+                    {student.hasCode ? 'Started' : 'Not started'}
                   </Badge>
                 </div>
                 <div className="flex gap-2 flex-wrap">

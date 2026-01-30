@@ -10,6 +10,8 @@ interface SessionControlsProps {
   connectedStudentCount?: number;
   onEndSession: () => void;
   onLoadProblem?: () => void;
+  onClearPublicView?: () => void;
+  featuredStudentId?: string | null;
 }
 
 export default function SessionControls({
@@ -18,7 +20,9 @@ export default function SessionControls({
   joinCode,
   connectedStudentCount = 0,
   onEndSession,
-  onLoadProblem
+  onLoadProblem,
+  onClearPublicView,
+  featuredStudentId,
 }: SessionControlsProps) {
   const [showEndSessionConfirm, setShowEndSessionConfirm] = useState(false);
 
@@ -61,6 +65,16 @@ export default function SessionControls({
           >
             Open Public View
           </button>
+          {featuredStudentId && onClearPublicView && (
+            <button
+              onClick={onClearPublicView}
+              className="px-4 py-2 text-sm font-medium text-red-700 bg-red-50 border border-red-300 rounded-lg hover:bg-red-100 transition-colors"
+              title="Clear the public view display"
+              data-testid="clear-public-view-button"
+            >
+              Clear Public View
+            </button>
+          )}
           <button
             onClick={() => setShowEndSessionConfirm(true)}
             className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors"

@@ -70,6 +70,12 @@ describe('StudentList', () => {
       expect(screen.getByText('Connected Students (2)')).toBeInTheDocument();
     });
 
+    it('should display custom header label when provided', () => {
+      render(<StudentList {...defaultProps} students={students} headerLabel="Students with this issue" />);
+
+      expect(screen.getByText('Students with this issue (2)')).toBeInTheDocument();
+    });
+
     it('should display each student name', () => {
       render(<StudentList {...defaultProps} students={students} />);
 
@@ -77,13 +83,13 @@ describe('StudentList', () => {
       expect(screen.getByText('Bob')).toBeInTheDocument();
     });
 
-    it('should indicate which students have code submitted', () => {
+    it('should indicate which students have started coding', () => {
       render(<StudentList {...defaultProps} students={students} />);
 
       // Alice has code
-      expect(screen.getByText(/Has code/)).toBeInTheDocument();
+      expect(screen.getByText('Started')).toBeInTheDocument();
       // Bob does not
-      expect(screen.getByText(/No code yet/)).toBeInTheDocument();
+      expect(screen.getByText('Not started')).toBeInTheDocument();
     });
 
     it('should call onSelectStudent when View button is clicked', () => {
@@ -220,37 +226,10 @@ describe('StudentList', () => {
   });
 
   describe('Clear Public View button', () => {
-    const students = [
-      { id: 'student-1', name: 'Alice', hasCode: true },
-    ];
-
-    it('should show Clear Public View button when a student is featured and handler is provided', () => {
-      render(
-        <StudentList
-          {...defaultProps}
-          students={students}
-          featuredStudentId="student-1"
-          onClearPublicView={mockOnClearPublicView}
-        />
-      );
-
-      expect(screen.getByTestId('clear-public-view-button')).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /Clear Public View/i })).toBeInTheDocument();
-    });
-
-    it('should not show Clear Public View button when no student is featured', () => {
-      render(
-        <StudentList
-          {...defaultProps}
-          students={students}
-          onClearPublicView={mockOnClearPublicView}
-        />
-      );
-
-      expect(screen.queryByTestId('clear-public-view-button')).not.toBeInTheDocument();
-    });
-
-    it('should not show Clear Public View button when handler is not provided', () => {
+    it('should not render Clear Public View button (moved to SessionControls)', () => {
+      const students = [
+        { id: 'student-1', name: 'Alice', hasCode: true },
+      ];
       render(
         <StudentList
           {...defaultProps}
@@ -260,20 +239,6 @@ describe('StudentList', () => {
       );
 
       expect(screen.queryByTestId('clear-public-view-button')).not.toBeInTheDocument();
-    });
-
-    it('should call onClearPublicView when clicked', () => {
-      render(
-        <StudentList
-          {...defaultProps}
-          students={students}
-          featuredStudentId="student-1"
-          onClearPublicView={mockOnClearPublicView}
-        />
-      );
-
-      fireEvent.click(screen.getByTestId('clear-public-view-button'));
-      expect(mockOnClearPublicView).toHaveBeenCalledTimes(1);
     });
   });
 });

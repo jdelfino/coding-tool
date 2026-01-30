@@ -146,6 +146,33 @@ describe('SessionControls', () => {
       expect(mockOnEndSession).not.toHaveBeenCalled();
     });
 
+    it('should show Clear Public View button when featuredStudentId is set', () => {
+      const mockOnClearPublicView = jest.fn();
+      render(
+        <SessionControls
+          {...defaultProps}
+          featuredStudentId="student-1"
+          onClearPublicView={mockOnClearPublicView}
+        />
+      );
+
+      const clearBtn = screen.getByTestId('clear-public-view-button');
+      expect(clearBtn).toBeInTheDocument();
+      fireEvent.click(clearBtn);
+      expect(mockOnClearPublicView).toHaveBeenCalledTimes(1);
+    });
+
+    it('should not show Clear Public View button when no student is featured', () => {
+      render(
+        <SessionControls
+          {...defaultProps}
+          onClearPublicView={jest.fn()}
+        />
+      );
+
+      expect(screen.queryByTestId('clear-public-view-button')).not.toBeInTheDocument();
+    });
+
     it('should use danger variant for the confirm button', () => {
       render(<SessionControls {...defaultProps} />);
 

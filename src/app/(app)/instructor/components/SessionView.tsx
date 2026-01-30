@@ -149,6 +149,8 @@ export function SessionView({
         connectedStudentCount={students.length}
         onEndSession={onEndSession}
         onLoadProblem={handleOpenProblemLoader}
+        onClearPublicView={onClearPublicView}
+        featuredStudentId={featuredStudentId}
       />
 
       {/* Tabbed Content Area */}

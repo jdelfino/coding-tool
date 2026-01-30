@@ -326,7 +326,7 @@ describe('SessionStudentPane', () => {
     });
   });
 
-  describe('analysis details in right panel', () => {
+  describe('analysis details in left panel', () => {
     it('shows analysis details for active issue when analysis is ready', async () => {
       setAnalysisReady();
       mockActiveGroupIndex = 1; // auto-selects student-1 via recommendedStudentId
@@ -338,7 +338,7 @@ describe('SessionStudentPane', () => {
       });
     });
 
-    it('renders analysis details above the code editor', async () => {
+    it('renders analysis details in the left panel between group nav and student list', async () => {
       setAnalysisReady();
       mockActiveGroupIndex = 1;
       render(<SessionStudentPane {...defaultProps} />);
@@ -347,20 +347,14 @@ describe('SessionStudentPane', () => {
         expect(screen.getByTestId('student-analysis-details')).toBeInTheDocument();
       });
 
+      // Analysis details should appear before the student list (both in left panel)
       const detailsEl = screen.getByTestId('student-analysis-details');
-      const editorEl = screen.getByTestId('code-editor');
-      expect(detailsEl.compareDocumentPosition(editorEl) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      const groupNavEl = screen.getByTestId('group-navigation');
+      expect(groupNavEl.compareDocumentPosition(detailsEl) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     });
 
     it('does not show analysis details when analysis is not ready', async () => {
       render(<SessionStudentPane {...defaultProps} />);
-
-      const viewCodeButtons = screen.getAllByRole('button', { name: /^view$/i });
-      fireEvent.click(viewCodeButtons[0]);
-
-      await waitFor(() => {
-        expect(screen.getByTestId('code-editor')).toBeInTheDocument();
-      });
 
       expect(screen.queryByTestId('student-analysis-details')).not.toBeInTheDocument();
     });
@@ -369,14 +363,6 @@ describe('SessionStudentPane', () => {
       setAnalysisReady();
       mockActiveGroupIndex = 0; // 'all' group has no issue
       render(<SessionStudentPane {...defaultProps} />);
-
-      // Select a student manually
-      const viewCodeButtons = screen.getAllByRole('button', { name: /^view$/i });
-      fireEvent.click(viewCodeButtons[0]);
-
-      await waitFor(() => {
-        expect(screen.getByTestId('code-editor')).toBeInTheDocument();
-      });
 
       expect(screen.queryByTestId('student-analysis-details')).not.toBeInTheDocument();
     });
