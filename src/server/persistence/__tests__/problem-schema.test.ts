@@ -54,10 +54,10 @@ describe('validateProblemSchema', () => {
       );
     });
 
-    it('should accept tags with alphanumeric and hyphens', () => {
+    it('should accept tags with alphanumeric, hyphens, slashes, and spaces', () => {
       const errors = validateProblemSchema({
         ...validProblem,
-        tags: ['my-tag-1', 'another-tag'],
+        tags: ['my-tag-1', 'another-tag', 'week 1/intro', 'loops/recursion'],
       });
       const tagErrors = errors.filter((e) => e.field === 'tags');
       expect(tagErrors).toHaveLength(0);

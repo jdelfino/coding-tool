@@ -174,7 +174,8 @@ export default function ProblemCreator({
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.error || `Failed to ${isEditMode ? 'update' : 'create'} problem`);
+        const details = data.details?.map((d: any) => d.message).join('; ');
+        throw new Error(details || data.error || `Failed to ${isEditMode ? 'update' : 'create'} problem`);
       }
 
       const { problem } = await response.json();

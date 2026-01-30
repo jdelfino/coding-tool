@@ -100,7 +100,7 @@ export const PROBLEM_VALIDATION_RULES = {
   tags: {
     maxCount: 10,
     maxTagLength: 30,
-    pattern: /^[a-zA-Z0-9-]+$/,
+    pattern: /^[a-zA-Z0-9 /\-]+$/,
     required: false,
   },
   solution: {
@@ -141,7 +141,7 @@ export function validateTags(tags: string[]): ProblemValidationError[] {
     if (!PROBLEM_VALIDATION_RULES.tags.pattern.test(tag)) {
       errors.push({
         field: 'tags',
-        message: 'Tags must contain only alphanumeric characters and hyphens',
+        message: 'Tags must contain only alphanumeric characters, hyphens, slashes, and spaces',
         code: 'INVALID_FORMAT',
       });
       break;
