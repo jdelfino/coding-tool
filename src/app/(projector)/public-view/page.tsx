@@ -193,12 +193,12 @@ function PublicViewContent() {
             ) : (
               <ChevronUp className="h-4 w-4 text-gray-400 flex-shrink-0" />
             )}
-            <h2 className="mt-0 mb-0 text-base font-semibold truncate">
+            <h2 className="mt-0 mb-0 text-xl font-semibold truncate">
               {state?.problem?.title || 'Problem'}
             </h2>
           </div>
           <div className="flex-shrink-0 text-right">
-            <span className="text-sm font-bold text-blue-500 font-mono">
+            <span className="text-2xl font-bold text-blue-500 font-mono">
               {state?.joinCode || '------'}
             </span>
           </div>
@@ -206,9 +206,9 @@ function PublicViewContent() {
         {!headerCollapsed && (
           <div className="pl-6 pb-2 pt-1">
             {problemText ? (
-              <MarkdownContent content={problemText} className="text-sm" />
+              <MarkdownContent content={problemText} className="text-base" />
             ) : (
-              <p className="text-gray-400 italic m-0 text-sm">No problem set yet</p>
+              <p className="text-gray-400 italic m-0 text-base">No problem set yet</p>
             )}
           </div>
         )}
@@ -226,14 +226,15 @@ function PublicViewContent() {
             debugger={debuggerHook}
             forceDesktop={true}
             outputPosition="right"
+            fontSize={20}
           />
         </div>
       ) : (
         <div className="p-8 border border-gray-300 rounded text-center">
-          <p className="text-gray-400 text-lg italic mb-1">
+          <p className="text-gray-400 text-2xl italic mb-1">
             No submission selected for display
           </p>
-          <p className="text-gray-500 text-sm">
+          <p className="text-gray-500 text-base">
             Select a student submission from the instructor dashboard
           </p>
         </div>

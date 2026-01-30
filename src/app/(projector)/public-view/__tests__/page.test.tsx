@@ -614,6 +614,33 @@ describe('PublicInstructorView collapsible header', () => {
     expect(screen.getByText('ABC-123')).toBeInTheDocument();
   });
 
+  test('renders join code with text-2xl class for projector visibility', async () => {
+    await renderWithState();
+
+    await waitFor(() => {
+      const joinCodeElement = screen.getByText('ABC-123');
+      expect(joinCodeElement).toBeInTheDocument();
+      expect(joinCodeElement.className).toContain('text-2xl');
+    });
+  });
+
+  test('passes fontSize prop to CodeEditor for projector scaling', async () => {
+    lastCodeEditorProps = null;
+
+    await renderWithState({
+      featuredStudentId: 'student-1',
+      featuredCode: 'print("hello")',
+      hasFeaturedSubmission: true,
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('code-editor')).toBeInTheDocument();
+    });
+
+    expect(lastCodeEditorProps).toBeTruthy();
+    expect(lastCodeEditorProps.fontSize).toBe(20);
+  });
+
   test('re-expands when toggle is clicked again', async () => {
     const { fireEvent } = require('@testing-library/react');
     await renderWithState();

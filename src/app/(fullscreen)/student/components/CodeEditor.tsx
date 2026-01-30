@@ -42,6 +42,7 @@ interface CodeEditorProps {
   editableProblem?: boolean;
   forceDesktop?: boolean;
   outputPosition?: 'bottom' | 'right';
+  fontSize?: number;
 }
 
 export default function CodeEditor({
@@ -68,6 +69,7 @@ export default function CodeEditor({
   editableProblem = false,
   forceDesktop = false,
   outputPosition = 'bottom',
+  fontSize,
 }: CodeEditorProps) {
   const editorRef = useRef<any>(null);
   const [stdin, setStdin] = useState('');
@@ -962,7 +964,7 @@ export default function CodeEditor({
                 // Disable minimap on all screens for cleaner mobile experience
                 minimap: { enabled: false },
                 // Increase font size on mobile for better readability (16px minimum for iOS zoom prevention)
-                fontSize: mobileViewport.isMobile ? 16 : 14,
+                fontSize: fontSize ?? (mobileViewport.isMobile ? 16 : 14),
                 // Hide line numbers on very small screens to save space
                 lineNumbers: mobileViewport.isVerySmall ? 'off' : 'on',
                 roundedSelection: false,
