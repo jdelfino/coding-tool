@@ -49,8 +49,9 @@ interface SystemStats {
 function AdminPage() {
   const { user } = useAuth();
   const selectedNamespace = useSelectedNamespace();
-  const [activeTab, setActiveTab] = useState<'users' | 'instructors' | 'students'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'namespace-admins' | 'instructors' | 'students'>('users');
   const [allUsers, setAllUsers] = useState<User[]>([]);
+  const [namespaceAdmins, setNamespaceAdmins] = useState<User[]>([]);
   const [instructors, setInstructors] = useState<User[]>([]);
   const [students, setStudents] = useState<User[]>([]);
   const [stats, setStats] = useState<SystemStats | null>(null);
@@ -162,6 +163,7 @@ function AdminPage() {
         const data = await res.json();
         const users = data.users || [];
         setAllUsers(users);
+        setNamespaceAdmins(users.filter((u: User) => u.role === 'namespace-admin'));
         setInstructors(users.filter((u: User) => u.role === 'instructor'));
         setStudents(users.filter((u: User) => u.role === 'student'));
       } else {
@@ -319,6 +321,7 @@ function AdminPage() {
       <Tabs activeTab={effectiveTab} onTabChange={(tab) => setActiveTab(tab as typeof activeTab)}>
         <Tabs.List className="mb-6">
           {isAdmin && <Tabs.Tab tabId="users">All Users ({allUsers.length})</Tabs.Tab>}
+          {isAdmin && <Tabs.Tab tabId="namespace-admins">Namespace Admins ({namespaceAdmins.length})</Tabs.Tab>}
           <Tabs.Tab tabId="instructors">Instructors ({instructors.length})</Tabs.Tab>
           <Tabs.Tab tabId="students">Students ({students.length})</Tabs.Tab>
         </Tabs.List>
@@ -387,6 +390,23 @@ function AdminPage() {
                       ))}
                     </Table.Body>
                   </Table>
+                </div>
+              )}
+            </Tabs.Panel>
+
+            {/* Namespace Admins Tab (Admin Only) */}
+            <Tabs.Panel tabId="namespace-admins">
+              {isAdmin && (
+                <div>
+                  <h2 className="text-xl font-semibold mb-2">Namespace Admins</h2>
+                  <p className="text-gray-500 mb-4">
+                    Namespace admins can manage users and settings within their namespace.
+                  </p>
+                  <UserList
+                    users={namespaceAdmins}
+                    currentUserId={user.id}
+                    showActions={false}
+                  />
                 </div>
               )}
             </Tabs.Panel>

@@ -131,6 +131,35 @@ describe('Admin Page - Namespace change reloads data', () => {
   });
 });
 
+describe('Admin Page - Namespace Admins tab', () => {
+  it('renders a Namespace Admins tab for admin users', async () => {
+    // Include a namespace-admin user in the mock data
+    const usersWithNsAdmin = [
+      ...mockUsers,
+      { id: 'u3', email: 'nsadmin@test.com', role: 'namespace-admin', displayName: 'NS Admin', createdAt: new Date().toISOString() },
+    ];
+    mockFetch.mockImplementation((url: string) => {
+      if (url.includes('/api/admin/stats')) {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve(mockStats) });
+      }
+      if (url.includes('/api/admin/users')) {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({ users: usersWithNsAdmin }) });
+      }
+      if (url.includes('/api/namespace/invitations')) {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({ invitations: [] }) });
+      }
+      return Promise.resolve({ ok: true, json: () => Promise.resolve({}) });
+    });
+
+    render(<AdminPageWrapper />);
+
+    await waitFor(() => {
+      // Namespace Admins tab should exist with correct count
+      expect(screen.getByRole('tab', { name: /namespace admins \(1\)/i })).toBeInTheDocument();
+    });
+  });
+});
+
 describe('Admin Page - All Users table shows email column', () => {
   it('renders Email column header and email values in All Users table', async () => {
     render(<AdminPageWrapper />);
@@ -177,8 +206,9 @@ describe('Admin Page - Overview Stats Panel', () => {
     const statsPanel = screen.getByText('Total Users').closest('.grid');
     expect(statsPanel).toBeInTheDocument();
 
-    // Verify the tabs still exist: All Users, Instructors, Students
+    // Verify the tabs still exist: All Users, Namespace Admins, Instructors, Students
     expect(screen.getByRole('tab', { name: /all users/i })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /namespace admins/i })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: /instructors/i })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: /students/i })).toBeInTheDocument();
   });
