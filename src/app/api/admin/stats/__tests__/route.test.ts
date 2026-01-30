@@ -83,16 +83,40 @@ describe('GET /api/admin/stats', () => {
     expect(response.status).toBe(401);
   });
 
-  it('filters users by namespace when namespaceId is provided', async () => {
+  it('filters users, sections, and sessions by namespace when namespaceId is provided', async () => {
+    const mockListSections = jest.fn().mockResolvedValue([
+      { id: 's1', classId: 'c1' },
+    ]);
+    (getSectionRepository as jest.Mock).mockReturnValue({
+      listSections: mockListSections,
+    });
+
+    const mockListActiveSessions = jest.fn().mockResolvedValue([
+      { id: 'sess1' }, { id: 'sess2' },
+    ]);
+    (createStorage as jest.Mock).mockResolvedValue({
+      sessions: {
+        countSessions: jest.fn().mockResolvedValue(5),
+        listActiveSessions: mockListActiveSessions,
+      },
+    });
+
     (getNamespaceContext as jest.Mock).mockReturnValue('ns-1');
 
     const request = new NextRequest('http://localhost/api/admin/stats?namespace=ns-1');
     const response = await GET(request);
+    const data = await response.json();
 
     expect(response.status).toBe(200);
     // Should call listUsers with namespace filter, NOT getAllUsers
     expect(mockUserRepo.listUsers).toHaveBeenCalledWith(undefined, 'ns-1');
     expect(mockAuthProvider.getAllUsers).not.toHaveBeenCalled();
+    // Sections should be filtered by namespace
+    expect(mockListSections).toHaveBeenCalledWith(undefined, 'ns-1');
+    // Sessions should use listActiveSessions with namespace, not countSessions
+    expect(mockListActiveSessions).toHaveBeenCalledWith('ns-1');
+    expect(data.sections.total).toBe(1);
+    expect(data.sessions.active).toBe(2);
   });
 
   it('returns all users when namespaceId is undefined (all namespaces)', async () => {
