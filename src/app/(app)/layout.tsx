@@ -12,6 +12,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { ActiveSessionProvider } from '@/contexts/ActiveSessionContext';
 import { PanelProvider } from '@/contexts/PanelContext';
 import { AppShell } from '@/components/layout';
+import SessionCreatedNotification from '@/components/SessionCreatedNotification';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth();
@@ -41,6 +42,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <ActiveSessionProvider>
       <PanelProvider pageId="app">
+        <SessionCreatedNotification />
         <AppShell>{children}</AppShell>
       </PanelProvider>
     </ActiveSessionProvider>
