@@ -306,9 +306,9 @@ describeE2E('Critical User Paths', () => {
       });
       console.log('Instructor student list:', instructorStudentList);
 
-      // Wait for the "Started" badge to appear - this confirms the code synced
+      // Wait for the "In progress" badge to appear - this confirms the code synced
       const studentRow = instructorPage.locator(`div.border:has-text("${studentName}")`).first();
-      await expect(studentRow.locator('text=Started')).toBeVisible({ timeout: 15000 });
+      await expect(studentRow.locator('text=In progress')).toBeVisible({ timeout: 15000 });
 
       console.log('Student visible with code in instructor view');
 

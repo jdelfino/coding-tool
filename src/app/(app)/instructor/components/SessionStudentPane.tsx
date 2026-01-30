@@ -81,6 +81,7 @@ export function SessionStudentPane({
     activeGroupIndex,
     overallNote,
     completionEstimate,
+    finishedStudentIds,
     analyze,
     navigateGroup,
     dismissGroup,
@@ -216,6 +217,7 @@ export function SessionStudentPane({
           joinCode={joinCode}
           featuredStudentId={featuredStudentId}
           headerLabel={studentListHeaderLabel}
+          finishedStudentIds={analysisState === 'ready' ? finishedStudentIds : undefined}
         />
       </div>
 
