@@ -323,6 +323,8 @@ describe('broadcastProblemUpdated', () => {
       starterCode: '',
       testCases: [],
       authorId: 'user-1',
+      classId: 'test-class-id',
+      tags: [],
       createdAt: new Date(),
       updatedAt: new Date(),
     })).rejects.toThrow('NEXT_PUBLIC_SUPABASE_URL is required for broadcast');
@@ -339,6 +341,8 @@ describe('broadcastProblemUpdated', () => {
       starterCode: '',
       testCases: [],
       authorId: 'user-1',
+      classId: 'test-class-id',
+      tags: [],
       createdAt: new Date(),
       updatedAt: new Date(),
     })).rejects.toThrow('SUPABASE_SECRET_KEY is required for broadcast');
@@ -353,6 +357,8 @@ describe('broadcastProblemUpdated', () => {
       starterCode: 'print("test")',
       testCases: [],
       authorId: 'user-1',
+      classId: 'test-class-id',
+      tags: [],
       createdAt: new Date(),
       updatedAt: new Date(),
     };

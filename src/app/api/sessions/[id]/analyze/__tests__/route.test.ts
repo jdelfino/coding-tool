@@ -47,6 +47,8 @@ describe('POST /api/sessions/[id]/analyze', () => {
     starterCode: 'print("Hello")',
     testCases: [],
     authorId: 'instructor-1',
+    classId: 'test-class-id',
+    tags: [],
     createdAt: new Date(),
     updatedAt: new Date(),
   };

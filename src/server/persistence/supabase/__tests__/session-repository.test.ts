@@ -40,6 +40,8 @@ describe('SupabaseSessionRepository', () => {
     description: 'Write a hello world program',
     starterCode: 'print("Hello")',
     authorId: 'instructor-1',
+    classId: 'test-class-id',
+    tags: [],
     createdAt: new Date('2025-01-01T00:00:00Z'),
     updatedAt: new Date('2025-01-01T00:00:00Z'),
   };

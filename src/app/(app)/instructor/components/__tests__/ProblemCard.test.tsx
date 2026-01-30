@@ -187,6 +187,39 @@ describe('ProblemCard', () => {
       render(<ProblemCard {...defaultProps} problem={problem} />);
       expect(screen.queryByText(/^\s+$/)).not.toBeInTheDocument();
     });
+  });
 
+  describe('Tag display', () => {
+    it('renders tag chips when problem has tags', () => {
+      const problem = { ...mockProblem, tags: ['loops', 'arrays'] };
+      render(<ProblemCard {...defaultProps} problem={problem} />);
+      expect(screen.getByText('loops')).toBeInTheDocument();
+      expect(screen.getByText('arrays')).toBeInTheDocument();
+    });
+
+    it('does not render tags section when tags array is empty', () => {
+      const problem = { ...mockProblem, tags: [] };
+      render(<ProblemCard {...defaultProps} problem={problem} />);
+      expect(screen.queryByTestId('problem-tags')).not.toBeInTheDocument();
+    });
+
+    it('does not render tags section when tags is undefined', () => {
+      render(<ProblemCard {...defaultProps} />);
+      expect(screen.queryByTestId('problem-tags')).not.toBeInTheDocument();
+    });
+
+    it('calls onTagClick when a tag chip is clicked', () => {
+      const onTagClick = jest.fn();
+      const problem = { ...mockProblem, tags: ['loops'] };
+      render(<ProblemCard {...defaultProps} problem={problem} onTagClick={onTagClick} />);
+      fireEvent.click(screen.getByText('loops'));
+      expect(onTagClick).toHaveBeenCalledWith('loops');
+    });
+
+    it('renders tags in grid view', () => {
+      const problem = { ...mockProblem, tags: ['loops'] };
+      render(<ProblemCard {...defaultProps} problem={problem} viewMode="grid" />);
+      expect(screen.getByText('loops')).toBeInTheDocument();
+    });
   });
 });

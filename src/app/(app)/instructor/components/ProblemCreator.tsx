@@ -10,8 +10,14 @@
  * - Visibility settings (public/class-specific)
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import type { ProblemInput } from '@/server/types/problem';
+
+interface ClassInfo {
+  id: string;
+  name: string;
+  namespaceId: string;
+}
 import CodeEditor from '@/app/(fullscreen)/student/components/CodeEditor';
 import { EditorContainer } from '@/app/(fullscreen)/student/components/EditorContainer';
 import { useDebugger } from '@/hooks/useDebugger';
@@ -36,12 +42,39 @@ export default function ProblemCreator({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Class and tags state
+  const [classes, setClasses] = useState<ClassInfo[]>([]);
+  const [selectedClassId, setSelectedClassId] = useState<string>(classId || '');
+  const [tags, setTags] = useState<string[]>([]);
+  const [tagInput, setTagInput] = useState('');
+  const tagInputRef = useRef<HTMLInputElement>(null);
+
   // Execution settings
   const [stdin, setStdin] = useState('');
   const [randomSeed, setRandomSeed] = useState<number | undefined>(undefined);
   const [attachedFiles, setAttachedFiles] = useState<Array<{ name: string; content: string }>>([]);
 
   const isEditMode = !!problemId;
+
+  // Load classes on mount
+  useEffect(() => {
+    const loadClasses = async () => {
+      try {
+        const response = await fetch('/api/classes');
+        if (response.ok) {
+          const data = await response.json();
+          setClasses(data.classes || []);
+          // Pre-populate if classId prop provided
+          if (classId) {
+            setSelectedClassId(classId);
+          }
+        }
+      } catch {
+        // Classes won't be populated but form still works
+      }
+    };
+    loadClasses();
+  }, [classId]);
 
   // Load problem data when editing
   useEffect(() => {
@@ -62,6 +95,8 @@ export default function ProblemCreator({
       setTitle(problem.title || '');
       setDescription(problem.description || '');
       setStarterCode(problem.starterCode || '');
+      if (problem.classId) setSelectedClassId(problem.classId);
+      if (problem.tags) setTags(problem.tags);
 
       // Load execution settings
       const execSettings = problem.executionSettings;
@@ -92,7 +127,8 @@ export default function ProblemCreator({
         description: description.trim(),
         starterCode: starterCode.trim(),
         testCases: [], // Test cases added separately
-        classId: classId || undefined,
+        classId: selectedClassId || undefined,
+        tags: tags.length > 0 ? tags : [],
       };
 
       // Only include executionSettings if at least one field is set
@@ -137,6 +173,8 @@ export default function ProblemCreator({
         setStdin('');
         setRandomSeed(undefined);
         setAttachedFiles([]);
+        setTags([]);
+        setTagInput('');
       }
 
       // Notify parent
@@ -146,6 +184,24 @@ export default function ProblemCreator({
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleTagKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault();
+      const newTags = tagInput
+        .split(',')
+        .map(t => t.trim())
+        .filter(t => t && !tags.includes(t));
+      if (newTags.length > 0) {
+        setTags(prev => [...prev, ...newTags]);
+      }
+      setTagInput('');
+    }
+  };
+
+  const removeTag = (tag: string) => {
+    setTags(prev => prev.filter(t => t !== tag));
   };
 
   // Setup debugger (trace feature not yet available via API)
@@ -222,6 +278,97 @@ export default function ProblemCreator({
           {error}
         </div>
       )}
+
+      {/* Class and Tags bar */}
+      <div style={{
+        flexShrink: 0,
+        padding: '0.5rem 1rem',
+        backgroundColor: '#fff',
+        borderBottom: '1px solid #dee2e6',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '1.5rem',
+        flexWrap: 'wrap',
+      }}>
+        {/* Class selector */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <label htmlFor="problem-class" style={{ fontSize: '0.875rem', fontWeight: 600, color: '#495057' }}>Class *</label>
+          <select
+            id="problem-class"
+            value={selectedClassId}
+            onChange={(e) => setSelectedClassId(e.target.value)}
+            style={{
+              padding: '0.375rem 0.5rem',
+              fontSize: '0.875rem',
+              border: '1px solid #ced4da',
+              borderRadius: '0.25rem',
+              minWidth: '150px',
+            }}
+          >
+            <option value="">Select a class...</option>
+            {classes.map(c => (
+              <option key={c.id} value={c.id}>{c.name}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Tags input */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1 }}>
+          <label htmlFor="problem-tags" style={{ fontSize: '0.875rem', fontWeight: 600, color: '#495057' }}>Tags</label>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', flexWrap: 'wrap', flex: 1 }}>
+            {tags.map(tag => (
+              <span
+                key={tag}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.25rem',
+                  padding: '0.125rem 0.5rem',
+                  fontSize: '0.75rem',
+                  backgroundColor: '#e9ecef',
+                  borderRadius: '9999px',
+                  color: '#495057',
+                }}
+              >
+                {tag}
+                <button
+                  type="button"
+                  onClick={() => removeTag(tag)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    padding: 0,
+                    fontSize: '0.875rem',
+                    color: '#6c757d',
+                    lineHeight: 1,
+                  }}
+                  aria-label={`Remove tag ${tag}`}
+                >
+                  x
+                </button>
+              </span>
+            ))}
+            <input
+              id="problem-tags"
+              ref={tagInputRef}
+              type="text"
+              value={tagInput}
+              onChange={(e) => setTagInput(e.target.value)}
+              onKeyDown={handleTagKeyDown}
+              placeholder="Add tags (comma-separated)..."
+              style={{
+                flex: 1,
+                minWidth: '120px',
+                padding: '0.375rem 0.5rem',
+                fontSize: '0.875rem',
+                border: '1px solid #ced4da',
+                borderRadius: '0.25rem',
+              }}
+            />
+          </div>
+        </div>
+      </div>
 
       {/* Full-width code editor */}
       <EditorContainer variant="flex">

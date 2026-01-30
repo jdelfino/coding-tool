@@ -158,39 +158,42 @@ export type Database = {
       problems: {
         Row: {
           author_id: string
-          class_id: string | null
+          class_id: string
           created_at: string
           description: string | null
           execution_settings: Json | null
           id: string
           namespace_id: string
           starter_code: string | null
+          tags: string[]
           test_cases: Json | null
           title: string
           updated_at: string
         }
         Insert: {
           author_id: string
-          class_id?: string | null
+          class_id: string
           created_at?: string
           description?: string | null
           execution_settings?: Json | null
           id?: string
           namespace_id: string
           starter_code?: string | null
+          tags?: string[]
           test_cases?: Json | null
           title: string
           updated_at?: string
         }
         Update: {
           author_id?: string
-          class_id?: string | null
+          class_id?: string
           created_at?: string
           description?: string | null
           execution_settings?: Json | null
           id?: string
           namespace_id?: string
           starter_code?: string | null
+          tags?: string[]
           test_cases?: Json | null
           title?: string
           updated_at?: string

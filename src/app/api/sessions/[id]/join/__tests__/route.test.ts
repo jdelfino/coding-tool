@@ -57,6 +57,8 @@ describe('POST /api/sessions/[id]/join', () => {
     starterCode: 'print("Hello")',
     testCases: [],
     authorId: 'user-1',
+    classId: 'test-class-id',
+    tags: [],
     createdAt: new Date(),
     updatedAt: new Date(),
   };

@@ -57,6 +57,8 @@ describe('POST /api/sessions/[id]/feature', () => {
     starterCode: 'print("Hello")',
     testCases: [],
     authorId: 'instructor-1',
+    classId: 'test-class-id',
+    tags: [],
     createdAt: new Date(),
     updatedAt: new Date(),
   };

@@ -61,6 +61,8 @@ describe('POST /api/sessions/:sessionId/load-problem', () => {
     starterCode: 'def fizzbuzz(n):\n    pass',
     testCases: [],
     authorId: 'instructor-1',
+    classId: 'test-class-id',
+    tags: [],
     createdAt: new Date('2025-01-01'),
     updatedAt: new Date('2025-01-01'),
     executionSettings: {
@@ -84,6 +86,8 @@ describe('POST /api/sessions/:sessionId/load-problem', () => {
       description: 'Test description',
       starterCode: '',
       authorId: 'instructor-1',
+      classId: 'test-class-id',
+      tags: [],
       createdAt: new Date(),
       updatedAt: new Date(),
       executionSettings: {

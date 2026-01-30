@@ -62,6 +62,8 @@ describe('POST /api/sessions/[id]/code', () => {
       randomSeed: 42,
     },
     authorId: 'user-1',
+    classId: 'test-class-id',
+    tags: [],
     createdAt: new Date(),
     updatedAt: new Date(),
   };

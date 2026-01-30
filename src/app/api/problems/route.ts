@@ -10,6 +10,7 @@ import { createStorage } from '@/server/persistence';
 import { requireAuth, getNamespaceContext } from '@/server/auth/api-helpers';
 import { rateLimit } from '@/server/rate-limit';
 import type { ProblemInput } from '@/server/types/problem';
+import { validateTags } from '@/server/persistence/problem-schema';
 
 /**
  * GET /api/problems
@@ -41,6 +42,8 @@ export async function GET(request: NextRequest) {
     const authorId = searchParams.get('authorId') || undefined;
     const classId = searchParams.get('classId') || undefined;
     const includePublic = searchParams.get('includePublic') !== 'false';
+    const tagsParam = searchParams.get('tags');
+    const tags = tagsParam ? tagsParam.split(',').filter(Boolean) : undefined;
     const sortBy = (searchParams.get('sortBy') || 'created') as 'title' | 'created' | 'updated';
     const sortOrder = (searchParams.get('sortOrder') || 'desc') as 'asc' | 'desc';
 
@@ -48,6 +51,7 @@ export async function GET(request: NextRequest) {
     const problems = await storage.problems.getAll({
       authorId,
       classId,
+      tags,
       includePublic,
       sortBy,
       sortOrder,
@@ -93,6 +97,25 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
 
+    // Validate required fields
+    if (!body.classId) {
+      return NextResponse.json(
+        { error: 'classId is required' },
+        { status: 400 }
+      );
+    }
+
+    // Validate tags if provided
+    if (body.tags) {
+      const tagErrors = validateTags(body.tags);
+      if (tagErrors.length > 0) {
+        return NextResponse.json(
+          { error: 'Validation failed', details: tagErrors },
+          { status: 400 }
+        );
+      }
+    }
+
     // Construct problem input
     const problemInput: ProblemInput = {
       title: body.title,
@@ -101,7 +124,8 @@ export async function POST(request: NextRequest) {
       testCases: body.testCases || [],
       executionSettings: body.executionSettings,
       authorId: user.id,
-      classId: body.classId || null,
+      classId: body.classId,
+      tags: body.tags || [],
       namespaceId: user.namespaceId!,
     };
 

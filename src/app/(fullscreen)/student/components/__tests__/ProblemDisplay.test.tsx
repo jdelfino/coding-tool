@@ -15,6 +15,8 @@ function createProblem(overrides: Partial<Problem> = {}): Problem {
     description: 'A test problem description',
     namespaceId: 'test-namespace',
     authorId: 'author-1',
+    classId: 'test-class-id',
+    tags: [],
     createdAt: new Date('2024-01-01T00:00:00Z'),
     updatedAt: new Date('2024-01-01T00:00:00Z'),
     ...overrides,

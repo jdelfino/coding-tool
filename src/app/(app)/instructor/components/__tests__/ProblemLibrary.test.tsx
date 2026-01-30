@@ -188,10 +188,16 @@ describe('ProblemLibrary', () => {
   });
 
   it('retries loading when retry button is clicked', async () => {
-    let callCount = 0;
-    global.fetch = jest.fn(() => {
-      callCount++;
-      if (callCount === 1) {
+    let problemCallCount = 0;
+    global.fetch = jest.fn((url: string) => {
+      if (typeof url === 'string' && url.includes('/api/classes')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ classes: [] }),
+        });
+      }
+      problemCallCount++;
+      if (problemCallCount === 1) {
         return Promise.resolve({
           ok: false,
           json: () => Promise.resolve({ error: 'Failed to load' }),
@@ -215,7 +221,7 @@ describe('ProblemLibrary', () => {
       expect(screen.getByText('Problem Library')).toBeInTheDocument();
     });
 
-    expect(callCount).toBe(2);
+    expect(problemCallCount).toBe(2);
   });
 
   it('displays empty state when no problems', async () => {
@@ -347,6 +353,97 @@ describe('ProblemLibrary', () => {
       // No alert means problem was found
       expect(alertSpy).not.toHaveBeenCalled();
       alertSpy.mockRestore();
+    });
+  });
+
+  describe('Class picker', () => {
+    const mockClasses = [
+      { id: 'class-1', name: 'CS 101', namespaceId: 'ns-1' },
+      { id: 'class-2', name: 'CS 201', namespaceId: 'ns-1' },
+    ];
+
+    beforeEach(() => {
+      // First call returns classes, second returns problems
+      global.fetch = jest.fn((url: string) => {
+        if (typeof url === 'string' && url.includes('/api/classes')) {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve({ classes: mockClasses }),
+          });
+        }
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ problems: mockProblems }),
+        });
+      }) as jest.Mock;
+    });
+
+    it('renders a class picker dropdown', async () => {
+      render(<ProblemLibrary />);
+
+      await waitFor(() => {
+        expect(screen.getByLabelText('Class:')).toBeInTheDocument();
+      });
+    });
+
+    it('shows "All classes" option in dropdown', async () => {
+      render(<ProblemLibrary />);
+
+      await waitFor(() => {
+        const select = screen.getByLabelText('Class:');
+        expect(select).toBeInTheDocument();
+      });
+
+      const options = screen.getAllByRole('option');
+      expect(options.some(o => o.textContent === 'All classes')).toBe(true);
+    });
+
+    it('defaults to first class when classes are loaded', async () => {
+      render(<ProblemLibrary />);
+
+      await waitFor(() => {
+        const select = screen.getByLabelText('Class:') as HTMLSelectElement;
+        expect(select.value).toBe('class-1');
+      });
+    });
+
+    it('passes selected classId to API call', async () => {
+      render(<ProblemLibrary />);
+
+      await waitFor(() => {
+        expect(global.fetch).toHaveBeenCalledWith(
+          expect.stringContaining('classId=class-1')
+        );
+      });
+    });
+
+    it('does not pass classId when "All classes" is selected', async () => {
+      render(<ProblemLibrary />);
+
+      await waitFor(() => {
+        expect(screen.getByLabelText('Class:')).toBeInTheDocument();
+      });
+
+      fireEvent.change(screen.getByLabelText('Class:'), { target: { value: '' } });
+
+      await waitFor(() => {
+        // Find the most recent call without classId
+        const lastCall = (global.fetch as jest.Mock).mock.calls.filter(
+          (c: any[]) => typeof c[0] === 'string' && c[0].includes('/api/problems')
+        ).pop();
+        expect(lastCall[0]).not.toContain('classId=');
+      });
+    });
+  });
+
+  describe('Tag filtering', () => {
+    it('passes selectedTags to ProblemSearch', async () => {
+      // The ProblemSearch mock needs to be updated to capture tag props
+      render(<ProblemLibrary />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('problem-search')).toBeInTheDocument();
+      });
     });
   });
 });

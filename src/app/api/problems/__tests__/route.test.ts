@@ -243,6 +243,30 @@ describe('/api/problems', () => {
       );
     });
 
+    it('should filter by tags query parameter', async () => {
+      (requireAuth as jest.Mock).mockResolvedValue(createAuthContext(mockInstructorUser));
+
+      const getAllMock = jest.fn().mockResolvedValue([mockProblems[0]]);
+      mockCreateStorage.mockResolvedValue({
+        problems: {
+          getAll: getAllMock,
+        },
+      } as any);
+
+      const request = new NextRequest('http://localhost/api/problems?tags=loops,basics', {
+        headers: { Cookie: 'sessionId=valid' },
+      });
+
+      const response = await GET(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(getAllMock).toHaveBeenCalledWith(expect.objectContaining({
+        tags: ['loops', 'basics'],
+        namespaceId: 'default',
+      }));
+    });
+
     it('should return empty array when no problems exist', async () => {
       (requireAuth as jest.Mock).mockResolvedValue(createAuthContext(mockInstructorUser));
 
@@ -383,11 +407,28 @@ describe('/api/problems', () => {
       }));
     });
 
+    it('should return 400 when classId is missing', async () => {
+      (requireAuth as jest.Mock).mockResolvedValue(createAuthContext(mockInstructorUser));
+
+      const request = new NextRequest('http://localhost/api/problems', {
+        method: 'POST',
+        headers: { Cookie: 'sessionId=valid' },
+        body: JSON.stringify({ title: 'No Class' }),
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(400);
+      expect(data.error).toBe('classId is required');
+    });
+
     it('should create problem with minimal fields', async () => {
       (requireAuth as jest.Mock).mockResolvedValue(createAuthContext(mockInstructorUser));
 
       const minimalInput = {
         title: 'Minimal Problem',
+        classId: 'class-1',
       };
 
       const createdProblem = {
@@ -441,7 +482,7 @@ describe('/api/problems', () => {
       const request = new NextRequest('http://localhost/api/problems', {
         method: 'POST',
         headers: { Cookie: 'sessionId=valid' },
-        body: JSON.stringify({ title: '' }),
+        body: JSON.stringify({ title: '', classId: 'class-1' }),
       });
 
       const response = await POST(request);
