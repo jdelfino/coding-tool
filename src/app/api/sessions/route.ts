@@ -109,6 +109,9 @@ export async function POST(request: NextRequest) {
     if (limited) return limited;
 
     const namespaceId = getNamespaceContext(request, user);
+    if (!namespaceId) {
+      return NextResponse.json({ error: 'Namespace is required' }, { status: 400 });
+    }
 
     // Only instructors can create sessions
     if (!hasRolePermission(user.role, 'session.create')) {

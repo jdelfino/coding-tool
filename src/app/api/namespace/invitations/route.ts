@@ -116,6 +116,12 @@ export async function POST(request: NextRequest) {
 
     // Get the user's namespace
     const namespaceId = getNamespaceContext(request, auth.user);
+    if (!namespaceId) {
+      return NextResponse.json(
+        { error: 'Namespace is required for invitations' },
+        { status: 400 }
+      );
+    }
 
     const body = await request.json();
     const { email, expiresInDays } = body;

@@ -215,6 +215,20 @@ describe('/api/namespace/invitations', () => {
       expect(response.status).toBe(403);
     });
 
+    it('returns 400 when namespaceId is undefined (system-admin with no namespace)', async () => {
+      (getNamespaceContext as jest.Mock).mockReturnValue(undefined);
+
+      const request = new NextRequest('http://localhost/api/namespace/invitations', {
+        method: 'POST',
+        body: JSON.stringify({ email: 'new@example.com' }),
+      });
+      const response = await POST(request);
+
+      expect(response.status).toBe(400);
+      const data = await response.json();
+      expect(data.error).toContain('Namespace is required');
+    });
+
     it('returns 400 for missing email', async () => {
       const request = new NextRequest('http://localhost/api/namespace/invitations', {
         method: 'POST',

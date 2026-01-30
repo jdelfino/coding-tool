@@ -141,6 +141,33 @@ describe('/api/namespace/invitations/[id]/resend', () => {
       expect(data.code).toBe('INVITATION_NOT_FOUND');
     });
 
+    it('allows system-admin with no namespace (undefined) to resend any invitation', async () => {
+      const systemAdmin = {
+        id: 'sysadmin-1',
+        email: 'sysadmin@example.com',
+        role: 'system-admin' as const,
+        createdAt: new Date('2024-01-01'),
+      };
+
+      (requirePermission as jest.Mock).mockResolvedValue({
+        user: systemAdmin,
+        rbac: { hasPermission: () => true },
+        accessToken: 'test-token',
+      });
+
+      (getNamespaceContext as jest.Mock).mockReturnValue(undefined);
+      mockInvitationRepository.getInvitation.mockResolvedValue(mockOtherNamespaceInvitation);
+      mockInvitationService.resendInvitation.mockResolvedValue(mockOtherNamespaceInvitation);
+
+      const request = new NextRequest('http://localhost/api/namespace/invitations/other-invitation-123/resend', {
+        method: 'POST',
+      });
+      const response = await POST(request, createContext('other-invitation-123'));
+
+      expect(response.status).toBe(200);
+      expect(mockInvitationService.resendInvitation).toHaveBeenCalledWith('other-invitation-123');
+    });
+
     it('returns 400 for consumed invitation', async () => {
       const error = new Error('Cannot resend consumed invitation') as Error & { name: string; code: string };
       error.name = 'InvitationError';

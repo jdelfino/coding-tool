@@ -128,6 +128,7 @@ export default function NamespaceHeader({ className = '' }: NamespaceHeaderProps
         disabled={isLoading}
         className="border border-gray-300 dark:border-gray-600 rounded px-2 py-1 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
       >
+        <option value="all">All Namespaces</option>
         {namespaces.map((ns) => (
           <option key={ns.id} value={ns.id}>
             {ns.displayName} ({ns.userCount || 0} users)

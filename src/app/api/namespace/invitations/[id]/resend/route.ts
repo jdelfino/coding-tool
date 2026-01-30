@@ -56,8 +56,8 @@ export async function POST(request: NextRequest, context: RouteContext) {
       );
     }
 
-    // Verify the invitation belongs to the user's namespace
-    if (existingInvitation.namespaceId !== namespaceId) {
+    // Verify the invitation belongs to the user's namespace (skip for system-admin viewing all)
+    if (namespaceId && existingInvitation.namespaceId !== namespaceId) {
       return NextResponse.json(
         { error: 'Invitation not found in your namespace', code: 'INVITATION_NOT_FOUND' },
         { status: 403 }
