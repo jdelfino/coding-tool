@@ -119,7 +119,7 @@ describeE2E('Public View Feature', () => {
 
       // Verify public view loaded
       await expect(publicViewPage.locator(`text=${joinCode}`)).toBeVisible({ timeout: 10000 });
-      await expect(publicViewPage.locator('text=No submission selected for display')).toBeVisible({ timeout: 5000 });
+      await expect(publicViewPage.locator('.cm-editor')).toBeVisible({ timeout: 5000 });
 
       console.log('Public view opened, shows no submission');
 
@@ -181,12 +181,8 @@ describeE2E('Public View Feature', () => {
       console.log('Clicked Feature button');
 
       // ===== VERIFY PUBLIC VIEW UPDATES =====
-      // The public view should now show the student's code
-      // Wait for the "No submission selected" message to disappear
-      await expect(publicViewPage.locator('text=No submission selected for display')).not.toBeVisible({ timeout: 10000 });
-
-      // Verify the featured code section is displayed (CodeEditor with title)
-      await expect(publicViewPage.locator('text=Featured Code')).toBeVisible({ timeout: 5000 });
+      // The public view should now show the student's code with "Featured Code" title
+      await expect(publicViewPage.locator('text=Featured Code')).toBeVisible({ timeout: 10000 });
 
       // Verify there's a Monaco editor visible with some code
       await expect(publicViewPage.locator('.monaco-editor')).toBeVisible({ timeout: 5000 });

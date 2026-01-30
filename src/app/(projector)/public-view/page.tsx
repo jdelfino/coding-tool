@@ -247,28 +247,19 @@ function PublicViewContent() {
             fontSize={20}
           />
         </div>
-      ) : state?.problem?.starterCode ? (
+      ) : (
         <div className="flex-1 min-h-0 flex flex-col">
           <CodeEditor
-            code={localCode || state.problem.starterCode}
+            code={localCode || state?.problem?.starterCode || ''}
             onChange={setLocalCode}
-            problem={state.problem}
-            title="Starter Code"
+            problem={state?.problem || null}
+            title={state?.problem?.starterCode ? 'Starter Code' : 'Scratch Pad'}
             useApiExecution={true}
             debugger={debuggerHook}
             forceDesktop={true}
             outputPosition="right"
             fontSize={20}
           />
-        </div>
-      ) : (
-        <div className="p-8 border border-gray-300 rounded text-center">
-          <p className="text-gray-400 text-2xl italic mb-1">
-            No submission selected for display
-          </p>
-          <p className="text-gray-500 text-base">
-            Select a student submission from the instructor dashboard
-          </p>
         </div>
       )}
     </main>

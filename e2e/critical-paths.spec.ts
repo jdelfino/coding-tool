@@ -236,7 +236,7 @@ describeE2E('Critical User Paths', () => {
 
       // Verify public view loads with initial state
       await expect(publicViewPage.locator(`text=${joinCode}`)).toBeVisible({ timeout: 10000 });
-      await expect(publicViewPage.locator('text=No submission selected for display')).toBeVisible({ timeout: 5000 });
+      await expect(publicViewPage.locator('.cm-editor')).toBeVisible({ timeout: 5000 });
 
       console.log('Public view opened');
 
@@ -350,8 +350,6 @@ describeE2E('Critical User Paths', () => {
       console.log('Clicked Feature button');
 
       // ===== VERIFY PUBLIC VIEW SHOWS STUDENT CODE =====
-      // The "No submission selected" message should disappear
-      await expect(publicViewPage.locator('text=No submission selected for display')).not.toBeVisible({ timeout: 10000 });
 
       // Verify "Featured Code" section is displayed
       await expect(publicViewPage.locator('text=Featured Code')).toBeVisible({ timeout: 5000 });

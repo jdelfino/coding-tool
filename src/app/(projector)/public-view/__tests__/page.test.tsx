@@ -229,7 +229,9 @@ describe('PublicInstructorView', () => {
     expect(screen.getByTestId('debugger-present')).toBeInTheDocument();
   });
 
-  test('shows no submission message when no featured submission', async () => {
+  test('shows empty editor when no featured submission and no starter code', async () => {
+    lastCodeEditorProps = null;
+
     mockFetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({
@@ -243,11 +245,15 @@ describe('PublicInstructorView', () => {
     });
 
     const PublicInstructorView = require('../page').default;
-    render(<PublicInstructorView />);
+    await act(async () => {
+      render(<PublicInstructorView />);
+    });
 
     await waitFor(() => {
-      expect(screen.getByText('No submission selected for display')).toBeInTheDocument();
+      expect(screen.getByTestId('code-editor')).toBeInTheDocument();
     });
+    expect(screen.getByTestId('code-title')).toHaveTextContent('Scratch Pad');
+    expect(lastCodeEditorProps.readOnly).toBeFalsy();
   });
 
   test('shows starter code in editor when no featured submission but problem has starterCode', async () => {
@@ -364,7 +370,7 @@ describe('PublicInstructorView', () => {
 
     // Wait for loading to complete and content to render
     await waitFor(() => {
-      expect(screen.getByText(/No submission selected/i)).toBeInTheDocument();
+      expect(screen.getByTestId('code-editor')).toBeInTheDocument();
     });
 
     // Verify initial fetch happened
@@ -531,7 +537,7 @@ describe('PublicInstructorView', () => {
 
     // Wait for loading to complete
     await waitFor(() => {
-      expect(screen.getByText(/No submission selected/i)).toBeInTheDocument();
+      expect(screen.getByTestId('code-editor')).toBeInTheDocument();
     });
 
     const initialFetchCount = mockFetch.mock.calls.length;
