@@ -57,7 +57,6 @@ function mapRowsToSession(
     participants: sessionRow.participants,
     status: sessionRow.status as 'active' | 'completed',
     endedAt: sessionRow.ended_at ? new Date(sessionRow.ended_at) : undefined,
-    replacedBySessionId: sessionRow.replaced_by_session_id || undefined,
     // WebSocket connections are not persisted
     instructorWs: undefined,
     publicViewWs: undefined,
@@ -136,7 +135,6 @@ export class SupabaseSessionRepository implements ISessionRepository {
       participants: session.participants,
       status: session.status,
       ended_at: session.endedAt?.toISOString() || null,
-      replaced_by_session_id: session.replacedBySessionId || null,
     };
 
     // Insert session
@@ -257,7 +255,6 @@ export class SupabaseSessionRepository implements ISessionRepository {
     if (updates.participants !== undefined) sessionUpdates.participants = updates.participants;
     if (updates.status !== undefined) sessionUpdates.status = updates.status;
     if ('endedAt' in updates) sessionUpdates.ended_at = updates.endedAt?.toISOString() || null;
-    if (updates.replacedBySessionId !== undefined) sessionUpdates.replaced_by_session_id = updates.replacedBySessionId || null;
 
     // Update session if there are session-level changes
     if (Object.keys(sessionUpdates).length > 0) {

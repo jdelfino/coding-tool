@@ -189,11 +189,6 @@ export async function POST(request: NextRequest) {
 
     // Step 3: Handle replacement side effects
     if (replacedSessionId) {
-      // Persist replacedBySessionId on the old session
-      await storage.sessions.updateSession(replacedSessionId, {
-        replacedBySessionId: newSession.id,
-      });
-
       // Broadcast session_replaced on the old session's channel
       try {
         await broadcastSessionReplaced(replacedSessionId, newSession.id);

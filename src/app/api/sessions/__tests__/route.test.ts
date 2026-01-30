@@ -435,7 +435,7 @@ describe('POST /api/sessions', () => {
       expect(sendBroadcast).not.toHaveBeenCalled();
     });
 
-    it('persists replacedBySessionId on the old session', async () => {
+    it('does not persist replacedBySessionId on the old session', async () => {
       (requireAuth as jest.Mock).mockResolvedValue(createAuthContext(mockUser));
       (SessionService.endActiveSessionIfExists as jest.Mock).mockResolvedValue('old-session-id');
       (SessionService.createSession as jest.Mock).mockResolvedValue(mockSession);
@@ -448,10 +448,7 @@ describe('POST /api/sessions', () => {
 
       await POST(request);
 
-      expect(mockStorage.sessions.updateSession).toHaveBeenCalledWith(
-        'old-session-id',
-        { replacedBySessionId: 'session-1' }
-      );
+      expect(mockStorage.sessions.updateSession).not.toHaveBeenCalled();
     });
 
     it('cleans up executor for replaced session', async () => {
