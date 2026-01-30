@@ -33,6 +33,8 @@ export default function ProblemCreator({
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [starterCode, setStarterCode] = useState('');
+  const [solution, setSolution] = useState('');
+  const [activeTab, setActiveTab] = useState<'starter' | 'solution'>('starter');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(!!problemId);
   const [error, setError] = useState<string | null>(null);
@@ -90,6 +92,7 @@ export default function ProblemCreator({
       setTitle(problem.title || '');
       setDescription(problem.description || '');
       setStarterCode(problem.starterCode || '');
+      setSolution(problem.solution || '');
       if (problem.classId) setSelectedClassId(problem.classId);
       if (problem.tags) setTags(problem.tags);
 
@@ -136,6 +139,7 @@ export default function ProblemCreator({
         title: title.trim(),
         description: description.trim(),
         starterCode: starterCode.trim(),
+        solution: solution.trim(),
         testCases: [], // Test cases added separately
         classId: selectedClassId || undefined,
         tags: finalTags.length > 0 ? finalTags : [],
@@ -180,6 +184,7 @@ export default function ProblemCreator({
         setTitle('');
         setDescription('');
         setStarterCode('');
+        setSolution('');
         setStdin('');
         setRandomSeed(undefined);
         setAttachedFiles([]);
@@ -381,13 +386,46 @@ export default function ProblemCreator({
         </div>
       </div>}
 
+      {/* Tab bar for Starter Code / Solution */}
+      {!isLoading && <div role="tablist" style={{
+        flexShrink: 0,
+        display: 'flex',
+        borderBottom: '1px solid #dee2e6',
+        backgroundColor: '#fff',
+      }}>
+        {(['starter', 'solution'] as const).map((tab) => {
+          const label = tab === 'starter' ? 'Starter Code' : 'Solution';
+          const isActive = activeTab === tab;
+          return (
+            <button
+              key={tab}
+              role="tab"
+              aria-selected={isActive}
+              onClick={() => setActiveTab(tab)}
+              style={{
+                padding: '0.5rem 1rem',
+                fontSize: '0.875rem',
+                fontWeight: isActive ? 600 : 400,
+                color: isActive ? '#0d6efd' : '#495057',
+                backgroundColor: 'transparent',
+                border: 'none',
+                borderBottom: isActive ? '2px solid #0d6efd' : '2px solid transparent',
+                cursor: 'pointer',
+              }}
+            >
+              {label}
+            </button>
+          );
+        })}
+      </div>}
+
       {/* Full-width code editor */}
       {!isLoading && <EditorContainer variant="flex">
         <CodeEditor
-          code={starterCode}
-          onChange={setStarterCode}
+          code={activeTab === 'starter' ? starterCode : solution}
+          onChange={activeTab === 'starter' ? setStarterCode : setSolution}
           useApiExecution={true}
-          title="Starter Code"
+          title={activeTab === 'starter' ? 'Starter Code' : 'Solution Code'}
           exampleInput={stdin}
           onStdinChange={setStdin}
           randomSeed={randomSeed}

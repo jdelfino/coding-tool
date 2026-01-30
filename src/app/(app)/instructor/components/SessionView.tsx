@@ -7,7 +7,8 @@
  * - Problem Setup: Configure the session problem (full width for editor)
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
+import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import SessionControls from './SessionControls';
 import { SessionStudentPane } from './SessionStudentPane';
 import { ProblemSetupPanel } from './ProblemSetupPanel';
@@ -103,6 +104,48 @@ export function SessionView({
     studentName: string;
   } | null>(null);
   const [showProblemLoader, setShowProblemLoader] = useState(false);
+  const [isSolutionShowing, setIsSolutionShowing] = useState(false);
+  const projectorChannelRef = useRef<ReturnType<ReturnType<typeof getSupabaseBrowserClient>['channel']> | null>(null);
+
+  const handleToggleSolution = useCallback((show: boolean) => {
+    setIsSolutionShowing(show);
+
+    try {
+      const supabase = getSupabaseBrowserClient();
+      const channelName = `session:${sessionId}:projector`;
+
+      // Clean up previous channel if any
+      if (projectorChannelRef.current) {
+        supabase.removeChannel(projectorChannelRef.current);
+      }
+
+      const channel = supabase.channel(channelName);
+      projectorChannelRef.current = channel;
+
+      channel.subscribe(async (status) => {
+        try {
+          if (status === 'SUBSCRIBED') {
+            await channel.send({
+              type: 'broadcast',
+              event: 'solution_displayed',
+              payload: {
+                show,
+                solution: show ? (sessionProblem?.solution || '') : '',
+              },
+            });
+            supabase.removeChannel(channel);
+            projectorChannelRef.current = null;
+          }
+        } catch (error) {
+          console.error('Failed to broadcast solution toggle:', error);
+          setIsSolutionShowing(!show);
+        }
+      });
+    } catch (error) {
+      console.error('Failed to set up solution broadcast channel:', error);
+      setIsSolutionShowing(!show);
+    }
+  }, [sessionId, sessionProblem?.solution]);
 
   // Handlers for student pane
   const handleViewRevisions = useCallback((studentId: string, studentName: string) => {
@@ -151,6 +194,9 @@ export function SessionView({
         onLoadProblem={handleOpenProblemLoader}
         onClearPublicView={onClearPublicView}
         featuredStudentId={featuredStudentId}
+        problemSolution={sessionProblem?.solution}
+        isSolutionShowing={isSolutionShowing}
+        onToggleSolution={handleToggleSolution}
       />
 
       {/* Tabbed Content Area */}

@@ -672,6 +672,153 @@ describe('ProblemCreator Component', () => {
       });
     });
   });
+
+  describe('Solution Tab', () => {
+    it('should render tab bar with Starter Code and Solution tabs', () => {
+      render(<ProblemCreator />);
+
+      expect(screen.getByRole('tab', { name: 'Starter Code' })).toBeInTheDocument();
+      expect(screen.getByRole('tab', { name: 'Solution' })).toBeInTheDocument();
+    });
+
+    it('should default to Starter Code tab', () => {
+      render(<ProblemCreator />);
+
+      const starterTab = screen.getByRole('tab', { name: 'Starter Code' });
+      expect(starterTab).toHaveAttribute('aria-selected', 'true');
+      expect(screen.getByTestId('code-editor-Starter Code')).toBeInTheDocument();
+    });
+
+    it('should switch to Solution tab and show Solution Code editor', () => {
+      render(<ProblemCreator />);
+
+      const solutionTab = screen.getByRole('tab', { name: 'Solution' });
+      fireEvent.click(solutionTab);
+
+      expect(solutionTab).toHaveAttribute('aria-selected', 'true');
+      expect(screen.getByTestId('code-editor-Solution Code')).toBeInTheDocument();
+    });
+
+    it('should switch back to Starter Code tab', () => {
+      render(<ProblemCreator />);
+
+      // Switch to solution
+      fireEvent.click(screen.getByRole('tab', { name: 'Solution' }));
+      // Switch back
+      fireEvent.click(screen.getByRole('tab', { name: 'Starter Code' }));
+
+      expect(screen.getByRole('tab', { name: 'Starter Code' })).toHaveAttribute('aria-selected', 'true');
+      expect(screen.getByTestId('code-editor-Starter Code')).toBeInTheDocument();
+    });
+
+    it('should preserve code in each tab independently', () => {
+      render(<ProblemCreator />);
+
+      // Type starter code
+      fireEvent.change(screen.getByLabelText(/Starter Code/), {
+        target: { value: 'def starter(): pass' },
+      });
+
+      // Switch to solution and type
+      fireEvent.click(screen.getByRole('tab', { name: 'Solution' }));
+      fireEvent.change(screen.getByLabelText(/Solution Code/), {
+        target: { value: 'def solution(): return 42' },
+      });
+
+      // Switch back - starter code preserved
+      fireEvent.click(screen.getByRole('tab', { name: 'Starter Code' }));
+      expect(screen.getByLabelText(/Starter Code/)).toHaveValue('def starter(): pass');
+
+      // Switch to solution - solution code preserved
+      fireEvent.click(screen.getByRole('tab', { name: 'Solution' }));
+      expect(screen.getByLabelText(/Solution Code/)).toHaveValue('def solution(): return 42');
+    });
+
+    it('should include solution in submit payload', async () => {
+      const onProblemCreated = jest.fn();
+
+      (global.fetch as jest.Mock) = createFetchMock(() =>
+        Promise.resolve({
+          ok: true,
+          json: async () => ({ problem: { id: 'p-1' } }),
+        })
+      );
+
+      render(<ProblemCreator onProblemCreated={onProblemCreated} />);
+
+      // Set title
+      fireEvent.change(screen.getByLabelText('Title *'), { target: { value: 'Test' } });
+
+      // Set solution
+      fireEvent.click(screen.getByRole('tab', { name: 'Solution' }));
+      fireEvent.change(screen.getByLabelText(/Solution Code/), {
+        target: { value: 'def solve(): return 42' },
+      });
+
+      // Submit (switch back not needed, submit should work from any tab)
+      fireEvent.click(screen.getByText('Create Problem'));
+
+      await waitFor(() => {
+        const calls = (global.fetch as jest.Mock).mock.calls.filter(
+          (c: any[]) => c[1]?.method === 'POST' && c[0] === '/api/problems'
+        );
+        expect(calls.length).toBe(1);
+        const body = JSON.parse(calls[0][1].body);
+        expect(body.solution).toBe('def solve(): return 42');
+      });
+    });
+
+    it('should load solution from API in edit mode', async () => {
+      const problemWithSolution = {
+        ...mockExistingProblem,
+        solution: 'def answer(): return 42',
+      };
+
+      (global.fetch as jest.Mock) = createFetchMock((url) => {
+        if (url.includes('/api/problems/')) {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({ problem: problemWithSolution }),
+          });
+        }
+        return Promise.resolve({ ok: true, json: async () => ({}) });
+      });
+
+      render(<ProblemCreator problemId="problem-456" />);
+
+      await waitFor(() => {
+        expect(screen.getByLabelText(/Starter Code/)).toHaveValue('def original():\n    pass');
+      });
+
+      // Switch to solution tab
+      fireEvent.click(screen.getByRole('tab', { name: 'Solution' }));
+      expect(screen.getByLabelText(/Solution Code/)).toHaveValue('def answer(): return 42');
+    });
+
+    it('should reset solution after successful create', async () => {
+      (global.fetch as jest.Mock) = createFetchMock(() =>
+        Promise.resolve({
+          ok: true,
+          json: async () => ({ problem: { id: 'p-reset' } }),
+        })
+      );
+
+      render(<ProblemCreator />);
+
+      // Set title and solution
+      fireEvent.change(screen.getByLabelText('Title *'), { target: { value: 'Test' } });
+      fireEvent.click(screen.getByRole('tab', { name: 'Solution' }));
+      fireEvent.change(screen.getByLabelText(/Solution Code/), {
+        target: { value: 'some solution' },
+      });
+
+      fireEvent.click(screen.getByText('Create Problem'));
+
+      await waitFor(() => {
+        expect(screen.getByLabelText(/Solution Code/)).toHaveValue('');
+      });
+    });
+  });
 });
 
 const mockExistingProblem = {

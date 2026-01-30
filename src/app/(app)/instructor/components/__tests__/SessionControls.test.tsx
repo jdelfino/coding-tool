@@ -173,6 +173,95 @@ describe('SessionControls', () => {
       expect(screen.queryByTestId('clear-public-view-button')).not.toBeInTheDocument();
     });
 
+    it('should not show Show Solution button when no problem solution exists', () => {
+      render(
+        <SessionControls
+          {...defaultProps}
+          problemSolution={undefined}
+        />
+      );
+
+      expect(screen.queryByTestId('show-solution-button')).not.toBeInTheDocument();
+    });
+
+    it('should not show Show Solution button when solution is empty string', () => {
+      render(
+        <SessionControls
+          {...defaultProps}
+          problemSolution=""
+        />
+      );
+
+      expect(screen.queryByTestId('show-solution-button')).not.toBeInTheDocument();
+    });
+
+    it('should show Show Solution button when problem has a solution', () => {
+      render(
+        <SessionControls
+          {...defaultProps}
+          problemSolution="print('answer')"
+        />
+      );
+
+      const btn = screen.getByTestId('show-solution-button');
+      expect(btn).toBeInTheDocument();
+      expect(btn).toHaveTextContent('Show Solution');
+    });
+
+    it('should toggle Show Solution button text on click', () => {
+      const mockOnToggleSolution = jest.fn();
+      render(
+        <SessionControls
+          {...defaultProps}
+          problemSolution="print('answer')"
+          onToggleSolution={mockOnToggleSolution}
+        />
+      );
+
+      const btn = screen.getByTestId('show-solution-button');
+      fireEvent.click(btn);
+      expect(mockOnToggleSolution).toHaveBeenCalledWith(true);
+    });
+
+    it('should show Hide Solution text when solution is currently showing', () => {
+      render(
+        <SessionControls
+          {...defaultProps}
+          problemSolution="print('answer')"
+          isSolutionShowing={true}
+        />
+      );
+
+      const btn = screen.getByTestId('show-solution-button');
+      expect(btn).toHaveTextContent('Hide Solution');
+    });
+
+    it('should highlight Show Solution button when solution is showing', () => {
+      render(
+        <SessionControls
+          {...defaultProps}
+          problemSolution="print('answer')"
+          isSolutionShowing={true}
+        />
+      );
+
+      const btn = screen.getByTestId('show-solution-button');
+      expect(btn.className).toContain('bg-purple-600');
+    });
+
+    it('should use default styling when solution is not showing', () => {
+      render(
+        <SessionControls
+          {...defaultProps}
+          problemSolution="print('answer')"
+          isSolutionShowing={false}
+        />
+      );
+
+      const btn = screen.getByTestId('show-solution-button');
+      expect(btn.className).toContain('bg-purple-50');
+    });
+
     it('should use danger variant for the confirm button', () => {
       render(<SessionControls {...defaultProps} />);
 
