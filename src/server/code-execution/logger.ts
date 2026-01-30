@@ -54,7 +54,8 @@ export function logSandboxEvent(entry: SandboxLogEntry): void {
   });
 
   if (entry.success) {
-    console.warn(logLine);
+    // eslint-disable-next-line no-console -- structured info logging for log aggregation
+    console.log(logLine);
   } else {
     console.error(logLine);
   }
