@@ -195,6 +195,13 @@ export function SessionStudentPane({
           </div>
         )}
 
+        {/* AI analysis details for active issue group */}
+        {analysisState === 'ready' && activeIssue && (
+          <div className="mb-3" data-testid="student-analysis-details">
+            <StudentAnalysisDetails issue={activeIssue} />
+          </div>
+        )}
+
         <StudentList
           students={filteredStudents}
           onSelectStudent={handleSelectStudent}
@@ -215,11 +222,6 @@ export function SessionStudentPane({
                 {selectedStudent?.name || 'Student'}'s Code
               </h3>
             </div>
-            {analysisState === 'ready' && activeIssue && (
-              <div className="p-4" data-testid="student-analysis-details">
-                <StudentAnalysisDetails issue={activeIssue} />
-              </div>
-            )}
             <EditorContainer height="500px">
               <CodeEditor
                 code={selectedStudentCode}
