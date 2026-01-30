@@ -16,9 +16,11 @@ interface StudentListProps {
   isLoading?: boolean;
   featuredStudentId?: string | null;
   headerLabel?: string;
+  /** Set of student IDs classified as finished by analysis. When provided, enables 3-state badges. */
+  finishedStudentIds?: Set<string>;
 }
 
-export default function StudentList({ students, onSelectStudent, onShowOnPublicView, onViewHistory, joinCode, isLoading = false, featuredStudentId, headerLabel }: StudentListProps) {
+export default function StudentList({ students, onSelectStudent, onShowOnPublicView, onViewHistory, joinCode, isLoading = false, featuredStudentId, headerLabel, finishedStudentIds }: StudentListProps) {
   return (
     <Card variant="default" className="p-4">
       <div className="flex items-center justify-between mb-3">
@@ -68,9 +70,16 @@ export default function StudentList({ students, onSelectStudent, onShowOnPublicV
                       Featured
                     </Badge>
                   )}
-                  <Badge variant={student.hasCode ? 'success' : 'default'} className="shrink-0">
-                    {student.hasCode ? 'Started' : 'Not started'}
-                  </Badge>
+                  {(() => {
+                    const isFinished = finishedStudentIds?.has(student.id);
+                    if (isFinished) {
+                      return <Badge variant="success" className="shrink-0">Finished</Badge>;
+                    }
+                    if (student.hasCode) {
+                      return <Badge variant="info" className="shrink-0">In progress</Badge>;
+                    }
+                    return <Badge variant="default" className="shrink-0">Not started</Badge>;
+                  })()}
                 </div>
                 <div className="flex gap-2 flex-wrap">
                   <Button

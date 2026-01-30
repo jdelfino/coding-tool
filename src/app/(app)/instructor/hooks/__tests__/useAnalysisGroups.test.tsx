@@ -23,6 +23,7 @@ function makeScript(issues: AnalysisIssue[]): WalkthroughScript {
   return {
     sessionId: 'session-1',
     issues,
+    finishedStudentIds: ['s1', 's2', 's3'],
     summary: {
       totalSubmissions: 5,
       filteredOut: 0,

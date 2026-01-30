@@ -86,9 +86,16 @@ describe('StudentList', () => {
     it('should indicate which students have started coding', () => {
       render(<StudentList {...defaultProps} students={students} />);
 
-      // Alice has code
-      expect(screen.getByText('Started')).toBeInTheDocument();
+      // Alice has code (no analysis yet, so shows "In progress")
+      expect(screen.getByText('In progress')).toBeInTheDocument();
       // Bob does not
+      expect(screen.getByText('Not started')).toBeInTheDocument();
+    });
+
+    it('should show "Finished" badge when finishedStudentIds is provided', () => {
+      render(<StudentList {...defaultProps} students={students} finishedStudentIds={new Set(['student-1'])} />);
+
+      expect(screen.getByText('Finished')).toBeInTheDocument();
       expect(screen.getByText('Not started')).toBeInTheDocument();
     });
 
