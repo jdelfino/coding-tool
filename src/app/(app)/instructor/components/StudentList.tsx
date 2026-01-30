@@ -23,18 +23,6 @@ export default function StudentList({ students, onSelectStudent, onShowOnPublicV
     <Card variant="default" className="p-4">
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-lg font-semibold text-gray-900 m-0">{headerLabel || 'Connected Students'} ({students.length})</h3>
-        {featuredStudentId && onClearPublicView && (
-          <Button
-            variant="primary"
-            size="sm"
-            onClick={onClearPublicView}
-            title="Clear the public view display"
-            className="from-red-500 to-red-500 hover:from-red-600 hover:to-red-600"
-            data-testid="clear-public-view-button"
-          >
-            Clear Public View
-          </Button>
-        )}
       </div>
       {isLoading ? (
         <div className="text-gray-500 py-4">
