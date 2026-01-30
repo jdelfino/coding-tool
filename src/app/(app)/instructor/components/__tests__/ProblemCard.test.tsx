@@ -224,4 +224,42 @@ describe('ProblemCard', () => {
       expect(screen.getByText('loops')).toBeInTheDocument();
     });
   });
+
+  describe('Copy Link button', () => {
+    beforeEach(() => {
+      Object.assign(navigator, {
+        clipboard: { writeText: jest.fn().mockResolvedValue(undefined) },
+      });
+    });
+
+    it('renders Copy Link button in list view', () => {
+      render(<ProblemCard {...defaultProps} />);
+      expect(screen.getByText('Copy Link')).toBeInTheDocument();
+    });
+
+    it('renders Copy Link button in grid view', () => {
+      render(<ProblemCard {...defaultProps} viewMode="grid" />);
+      expect(screen.getByText('Copy Link')).toBeInTheDocument();
+    });
+
+    it('copies public URL to clipboard on click', async () => {
+      render(<ProblemCard {...defaultProps} />);
+      fireEvent.click(screen.getByText('Copy Link'));
+
+      await waitFor(() => {
+        expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+          expect.stringContaining('/problems/problem-123')
+        );
+      });
+    });
+
+    it('shows Copied! feedback after clicking', async () => {
+      render(<ProblemCard {...defaultProps} />);
+      fireEvent.click(screen.getByText('Copy Link'));
+
+      await waitFor(() => {
+        expect(screen.getByText('Copied!')).toBeInTheDocument();
+      });
+    });
+  });
 });

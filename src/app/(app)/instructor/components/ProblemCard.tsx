@@ -32,6 +32,14 @@ export default function ProblemCard({
 }: ProblemCardProps) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
+
+  const handleCopyLink = async () => {
+    const url = `${window.location.origin}/problems/${problem.id}`;
+    await navigator.clipboard.writeText(url);
+    setLinkCopied(true);
+    setTimeout(() => setLinkCopied(false), 2000);
+  };
 
   const handleDeleteClick = () => {
     setShowDeleteConfirm(true);
@@ -117,6 +125,13 @@ export default function ProblemCard({
               Edit
             </button>
             <button
+              onClick={handleCopyLink}
+              className="px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+              title="Copy public link"
+            >
+              {linkCopied ? 'Copied!' : 'Copy Link'}
+            </button>
+            <button
               onClick={() => onCreateSession(problem.id)}
               className="px-3 py-1.5 text-sm bg-blue-600 text-white hover:bg-blue-700 rounded-lg transition-colors"
               title="Create session"
@@ -177,6 +192,12 @@ export default function ProblemCard({
           className="px-3 py-2 text-sm text-gray-700 border border-gray-300 hover:bg-gray-100 rounded-lg transition-colors"
         >
           Edit
+        </button>
+        <button
+          onClick={handleCopyLink}
+          className="col-span-2 px-3 py-2 text-sm text-gray-700 border border-gray-300 hover:bg-gray-100 rounded-lg transition-colors"
+        >
+          {linkCopied ? 'Copied!' : 'Copy Link'}
         </button>
         <button
           onClick={() => onCreateSession(problem.id)}
