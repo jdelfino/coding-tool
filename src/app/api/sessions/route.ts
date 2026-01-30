@@ -5,6 +5,7 @@ import * as SessionService from '@/server/services/session-service';
 import { getExecutorService } from '@/server/code-execution';
 import { rateLimit } from '@/server/rate-limit';
 import { hasRolePermission } from '@/server/auth/permissions';
+import { sendBroadcast } from '@/lib/supabase/broadcast';
 
 /**
  * GET /api/sessions
@@ -158,12 +159,45 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Create session via service
+    // Step 1: End any existing active session for this user
+    const replacedSessionId = await SessionService.endActiveSessionIfExists(storage, user.id, namespaceId);
+
+    // Step 2: Create new session via service
     const newSession = problemId
       ? await SessionService.createSessionWithProblem(storage, user.id, sectionId, namespaceId, problemId)
       : await SessionService.createSession(storage, user.id, sectionId, namespaceId);
 
-    // Prepare backend for the session (creates sandbox on Vercel, no-op locally)
+    // Step 3: Handle replacement side effects
+    if (replacedSessionId) {
+      // Persist replacedBySessionId on the old session
+      await storage.sessions.updateSession(replacedSessionId, {
+        replacedBySessionId: newSession.id,
+      });
+
+      // Broadcast session_replaced on the old session's channel
+      try {
+        await sendBroadcast({
+          channel: `session:${replacedSessionId}`,
+          event: 'session_replaced',
+          payload: {
+            oldSessionId: replacedSessionId,
+            newSessionId: newSession.id,
+            replacedAt: new Date().toISOString(),
+          },
+        });
+      } catch (error) {
+        console.error('Failed to broadcast session_replaced:', error);
+      }
+
+      // Cleanup executor for old session
+      try {
+        await getExecutorService().cleanupSession(replacedSessionId);
+      } catch (error) {
+        console.error('Failed to cleanup executor for replaced session:', error);
+      }
+    }
+
+    // Step 4: Prepare backend for the new session
     try {
       await getExecutorService().prepareForSession(newSession.id);
     } catch (error) {
@@ -181,7 +215,8 @@ export async function POST(request: NextRequest) {
         problem: newSession.problem,
         createdAt: newSession.createdAt,
         status: newSession.status,
-      }
+      },
+      replacedSessionId,
     }, { status: 201 });
 
   } catch (error) {

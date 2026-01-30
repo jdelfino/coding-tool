@@ -6,10 +6,12 @@ import type { User } from '@/server/auth/types';
 import { RBACService } from '@/server/auth/rbac';
 import { getExecutorService } from '@/server/code-execution';
 import { rateLimit } from '@/server/rate-limit';
+import { sendBroadcast } from '@/lib/supabase/broadcast';
 
 jest.mock('@/server/persistence');
 jest.mock('@/server/services/session-service');
 jest.mock('@/server/rate-limit');
+jest.mock('@/lib/supabase/broadcast');
 
 // Mock code-execution module
 const mockPrepareForSession = jest.fn().mockResolvedValue(undefined);
@@ -89,6 +91,7 @@ describe('POST /api/sessions', () => {
       sessions: {
         createSession: jest.fn(),
         listAllSessions: jest.fn().mockResolvedValue([]),
+        updateSession: jest.fn().mockResolvedValue(undefined),
       },
       sections: {
         getSection: jest.fn().mockResolvedValue(mockSection),
@@ -349,7 +352,7 @@ describe('POST /api/sessions', () => {
       expect(rateLimit).toHaveBeenCalledWith('sessionCreate', request, 'user-1');
     });
 
-    it('returns 429 when rate limited', async () => {
+    it('returns 429 when rate limited POST', async () => {
       (requireAuth as jest.Mock).mockResolvedValue(createAuthContext(mockUser));
       // Mock rate limit returning a 429 response
       const rateLimitResponse = new Response(
@@ -371,6 +374,100 @@ describe('POST /api/sessions', () => {
       expect(data.error).toBe('Too many requests. Please try again later.');
       // Should not attempt to create session
       expect(SessionService.createSession).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Session replacement', () => {
+    const mockCleanupSession = jest.fn().mockResolvedValue(undefined);
+
+    beforeEach(() => {
+      mockCleanupSession.mockClear();
+      (sendBroadcast as jest.Mock).mockResolvedValue(undefined);
+      mockGetExecutorService.mockReturnValue({
+        prepareForSession: mockPrepareForSession,
+        cleanupSession: mockCleanupSession,
+      } as any);
+    });
+
+    it('broadcasts session_replaced when replacing an active session', async () => {
+      (requireAuth as jest.Mock).mockResolvedValue(createAuthContext(mockUser));
+      (SessionService.endActiveSessionIfExists as jest.Mock).mockResolvedValue('old-session-id');
+      (SessionService.createSession as jest.Mock).mockResolvedValue(mockSession);
+
+      const request = new NextRequest('http://localhost/api/sessions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sectionId: 'section-1' }),
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(201);
+      expect(data.replacedSessionId).toBe('old-session-id');
+      expect(sendBroadcast).toHaveBeenCalledWith({
+        channel: 'session:old-session-id',
+        event: 'session_replaced',
+        payload: expect.objectContaining({
+          oldSessionId: 'old-session-id',
+          newSessionId: 'session-1',
+          replacedAt: expect.any(String),
+        }),
+      });
+    });
+
+    it('does not broadcast when no session was replaced', async () => {
+      (requireAuth as jest.Mock).mockResolvedValue(createAuthContext(mockUser));
+      (SessionService.endActiveSessionIfExists as jest.Mock).mockResolvedValue(undefined);
+      (SessionService.createSession as jest.Mock).mockResolvedValue(mockSession);
+
+      const request = new NextRequest('http://localhost/api/sessions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sectionId: 'section-1' }),
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(201);
+      expect(data.replacedSessionId).toBeUndefined();
+      expect(sendBroadcast).not.toHaveBeenCalled();
+    });
+
+    it('persists replacedBySessionId on the old session', async () => {
+      (requireAuth as jest.Mock).mockResolvedValue(createAuthContext(mockUser));
+      (SessionService.endActiveSessionIfExists as jest.Mock).mockResolvedValue('old-session-id');
+      (SessionService.createSession as jest.Mock).mockResolvedValue(mockSession);
+
+      const request = new NextRequest('http://localhost/api/sessions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sectionId: 'section-1' }),
+      });
+
+      await POST(request);
+
+      expect(mockStorage.sessions.updateSession).toHaveBeenCalledWith(
+        'old-session-id',
+        { replacedBySessionId: 'session-1' }
+      );
+    });
+
+    it('cleans up executor for replaced session', async () => {
+      (requireAuth as jest.Mock).mockResolvedValue(createAuthContext(mockUser));
+      (SessionService.endActiveSessionIfExists as jest.Mock).mockResolvedValue('old-session-id');
+      (SessionService.createSession as jest.Mock).mockResolvedValue(mockSession);
+
+      const request = new NextRequest('http://localhost/api/sessions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sectionId: 'section-1' }),
+      });
+
+      await POST(request);
+
+      expect(mockCleanupSession).toHaveBeenCalledWith('old-session-id');
     });
   });
 });

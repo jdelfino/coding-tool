@@ -47,6 +47,8 @@ export interface Session {
   // Multi-tenancy fields (required - sessions always belong to a section)
   sectionId: string; // Section this session belongs to
   sectionName: string; // Denormalized section name for display
+  // Replacement tracking
+  replacedBySessionId?: string; // If this session was replaced, the new session's ID
 }
 
 export interface ExecutionResult {
