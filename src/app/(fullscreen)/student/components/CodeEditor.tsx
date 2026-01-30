@@ -660,7 +660,7 @@ export default function CodeEditor({
 
         {/* Desktop layout: Activity bar + optional sidebar + editor */}
         {/* CRITICAL: Parent flex row needs min-h-0 to allow proper height distribution */}
-        <div className={`flex flex-row flex-1 min-h-0 ${!isDesktop ? '' : ''}`}>
+        <div className={`flex flex-row flex-1 min-h-0 min-w-0 ${!isDesktop ? '' : ''}`}>
           {/* Left Sidebar (Desktop only) - VS Code style, hidden in readOnly mode */}
           {isDesktop && !readOnly && (
             <div className="flex flex-row flex-shrink-0 min-h-0" style={{ height: '100%' }}>
