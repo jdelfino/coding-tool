@@ -1,6 +1,6 @@
 # GitHub Issue Workflow
 
-Work on GitHub issue **$ARGUMENTS** end-to-end: fetch it, create a beads issue, implement it, and create a PR that closes the GitHub issue.
+Work on GitHub issue **$ARGUMENTS** end-to-end: fetch it, create a beads issue, and implement it.
 
 ## 1. Fetch the GitHub Issue
 
@@ -18,16 +18,13 @@ bd create "<title>" -t <type> -p <priority> --json
 
 Use priority 1 for bugs, 2 for features/tasks unless the issue indicates urgency.
 
-## 3. Assess Complexity and Delegate
+## 3. Implement
 
-Read the issue details and decide:
-
-- **Simple** (single file, clear fix, isolated change) → follow the task-completer workflow below
-- **Complex** (multiple files, architectural decisions, needs reviewers) → follow the coordinator workflow below
+Follow the coordinator workflow below. The coordinator will triage the work and decide whether to execute directly or create a branch/PR.
 
 ## 4. PR Must Reference the GitHub Issue
 
-When creating the PR (whether via task-completer or coordinator), the PR body **must** include:
+When creating a PR, the body **must** include:
 
 ```
 Closes #<github-issue-number>
@@ -36,13 +33,5 @@ Closes #<github-issue-number>
 This auto-closes the GitHub issue when the PR merges.
 
 ---
-
-## If Simple: Task Workflow
-
-@.claude/skills/task-completer/SKILL.md
-
----
-
-## If Complex: Coordinator Workflow
 
 @.claude/skills/coordinator/SKILL.md
