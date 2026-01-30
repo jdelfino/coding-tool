@@ -119,7 +119,7 @@ describe('Public Problem Page', () => {
 
       expect(codeToHtml).toHaveBeenCalledWith(mockProblem.solution, {
         lang: 'python',
-        theme: 'github-dark',
+        theme: 'github-light',
       });
       expect(document.querySelector('.shiki')).toBeInTheDocument();
     });

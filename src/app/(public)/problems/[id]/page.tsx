@@ -53,7 +53,7 @@ export default async function PublicProblemPage({ params }: Params) {
   if (problem.solution) {
     solutionHtml = await codeToHtml(problem.solution, {
       lang: 'python',
-      theme: 'github-dark',
+      theme: 'github-light',
     });
   }
 
@@ -81,7 +81,7 @@ export default async function PublicProblemPage({ params }: Params) {
           <div className="mt-4 relative">
             <CopyButton text={problem.solution!} />
             <div
-              className="rounded-lg overflow-x-auto [&_pre]:p-4 [&_pre]:text-sm"
+              className="rounded-lg overflow-x-auto border border-gray-200 [&_pre]:p-4 [&_pre]:text-sm"
               dangerouslySetInnerHTML={{ __html: solutionHtml }}
             />
           </div>
