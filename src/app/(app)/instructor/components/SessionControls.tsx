@@ -12,6 +12,9 @@ interface SessionControlsProps {
   onLoadProblem?: () => void;
   onClearPublicView?: () => void;
   featuredStudentId?: string | null;
+  problemSolution?: string;
+  isSolutionShowing?: boolean;
+  onToggleSolution?: (show: boolean) => void;
 }
 
 export default function SessionControls({
@@ -23,6 +26,9 @@ export default function SessionControls({
   onLoadProblem,
   onClearPublicView,
   featuredStudentId,
+  problemSolution,
+  isSolutionShowing = false,
+  onToggleSolution,
 }: SessionControlsProps) {
   const [showEndSessionConfirm, setShowEndSessionConfirm] = useState(false);
 
@@ -56,6 +62,20 @@ export default function SessionControls({
               title="Load a pre-created problem from your library into this session"
             >
               📚 Load Problem
+            </button>
+          )}
+          {problemSolution && (
+            <button
+              onClick={() => onToggleSolution?.(!isSolutionShowing)}
+              className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                isSolutionShowing
+                  ? 'text-white bg-purple-600 border border-purple-600 hover:bg-purple-700'
+                  : 'text-purple-700 bg-purple-50 border border-purple-300 hover:bg-purple-100'
+              }`}
+              data-testid="show-solution-button"
+              title={isSolutionShowing ? 'Hide the solution from the public view' : 'Show the solution on the public view'}
+            >
+              {isSolutionShowing ? 'Hide Solution' : 'Show Solution'}
             </button>
           )}
           <button
