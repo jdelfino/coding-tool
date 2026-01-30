@@ -89,7 +89,7 @@ describe('Public Problem Page', () => {
       expect(screen.getByText(/solution/i, { selector: 'summary' })).toBeInTheDocument();
     });
 
-    it('renders Open in Classroom link', async () => {
+    it('does not render Open in Classroom link', async () => {
       mockCreateStorage.mockResolvedValue({
         problems: { getById: jest.fn().mockResolvedValue(mockProblem) },
       } as any);
@@ -97,8 +97,8 @@ describe('Public Problem Page', () => {
       const page = await PublicProblemPage({ params: Promise.resolve({ id: 'problem-123' }) });
       render(page);
 
-      const link = screen.getByRole('link', { name: /open in classroom/i });
-      expect(link).toBeInTheDocument();
+      const link = screen.queryByRole('link', { name: /open in classroom/i });
+      expect(link).not.toBeInTheDocument();
     });
 
     it('calls notFound for missing problem', async () => {

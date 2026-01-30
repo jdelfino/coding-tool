@@ -110,31 +110,41 @@ export function SessionView({
   const handleToggleSolution = useCallback((show: boolean) => {
     setIsSolutionShowing(show);
 
-    const supabase = getSupabaseBrowserClient();
-    const channelName = `session:${sessionId}:projector`;
+    try {
+      const supabase = getSupabaseBrowserClient();
+      const channelName = `session:${sessionId}:projector`;
 
-    // Clean up previous channel if any
-    if (projectorChannelRef.current) {
-      supabase.removeChannel(projectorChannelRef.current);
-    }
-
-    const channel = supabase.channel(channelName);
-    projectorChannelRef.current = channel;
-
-    channel.subscribe(async (status) => {
-      if (status === 'SUBSCRIBED') {
-        await channel.send({
-          type: 'broadcast',
-          event: 'solution_displayed',
-          payload: {
-            show,
-            solution: show ? (sessionProblem?.solution || '') : '',
-          },
-        });
-        supabase.removeChannel(channel);
-        projectorChannelRef.current = null;
+      // Clean up previous channel if any
+      if (projectorChannelRef.current) {
+        supabase.removeChannel(projectorChannelRef.current);
       }
-    });
+
+      const channel = supabase.channel(channelName);
+      projectorChannelRef.current = channel;
+
+      channel.subscribe(async (status) => {
+        try {
+          if (status === 'SUBSCRIBED') {
+            await channel.send({
+              type: 'broadcast',
+              event: 'solution_displayed',
+              payload: {
+                show,
+                solution: show ? (sessionProblem?.solution || '') : '',
+              },
+            });
+            supabase.removeChannel(channel);
+            projectorChannelRef.current = null;
+          }
+        } catch (error) {
+          console.error('Failed to broadcast solution toggle:', error);
+          setIsSolutionShowing(!show);
+        }
+      });
+    } catch (error) {
+      console.error('Failed to set up solution broadcast channel:', error);
+      setIsSolutionShowing(!show);
+    }
   }, [sessionId, sessionProblem?.solution]);
 
   // Handlers for student pane

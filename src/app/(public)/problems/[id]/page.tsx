@@ -5,6 +5,7 @@
  * Server-rendered with OG meta tags for link previews.
  */
 
+import { cache } from 'react';
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { createStorage } from '@/server/persistence';
@@ -14,10 +15,10 @@ type Params = {
   params: Promise<{ id: string }>;
 };
 
-async function getProblem(id: string) {
+const getProblem = cache(async function getProblem(id: string) {
   const storage = await createStorage(process.env.SUPABASE_SECRET_KEY!);
   return storage.problems.getById(id);
-}
+});
 
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { id } = await params;
@@ -65,12 +66,6 @@ export default async function PublicProblemPage({ params }: Params) {
         </details>
       )}
 
-      <a
-        href={`/`}
-        className="inline-block px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-      >
-        Open in Classroom
-      </a>
     </div>
   );
 }

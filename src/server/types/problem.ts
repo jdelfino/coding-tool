@@ -55,7 +55,7 @@ export interface Problem {
   /** Tags for categorizing and filtering problems */
   tags: string[];
 
-  /** Instructor solution code (not visible to students) */
+  /** Instructor solution code. Visible on public problem page. Not included in StudentProblem. */
   solution?: string;
 
   /** When this problem was created */
