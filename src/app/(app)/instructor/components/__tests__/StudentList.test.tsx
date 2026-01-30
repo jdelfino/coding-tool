@@ -83,13 +83,13 @@ describe('StudentList', () => {
       expect(screen.getByText('Bob')).toBeInTheDocument();
     });
 
-    it('should indicate which students have code submitted', () => {
+    it('should indicate which students have started coding', () => {
       render(<StudentList {...defaultProps} students={students} />);
 
       // Alice has code
-      expect(screen.getByText(/Has code/)).toBeInTheDocument();
+      expect(screen.getByText('Started')).toBeInTheDocument();
       // Bob does not
-      expect(screen.getByText(/No code yet/)).toBeInTheDocument();
+      expect(screen.getByText('Not started')).toBeInTheDocument();
     });
 
     it('should call onSelectStudent when View button is clicked', () => {

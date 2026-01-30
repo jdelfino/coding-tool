@@ -69,7 +69,7 @@ export default function StudentList({ students, onSelectStudent, onShowOnPublicV
                     </Badge>
                   )}
                   <Badge variant={student.hasCode ? 'success' : 'default'} className="shrink-0">
-                    {student.hasCode ? 'Has code' : 'No code yet'}
+                    {student.hasCode ? 'Started' : 'Not started'}
                   </Badge>
                 </div>
                 <div className="flex gap-2 flex-wrap">
