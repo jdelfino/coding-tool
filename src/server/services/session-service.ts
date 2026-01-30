@@ -52,20 +52,6 @@ export async function createSession(
     );
   }
 
-  // Enforce single active session per user
-  const existingActiveSessions = await storage.sessions.listAllSessions({
-    instructorId: creatorId,
-    active: true,
-    namespaceId,
-  });
-
-  if (existingActiveSessions.length > 0) {
-    throw new Error(
-      `Cannot create session: User already has ${existingActiveSessions.length} active session(s). ` +
-        `End your current session before starting a new one.`
-    );
-  }
-
   // Create session
   const sessionId = uuidv4();
   const session: Session = {
@@ -115,20 +101,6 @@ export async function createSessionWithProblem(
   const section = await storage.sections.getSection(sectionId, namespaceId);
   if (!section) {
     throw new Error(`Section ${sectionId} not found in namespace ${namespaceId}`);
-  }
-
-  // Enforce single active session per user
-  const existingActiveSessions = await storage.sessions.listAllSessions({
-    instructorId: creatorId,
-    active: true,
-    namespaceId,
-  });
-
-  if (existingActiveSessions.length > 0) {
-    throw new Error(
-      `Cannot create session: User already has ${existingActiveSessions.length} active session(s). ` +
-        `End your current session before starting a new one.`
-    );
   }
 
   // Create session with cloned problem
@@ -357,6 +329,30 @@ export async function updateSessionProblem(
 // ============================================================================
 // Session Lifecycle
 // ============================================================================
+
+/**
+ * End any existing active session for a user in a namespace.
+ * Returns the ended session's ID, or undefined if no active session existed.
+ */
+export async function endActiveSessionIfExists(
+  storage: IStorageRepository,
+  creatorId: string,
+  namespaceId: string
+): Promise<string | undefined> {
+  const activeSessions = await storage.sessions.listAllSessions({
+    instructorId: creatorId,
+    active: true,
+    namespaceId,
+  });
+
+  if (activeSessions.length > 0) {
+    const sessionId = activeSessions[0].id;
+    await endSession(storage, sessionId);
+    return sessionId;
+  }
+
+  return undefined;
+}
 
 /**
  * End a session (mark as completed)

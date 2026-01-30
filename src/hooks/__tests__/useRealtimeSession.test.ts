@@ -1089,6 +1089,122 @@ describe('useRealtimeSession', () => {
     });
   });
 
+  describe('Session replacement handling', () => {
+    beforeEach(async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          session: { id: 'session-1', status: 'active' },
+          students: [],
+          featuredStudent: {},
+        }),
+      });
+    });
+
+    it('should subscribe to session_replaced broadcast event', async () => {
+      const { result } = renderHook(() =>
+        useRealtimeSession({
+          sessionId: 'session-1',
+          userId: 'user-1',
+        })
+      );
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      expect(mockBroadcastChannel.on).toHaveBeenCalledWith(
+        'broadcast',
+        { event: 'session_replaced' },
+        expect.any(Function)
+      );
+    });
+
+    it('should set replacementInfo and mark session completed on session_replaced broadcast', async () => {
+      const { result } = renderHook(() =>
+        useRealtimeSession({
+          sessionId: 'session-1',
+          userId: 'user-1',
+        })
+      );
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      // Initially no replacement info
+      expect(result.current.replacementInfo).toBeNull();
+
+      const sessionReplacedCallback = mockBroadcastCallbacks.get('session_replaced');
+      expect(sessionReplacedCallback).toBeDefined();
+
+      act(() => {
+        sessionReplacedCallback!({
+          event: 'session_replaced',
+          payload: {
+            sessionId: 'session-1',
+            newSessionId: 'session-2',
+            timestamp: Date.now(),
+          },
+        });
+      });
+
+      expect(result.current.replacementInfo).toEqual({ newSessionId: 'session-2' });
+      expect(result.current.session?.status).toBe('completed');
+    });
+
+    it('should set replacementInfo from polling fallback when replacedBySessionId is present', async () => {
+      // Configure broadcast as disconnected to enable polling
+      mockBroadcastSubscribeStatus = 'CHANNEL_ERROR';
+
+      // Reset and re-setup initial fetch for disconnected state
+      mockFetch.mockReset();
+      jest.useFakeTimers();
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          session: { id: 'session-1', status: 'active' },
+          students: [],
+          featuredStudent: {},
+        }),
+      });
+
+      const { result } = renderHook(() =>
+        useRealtimeSession({
+          sessionId: 'session-1',
+          userId: 'user-1',
+        })
+      );
+
+      await act(async () => {
+        await Promise.resolve();
+      });
+
+      expect(result.current.loading).toBe(false);
+      expect(result.current.replacementInfo).toBeNull();
+
+      // Setup polling response with replacedBySessionId
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          session: { id: 'session-1', status: 'completed', replacedBySessionId: 'session-3' },
+          students: [],
+          featuredStudent: {},
+        }),
+      });
+
+      await act(async () => {
+        jest.advanceTimersByTime(2000);
+        await Promise.resolve();
+      });
+
+      expect(result.current.replacementInfo).toEqual({ newSessionId: 'session-3' });
+
+      jest.useRealTimers();
+    });
+  });
+
   describe('Polling fallback', () => {
     beforeEach(() => {
       jest.useFakeTimers();
