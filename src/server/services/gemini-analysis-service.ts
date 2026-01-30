@@ -259,6 +259,7 @@ export class GeminiAnalysisService {
       return {
         sessionId: input.sessionId,
         issues: [],
+        finishedStudentIds: [],
         summary: {
           totalSubmissions: 0,
           filteredOut: 0,
@@ -281,6 +282,7 @@ export class GeminiAnalysisService {
       return {
         sessionId: input.sessionId,
         issues: [],
+        finishedStudentIds: [],
         summary: {
           totalSubmissions,
           filteredOut: filteredOutCount,
@@ -343,16 +345,18 @@ export class GeminiAnalysisService {
       };
     });
 
-    // Compute completionEstimate
-    const finishedCount = parsedResponse.finishedStudentLabels.filter(
-      (label) => labelToStudentId.has(label)
-    ).length;
+    // Compute completionEstimate and finishedStudentIds
+    const finishedStudentIds = parsedResponse.finishedStudentLabels
+      .map((label) => labelToStudentId.get(label))
+      .filter((id): id is string => id !== undefined);
+    const finishedCount = finishedStudentIds.length;
     const inProgressCount = toAnalyze.length - finishedCount;
     const notStartedCount = filteredOutCount;
 
     return {
       sessionId: input.sessionId,
       issues,
+      finishedStudentIds,
       summary: {
         totalSubmissions,
         filteredOut: filteredOutCount,

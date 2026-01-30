@@ -95,6 +95,7 @@ describe('POST /api/sessions/[id]/analyze', () => {
         severity: 'error',
       },
     ],
+    finishedStudentIds: ['user-1'],
     summary: {
       totalSubmissions: 2,
       filteredOut: 0,
@@ -408,6 +409,7 @@ describe('POST /api/sessions/[id]/analyze', () => {
     const emptyScript: WalkthroughScript = {
       sessionId: 'session-1',
       issues: [],
+      finishedStudentIds: [],
       summary: {
         totalSubmissions: 0,
         filteredOut: 0,

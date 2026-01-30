@@ -39,6 +39,7 @@ let mockGroups: AnalysisGroup[] = [];
 let mockActiveGroupIndex = 0;
 let mockOverallNote: string | null = null;
 let mockCompletionEstimate: { finished: number; inProgress: number; notStarted: number } | null = null;
+let mockFinishedStudentIds: Set<string> = new Set();
 
 jest.mock('../../hooks/useAnalysisGroups', () => {
   return () => ({
@@ -50,6 +51,7 @@ jest.mock('../../hooks/useAnalysisGroups', () => {
     activeGroupIndex: mockActiveGroupIndex,
     overallNote: mockOverallNote,
     completionEstimate: mockCompletionEstimate,
+    finishedStudentIds: mockFinishedStudentIds,
     analyze: mockAnalyze,
     navigateGroup: mockNavigateGroup,
     setActiveGroupIndex: jest.fn(),
@@ -144,11 +146,13 @@ describe('SessionStudentPane', () => {
     mockActiveGroupIndex = 0;
     mockOverallNote = null;
     mockCompletionEstimate = null;
+    mockFinishedStudentIds = new Set();
   });
 
   const mockWalkthroughScript: WalkthroughScript = {
     sessionId: 'session-123',
     issues: mockIssues,
+    finishedStudentIds: ['student-2'],
     summary: {
       totalSubmissions: 3,
       filteredOut: 1,
@@ -164,6 +168,7 @@ describe('SessionStudentPane', () => {
     mockScript = mockWalkthroughScript;
     mockOverallNote = 'Students are progressing well';
     mockCompletionEstimate = { finished: 2, inProgress: 1, notStarted: 0 };
+    mockFinishedStudentIds = new Set(['student-2']);
     mockGroups = [
       {
         id: 'all',

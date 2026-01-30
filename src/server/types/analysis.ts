@@ -95,6 +95,9 @@ export interface WalkthroughScript {
   /** Optional high-level note about the class overall */
   overallNote?: string;
 
+  /** IDs of students classified as finished by the analysis */
+  finishedStudentIds: string[];
+
   /** Timestamp when this script was generated */
   generatedAt: Date;
 }
