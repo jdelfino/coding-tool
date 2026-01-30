@@ -22,7 +22,6 @@ import { Problem, ExecutionSettings } from '@/server/types/problem';
  *
  * Business logic:
  * - Validates section exists and namespace matches
- * - Enforces single active session per user
  * - Creates session with empty problem
  *
  * @throws Error if validation fails

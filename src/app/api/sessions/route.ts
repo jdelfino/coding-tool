@@ -8,6 +8,26 @@ import { hasRolePermission } from '@/server/auth/permissions';
 import { sendBroadcast } from '@/lib/supabase/broadcast';
 
 /**
+ * Send a broadcast message to notify clients when a session is replaced by a new one.
+ * Uses Broadcast instead of postgres_changes for reliability (recommended by Supabase).
+ * Exported for testing.
+ */
+export async function broadcastSessionReplaced(
+  oldSessionId: string,
+  newSessionId: string
+): Promise<void> {
+  return sendBroadcast({
+    channel: `session:${oldSessionId}`,
+    event: 'session_replaced',
+    payload: {
+      oldSessionId,
+      newSessionId,
+      replacedAt: new Date().toISOString(),
+    },
+  });
+}
+
+/**
  * GET /api/sessions
  *
  * List sessions for the authenticated user.
@@ -176,15 +196,7 @@ export async function POST(request: NextRequest) {
 
       // Broadcast session_replaced on the old session's channel
       try {
-        await sendBroadcast({
-          channel: `session:${replacedSessionId}`,
-          event: 'session_replaced',
-          payload: {
-            oldSessionId: replacedSessionId,
-            newSessionId: newSession.id,
-            replacedAt: new Date().toISOString(),
-          },
-        });
+        await broadcastSessionReplaced(replacedSessionId, newSession.id);
       } catch (error) {
         console.error('Failed to broadcast session_replaced:', error);
       }
