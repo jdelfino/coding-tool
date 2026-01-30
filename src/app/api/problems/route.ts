@@ -121,6 +121,7 @@ export async function POST(request: NextRequest) {
       title: body.title,
       description: body.description || '',
       starterCode: body.starterCode || '',
+      solution: body.solution,
       testCases: body.testCases || [],
       executionSettings: body.executionSettings,
       authorId: user.id,
