@@ -71,6 +71,7 @@ module.exports = {
         '^@/(.*)$': '<rootDir>/src/$1',
         '^uuid$': '<rootDir>/src/server/__tests__/test-utils/uuid-mock.ts',
         '^react-markdown$': '<rootDir>/src/__mocks__/react-markdown.tsx',
+        '^remark-breaks$': '<rootDir>/src/__mocks__/remark-breaks.ts',
       },
       transform: {
         '^.+\\.tsx?$': ['ts-jest', {

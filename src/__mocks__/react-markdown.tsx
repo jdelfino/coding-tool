@@ -17,9 +17,30 @@ function parseMarkdown(content: string, components: Record<string, React.Compone
   const result: React.ReactNode[] = [];
   let currentList: { type: 'ul' | 'ol'; items: string[] } | null = null;
   let codeBlock: { lang: string; lines: string[] } | null = null;
+  let paragraphLines: string[] | null = null;
   let keyCounter = 0;
 
   const getKey = () => `md-${keyCounter++}`;
+
+  const flushParagraph = () => {
+    if (paragraphLines && paragraphLines.length > 0) {
+      const PComponent = components.p || ((props: any) => <p {...props} />);
+      const children: React.ReactNode[] = [];
+      paragraphLines.forEach((pLine, i) => {
+        if (i > 0) {
+          children.push(<br key={`br-${i}`} />);
+        }
+        const inline = parseInline(pLine, components);
+        if (Array.isArray(inline)) {
+          children.push(...inline);
+        } else {
+          children.push(inline);
+        }
+      });
+      result.push(<PComponent key={getKey()}>{children}</PComponent>);
+      paragraphLines = null;
+    }
+  };
 
   const flushList = () => {
     if (currentList) {
@@ -61,6 +82,7 @@ function parseMarkdown(content: string, components: Record<string, React.Compone
       if (codeBlock) {
         flushCodeBlock();
       } else {
+        flushParagraph();
         flushList();
         codeBlock = { lang: line.slice(3).trim(), lines: [] };
       }
@@ -75,12 +97,14 @@ function parseMarkdown(content: string, components: Record<string, React.Compone
 
     // Empty line
     if (!line.trim()) {
+      flushParagraph();
       flushList();
       continue;
     }
 
     // Horizontal rule
     if (line.match(/^---+$/)) {
+      flushParagraph();
       flushList();
       const HrComponent = components.hr || ((props: any) => <hr {...props} />);
       result.push(<HrComponent key={getKey()} />);
@@ -90,6 +114,7 @@ function parseMarkdown(content: string, components: Record<string, React.Compone
     // Headers
     const headerMatch = line.match(/^(#{1,6})\s+(.+)$/);
     if (headerMatch) {
+      flushParagraph();
       flushList();
       const level = headerMatch[1].length;
       const text = headerMatch[2];
@@ -100,6 +125,7 @@ function parseMarkdown(content: string, components: Record<string, React.Compone
 
     // Blockquote
     if (line.startsWith('> ')) {
+      flushParagraph();
       flushList();
       const BlockquoteComponent = components.blockquote || ((props: any) => <blockquote {...props} />);
       const PComponent = components.p || ((props: any) => <p {...props} />);
@@ -114,6 +140,7 @@ function parseMarkdown(content: string, components: Record<string, React.Compone
     // Unordered list
     if (line.match(/^[-*]\s+/)) {
       if (!currentList || currentList.type !== 'ul') {
+        flushParagraph();
         flushList();
         currentList = { type: 'ul', items: [] };
       }
@@ -124,6 +151,7 @@ function parseMarkdown(content: string, components: Record<string, React.Compone
     // Ordered list
     if (line.match(/^\d+\.\s+/)) {
       if (!currentList || currentList.type !== 'ol') {
+        flushParagraph();
         flushList();
         currentList = { type: 'ol', items: [] };
       }
@@ -131,12 +159,15 @@ function parseMarkdown(content: string, components: Record<string, React.Compone
       continue;
     }
 
-    // Regular paragraph
-    flushList();
-    const PComponent = components.p || ((props: any) => <p {...props} />);
-    result.push(<PComponent key={getKey()}>{parseInline(line, components)}</PComponent>);
+    // Regular text line - accumulate for paragraph with line breaks
+    if (!paragraphLines) {
+      paragraphLines = [];
+    }
+    paragraphLines.push(line);
+    continue;
   }
 
+  flushParagraph();
   flushList();
   flushCodeBlock();
 

@@ -230,6 +230,15 @@ For more information, see [Python docs](https://docs.python.org).`;
     });
   });
 
+  describe('Line breaks', () => {
+    it('renders single newlines as line breaks', () => {
+      const content = `Line one\nLine two\nLine three`;
+      const { container } = render(<MarkdownContent content={content} />);
+      const brs = container.querySelectorAll('br');
+      expect(brs.length).toBe(2);
+    });
+  });
+
   describe('Edge cases', () => {
     it('handles empty content', () => {
       const { container } = render(<MarkdownContent content="" />);

@@ -9,6 +9,7 @@
 
 import React from 'react';
 import ReactMarkdown from 'react-markdown';
+import remarkBreaks from 'remark-breaks';
 
 interface MarkdownContentProps {
   content: string;
@@ -47,6 +48,7 @@ export default function MarkdownContent({ content, className = '', darkTheme = f
   return (
     <div className={`markdown-content ${className}`}>
       <ReactMarkdown
+        remarkPlugins={[remarkBreaks]}
         components={{
           // Headers
           h1: ({ children }) => (
