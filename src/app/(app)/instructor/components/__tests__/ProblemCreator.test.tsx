@@ -620,6 +620,49 @@ describe('ProblemCreator Component', () => {
       });
     });
 
+    it('should flush uncommitted tag input on submit', async () => {
+      const onProblemCreated = jest.fn();
+
+      render(<ProblemCreator onProblemCreated={onProblemCreated} />);
+
+      await waitFor(() => {
+        expect(screen.getByLabelText('Class *')).toBeInTheDocument();
+      });
+
+      fireEvent.change(screen.getByLabelText('Class *'), { target: { value: 'class-1' } });
+      fireEvent.change(screen.getByLabelText('Title *'), { target: { value: 'Test' } });
+
+      // Type a tag but do NOT press Enter
+      const tagsInput = screen.getByLabelText('Tags');
+      fireEvent.change(tagsInput, { target: { value: 'functions' } });
+
+      // Submit directly
+      fireEvent.click(screen.getByText('Create Problem'));
+
+      await waitFor(() => {
+        const calls = (global.fetch as jest.Mock).mock.calls.filter(
+          (c: any[]) => c[1]?.method === 'POST' && c[0] === '/api/problems'
+        );
+        expect(calls.length).toBe(1);
+        const body = JSON.parse(calls[0][1].body);
+        expect(body.tags).toEqual(['functions']);
+      });
+    });
+
+    it('should flush tag input on blur', async () => {
+      render(<ProblemCreator />);
+
+      await waitFor(() => {
+        expect(screen.getByLabelText('Tags')).toBeInTheDocument();
+      });
+
+      const tagsInput = screen.getByLabelText('Tags');
+      fireEvent.change(tagsInput, { target: { value: 'loops' } });
+      fireEvent.blur(tagsInput);
+
+      expect(screen.getByText('loops')).toBeInTheDocument();
+    });
+
     it('should pre-populate classId from prop', async () => {
       render(<ProblemCreator classId="class-2" />);
 

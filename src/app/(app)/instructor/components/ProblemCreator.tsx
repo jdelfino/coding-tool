@@ -34,7 +34,7 @@ export default function ProblemCreator({
   const [description, setDescription] = useState('');
   const [starterCode, setStarterCode] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(!!problemId);
   const [error, setError] = useState<string | null>(null);
 
   // Class and tags state
@@ -105,6 +105,18 @@ export default function ProblemCreator({
     }
   };
 
+  const flushTagInput = (): string[] => {
+    if (!tagInput.trim()) return tags;
+    const newTags = tagInput
+      .split(',')
+      .map(t => t.trim())
+      .filter(t => t && !tags.includes(t));
+    const flushed = [...tags, ...newTags];
+    setTags(flushed);
+    setTagInput('');
+    return flushed;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -113,6 +125,9 @@ export default function ProblemCreator({
       setError('Title is required');
       return;
     }
+
+    // Commit any text left in the tag input field
+    const finalTags = flushTagInput();
 
     setIsSubmitting(true);
 
@@ -123,7 +138,7 @@ export default function ProblemCreator({
         starterCode: starterCode.trim(),
         testCases: [], // Test cases added separately
         classId: selectedClassId || undefined,
-        tags: tags.length > 0 ? tags : [],
+        tags: finalTags.length > 0 ? finalTags : [],
       };
 
       // Only include executionSettings if at least one field is set
@@ -263,7 +278,7 @@ export default function ProblemCreator({
       </div>
 
       {isLoading && (
-        <div style={{ padding: '0.75rem 1rem', backgroundColor: '#cfe2ff', borderBottom: '1px solid #9ec5fe', color: '#084298' }}>
+        <div style={{ padding: '2rem', textAlign: 'center', color: '#6c757d' }}>
           Loading problem...
         </div>
       )}
@@ -275,7 +290,7 @@ export default function ProblemCreator({
       )}
 
       {/* Class and Tags bar */}
-      <div style={{
+      {!isLoading && <div style={{
         flexShrink: 0,
         padding: '0.5rem 1rem',
         backgroundColor: '#fff',
@@ -351,6 +366,7 @@ export default function ProblemCreator({
               value={tagInput}
               onChange={(e) => setTagInput(e.target.value)}
               onKeyDown={handleTagKeyDown}
+              onBlur={flushTagInput}
               placeholder="Add tags (comma-separated)..."
               style={{
                 flex: 1,
@@ -363,10 +379,10 @@ export default function ProblemCreator({
             />
           </div>
         </div>
-      </div>
+      </div>}
 
       {/* Full-width code editor */}
-      <EditorContainer variant="flex">
+      {!isLoading && <EditorContainer variant="flex">
         <CodeEditor
           code={starterCode}
           onChange={setStarterCode}
@@ -387,7 +403,7 @@ export default function ProblemCreator({
           }}
           editableProblem={true}
         />
-      </EditorContainer>
+      </EditorContainer>}
 
     </div>
   );
