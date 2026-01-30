@@ -13,7 +13,7 @@ import { codeToHtml } from 'shiki';
 import { getProblemRepository } from '@/server/persistence';
 import { SERVICE_ROLE_MARKER } from '@/server/supabase/client';
 import MarkdownContent from '@/components/MarkdownContent';
-import CopyButton from './CopyButton';
+import SolutionBlock from './SolutionBlock';
 
 type Params = {
   params: Promise<{ id: string }>;
@@ -80,13 +80,7 @@ export default async function PublicProblemPage({ params }: Params) {
           <summary className="cursor-pointer text-lg font-semibold text-gray-700 hover:text-gray-900 select-none">
             Show Solution
           </summary>
-          <div className="mt-4 relative">
-            <CopyButton text={problem.solution!} />
-            <div
-              className="rounded-lg overflow-x-auto border border-gray-200 [&_pre]:p-4 [&_pre]:text-sm [&_pre]:bg-gray-50"
-              dangerouslySetInnerHTML={{ __html: solutionHtml }}
-            />
-          </div>
+          <SolutionBlock html={solutionHtml} />
         </details>
       )}
 

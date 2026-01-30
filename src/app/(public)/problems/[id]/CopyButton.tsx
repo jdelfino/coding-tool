@@ -1,15 +1,36 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useCallback, type RefObject } from 'react';
 
-export default function CopyButton({ text }: { text: string }) {
+/**
+ * Copy button that copies rich text (HTML with syntax highlighting) to clipboard.
+ * Uses a ref to the code container to grab the rendered HTML.
+ */
+export default function CopyButton({ codeRef }: { codeRef: RefObject<HTMLDivElement | null> }) {
   const [copied, setCopied] = useState(false);
 
-  const handleCopy = async () => {
-    await navigator.clipboard.writeText(text);
+  const handleCopy = useCallback(async () => {
+    const el = codeRef.current;
+    if (!el) return;
+
+    const html = el.innerHTML;
+    const plainText = el.innerText;
+
+    try {
+      await navigator.clipboard.write([
+        new ClipboardItem({
+          'text/html': new Blob([html], { type: 'text/html' }),
+          'text/plain': new Blob([plainText], { type: 'text/plain' }),
+        }),
+      ]);
+    } catch {
+      // Fallback: plain text copy
+      await navigator.clipboard.writeText(plainText);
+    }
+
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
-  };
+  }, [codeRef]);
 
   return (
     <button

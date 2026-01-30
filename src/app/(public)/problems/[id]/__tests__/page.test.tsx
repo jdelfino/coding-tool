@@ -28,9 +28,9 @@ jest.mock('shiki', () => ({
   ),
 }));
 
-jest.mock('../CopyButton', () => {
-  return function MockCopyButton({ text }: { text: string }) {
-    return <button data-testid="copy-button" data-text={text}>Copy</button>;
+jest.mock('../SolutionBlock', () => {
+  return function MockSolutionBlock({ html }: { html: string }) {
+    return <div data-testid="solution-block" dangerouslySetInnerHTML={{ __html: html }} />;
   };
 });
 
@@ -124,15 +124,13 @@ describe('Public Problem Page', () => {
       expect(document.querySelector('.shiki')).toBeInTheDocument();
     });
 
-    it('renders copy button with solution text', async () => {
+    it('renders solution block with highlighted HTML', async () => {
       mockRepo(jest.fn().mockResolvedValue(mockProblem));
 
       const page = await PublicProblemPage({ params: Promise.resolve({ id: 'problem-123' }) });
       render(page);
 
-      const copyBtn = screen.getByTestId('copy-button');
-      expect(copyBtn).toBeInTheDocument();
-      expect(copyBtn).toHaveAttribute('data-text', mockProblem.solution);
+      expect(screen.getByTestId('solution-block')).toBeInTheDocument();
     });
 
     it('calls notFound for missing problem', async () => {
