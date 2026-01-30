@@ -59,8 +59,11 @@ export interface ProblemSchema {
   /** Namespace ID (required for multi-tenancy) */
   namespaceId: string;
 
-  /** Optional class ID */
-  classId?: string;
+  /** Class ID (required) */
+  classId: string;
+
+  /** Tags for categorization */
+  tags: string[];
 
   /** ISO 8601 timestamp */
   createdAt: string;
@@ -91,6 +94,12 @@ export const PROBLEM_VALIDATION_RULES = {
     minCount: 0,
     required: false,
   },
+  tags: {
+    maxCount: 10,
+    maxTagLength: 30,
+    pattern: /^[a-zA-Z0-9-]+$/,
+    required: false,
+  },
 } as const;
 
 /**
@@ -101,6 +110,39 @@ export const PROBLEM_VALIDATION_RULES = {
  * @param problem - Problem to validate
  * @returns Array of validation errors (empty if valid)
  */
+/**
+ * Validate tags array independently
+ */
+export function validateTags(tags: string[]): ProblemValidationError[] {
+  const errors: ProblemValidationError[] = [];
+  if (tags.length > PROBLEM_VALIDATION_RULES.tags.maxCount) {
+    errors.push({
+      field: 'tags',
+      message: `Tags must have at most ${PROBLEM_VALIDATION_RULES.tags.maxCount} items`,
+      code: 'MAX_COUNT',
+    });
+  }
+  for (const tag of tags) {
+    if (tag.length > PROBLEM_VALIDATION_RULES.tags.maxTagLength) {
+      errors.push({
+        field: 'tags',
+        message: `Each tag must be at most ${PROBLEM_VALIDATION_RULES.tags.maxTagLength} characters`,
+        code: 'MAX_LENGTH',
+      });
+      break;
+    }
+    if (!PROBLEM_VALIDATION_RULES.tags.pattern.test(tag)) {
+      errors.push({
+        field: 'tags',
+        message: 'Tags must contain only alphanumeric characters and hyphens',
+        code: 'INVALID_FORMAT',
+      });
+      break;
+    }
+  }
+  return errors;
+}
+
 export function validateProblemSchema(problem: Partial<Problem>): ProblemValidationError[] {
   const errors: ProblemValidationError[] = [];
 
@@ -146,6 +188,20 @@ export function validateProblemSchema(problem: Partial<Problem>): ProblemValidat
   // Validate test cases (optional now)
   // No validation required as test cases are now optional
 
+  // Validate classId
+  if (!problem.classId || problem.classId.trim().length === 0) {
+    errors.push({
+      field: 'classId',
+      message: 'Class ID is required',
+      code: 'REQUIRED_FIELD',
+    });
+  }
+
+  // Validate tags
+  if (problem.tags) {
+    errors.push(...validateTags(problem.tags));
+  }
+
   // Validate author ID
   if (!problem.authorId || problem.authorId.trim().length === 0) {
     errors.push({
@@ -188,6 +244,7 @@ export function serializeProblem(problem: Problem): ProblemSchema {
     executionSettings: problem.executionSettings,
     authorId: problem.authorId,
     classId: problem.classId,
+    tags: problem.tags,
     createdAt: problem.createdAt.toISOString(),
     updatedAt: problem.updatedAt.toISOString(),
   };
@@ -213,6 +270,7 @@ export function deserializeProblem(schema: ProblemSchema): Problem {
     executionSettings: schema.executionSettings,
     authorId: schema.authorId,
     classId: schema.classId,
+    tags: schema.tags,
     createdAt: new Date(schema.createdAt),
     updatedAt: new Date(schema.updatedAt),
   };

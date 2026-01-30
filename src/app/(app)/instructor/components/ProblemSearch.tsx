@@ -17,6 +17,9 @@ interface ProblemSearchProps {
   onSortOrderChange: (order: 'asc' | 'desc') => void;
   viewMode: 'list' | 'grid';
   onViewModeChange: (mode: 'list' | 'grid') => void;
+  availableTags?: string[];
+  selectedTags?: string[];
+  onTagToggle?: (tag: string) => void;
 }
 
 export default function ProblemSearch({
@@ -28,6 +31,9 @@ export default function ProblemSearch({
   onSortOrderChange,
   viewMode,
   onViewModeChange,
+  availableTags = [],
+  selectedTags = [],
+  onTagToggle,
 }: ProblemSearchProps) {
   return (
     <div className="space-y-4 mb-6">
@@ -111,6 +117,29 @@ export default function ProblemSearch({
           )}
         </button>
       </div>
+
+      {/* Tag filters */}
+      {availableTags.length > 0 && onTagToggle && (
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-sm font-medium text-gray-700">Tags:</span>
+          {availableTags.map((tag) => {
+            const isSelected = selectedTags.includes(tag);
+            return (
+              <button
+                key={tag}
+                onClick={() => onTagToggle(tag)}
+                className={`px-2.5 py-1 text-xs rounded-full transition-colors ${
+                  isSelected
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                {tag}
+              </button>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

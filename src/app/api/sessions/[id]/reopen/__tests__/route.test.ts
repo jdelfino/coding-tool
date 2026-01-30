@@ -44,7 +44,8 @@ describe('POST /api/sessions/[id]/reopen', () => {
     starterCode: 'print("Hello")',
     testCases: [],
     authorId: 'instructor-1',
-    classId: undefined,
+    classId: 'test-class-id',
+    tags: [],
     createdAt: new Date(),
     updatedAt: new Date(),
   };

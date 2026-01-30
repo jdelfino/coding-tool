@@ -12,14 +12,7 @@ import { useRouter } from 'next/navigation';
 import ProblemSearch from './ProblemSearch';
 import ProblemCard from './ProblemCard';
 import CreateSessionFromProblemModal from './CreateSessionFromProblemModal';
-
-interface Problem {
-  id: string;
-  title: string;
-  description?: string;
-  createdAt: string;
-  authorId: string;
-}
+import type { ClassInfo, ProblemSummary } from '../types';
 
 interface ProblemLibraryProps {
   onCreateNew?: () => void;
@@ -29,9 +22,15 @@ interface ProblemLibraryProps {
 export default function ProblemLibrary({ onCreateNew, onEdit }: ProblemLibraryProps) {
   const { user } = useAuth();
   const router = useRouter();
-  const [problems, setProblems] = useState<Problem[]>([]);
+  const [problems, setProblems] = useState<ProblemSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Class and tag state
+  const [classes, setClasses] = useState<ClassInfo[]>([]);
+  const [selectedClassId, setSelectedClassId] = useState<string>('');
+  const [classesLoaded, setClassesLoaded] = useState(false);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
 
   // Search and filter state
   const [searchQuery, setSearchQuery] = useState('');
@@ -43,9 +42,39 @@ export default function ProblemLibrary({ onCreateNew, onEdit }: ProblemLibraryPr
   const [showSessionModal, setShowSessionModal] = useState(false);
   const [selectedProblemForSession, setSelectedProblemForSession] = useState<{ id: string; title: string } | null>(null);
 
+  // Load classes on mount
   useEffect(() => {
-    loadProblems();
+    if (!user) return;
+    const loadClasses = async () => {
+      try {
+        const response = await fetch('/api/classes');
+        if (response.ok) {
+          const data = await response.json();
+          const loadedClasses: ClassInfo[] = data.classes || [];
+          setClasses(loadedClasses);
+          // Default to first class, or check localStorage
+          const savedClassId = localStorage.getItem('problemLibrary_classId');
+          if (savedClassId && loadedClasses.some(c => c.id === savedClassId)) {
+            setSelectedClassId(savedClassId);
+          } else if (loadedClasses.length > 0) {
+            setSelectedClassId(loadedClasses[0].id);
+          }
+        }
+      } catch {
+        // Silently fail - class picker just won't be populated
+      } finally {
+        setClassesLoaded(true);
+      }
+    };
+    loadClasses();
   }, [user]);
+
+  // Load problems when class selection changes
+  useEffect(() => {
+    if (classesLoaded) {
+      loadProblems();
+    }
+  }, [user, classesLoaded, selectedClassId]);
 
   const loadProblems = async () => {
     if (!user) return;
@@ -60,6 +89,10 @@ export default function ProblemLibrary({ onCreateNew, onEdit }: ProblemLibraryPr
         sortBy,
         sortOrder,
       });
+
+      if (selectedClassId) {
+        params.set('classId', selectedClassId);
+      }
 
       const response = await fetch(`/api/problems?${params}`);
       if (!response.ok) {
@@ -76,6 +109,34 @@ export default function ProblemLibrary({ onCreateNew, onEdit }: ProblemLibraryPr
     }
   };
 
+  const handleClassChange = (classId: string) => {
+    setSelectedClassId(classId);
+    if (classId) {
+      localStorage.setItem('problemLibrary_classId', classId);
+    } else {
+      localStorage.removeItem('problemLibrary_classId');
+    }
+  };
+
+  const handleTagToggle = (tag: string) => {
+    setSelectedTags(prev =>
+      prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]
+    );
+  };
+
+  // Collect all unique tags from loaded problems
+  const availableTags = useMemo(() => {
+    const tagSet = new Set<string>();
+    for (const p of problems) {
+      if (p.tags) {
+        for (const t of p.tags) {
+          tagSet.add(t);
+        }
+      }
+    }
+    return Array.from(tagSet).sort();
+  }, [problems]);
+
   // Filter and search problems
   const filteredProblems = useMemo(() => {
     let filtered = [...problems];
@@ -85,6 +146,13 @@ export default function ProblemLibrary({ onCreateNew, onEdit }: ProblemLibraryPr
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter((problem) =>
         problem.title.toLowerCase().includes(query)
+      );
+    }
+
+    // Apply tag filter
+    if (selectedTags.length > 0) {
+      filtered = filtered.filter((problem) =>
+        selectedTags.every(tag => problem.tags?.includes(tag))
       );
     }
 
@@ -104,7 +172,7 @@ export default function ProblemLibrary({ onCreateNew, onEdit }: ProblemLibraryPr
     });
 
     return filtered;
-  }, [problems, searchQuery, sortBy, sortOrder]);
+  }, [problems, searchQuery, sortBy, sortOrder, selectedTags]);
 
   const handleView = (problemId: string) => {
     if (onEdit) {
@@ -199,17 +267,35 @@ export default function ProblemLibrary({ onCreateNew, onEdit }: ProblemLibraryPr
             {searchQuery && ` matching "${searchQuery}"`}
           </p>
         </div>
-        {onCreateNew && (
-          <button
-            onClick={onCreateNew}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            Create New Problem
-          </button>
-        )}
+        <div className="flex items-center gap-3">
+          {classes.length > 0 && (
+            <div className="flex items-center gap-2">
+              <label htmlFor="class-picker" className="text-sm font-medium text-gray-700">Class:</label>
+              <select
+                id="class-picker"
+                value={selectedClassId}
+                onChange={(e) => handleClassChange(e.target.value)}
+                className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">All classes</option>
+                {classes.map(c => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
+          {onCreateNew && (
+            <button
+              onClick={onCreateNew}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              Create New Problem
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Search and filters */}
@@ -222,6 +308,9 @@ export default function ProblemLibrary({ onCreateNew, onEdit }: ProblemLibraryPr
         onSortOrderChange={setSortOrder}
         viewMode={viewMode}
         onViewModeChange={setViewMode}
+        availableTags={availableTags}
+        selectedTags={selectedTags}
+        onTagToggle={handleTagToggle}
       />
 
       {/* Problem list/grid */}
@@ -270,6 +359,7 @@ export default function ProblemLibrary({ onCreateNew, onEdit }: ProblemLibraryPr
               onEdit={handleEdit}
               onDelete={handleDelete}
               onCreateSession={handleCreateSession}
+              onTagClick={handleTagToggle}
             />
           ))}
         </div>

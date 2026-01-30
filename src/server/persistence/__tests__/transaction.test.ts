@@ -51,6 +51,8 @@ describe('StorageBackend transaction', () => {
           starterCode: 'console.log("test");',
           namespaceId: 'test-namespace',
           authorId: 'test-author',
+          classId: 'test-class-id',
+          tags: [],
           createdAt: new Date(),
           updatedAt: new Date(),
         },

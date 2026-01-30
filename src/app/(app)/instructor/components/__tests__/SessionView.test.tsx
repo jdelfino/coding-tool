@@ -136,6 +136,8 @@ describe('SessionView', () => {
     starterCode: 'print("start")',
     namespaceId: 'namespace-1',
     authorId: 'author-1',
+    classId: 'test-class-id',
+    tags: [],
     createdAt: new Date('2024-01-01'),
     updatedAt: new Date('2024-01-02'),
   };

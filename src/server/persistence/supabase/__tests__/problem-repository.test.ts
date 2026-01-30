@@ -61,6 +61,7 @@ describe('SupabaseProblemRepository', () => {
     executionSettings: { stdin: '' },
     authorId: 'author-456',
     classId: 'class-789',
+    tags: ['loops', 'basics'],
     createdAt: new Date('2025-01-01T00:00:00Z'),
     updatedAt: new Date('2025-01-02T00:00:00Z'),
   };
@@ -75,6 +76,7 @@ describe('SupabaseProblemRepository', () => {
     execution_settings: mockProblem.executionSettings,
     author_id: mockProblem.authorId,
     class_id: mockProblem.classId,
+    tags: mockProblem.tags,
     created_at: mockProblem.createdAt.toISOString(),
     updated_at: mockProblem.updatedAt.toISOString(),
   };
@@ -170,6 +172,7 @@ describe('SupabaseProblemRepository', () => {
         executionSettings: mockProblem.executionSettings,
         authorId: mockProblem.authorId,
         classId: mockProblem.classId,
+        tags: mockProblem.tags,
       };
 
       const insertSingle = jest.fn().mockResolvedValue({
@@ -198,6 +201,8 @@ describe('SupabaseProblemRepository', () => {
         namespaceId: 'stanford',
         title: 'Minimal Problem',
         authorId: 'author-123',
+        classId: 'class-1',
+        tags: [],
       };
 
       const insertSingle = jest.fn().mockResolvedValue({
@@ -251,6 +256,8 @@ describe('SupabaseProblemRepository', () => {
           namespaceId: 'stanford',
           title: 'Test',
           authorId: 'author-1',
+          classId: 'class-1',
+          tags: [],
         })
       ).rejects.toThrow('Failed to create problem: Insert failed');
     });
@@ -337,6 +344,7 @@ describe('SupabaseProblemRepository', () => {
       created_at: mockProblem.createdAt.toISOString(),
       author_id: mockProblem.authorId,
       class_id: mockProblem.classId,
+      tags: mockProblem.tags,
     };
 
     it('should get all problems without filters', async () => {
@@ -394,6 +402,22 @@ describe('SupabaseProblemRepository', () => {
 
       const result = await repository.getAll({ sortBy: 'title', sortOrder: 'asc' }, 'stanford');
 
+      expect(result).toHaveLength(1);
+    });
+
+    it('should filter by tags using contains operator', async () => {
+      const mockContains = jest.fn().mockResolvedValue({ data: [mockMetadataRow], error: null });
+      const selectEq = jest.fn().mockReturnValue({ contains: mockContains });
+
+      mockFrom.mockReturnValue({
+        select: jest.fn().mockReturnValue({
+          eq: selectEq,
+        }),
+      });
+
+      const result = await repository.getAll({ tags: ['loops'], namespaceId: 'stanford' }, 'stanford');
+
+      expect(mockContains).toHaveBeenCalledWith('tags', ['loops']);
       expect(result).toHaveLength(1);
     });
 

@@ -37,6 +37,8 @@ describe('GET /api/sessions/[id]/public-state', () => {
     starterCode: 'print("Hello")',
     testCases: [],
     authorId: 'user-1',
+    classId: 'test-class-id',
+    tags: [],
     createdAt: new Date(),
     updatedAt: new Date(),
   };

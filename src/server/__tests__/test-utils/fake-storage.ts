@@ -348,6 +348,8 @@ export class FakeStorageBackend implements IStorageBackend {
           description: 'A mock problem for testing',
           starterCode: 'print("test")',
           authorId: 'test-author',
+          classId: 'test-class-id',
+          tags: [],
           createdAt: new Date(),
           updatedAt: new Date(),
         };

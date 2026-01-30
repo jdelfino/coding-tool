@@ -97,4 +97,37 @@ describe('ProblemSearch', () => {
     const input = screen.getByPlaceholderText(/search problems/i) as HTMLInputElement;
     expect(input.value).toBe('my search');
   });
+
+  describe('Tag filtering', () => {
+    const tagProps = {
+      ...defaultProps,
+      availableTags: ['loops', 'arrays', 'strings'],
+      selectedTags: [] as string[],
+      onTagToggle: jest.fn(),
+    };
+
+    it('renders available tags as clickable chips', () => {
+      render(<ProblemSearch {...tagProps} />);
+      expect(screen.getByText('loops')).toBeInTheDocument();
+      expect(screen.getByText('arrays')).toBeInTheDocument();
+      expect(screen.getByText('strings')).toBeInTheDocument();
+    });
+
+    it('highlights selected tags', () => {
+      render(<ProblemSearch {...tagProps} selectedTags={['loops']} />);
+      const loopsChip = screen.getByText('loops');
+      expect(loopsChip.closest('button')).toHaveClass('bg-blue-600');
+    });
+
+    it('calls onTagToggle when a tag is clicked', () => {
+      render(<ProblemSearch {...tagProps} />);
+      fireEvent.click(screen.getByText('loops'));
+      expect(tagProps.onTagToggle).toHaveBeenCalledWith('loops');
+    });
+
+    it('does not render tag section when no tags available', () => {
+      render(<ProblemSearch {...defaultProps} availableTags={[]} selectedTags={[]} onTagToggle={jest.fn()} />);
+      expect(screen.queryByText('Tags:')).not.toBeInTheDocument();
+    });
+  });
 });

@@ -9,12 +9,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-
-interface ClassInfo {
-  id: string;
-  name: string;
-  description?: string;
-}
+import type { ClassInfo } from '../types';
 
 interface SectionInfo {
   id: string;

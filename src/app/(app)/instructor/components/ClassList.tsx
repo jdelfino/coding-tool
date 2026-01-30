@@ -5,13 +5,9 @@ import CreateClassModal from './CreateClassModal';
 import { ErrorAlert } from '@/components/ErrorAlert';
 import { fetchWithRetry } from '@/lib/api-utils';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import type { ClassWithSections } from '../types';
 
-interface ClassInfo {
-  id: string;
-  name: string;
-  description: string;
-  sectionCount: number;
-}
+type ClassInfo = ClassWithSections;
 
 interface ClassListProps {
   onSelectClass: (classId: string) => void;

@@ -49,8 +49,11 @@ export interface Problem {
   /** User ID of instructor who created this problem */
   authorId: string;
 
-  /** Optional: scope problem to specific class */
-  classId?: string;
+  /** Class this problem belongs to */
+  classId: string;
+
+  /** Tags for categorizing and filtering problems */
+  tags: string[];
 
   /** When this problem was created */
   createdAt: Date;
@@ -84,8 +87,11 @@ export interface ProblemMetadata {
   /** Author's display name or username */
   authorName: string;
 
-  /** Class ID if scoped to a class */
-  classId?: string;
+  /** Class this problem belongs to */
+  classId: string;
+
+  /** Tags for categorizing and filtering problems */
+  tags: string[];
 }
 
 /**
@@ -103,6 +109,9 @@ export interface ProblemFilter {
 
   /** Sort field */
   sortBy?: 'title' | 'created' | 'updated';
+
+  /** Filter by tags (problems must contain all specified tags) */
+  tags?: string[];
 
   /** Sort direction */
   sortOrder?: 'asc' | 'desc';

@@ -9,22 +9,16 @@
 import React, { useState } from 'react';
 import { Card } from '@/components/ui/Card';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
-
-interface Problem {
-  id: string;
-  title: string;
-  description?: string;
-  createdAt: string;
-  authorId: string;
-}
+import type { ProblemSummary } from '../types';
 
 interface ProblemCardProps {
-  problem: Problem;
+  problem: ProblemSummary;
   viewMode: 'list' | 'grid';
   onView: (problemId: string) => void;
   onEdit: (problemId: string) => void;
   onDelete: (problemId: string, title: string) => void;
   onCreateSession: (problemId: string) => void;
+  onTagClick?: (tag: string) => void;
 }
 
 export default function ProblemCard({
@@ -34,6 +28,7 @@ export default function ProblemCard({
   onEdit,
   onDelete,
   onCreateSession,
+  onTagClick,
 }: ProblemCardProps) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -62,6 +57,27 @@ export default function ProblemCard({
   };
 
   const hasDescription = !!problem.description?.trim();
+  const hasTags = Array.isArray(problem.tags) && problem.tags.length > 0;
+
+  const renderTags = () => {
+    if (!hasTags) return null;
+    return (
+      <div data-testid="problem-tags" className="flex flex-wrap gap-1 mb-2">
+        {problem.tags!.map((tag) => (
+          <button
+            key={tag}
+            onClick={(e) => {
+              e.stopPropagation();
+              onTagClick?.(tag);
+            }}
+            className="px-2 py-0.5 text-xs bg-gray-100 text-gray-700 rounded-full hover:bg-blue-100 hover:text-blue-700 transition-colors"
+          >
+            {tag}
+          </button>
+        ))}
+      </div>
+    );
+  };
 
   if (viewMode === 'list') {
     return (
@@ -77,6 +93,8 @@ export default function ProblemCard({
                 {problem.description}
               </p>
             )}
+
+            {renderTags()}
 
             <div className="flex items-center gap-4 text-xs text-gray-500">
               <span>Created {formatDate(problem.createdAt)}</span>
@@ -140,6 +158,8 @@ export default function ProblemCard({
           {problem.description}
         </p>
       )}
+
+      {renderTags()}
 
       <div className="flex items-center gap-3 text-xs text-gray-500 mb-4">
         <span>{formatDate(problem.createdAt)}</span>

@@ -71,7 +71,7 @@ export async function createSession(
   const session: Session = {
     id: sessionId,
     namespaceId: section.namespaceId,
-    problem: createEmptyProblem(creatorId, section.namespaceId),
+    problem: createEmptyProblem(creatorId, section.namespaceId, section.classId),
     students: new Map(),
     createdAt: new Date(),
     lastActivity: new Date(),
@@ -443,7 +443,7 @@ export function cloneProblem(problem: Problem): Problem {
 /**
  * Create an empty problem for a new session
  */
-export function createEmptyProblem(authorId: string, namespaceId: string): Problem {
+export function createEmptyProblem(authorId: string, namespaceId: string, classId: string): Problem {
   return {
     id: uuidv4(),
     namespaceId,
@@ -453,7 +453,8 @@ export function createEmptyProblem(authorId: string, namespaceId: string): Probl
     testCases: [],
     executionSettings: undefined,
     authorId,
-    classId: undefined,
+    classId,
+    tags: [],
     createdAt: new Date(),
     updatedAt: new Date(),
   };

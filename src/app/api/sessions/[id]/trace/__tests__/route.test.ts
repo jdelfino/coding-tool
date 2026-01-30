@@ -41,7 +41,8 @@ describe('POST /api/sessions/[id]/trace', () => {
     starterCode: 'print("Hello")',
     testCases: [],
     authorId: 'user-1',
-    classId: undefined,
+    classId: 'test-class-id',
+    tags: [],
     createdAt: new Date(),
     updatedAt: new Date(),
   };

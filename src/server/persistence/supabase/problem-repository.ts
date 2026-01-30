@@ -24,7 +24,8 @@ function mapRowToProblem(row: any): Problem {
     testCases: row.test_cases || undefined,
     executionSettings: row.execution_settings || undefined,
     authorId: row.author_id,
-    classId: row.class_id || undefined,
+    classId: row.class_id,
+    tags: row.tags || [],
     createdAt: new Date(row.created_at),
     updatedAt: new Date(row.updated_at),
   };
@@ -41,7 +42,8 @@ function mapRowToProblemMetadata(row: any): ProblemMetadata {
     testCaseCount: row.test_cases?.length || 0,
     createdAt: new Date(row.created_at),
     authorName: row.author_name || row.author_id,
-    classId: row.class_id || undefined,
+    classId: row.class_id,
+    tags: row.tags || [],
   };
 }
 
@@ -100,7 +102,8 @@ export class SupabaseProblemRepository implements IProblemRepository {
       test_cases: (problem.testCases as any) || null,
       execution_settings: (problem.executionSettings as any) || null,
       author_id: problem.authorId,
-      class_id: problem.classId || null,
+      class_id: problem.classId,
+      tags: problem.tags,
       created_at: now.toISOString(),
       updated_at: now.toISOString(),
     };
@@ -144,7 +147,7 @@ export class SupabaseProblemRepository implements IProblemRepository {
     const supabase = getSupabaseClientWithAuth(this.accessToken);
 
     // Select fields for metadata plus test_cases for count
-    let query = supabase.from('problems').select('id, namespace_id, title, test_cases, created_at, author_id, class_id');
+    let query = supabase.from('problems').select('id, namespace_id, title, test_cases, created_at, author_id, class_id, tags');
 
     // Apply namespace filter
     if (namespaceId) {
@@ -160,6 +163,10 @@ export class SupabaseProblemRepository implements IProblemRepository {
 
     if (filter?.classId) {
       query = query.eq('class_id', filter.classId);
+    }
+
+    if (filter?.tags && filter.tags.length > 0) {
+      query = query.contains('tags', filter.tags);
     }
 
     // Apply sorting
@@ -197,6 +204,7 @@ export class SupabaseProblemRepository implements IProblemRepository {
     if (updates.testCases !== undefined) dbUpdates.test_cases = updates.testCases;
     if (updates.executionSettings !== undefined) dbUpdates.execution_settings = updates.executionSettings;
     if (updates.classId !== undefined) dbUpdates.class_id = updates.classId;
+    if (updates.tags !== undefined) dbUpdates.tags = updates.tags;
     if (updates.namespaceId !== undefined) dbUpdates.namespace_id = updates.namespaceId;
     if (updates.authorId !== undefined) dbUpdates.author_id = updates.authorId;
 
@@ -233,7 +241,7 @@ export class SupabaseProblemRepository implements IProblemRepository {
     // Build query with ilike search on title and description
     let dbQuery = supabase
       .from('problems')
-      .select('id, namespace_id, title, test_cases, created_at, author_id, class_id')
+      .select('id, namespace_id, title, test_cases, created_at, author_id, class_id, tags')
       .or(`title.ilike.%${query}%,description.ilike.%${query}%`);
 
     // Apply namespace filter
@@ -250,6 +258,10 @@ export class SupabaseProblemRepository implements IProblemRepository {
 
     if (filter?.classId) {
       dbQuery = dbQuery.eq('class_id', filter.classId);
+    }
+
+    if (filter?.tags && filter.tags.length > 0) {
+      dbQuery = dbQuery.contains('tags', filter.tags);
     }
 
     // Apply sorting
@@ -278,7 +290,7 @@ export class SupabaseProblemRepository implements IProblemRepository {
 
     let query = supabase
       .from('problems')
-      .select('id, namespace_id, title, test_cases, created_at, author_id, class_id')
+      .select('id, namespace_id, title, test_cases, created_at, author_id, class_id, tags')
       .eq('author_id', authorId);
 
     // Apply namespace filter
@@ -291,6 +303,10 @@ export class SupabaseProblemRepository implements IProblemRepository {
     // Apply other filters
     if (filter?.classId) {
       query = query.eq('class_id', filter.classId);
+    }
+
+    if (filter?.tags && filter.tags.length > 0) {
+      query = query.contains('tags', filter.tags);
     }
 
     // Apply sorting
@@ -319,7 +335,7 @@ export class SupabaseProblemRepository implements IProblemRepository {
 
     let query = supabase
       .from('problems')
-      .select('id, namespace_id, title, test_cases, created_at, author_id, class_id')
+      .select('id, namespace_id, title, test_cases, created_at, author_id, class_id, tags')
       .eq('class_id', classId);
 
     // Apply namespace filter
@@ -332,6 +348,10 @@ export class SupabaseProblemRepository implements IProblemRepository {
     // Apply other filters
     if (filter?.authorId) {
       query = query.eq('author_id', filter.authorId);
+    }
+
+    if (filter?.tags && filter.tags.length > 0) {
+      query = query.contains('tags', filter.tags);
     }
 
     // Apply sorting
@@ -373,6 +393,7 @@ export class SupabaseProblemRepository implements IProblemRepository {
       executionSettings: original.executionSettings,
       authorId: original.authorId,
       classId: original.classId,
+      tags: original.tags,
     };
 
     return this.create(problemInput);
