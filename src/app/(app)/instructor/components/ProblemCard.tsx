@@ -9,18 +9,10 @@
 import React, { useState } from 'react';
 import { Card } from '@/components/ui/Card';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
-
-interface Problem {
-  id: string;
-  title: string;
-  description?: string;
-  createdAt: string;
-  authorId: string;
-  tags?: string[];
-}
+import type { ProblemSummary } from '../types';
 
 interface ProblemCardProps {
-  problem: Problem;
+  problem: ProblemSummary;
   viewMode: 'list' | 'grid';
   onView: (problemId: string) => void;
   onEdit: (problemId: string) => void;

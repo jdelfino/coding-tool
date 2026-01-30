@@ -61,6 +61,8 @@ describe('ProblemLibrary', () => {
       description: 'Description 1',
       createdAt: '2025-01-01T00:00:00.000Z',
       authorId: 'user-123',
+      tags: [],
+      classId: 'class-1',
     },
     {
       id: 'problem-2',
@@ -68,6 +70,8 @@ describe('ProblemLibrary', () => {
       description: 'Description 2',
       createdAt: '2025-01-02T00:00:00.000Z',
       authorId: 'user-123',
+      tags: [],
+      classId: 'class-1',
     },
   ];
 

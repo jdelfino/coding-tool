@@ -12,22 +12,7 @@ import { useRouter } from 'next/navigation';
 import ProblemSearch from './ProblemSearch';
 import ProblemCard from './ProblemCard';
 import CreateSessionFromProblemModal from './CreateSessionFromProblemModal';
-
-interface ClassInfo {
-  id: string;
-  name: string;
-  namespaceId: string;
-}
-
-interface Problem {
-  id: string;
-  title: string;
-  description?: string;
-  createdAt: string;
-  authorId: string;
-  tags?: string[];
-  classId?: string;
-}
+import type { ClassInfo, ProblemSummary } from '../types';
 
 interface ProblemLibraryProps {
   onCreateNew?: () => void;
@@ -37,7 +22,7 @@ interface ProblemLibraryProps {
 export default function ProblemLibrary({ onCreateNew, onEdit }: ProblemLibraryProps) {
   const { user } = useAuth();
   const router = useRouter();
-  const [problems, setProblems] = useState<Problem[]>([]);
+  const [problems, setProblems] = useState<ProblemSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 

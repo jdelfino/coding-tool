@@ -12,12 +12,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import type { ProblemInput } from '@/server/types/problem';
-
-interface ClassInfo {
-  id: string;
-  name: string;
-  namespaceId: string;
-}
+import type { ClassInfo } from '../types';
 import CodeEditor from '@/app/(fullscreen)/student/components/CodeEditor';
 import { EditorContainer } from '@/app/(fullscreen)/student/components/EditorContainer';
 import { useDebugger } from '@/hooks/useDebugger';

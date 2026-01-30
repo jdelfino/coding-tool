@@ -14,6 +14,8 @@ describe('ProblemCard', () => {
     description: 'This is a test problem description',
     createdAt: '2025-01-01T00:00:00.000Z',
     authorId: 'user-123',
+    tags: [],
+    classId: 'class-1',
   };
 
   const defaultProps = {
