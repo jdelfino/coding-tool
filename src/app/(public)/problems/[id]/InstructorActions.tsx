@@ -37,7 +37,10 @@ export default function InstructorActions({ problemId, problemTitle }: Instructo
           onClose={() => setShowModal(false)}
           onSuccess={(sessionId) => {
             setShowModal(false);
-            router.push(`/instructor/session/${sessionId}`);
+            const channel = new BroadcastChannel('instructor-session-created');
+            channel.postMessage({ sessionId, problemTitle });
+            channel.close();
+            router.push(`/public-view?sessionId=${sessionId}`);
           }}
         />
       )}
