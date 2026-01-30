@@ -119,7 +119,7 @@ describeE2E('Public View Feature', () => {
 
       // Verify public view loaded
       await expect(publicViewPage.locator(`text=${joinCode}`)).toBeVisible({ timeout: 10000 });
-      await expect(publicViewPage.locator('.cm-editor')).toBeVisible({ timeout: 5000 });
+      await expect(publicViewPage.locator('.monaco-editor')).toBeVisible({ timeout: 5000 });
 
       console.log('Public view opened, shows no submission');
 
