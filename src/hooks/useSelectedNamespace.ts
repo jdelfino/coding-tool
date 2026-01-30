@@ -1,39 +1,32 @@
 /**
  * useSelectedNamespace Hook
- * 
+ *
  * Returns the namespace context for API calls:
  * - For system-admin: Returns the namespace selected in the dropdown (from localStorage)
  * - For other users: Returns their own namespaceId
  */
 
-import { useEffect, useState } from 'react';
+import { useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+
+/**
+ * Compute the namespace synchronously from the current user.
+ * Safe for SSR: falls back to user.namespaceId when window is unavailable.
+ */
+function getInitialNamespace(user: Pick<{ role: string; namespaceId: string | null }, 'role' | 'namespaceId'> | null): string | null {
+  if (!user) return null;
+  if (typeof window === 'undefined') return user.namespaceId;
+  if (user.role === 'system-admin') {
+    const saved = localStorage.getItem('selectedNamespaceId');
+    if (saved === 'all') return null;
+    return saved || user.namespaceId || 'default';
+  }
+  return user.namespaceId;
+}
 
 export function useSelectedNamespace(): string | null {
   const { user } = useAuth();
-  const [selectedNamespaceId, setSelectedNamespaceId] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!user) {
-      setSelectedNamespaceId(null);
-      return;
-    }
-
-    // For system-admin, use the selected namespace from localStorage
-    if (user.role === 'system-admin') {
-      const saved = localStorage.getItem('selectedNamespaceId');
-      if (saved === 'all') {
-        setSelectedNamespaceId(null);
-      } else {
-        setSelectedNamespaceId(saved || user.namespaceId || 'default');
-      }
-    } else {
-      // For other users, use their own namespace
-      setSelectedNamespaceId(user.namespaceId);
-    }
-  }, [user]);
-
-  return selectedNamespaceId;
+  return useMemo(() => getInitialNamespace(user), [user]);
 }
 
 /**
