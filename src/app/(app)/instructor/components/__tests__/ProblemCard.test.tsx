@@ -12,9 +12,7 @@ describe('ProblemCard', () => {
     id: 'problem-123',
     title: 'Test Problem',
     description: 'This is a test problem description',
-    testCases: [{ id: '1' }, { id: '2' }],
     createdAt: '2025-01-01T00:00:00.000Z',
-    updatedAt: '2025-01-02T00:00:00.000Z',
     authorId: 'user-123',
   };
 
@@ -42,30 +40,18 @@ describe('ProblemCard', () => {
       expect(screen.getByText(/This is a test problem description/)).toBeInTheDocument();
     });
 
-    it('displays test case count', () => {
-      render(<ProblemCard {...defaultProps} />);
-      expect(screen.getByText(/2 tests/)).toBeInTheDocument();
-    });
-
-    it('displays singular test for single test case', () => {
-      const problem = { ...mockProblem, testCases: [{ id: '1' }] };
-      render(<ProblemCard {...defaultProps} problem={problem} />);
-      expect(screen.getByText(/1 test$/)).toBeInTheDocument();
-    });
-
     it('displays created date', () => {
       render(<ProblemCard {...defaultProps} />);
       expect(screen.getByText(/Created Jan 1, 2025/)).toBeInTheDocument();
     });
 
-    it('displays updated date if different from created', () => {
+    it('does not display test case count', () => {
       render(<ProblemCard {...defaultProps} />);
-      expect(screen.getByText(/Updated Jan 2, 2025/)).toBeInTheDocument();
+      expect(screen.queryByText(/tests?$/)).not.toBeInTheDocument();
     });
 
-    it('does not display updated date if same as created', () => {
-      const problem = { ...mockProblem, updatedAt: mockProblem.createdAt };
-      render(<ProblemCard {...defaultProps} problem={problem} />);
+    it('does not display updated date', () => {
+      render(<ProblemCard {...defaultProps} />);
       expect(screen.queryByText(/Updated/)).not.toBeInTheDocument();
     });
 
@@ -164,6 +150,11 @@ describe('ProblemCard', () => {
       expect(screen.getByText('Test Problem')).toBeInTheDocument();
     });
 
+    it('displays created date in grid view', () => {
+      render(<ProblemCard {...gridProps} />);
+      expect(screen.getByText(/Jan 1, 2025/)).toBeInTheDocument();
+    });
+
     it('renders all action buttons in grid view', () => {
       render(<ProblemCard {...gridProps} />);
       expect(screen.getByText('View')).toBeInTheDocument();
@@ -197,16 +188,5 @@ describe('ProblemCard', () => {
       expect(screen.queryByText(/^\s+$/)).not.toBeInTheDocument();
     });
 
-    it('handles problem without test cases', () => {
-      const problem = { ...mockProblem, testCases: undefined };
-      render(<ProblemCard {...defaultProps} problem={problem} />);
-      expect(screen.getByText(/0 tests/)).toBeInTheDocument();
-    });
-
-    it('handles problem with empty test cases array', () => {
-      const problem = { ...mockProblem, testCases: [] };
-      render(<ProblemCard {...defaultProps} problem={problem} />);
-      expect(screen.getByText(/0 tests/)).toBeInTheDocument();
-    });
   });
 });

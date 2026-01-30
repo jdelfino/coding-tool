@@ -17,9 +17,7 @@ interface Problem {
   id: string;
   title: string;
   description?: string;
-  testCases?: any[];
   createdAt: string;
-  updatedAt: string;
   authorId: string;
 }
 
@@ -99,7 +97,7 @@ export default function ProblemLibrary({ onCreateNew, onEdit }: ProblemLibraryPr
       } else if (sortBy === 'created') {
         compareValue = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
       } else if (sortBy === 'updated') {
-        compareValue = new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime();
+        compareValue = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
       }
 
       return sortOrder === 'asc' ? compareValue : -compareValue;

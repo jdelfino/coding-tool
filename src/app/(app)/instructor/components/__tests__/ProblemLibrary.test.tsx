@@ -55,18 +55,14 @@ describe('ProblemLibrary', () => {
       id: 'problem-1',
       title: 'Problem 1',
       description: 'Description 1',
-      testCases: [],
       createdAt: '2025-01-01T00:00:00.000Z',
-      updatedAt: '2025-01-01T00:00:00.000Z',
       authorId: 'user-123',
     },
     {
       id: 'problem-2',
       title: 'Problem 2',
       description: 'Description 2',
-      testCases: [],
       createdAt: '2025-01-02T00:00:00.000Z',
-      updatedAt: '2025-01-02T00:00:00.000Z',
       authorId: 'user-123',
     },
   ];
