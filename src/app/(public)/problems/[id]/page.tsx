@@ -9,6 +9,7 @@ import { cache } from 'react';
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getProblemRepository } from '@/server/persistence';
+import { SERVICE_ROLE_MARKER } from '@/server/supabase/client';
 import MarkdownContent from '@/components/MarkdownContent';
 
 type Params = {
@@ -16,7 +17,7 @@ type Params = {
 };
 
 const getProblem = cache(async function getProblem(id: string) {
-  const repo = getProblemRepository(process.env.SUPABASE_SECRET_KEY!);
+  const repo = getProblemRepository(SERVICE_ROLE_MARKER);
   return repo.getById(id);
 });
 
