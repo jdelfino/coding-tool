@@ -342,6 +342,7 @@ function AdminPage() {
                     <Table.Header>
                       <Table.Row>
                         <Table.HeaderCell>Username</Table.HeaderCell>
+                        <Table.HeaderCell>Email</Table.HeaderCell>
                         <Table.HeaderCell>Role</Table.HeaderCell>
                         <Table.HeaderCell>Created</Table.HeaderCell>
                         <Table.HeaderCell align="right">Actions</Table.HeaderCell>
@@ -351,6 +352,7 @@ function AdminPage() {
                       {allUsers.map((u) => (
                         <Table.Row key={u.id}>
                           <Table.Cell>{u.displayName || u.email}</Table.Cell>
+                          <Table.Cell className="text-sm text-gray-500">{u.email}</Table.Cell>
                           <Table.Cell>
                             <Badge variant={getRoleBadgeVariant(u.role)} className="capitalize">
                               {u.role}

@@ -131,6 +131,23 @@ describe('Admin Page - Namespace change reloads data', () => {
   });
 });
 
+describe('Admin Page - All Users table shows email column', () => {
+  it('renders Email column header and email values in All Users table', async () => {
+    render(<AdminPageWrapper />);
+
+    await waitFor(() => {
+      // The All Users inline table should have an Email column header
+      expect(screen.getByText('Email')).toBeInTheDocument();
+    });
+
+    // Each user's email should be visible in the table
+    await waitFor(() => {
+      expect(screen.getByText('a@test.com')).toBeInTheDocument();
+      expect(screen.getByText('b@test.com')).toBeInTheDocument();
+    });
+  });
+});
+
 describe('Admin Page - Overview Stats Panel', () => {
   it('shows stats cards without an Overview tab', async () => {
     render(<AdminPageWrapper />);
