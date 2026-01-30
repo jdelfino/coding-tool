@@ -235,7 +235,6 @@ describe('StudentList', () => {
           {...defaultProps}
           students={students}
           featuredStudentId="student-1"
-          onClearPublicView={mockOnClearPublicView}
         />
       );
 

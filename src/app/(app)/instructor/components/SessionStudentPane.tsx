@@ -211,7 +211,7 @@ export function SessionStudentPane({
           students={filteredStudents}
           onSelectStudent={handleSelectStudent}
           onShowOnPublicView={onShowOnPublicView}
-          onClearPublicView={onClearPublicView}
+
           onViewHistory={onViewHistory}
           joinCode={joinCode}
           featuredStudentId={featuredStudentId}

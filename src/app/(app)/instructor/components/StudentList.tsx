@@ -10,7 +10,7 @@ interface StudentListProps {
   students: Student[];
   onSelectStudent: (studentId: string) => void;
   onShowOnPublicView?: (studentId: string) => void;
-  onClearPublicView?: () => void;
+
   onViewHistory?: (studentId: string, studentName: string) => void;
   joinCode?: string;
   isLoading?: boolean;
@@ -18,7 +18,7 @@ interface StudentListProps {
   headerLabel?: string;
 }
 
-export default function StudentList({ students, onSelectStudent, onShowOnPublicView, onClearPublicView, onViewHistory, joinCode, isLoading = false, featuredStudentId, headerLabel }: StudentListProps) {
+export default function StudentList({ students, onSelectStudent, onShowOnPublicView, onViewHistory, joinCode, isLoading = false, featuredStudentId, headerLabel }: StudentListProps) {
   return (
     <Card variant="default" className="p-4">
       <div className="flex items-center justify-between mb-3">
