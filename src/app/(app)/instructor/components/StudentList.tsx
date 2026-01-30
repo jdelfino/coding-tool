@@ -15,13 +15,14 @@ interface StudentListProps {
   joinCode?: string;
   isLoading?: boolean;
   featuredStudentId?: string | null;
+  headerLabel?: string;
 }
 
-export default function StudentList({ students, onSelectStudent, onShowOnPublicView, onClearPublicView, onViewHistory, joinCode, isLoading = false, featuredStudentId }: StudentListProps) {
+export default function StudentList({ students, onSelectStudent, onShowOnPublicView, onClearPublicView, onViewHistory, joinCode, isLoading = false, featuredStudentId, headerLabel }: StudentListProps) {
   return (
     <Card variant="default" className="p-4">
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-lg font-semibold text-gray-900 m-0">Connected Students ({students.length})</h3>
+        <h3 className="text-lg font-semibold text-gray-900 m-0">{headerLabel || 'Connected Students'} ({students.length})</h3>
         {featuredStudentId && onClearPublicView && (
           <Button
             variant="primary"

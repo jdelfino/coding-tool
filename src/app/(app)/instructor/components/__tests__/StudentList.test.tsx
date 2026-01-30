@@ -70,6 +70,12 @@ describe('StudentList', () => {
       expect(screen.getByText('Connected Students (2)')).toBeInTheDocument();
     });
 
+    it('should display custom header label when provided', () => {
+      render(<StudentList {...defaultProps} students={students} headerLabel="Students with this issue" />);
+
+      expect(screen.getByText('Students with this issue (2)')).toBeInTheDocument();
+    });
+
     it('should display each student name', () => {
       render(<StudentList {...defaultProps} students={students} />);
 

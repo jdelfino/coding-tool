@@ -140,6 +140,11 @@ export function SessionStudentPane({
   // Get the active issue for the selected student's details
   const activeIssue = activeGroup?.issue;
 
+  // Contextual header label for the student list
+  const studentListHeaderLabel = activeGroup && activeGroup.id !== 'all'
+    ? 'Students with this issue'
+    : 'Connected Students';
+
   // Analyze button label
   const analyzeButtonLabel = analysisState === 'loading'
     ? 'Analyzing...'
@@ -210,6 +215,7 @@ export function SessionStudentPane({
           onViewHistory={onViewHistory}
           joinCode={joinCode}
           featuredStudentId={featuredStudentId}
+          headerLabel={studentListHeaderLabel}
         />
       </div>
 
