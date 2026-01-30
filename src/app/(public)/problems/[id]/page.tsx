@@ -51,10 +51,12 @@ export default async function PublicProblemPage({ params }: Params) {
 
   let solutionHtml: string | null = null;
   if (problem.solution) {
-    solutionHtml = await codeToHtml(problem.solution, {
+    const rawHtml = await codeToHtml(problem.solution, {
       lang: 'python',
       theme: 'github-light',
     });
+    // Strip background color from shiki output so copied text has no background
+    solutionHtml = rawHtml.replace(/background-color:\s*#[^;"']+;?/g, '');
   }
 
   const publicUrl = `/problems/${problem.id}`;
@@ -81,7 +83,7 @@ export default async function PublicProblemPage({ params }: Params) {
           <div className="mt-4 relative">
             <CopyButton text={problem.solution!} />
             <div
-              className="rounded-lg overflow-x-auto border border-gray-200 [&_pre]:p-4 [&_pre]:text-sm"
+              className="rounded-lg overflow-x-auto border border-gray-200 [&_pre]:p-4 [&_pre]:text-sm [&_pre]:bg-gray-50"
               dangerouslySetInnerHTML={{ __html: solutionHtml }}
             />
           </div>
