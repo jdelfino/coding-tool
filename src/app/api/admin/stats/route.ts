@@ -42,12 +42,15 @@ export async function GET(request: NextRequest) {
       return acc;
     }, {} as Record<string, number>);
 
-    // Get all sections (to count classes from unique classIds)
-    const allSections = await sectionRepo.listSections();
+    // Get sections, optionally filtered by namespace
+    const allSections = await sectionRepo.listSections(undefined, namespaceId);
     const uniqueClassIds = new Set(allSections.map(s => s.classId));
 
-    // Get session count from storage
-    const sessionCount = await storage.sessions.countSessions();
+    // Get session count, optionally filtered by namespace
+    // countSessions doesn't support namespace filtering, so use listActiveSessions when filtered
+    const sessionCount = namespaceId
+      ? (await storage.sessions.listActiveSessions(namespaceId)).length
+      : await storage.sessions.countSessions();
 
     const stats = {
       users: {
