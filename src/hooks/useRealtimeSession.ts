@@ -91,6 +91,7 @@ export function useRealtimeSession({
   const [session, setSession] = useState<Partial<Session> | null>(null);
   const [students, setStudents] = useState<Map<string, Student>>(new Map());
   const [featuredStudent, setFeaturedStudent] = useState<FeaturedStudent>({});
+  const [replacementInfo, setReplacementInfo] = useState<{ newSessionId: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -208,6 +209,12 @@ export function useRealtimeSession({
 
       // Set featured student
       setFeaturedStudent(data.featuredStudent || {});
+
+      // Check for session replacement via polling fallback
+      if (data.session?.replacedBySessionId) {
+        setReplacementInfo({ newSessionId: data.session.replacedBySessionId });
+      }
+
       setError(null);
     } catch (e: any) {
       console.error('[useRealtimeSession] Failed to fetch state:', e);
@@ -309,6 +316,16 @@ export function useRealtimeSession({
             studentId: featuredStudentId,
             code: featuredCode,
           });
+        }
+      })
+      .on('broadcast', { event: 'session_replaced' }, (payload) => {
+        if (payload.payload) {
+          const { newSessionId } = payload.payload;
+          setReplacementInfo({ newSessionId });
+          setSession(prev => prev ? {
+            ...prev,
+            status: 'completed',
+          } : prev);
         }
       })
       .on('broadcast', { event: 'problem_updated' }, (payload) => {
@@ -547,6 +564,7 @@ export function useRealtimeSession({
     session,
     students: Array.from(students.values()),
     featuredStudent,
+    replacementInfo,
     loading,
     error,
 

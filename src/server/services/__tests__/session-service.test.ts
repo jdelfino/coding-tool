@@ -14,6 +14,7 @@ import {
   reopenSession,
   cloneProblem,
   createEmptyProblem,
+  endActiveSessionIfExists,
 } from '../session-service';
 import { Session } from '@/server/types';
 import { Problem } from '@/server/types/problem';
@@ -96,13 +97,13 @@ describe('session-service', () => {
       ).rejects.toThrow('Section bad-section not found');
     });
 
-    it('enforces single active session per user', async () => {
+    it('does not throw when active session exists', async () => {
       const storage = createMockStorage();
       storage.sessions.listAllSessions.mockResolvedValue([{ id: 'existing' }]);
 
-      await expect(
-        createSession(storage as any, 'instructor-1', 'section-1', 'default')
-      ).rejects.toThrow('Cannot create session: User already has 1 active session');
+      // Should succeed without throwing
+      const session = await createSession(storage as any, 'instructor-1', 'section-1', 'default');
+      expect(session.status).toBe('active');
     });
   });
 
@@ -435,6 +436,31 @@ describe('session-service', () => {
           endedAt: expect.any(Date),
         })
       );
+    });
+  });
+
+  describe('endActiveSessionIfExists', () => {
+    it('returns old session ID when active session exists', async () => {
+      const storage = createMockStorage();
+      storage.sessions.listAllSessions.mockResolvedValue([{ id: 'old-session-1' }]);
+
+      const result = await endActiveSessionIfExists(storage as any, 'instructor-1', 'default');
+
+      expect(result).toBe('old-session-1');
+      expect(storage.sessions.updateSession).toHaveBeenCalledWith(
+        'old-session-1',
+        expect.objectContaining({ status: 'completed', endedAt: expect.any(Date) })
+      );
+    });
+
+    it('returns undefined when no active session', async () => {
+      const storage = createMockStorage();
+      storage.sessions.listAllSessions.mockResolvedValue([]);
+
+      const result = await endActiveSessionIfExists(storage as any, 'instructor-1', 'default');
+
+      expect(result).toBeUndefined();
+      expect(storage.sessions.updateSession).not.toHaveBeenCalled();
     });
   });
 

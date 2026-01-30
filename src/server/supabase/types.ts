@@ -448,6 +448,7 @@ export type Database = {
           namespace_id: string
           participants: string[]
           problem: Json
+          replaced_by_session_id: string | null
           section_id: string
           section_name: string
           status: string
@@ -463,6 +464,7 @@ export type Database = {
           namespace_id: string
           participants?: string[]
           problem: Json
+          replaced_by_session_id?: string | null
           section_id: string
           section_name: string
           status?: string
@@ -478,6 +480,7 @@ export type Database = {
           namespace_id?: string
           participants?: string[]
           problem?: Json
+          replaced_by_session_id?: string | null
           section_id?: string
           section_name?: string
           status?: string

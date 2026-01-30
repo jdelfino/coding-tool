@@ -218,6 +218,23 @@ describe('GET /api/sessions/[id]/state', () => {
     expect(data.students).toEqual([]);
   });
 
+  it('includes replacedBySessionId in session response when present', async () => {
+    mockGetAuthenticatedUserWithToken.mockResolvedValue({ user: mockUser, accessToken: 'test-token' });
+    mockStorage.sessions.getSession.mockResolvedValue({
+      ...mockSession,
+      replacedBySessionId: 'new-session-id',
+    });
+
+    const request = new NextRequest('http://localhost:3000/api/sessions/session-1/state');
+    const params = Promise.resolve({ id: 'session-1' });
+
+    const response = await GET(request, { params });
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.session.replacedBySessionId).toBe('new-session-id');
+  });
+
   it('returns 500 on server error', async () => {
     mockGetAuthenticatedUserWithToken.mockResolvedValue({ user: mockUser, accessToken: 'test-token' });
     mockStorage.sessions.getSession.mockRejectedValue(new Error('Database error'));
