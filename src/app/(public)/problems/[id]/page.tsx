@@ -70,7 +70,7 @@ export default async function PublicProblemPage({ params }: Params) {
         Link to this problem
       </a>
 
-      <InstructorActions problemId={problem.id} problemTitle={problem.title} />
+      <InstructorActions problemId={problem.id} problemTitle={problem.title} classId={problem.classId} />
 
       {problem.description && (
         <div className="mb-8">

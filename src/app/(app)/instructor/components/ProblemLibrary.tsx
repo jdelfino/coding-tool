@@ -40,7 +40,7 @@ export default function ProblemLibrary({ onCreateNew, onEdit }: ProblemLibraryPr
 
   // Session creation modal state
   const [showSessionModal, setShowSessionModal] = useState(false);
-  const [selectedProblemForSession, setSelectedProblemForSession] = useState<{ id: string; title: string } | null>(null);
+  const [selectedProblemForSession, setSelectedProblemForSession] = useState<{ id: string; title: string; classId: string } | null>(null);
 
   // Load classes on mount
   useEffect(() => {
@@ -216,7 +216,7 @@ export default function ProblemLibrary({ onCreateNew, onEdit }: ProblemLibraryPr
       return;
     }
 
-    setSelectedProblemForSession({ id: problem.id, title: problem.title });
+    setSelectedProblemForSession({ id: problem.id, title: problem.title, classId: problem.classId });
     setShowSessionModal(true);
   };
 
@@ -370,6 +370,8 @@ export default function ProblemLibrary({ onCreateNew, onEdit }: ProblemLibraryPr
         <CreateSessionFromProblemModal
           problemId={selectedProblemForSession.id}
           problemTitle={selectedProblemForSession.title}
+          classId={selectedProblemForSession.classId}
+          className={classes.find(c => c.id === selectedProblemForSession.classId)?.name}
           onClose={handleCloseSessionModal}
           onSuccess={handleSessionCreated}
         />

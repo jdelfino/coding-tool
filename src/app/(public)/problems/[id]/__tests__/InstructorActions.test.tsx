@@ -40,7 +40,7 @@ describe('InstructorActions', () => {
   });
 
   it('redirects to public-view after session creation', () => {
-    render(<InstructorActions problemId="prob-1" problemTitle="Test Problem" />);
+    render(<InstructorActions problemId="prob-1" problemTitle="Test Problem" classId="class-1" />);
 
     fireEvent.click(screen.getByText('Start Session'));
     fireEvent.click(screen.getByText('Confirm'));
@@ -58,7 +58,7 @@ describe('InstructorActions', () => {
     }));
     (globalThis as Record<string, unknown>).BroadcastChannel = MockBroadcastChannel;
 
-    render(<InstructorActions problemId="prob-1" problemTitle="Test Problem" />);
+    render(<InstructorActions problemId="prob-1" problemTitle="Test Problem" classId="class-1" />);
 
     fireEvent.click(screen.getByText('Start Session'));
     fireEvent.click(screen.getByText('Confirm'));

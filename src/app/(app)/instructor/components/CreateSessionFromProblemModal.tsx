@@ -4,11 +4,10 @@
  * Create Session From Problem Modal
  * 
  * Modal that allows instructors to create a session from a problem.
- * Requires selecting a class and section before creating the session.
+ * The class is pre-filled from the problem (read-only). The instructor only selects a section.
  */
 
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
 import type { ClassInfo } from '../types';
 
 interface SectionInfo {
@@ -22,6 +21,8 @@ interface SectionInfo {
 interface CreateSessionFromProblemModalProps {
   problemId: string;
   problemTitle: string;
+  classId: string;
+  className?: string;
   onClose: () => void;
   onSuccess: (sessionId: string, joinCode: string) => void;
 }
@@ -29,62 +30,44 @@ interface CreateSessionFromProblemModalProps {
 export default function CreateSessionFromProblemModal({
   problemId,
   problemTitle,
+  classId,
+  className: classNameProp,
   onClose,
   onSuccess,
 }: CreateSessionFromProblemModalProps) {
-  const { user } = useAuth();
-  const [classes, setClasses] = useState<ClassInfo[]>([]);
   const [sections, setSections] = useState<SectionInfo[]>([]);
-  const [selectedClassId, setSelectedClassId] = useState<string>('');
   const [selectedSectionId, setSelectedSectionId] = useState<string>('');
   const [loading, setLoading] = useState(false);
-  const [loadingClasses, setLoadingClasses] = useState(true);
   const [loadingSections, setLoadingSections] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [resolvedClassName, setResolvedClassName] = useState<string>(classNameProp || '');
 
   useEffect(() => {
-    loadClasses();
-  }, [user]);
+    loadSections(classId);
+  }, [classId]);
 
-  useEffect(() => {
-    if (selectedClassId) {
-      loadSections(selectedClassId);
-    } else {
-      setSections([]);
-      setSelectedSectionId('');
-    }
-  }, [selectedClassId]);
-
-  const loadClasses = async () => {
-    if (!user) return;
-
-    try {
-      setLoadingClasses(true);
-      const response = await fetch('/api/classes');
-      if (!response.ok) {
-        throw new Error('Failed to load classes');
-      }
-      const data = await response.json();
-      setClasses(data.classes || []);
-      setError(null);
-    } catch (err) {
-      console.error('Error loading classes:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load classes');
-    } finally {
-      setLoadingClasses(false);
-    }
-  };
-
-  const loadSections = async (classId: string) => {
+  const loadSections = async (targetClassId: string) => {
     try {
       setLoadingSections(true);
-      const response = await fetch(`/api/classes/${classId}/sections`);
+      const response = await fetch(`/api/classes/${targetClassId}/sections`);
       if (!response.ok) {
         throw new Error('Failed to load sections');
       }
       const data = await response.json();
       setSections(data.sections || []);
-      setSelectedSectionId(''); // Reset section selection when class changes
+      setSelectedSectionId('');
+
+      // Resolve class name if not provided via props
+      if (!classNameProp) {
+        const classesResponse = await fetch('/api/classes');
+        if (classesResponse.ok) {
+          const classesData = await classesResponse.json();
+          const cls = (classesData.classes || []).find((c: ClassInfo) => c.id === targetClassId);
+          if (cls) {
+            setResolvedClassName(cls.name);
+          }
+        }
+      }
     } catch (err) {
       console.error('Error loading sections:', err);
       setError(err instanceof Error ? err.message : 'Failed to load sections');
@@ -103,14 +86,6 @@ export default function CreateSessionFromProblemModal({
       setLoading(true);
       setError(null);
 
-      // Get the problem details first
-      const problemResponse = await fetch(`/api/problems/${problemId}`);
-      if (!problemResponse.ok) {
-        throw new Error('Failed to load problem');
-      }
-      const { problem } = await problemResponse.json();
-
-      // Create the session with the problem
       const createResponse = await fetch('/api/sessions', {
         method: 'POST',
         headers: {
@@ -137,7 +112,6 @@ export default function CreateSessionFromProblemModal({
     }
   };
 
-  const selectedClass = classes.find(c => c.id === selectedClassId);
   const selectedSection = sections.find(s => s.id === selectedSectionId);
 
   return (
@@ -168,38 +142,18 @@ export default function CreateSessionFromProblemModal({
         )}
 
         <div className="space-y-4">
-          {/* Class Selection */}
-          <div>
-            <label htmlFor="class" className="block text-sm font-medium text-gray-700 mb-2">
-              Select Class *
-            </label>
-            {loadingClasses ? (
-              <div className="text-sm text-gray-500">Loading classes...</div>
-            ) : classes.length === 0 ? (
-              <div className="text-sm text-gray-500">
-                No classes found. <a href="/classes" className="text-blue-600 hover:underline">Create one first</a>.
+          {/* Class (read-only — problem belongs to this class) */}
+          {resolvedClassName && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Class</label>
+              <div className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-gray-900">
+                {resolvedClassName}
               </div>
-            ) : (
-              <select
-                id="class"
-                value={selectedClassId}
-                onChange={(e) => setSelectedClassId(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                disabled={loading}
-              >
-                <option value="">-- Select a class --</option>
-                {classes.map((cls) => (
-                  <option key={cls.id} value={cls.id}>
-                    {cls.name}
-                  </option>
-                ))}
-              </select>
-            )}
-          </div>
+            </div>
+          )}
 
           {/* Section Selection */}
-          {selectedClassId && (
-            <div>
+          <div>
               <label htmlFor="section" className="block text-sm font-medium text-gray-700 mb-2">
                 Select Section *
               </label>
@@ -226,7 +180,6 @@ export default function CreateSessionFromProblemModal({
                 </select>
               )}
             </div>
-          )}
 
           {/* Summary */}
           {selectedSection && (
@@ -239,7 +192,7 @@ export default function CreateSessionFromProblemModal({
                 </div>
                 <div className="flex justify-between">
                   <dt className="text-blue-700">Class:</dt>
-                  <dd className="font-medium text-blue-900">{selectedClass?.name}</dd>
+                  <dd className="font-medium text-blue-900">{resolvedClassName}</dd>
                 </div>
                 <div className="flex justify-between">
                   <dt className="text-blue-700">Section:</dt>

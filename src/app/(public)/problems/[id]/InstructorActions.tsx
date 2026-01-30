@@ -8,9 +8,10 @@ import CreateSessionFromProblemModal from '@/app/(app)/instructor/components/Cre
 interface InstructorActionsProps {
   problemId: string;
   problemTitle: string;
+  classId: string;
 }
 
-export default function InstructorActions({ problemId, problemTitle }: InstructorActionsProps) {
+export default function InstructorActions({ problemId, problemTitle, classId }: InstructorActionsProps) {
   const { user, isLoading } = useAuth();
   const [showModal, setShowModal] = useState(false);
   const router = useRouter();
@@ -34,6 +35,7 @@ export default function InstructorActions({ problemId, problemTitle }: Instructo
         <CreateSessionFromProblemModal
           problemId={problemId}
           problemTitle={problemTitle}
+          classId={classId}
           onClose={() => setShowModal(false)}
           onSuccess={(sessionId) => {
             setShowModal(false);
