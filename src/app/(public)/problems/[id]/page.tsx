@@ -14,6 +14,7 @@ import { getProblemRepository } from '@/server/persistence';
 import { SERVICE_ROLE_MARKER } from '@/server/supabase/client';
 import MarkdownContent from '@/components/MarkdownContent';
 import SolutionBlock from './SolutionBlock';
+import InstructorActions from './InstructorActions';
 
 type Params = {
   params: Promise<{ id: string }>;
@@ -65,9 +66,11 @@ export default async function PublicProblemPage({ params }: Params) {
     <div className="max-w-3xl mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold text-gray-900 mb-2">{problem.title}</h1>
 
-      <a href={publicUrl} className="text-sm text-blue-600 hover:underline mb-6 inline-block">
+      <a href={publicUrl} className="text-sm text-blue-600 hover:underline mb-4 inline-block">
         Link to this problem
       </a>
+
+      <InstructorActions problemId={problem.id} problemTitle={problem.title} />
 
       {problem.description && (
         <div className="mb-8">

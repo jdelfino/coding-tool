@@ -28,6 +28,12 @@ jest.mock('shiki', () => ({
   ),
 }));
 
+jest.mock('../InstructorActions', () => {
+  return function MockInstructorActions() {
+    return <div data-testid="instructor-actions" />;
+  };
+});
+
 jest.mock('../SolutionBlock', () => {
   return function MockSolutionBlock({ html }: { html: string }) {
     return <div data-testid="solution-block" dangerouslySetInnerHTML={{ __html: html }} />;
