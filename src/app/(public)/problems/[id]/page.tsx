@@ -8,7 +8,7 @@
 import { cache } from 'react';
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { createStorage } from '@/server/persistence';
+import { getProblemRepository } from '@/server/persistence';
 import MarkdownContent from '@/components/MarkdownContent';
 
 type Params = {
@@ -16,8 +16,8 @@ type Params = {
 };
 
 const getProblem = cache(async function getProblem(id: string) {
-  const storage = await createStorage(process.env.SUPABASE_SECRET_KEY!);
-  return storage.problems.getById(id);
+  const repo = getProblemRepository(process.env.SUPABASE_SECRET_KEY!);
+  return repo.getById(id);
 });
 
 export async function generateMetadata({ params }: Params): Promise<Metadata> {

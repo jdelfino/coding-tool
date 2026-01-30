@@ -4,7 +4,7 @@
  * Tests:
  * - Renders problem title, description, and solution
  * - Solution is in a collapsed details element
- * - Shows 'Open in Classroom' link
+ * - Does not render 'Open in Classroom' link
  * - generateMetadata returns correct title and OG tags
  * - Handles missing problems with notFound()
  */
@@ -12,7 +12,7 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import PublicProblemPage, { generateMetadata } from '../page';
-import { createStorage } from '@/server/persistence';
+import { getProblemRepository } from '@/server/persistence';
 import { notFound } from 'next/navigation';
 
 jest.mock('@/server/persistence');
@@ -29,8 +29,12 @@ jest.mock('@/components/MarkdownContent', () => {
   };
 });
 
-const mockCreateStorage = createStorage as jest.MockedFunction<typeof createStorage>;
+const mockGetProblemRepository = getProblemRepository as jest.MockedFunction<typeof getProblemRepository>;
 const mockNotFound = notFound as jest.MockedFunction<typeof notFound>;
+
+function mockRepo(getById: jest.Mock) {
+  mockGetProblemRepository.mockReturnValue({ getById } as any);
+}
 
 describe('Public Problem Page', () => {
   const mockProblem = {
@@ -54,9 +58,7 @@ describe('Public Problem Page', () => {
 
   describe('page rendering', () => {
     it('renders problem title as h1', async () => {
-      mockCreateStorage.mockResolvedValue({
-        problems: { getById: jest.fn().mockResolvedValue(mockProblem) },
-      } as any);
+      mockRepo(jest.fn().mockResolvedValue(mockProblem));
 
       const page = await PublicProblemPage({ params: Promise.resolve({ id: 'problem-123' }) });
       render(page);
@@ -65,9 +67,7 @@ describe('Public Problem Page', () => {
     });
 
     it('renders problem description via MarkdownContent', async () => {
-      mockCreateStorage.mockResolvedValue({
-        problems: { getById: jest.fn().mockResolvedValue(mockProblem) },
-      } as any);
+      mockRepo(jest.fn().mockResolvedValue(mockProblem));
 
       const page = await PublicProblemPage({ params: Promise.resolve({ id: 'problem-123' }) });
       render(page);
@@ -76,9 +76,7 @@ describe('Public Problem Page', () => {
     });
 
     it('renders solution in a collapsed details element', async () => {
-      mockCreateStorage.mockResolvedValue({
-        problems: { getById: jest.fn().mockResolvedValue(mockProblem) },
-      } as any);
+      mockRepo(jest.fn().mockResolvedValue(mockProblem));
 
       const page = await PublicProblemPage({ params: Promise.resolve({ id: 'problem-123' }) });
       render(page);
@@ -90,9 +88,7 @@ describe('Public Problem Page', () => {
     });
 
     it('does not render Open in Classroom link', async () => {
-      mockCreateStorage.mockResolvedValue({
-        problems: { getById: jest.fn().mockResolvedValue(mockProblem) },
-      } as any);
+      mockRepo(jest.fn().mockResolvedValue(mockProblem));
 
       const page = await PublicProblemPage({ params: Promise.resolve({ id: 'problem-123' }) });
       render(page);
@@ -102,9 +98,7 @@ describe('Public Problem Page', () => {
     });
 
     it('calls notFound for missing problem', async () => {
-      mockCreateStorage.mockResolvedValue({
-        problems: { getById: jest.fn().mockResolvedValue(null) },
-      } as any);
+      mockRepo(jest.fn().mockResolvedValue(null));
 
       await expect(
         PublicProblemPage({ params: Promise.resolve({ id: 'nonexistent' }) })
@@ -116,9 +110,7 @@ describe('Public Problem Page', () => {
 
   describe('generateMetadata', () => {
     it('returns correct title and OG tags', async () => {
-      mockCreateStorage.mockResolvedValue({
-        problems: { getById: jest.fn().mockResolvedValue(mockProblem) },
-      } as any);
+      mockRepo(jest.fn().mockResolvedValue(mockProblem));
 
       const metadata = await generateMetadata({ params: Promise.resolve({ id: 'problem-123' }) });
 
@@ -129,9 +121,7 @@ describe('Public Problem Page', () => {
     });
 
     it('returns fallback metadata for missing problem', async () => {
-      mockCreateStorage.mockResolvedValue({
-        problems: { getById: jest.fn().mockResolvedValue(null) },
-      } as any);
+      mockRepo(jest.fn().mockResolvedValue(null));
 
       const metadata = await generateMetadata({ params: Promise.resolve({ id: 'nonexistent' }) });
 
