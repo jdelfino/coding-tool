@@ -224,6 +224,7 @@ function PublicViewContent() {
             title="Featured Code"
             useApiExecution={true}
             debugger={debuggerHook}
+            forceDesktop={true}
           />
         </div>
       ) : (

@@ -484,6 +484,36 @@ describe('CodeEditor Responsive Layout', () => {
     });
   });
 
+  describe('forceDesktop prop', () => {
+    it('should use desktop layout even when hooks report mobile viewport', () => {
+      const { useResponsiveLayout, useMobileViewport } = require('@/hooks/useResponsiveLayout');
+      useResponsiveLayout.mockReturnValue(false); // Hook says mobile
+      useMobileViewport.mockReturnValue({
+        isMobile: true,
+        isTablet: false,
+        isVerySmall: false,
+        isDesktop: false,
+        width: 600,
+      });
+
+      const { container } = render(
+        <CodeEditor
+          code="print('hello')"
+          onChange={jest.fn()}
+          forceDesktop={true}
+        />
+      );
+
+      // Mobile toggle buttons should NOT be rendered
+      expect(screen.queryByTestId('mobile-show-code')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('mobile-show-output')).not.toBeInTheDocument();
+
+      // Desktop activity bar should be present
+      const activityBar = container.querySelector('.w-12.bg-gray-800');
+      expect(activityBar).toBeInTheDocument();
+    });
+  });
+
   describe('Resize Handle Desktop Only', () => {
     it('should render resize handle on desktop', () => {
       const { useResponsiveLayout, useSidebarSection, useMobileViewport } = require('@/hooks/useResponsiveLayout');

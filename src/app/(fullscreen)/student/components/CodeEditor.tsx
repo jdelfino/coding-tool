@@ -40,6 +40,7 @@ interface CodeEditorProps {
   debugger?: ReturnType<typeof import('@/hooks/useDebugger').useDebugger>;
   onProblemEdit?: (updates: { title?: string; description?: string }) => void;
   editableProblem?: boolean;
+  forceDesktop?: boolean;
 }
 
 export default function CodeEditor({
@@ -64,6 +65,7 @@ export default function CodeEditor({
   debugger: debuggerHook,
   onProblemEdit,
   editableProblem = false,
+  forceDesktop = false,
 }: CodeEditorProps) {
   const editorRef = useRef<any>(null);
   const [stdin, setStdin] = useState('');
@@ -75,8 +77,10 @@ export default function CodeEditor({
   const isReadOnly = readOnly || (debuggerHook?.hasTrace ?? false);
 
   // Responsive layout detection
-  const isDesktop = useResponsiveLayout(1024);
-  const mobileViewport = useMobileViewport();
+  const _isDesktop = useResponsiveLayout(1024);
+  const _mobileViewport = useMobileViewport();
+  const isDesktop = forceDesktop ? true : _isDesktop;
+  const mobileViewport = forceDesktop ? { isMobile: false, isTablet: false, isVerySmall: false, isDesktop: true, width: 1920 } : _mobileViewport;
   const { isCollapsed: isSettingsCollapsed, toggle: toggleSettings, setCollapsed: setSettingsCollapsed } = useSidebarSection('execution-settings', false);
   const { isCollapsed: isProblemCollapsed, toggle: toggleProblem, setCollapsed: setProblemCollapsed } = useSidebarSection('problem-panel', false);
   const { isCollapsed: isDebuggerCollapsed, toggle: toggleDebugger, setCollapsed: setDebuggerCollapsed } = useSidebarSection('debugger-panel', true);
