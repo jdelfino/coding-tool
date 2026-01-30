@@ -234,7 +234,7 @@ REFERENCE DIRS: <key directories in the existing codebase to compare against>
 
 After all issues resolved, re-run quality gates.
 
-### 5. Create PR
+### 5. Create PR and Hand Off
 
 ```bash
 cd ../coding-tool-<work-name>
@@ -258,38 +258,28 @@ gh pr create --title "<type>: <title>" --body "$(cat <<'EOF'
 - [ ] Tests pass
 - [ ] <manual verification steps if any>
 
+Beads: <comma-separated list of all beads issue IDs included in this PR>
+
 Generated with Claude Code
 EOF
 )"
 ```
 
-### 6. Watch CI and Merge
+**After creating the PR:**
 
-```bash
-gh pr checks <pr-number> --watch
-```
+1. If user indicated review needed: request review
+   ```bash
+   gh pr edit <number> --add-reviewer <username>
+   ```
+2. Label beads issues as `in-pr`:
+   ```bash
+   bd update <id> --set-labels in-pr --json
+   ```
+3. Report: "PR #X opened. `/merge` will handle CI and merging."
 
-If CI fails: read logs, fix locally, commit, push, wait again.
+**Do NOT** watch CI, merge, or wait for approval. The `/merge` agent handles all of that.
 
-After CI passes:
-> "All CI checks pass on PR #X. Ready to merge?"
-
-**WAIT for explicit user approval before merging.**
-
-```bash
-gh pr merge <number> --squash
-
-# Cleanup
-cd /workspaces/coding-tool
-git worktree remove ../coding-tool-<work-name>
-git branch -d feature/<work-name>
-git pull origin main
-```
-
-Close epic if applicable:
-```bash
-bd close <epic-id> --reason "Merged in PR #<number>" --json
-```
+**Do NOT** clean up worktrees or branches. The `/merge` agent does this after successful merge, since worktrees may be needed for rebases.
 
 ---
 
@@ -299,7 +289,8 @@ bd close <epic-id> --reason "Merged in PR #<number>" --json
 - Parallelizing tasks that touch same files
 - Creating PR before running specialized reviews
 - Creating PR with failing tests
-- Merging without user approval
-- Leaving orphaned worktrees/branches
+- Merging PRs (that's `/merge`'s job)
+- Watching CI (that's `/merge`'s job)
+- Cleaning up worktrees before merge (that's `/merge`'s job)
 - Running npm install concurrently in multiple worktrees
 - Fixing non-trivial review issues inline — file issues and spawn implementers instead
