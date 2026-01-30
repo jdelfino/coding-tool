@@ -1,13 +1,15 @@
 /**
  * Public problem page (unauthenticated)
  *
- * Displays problem title, description, and a click-to-reveal solution.
+ * Displays problem title, description, and a click-to-reveal solution
+ * with syntax highlighting. Includes a self-link for copy/paste into slides.
  * Server-rendered with OG meta tags for link previews.
  */
 
 import { cache } from 'react';
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
+import { codeToHtml } from 'shiki';
 import { getProblemRepository } from '@/server/persistence';
 import { SERVICE_ROLE_MARKER } from '@/server/supabase/client';
 import MarkdownContent from '@/components/MarkdownContent';
@@ -46,9 +48,23 @@ export default async function PublicProblemPage({ params }: Params) {
     notFound();
   }
 
+  let solutionHtml: string | null = null;
+  if (problem.solution) {
+    solutionHtml = await codeToHtml(problem.solution, {
+      lang: 'python',
+      theme: 'github-dark',
+    });
+  }
+
+  const publicUrl = `/problems/${problem.id}`;
+
   return (
     <div className="max-w-3xl mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold text-gray-900 mb-6">{problem.title}</h1>
+      <h1 className="text-3xl font-bold text-gray-900 mb-2">{problem.title}</h1>
+
+      <a href={publicUrl} className="text-sm text-blue-600 hover:underline mb-6 block">
+        {publicUrl}
+      </a>
 
       {problem.description && (
         <div className="mb-8">
@@ -56,14 +72,15 @@ export default async function PublicProblemPage({ params }: Params) {
         </div>
       )}
 
-      {problem.solution && (
+      {solutionHtml && (
         <details className="mb-8">
           <summary className="cursor-pointer text-lg font-semibold text-gray-700 hover:text-gray-900 select-none">
             Show Solution
           </summary>
-          <pre className="mt-4 bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto">
-            <code className="text-sm font-mono">{problem.solution}</code>
-          </pre>
+          <div
+            className="mt-4 rounded-lg overflow-x-auto [&_pre]:p-4 [&_pre]:text-sm"
+            dangerouslySetInnerHTML={{ __html: solutionHtml }}
+          />
         </details>
       )}
 

@@ -3,8 +3,8 @@
  *
  * Tests:
  * - Renders problem title, description, and solution
- * - Solution is in a collapsed details element
- * - Does not render 'Open in Classroom' link
+ * - Solution is in a collapsed details element with syntax highlighting
+ * - Renders self-link for copy/paste
  * - generateMetadata returns correct title and OG tags
  * - Handles missing problems with notFound()
  */
@@ -20,6 +20,12 @@ jest.mock('next/navigation', () => ({
   notFound: jest.fn(() => {
     throw new Error('NEXT_NOT_FOUND');
   }),
+}));
+
+jest.mock('shiki', () => ({
+  codeToHtml: jest.fn((code: string) =>
+    Promise.resolve(`<pre class="shiki"><code>${code}</code></pre>`)
+  ),
 }));
 
 // MarkdownContent is a client component; mock it
@@ -41,7 +47,7 @@ describe('Public Problem Page', () => {
     id: 'problem-123',
     title: 'Two Sum',
     description: 'Find two numbers that add up to a target.',
-    solution: 'def two_sum(nums, target):\n    lookup = {}\n    for i, n in enumerate(nums):\n        if target - n in lookup:\n            return [lookup[target-n], i]\n        lookup[n] = i',
+    solution: 'def two_sum(nums, target):\n    lookup = {}',
     starterCode: 'def two_sum():\n    pass',
     testCases: [],
     authorId: 'user-1',
@@ -66,6 +72,17 @@ describe('Public Problem Page', () => {
       expect(screen.getByRole('heading', { level: 1, name: 'Two Sum' })).toBeInTheDocument();
     });
 
+    it('renders self-link with problem path', async () => {
+      mockRepo(jest.fn().mockResolvedValue(mockProblem));
+
+      const page = await PublicProblemPage({ params: Promise.resolve({ id: 'problem-123' }) });
+      render(page);
+
+      const link = screen.getByRole('link', { name: /\/problems\/problem-123/ });
+      expect(link).toBeInTheDocument();
+      expect(link).toHaveAttribute('href', '/problems/problem-123');
+    });
+
     it('renders problem description via MarkdownContent', async () => {
       mockRepo(jest.fn().mockResolvedValue(mockProblem));
 
@@ -87,14 +104,18 @@ describe('Public Problem Page', () => {
       expect(screen.getByText(/solution/i, { selector: 'summary' })).toBeInTheDocument();
     });
 
-    it('does not render Open in Classroom link', async () => {
+    it('renders syntax-highlighted solution via shiki', async () => {
+      const { codeToHtml } = require('shiki');
       mockRepo(jest.fn().mockResolvedValue(mockProblem));
 
       const page = await PublicProblemPage({ params: Promise.resolve({ id: 'problem-123' }) });
       render(page);
 
-      const link = screen.queryByRole('link', { name: /open in classroom/i });
-      expect(link).not.toBeInTheDocument();
+      expect(codeToHtml).toHaveBeenCalledWith(mockProblem.solution, {
+        lang: 'python',
+        theme: 'github-dark',
+      });
+      expect(document.querySelector('.shiki')).toBeInTheDocument();
     });
 
     it('calls notFound for missing problem', async () => {
