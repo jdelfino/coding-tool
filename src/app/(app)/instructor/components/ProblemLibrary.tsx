@@ -107,16 +107,18 @@ export default function ProblemLibrary({ onCreateNew, onEdit }: ProblemLibraryPr
   }, [problems, searchQuery, sortBy, sortOrder]);
 
   const handleView = (problemId: string) => {
-    // Navigate to problem view page
-    window.location.href = `/instructor/problems/${problemId}`;
+    if (onEdit) {
+      onEdit(problemId);
+    } else {
+      router.push(`/instructor/problems`);
+    }
   };
 
   const handleEdit = (problemId: string) => {
     if (onEdit) {
       onEdit(problemId);
     } else {
-      // Fallback to navigation for backward compatibility
-      window.location.href = `/instructor/problems/${problemId}/edit`;
+      router.push(`/instructor/problems`);
     }
   };
 
