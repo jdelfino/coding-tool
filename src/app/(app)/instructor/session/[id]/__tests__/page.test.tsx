@@ -132,6 +132,7 @@ describe('InstructorSessionPage', () => {
     executeCode: mockExecuteCode,
     featureStudent: mockFeatureStudent,
     clearFeaturedStudent: mockClearFeaturedStudent,
+    replacementInfo: null,
   };
 
   const defaultSessionOperationsReturn = {
@@ -230,6 +231,22 @@ describe('InstructorSessionPage', () => {
       render(<InstructorSessionPage />);
 
       expect(screen.getByTestId('session-view')).toBeInTheDocument();
+    });
+
+    it('shows new session banner with link when session was replaced', () => {
+      (useRealtimeSession as jest.Mock).mockReturnValue({
+        ...defaultRealtimeSessionReturn,
+        session: { ...mockSession, status: 'completed' },
+        replacementInfo: { newSessionId: 'new-session-456' },
+      });
+
+      render(<InstructorSessionPage />);
+
+      expect(screen.getByText(/A new session has been started/)).toBeInTheDocument();
+      expect(screen.getByTestId('go-to-new-session-btn')).toBeInTheDocument();
+
+      fireEvent.click(screen.getByTestId('go-to-new-session-btn'));
+      expect(mockPush).toHaveBeenCalledWith('/instructor/session/new-session-456');
     });
 
     it('suppresses connection errors when session is ended', () => {
