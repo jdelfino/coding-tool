@@ -98,7 +98,7 @@ export default function SessionsList({ onRejoinSession, onEndSession, onViewDeta
       // Call API to end session
       try {
         // TODO: Implement end session API endpoint
-        console.log('End session:', sessionToEnd);
+        console.warn('End session:', sessionToEnd);
         fetchSessions(); // Refresh list
       } catch (err) {
         console.error('Error ending session:', err);

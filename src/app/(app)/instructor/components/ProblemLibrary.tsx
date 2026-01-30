@@ -220,7 +220,7 @@ export default function ProblemLibrary({ onCreateNew, onEdit }: ProblemLibraryPr
     setShowSessionModal(true);
   };
 
-  const handleSessionCreated = (sessionId: string, joinCode: string) => {
+  const handleSessionCreated = (sessionId: string, _joinCode: string) => {
     setShowSessionModal(false);
     setSelectedProblemForSession(null);
     

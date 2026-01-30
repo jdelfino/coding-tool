@@ -22,7 +22,7 @@ export class DisabledBackend implements ICodeExecutionBackend {
     requiresWarmup: false,
   };
 
-  async execute(submission: CodeSubmission, options?: ExecuteOptions): Promise<ExecutionResult> {
+  async execute(submission: CodeSubmission, _options?: ExecuteOptions): Promise<ExecutionResult> {
     return {
       success: false,
       output: '',
@@ -32,7 +32,7 @@ export class DisabledBackend implements ICodeExecutionBackend {
     };
   }
 
-  async trace(code: string, options?: TraceOptions): Promise<ExecutionTrace> {
+  async trace(_code: string, _options?: TraceOptions): Promise<ExecutionTrace> {
     return {
       steps: [],
       totalSteps: 0,

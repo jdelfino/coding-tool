@@ -88,8 +88,8 @@ export default function ProblemLoader({
         throw new Error(data.error || 'Failed to load problem');
       }
 
-      const data = await response.json();
-      
+      await response.json();
+
       // Notify parent component of success
       onProblemLoaded?.(selectedProblem.id);
       onClose?.();

@@ -33,7 +33,7 @@ interface SessionData {
 }
 
 export default function SessionDetails({ sessionId, onClose }: SessionDetailsProps) {
-  const router = useRouter();
+  const _router = useRouter();
   const [session, setSession] = useState<SessionData | null>(null);
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);

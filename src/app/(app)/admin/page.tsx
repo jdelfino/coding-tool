@@ -61,13 +61,11 @@ function AdminPage() {
   const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [invitationsLoading, setInvitationsLoading] = useState(false);
 
-  // Admin page requires authenticated user with role
-  if (!user) return null;
-  const isAdmin = hasRolePermission(user.role, 'user.changeRole');
+  const isAdmin = user ? hasRolePermission(user.role, 'user.changeRole') : false;
 
   // Build URL with optional namespace param for system-admin
   const buildUrl = (base: string, params: Record<string, string> = {}) => {
-    if (user.role === 'system-admin' && selectedNamespace) {
+    if (user?.role === 'system-admin' && selectedNamespace) {
       params.namespace = selectedNamespace;
     }
     const query = new URLSearchParams(params).toString();
@@ -238,7 +236,7 @@ function AdminPage() {
     }
   };
 
-  const handleDeleteUser = async (userId: string, username: string) => {
+  const handleDeleteUser = async (userId: string, _username: string) => {
     const response = await fetch(`/api/admin/users/${userId}`, {
       method: 'DELETE',
       credentials: 'include'
@@ -265,6 +263,8 @@ function AdminPage() {
 
   // Non-admins default to instructors tab
   const effectiveTab = !isAdmin && activeTab === 'users' ? 'instructors' : activeTab;
+
+  if (!user) return null;
 
   return (
     <main className="max-w-6xl mx-auto">

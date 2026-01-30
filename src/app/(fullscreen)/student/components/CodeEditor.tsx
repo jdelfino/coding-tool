@@ -1050,7 +1050,7 @@ export default function CodeEditor({
 
                 {(() => {
                   const annotatedLines = getAnnotatedOutput();
-                  const currentStepOutput = debuggerHook.getCurrentStep()?.stdout || '';
+                  const _currentStepOutput = debuggerHook.getCurrentStep()?.stdout || '';
                   const visibleLines = annotatedLines.filter(line => {
                     // Only show lines up to and including the current step
                     return line.stepNumber <= debuggerHook.currentStep + 1;

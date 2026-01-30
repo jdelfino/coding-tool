@@ -20,7 +20,7 @@ interface StartSessionState {
 }
 
 function InstructorPage() {
-  const { user } = useAuth();
+  const { user: _user } = useAuth();
   const router = useRouter();
 
   // Modal state for starting a new session

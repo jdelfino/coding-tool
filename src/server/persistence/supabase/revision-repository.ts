@@ -9,7 +9,7 @@
 
 import { v4 as uuidv4 } from 'uuid';
 import { IRevisionRepository } from '../interfaces';
-import { CodeRevision, StoredRevision, StorageMetadata } from '../types';
+import { CodeRevision, StoredRevision } from '../types';
 import { getSupabaseClientWithAuth, RevisionRow } from '../../supabase/client';
 
 /**

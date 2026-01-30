@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
 
     // System-admin bootstrap
     const authProvider = await getAuthProvider();
-    const user = await authProvider.signUp(
+    const _user = await authProvider.signUp(
       email,
       password,
       'system-admin',

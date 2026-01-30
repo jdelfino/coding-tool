@@ -54,7 +54,7 @@ export function logSandboxEvent(entry: SandboxLogEntry): void {
   });
 
   if (entry.success) {
-    console.log(logLine);
+    console.warn(logLine);
   } else {
     console.error(logLine);
   }

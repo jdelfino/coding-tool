@@ -7,7 +7,6 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getAuthProvider } from '@/server/auth/instance';
 import { LocalAuditLogRepository } from '@/server/auth/local/audit-log-repository';
 import { AuditLogEntry } from '@/server/auth/audit';
 import { requirePermission } from '@/server/auth/api-helpers';

@@ -5,7 +5,7 @@
  * for transient failures.
  */
 
-import { isRetryableError, getUserFriendlyError, classifyError } from './error-messages';
+import { isRetryableError, classifyError } from './error-messages';
 
 /**
  * Options for retry behavior

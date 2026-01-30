@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useCallback, type RefObject } from 'react';
+import { useState, useCallback, type RefObject } from 'react';
 
 /**
  * Copy button that copies rich text (HTML with syntax highlighting) to clipboard.

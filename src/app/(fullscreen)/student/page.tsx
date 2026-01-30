@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useSearchParams, useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useRealtimeSession } from '@/hooks/useRealtimeSession';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSessionHistory } from '@/hooks/useSessionHistory';
@@ -274,9 +275,9 @@ function StudentPage() {
       <main className="p-8 text-center">
         <h1 className="text-2xl font-bold mb-4">No Session</h1>
         <p className="text-gray-600 mb-4">Please navigate to a session from your sections page.</p>
-        <a href="/sections" className="text-blue-600 hover:text-blue-700 underline">
+        <Link href="/sections" className="text-blue-600 hover:text-blue-700 underline">
           Go to My Sections
-        </a>
+        </Link>
       </main>
     );
   }

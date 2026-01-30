@@ -240,6 +240,7 @@ After all issues resolved, re-run quality gates.
 cd ../coding-tool-<work-name>
 npm test
 npx tsc --noEmit
+npm run lint
 ```
 
 **Do NOT create PR if any checks fail.** Fix locally first.
