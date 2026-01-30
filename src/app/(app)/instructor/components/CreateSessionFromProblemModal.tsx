@@ -8,7 +8,6 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import type { ClassInfo } from '../types';
 
 interface SectionInfo {
   id: string;
@@ -22,7 +21,7 @@ interface CreateSessionFromProblemModalProps {
   problemId: string;
   problemTitle: string;
   classId: string;
-  className?: string;
+  className: string;
   onClose: () => void;
   onSuccess: (sessionId: string, joinCode: string) => void;
 }
@@ -31,7 +30,7 @@ export default function CreateSessionFromProblemModal({
   problemId,
   problemTitle,
   classId,
-  className: classNameProp,
+  className: classDisplayName,
   onClose,
   onSuccess,
 }: CreateSessionFromProblemModalProps) {
@@ -40,7 +39,6 @@ export default function CreateSessionFromProblemModal({
   const [loading, setLoading] = useState(false);
   const [loadingSections, setLoadingSections] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [resolvedClassName, setResolvedClassName] = useState<string>(classNameProp || '');
 
   useEffect(() => {
     loadSections(classId);
@@ -56,18 +54,6 @@ export default function CreateSessionFromProblemModal({
       const data = await response.json();
       setSections(data.sections || []);
       setSelectedSectionId('');
-
-      // Resolve class name if not provided via props
-      if (!classNameProp) {
-        const classesResponse = await fetch('/api/classes');
-        if (classesResponse.ok) {
-          const classesData = await classesResponse.json();
-          const cls = (classesData.classes || []).find((c: ClassInfo) => c.id === targetClassId);
-          if (cls) {
-            setResolvedClassName(cls.name);
-          }
-        }
-      }
     } catch (err) {
       console.error('Error loading sections:', err);
       setError(err instanceof Error ? err.message : 'Failed to load sections');
@@ -143,14 +129,12 @@ export default function CreateSessionFromProblemModal({
 
         <div className="space-y-4">
           {/* Class (read-only — problem belongs to this class) */}
-          {resolvedClassName && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Class</label>
-              <div className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-gray-900">
-                {resolvedClassName}
-              </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Class</label>
+            <div className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-gray-900">
+              {classDisplayName}
             </div>
-          )}
+          </div>
 
           {/* Section Selection */}
           <div>
@@ -192,7 +176,7 @@ export default function CreateSessionFromProblemModal({
                 </div>
                 <div className="flex justify-between">
                   <dt className="text-blue-700">Class:</dt>
-                  <dd className="font-medium text-blue-900">{resolvedClassName}</dd>
+                  <dd className="font-medium text-blue-900">{classDisplayName}</dd>
                 </div>
                 <div className="flex justify-between">
                   <dt className="text-blue-700">Section:</dt>

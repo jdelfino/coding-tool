@@ -9,9 +9,10 @@ interface InstructorActionsProps {
   problemId: string;
   problemTitle: string;
   classId: string;
+  className: string;
 }
 
-export default function InstructorActions({ problemId, problemTitle, classId }: InstructorActionsProps) {
+export default function InstructorActions({ problemId, problemTitle, classId, className }: InstructorActionsProps) {
   const { user, isLoading } = useAuth();
   const [showModal, setShowModal] = useState(false);
   const router = useRouter();
@@ -36,6 +37,7 @@ export default function InstructorActions({ problemId, problemTitle, classId }: 
           problemId={problemId}
           problemTitle={problemTitle}
           classId={classId}
+          className={className}
           onClose={() => setShowModal(false)}
           onSuccess={(sessionId) => {
             setShowModal(false);

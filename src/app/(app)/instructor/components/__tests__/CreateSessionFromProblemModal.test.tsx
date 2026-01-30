@@ -96,30 +96,24 @@ describe('CreateSessionFromProblemModal', () => {
     }));
   });
 
-  it('resolves class name from API when className prop is not provided', async () => {
-    (global.fetch as jest.Mock)
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          sections: [
-            { id: 'sec-1', classId: 'class-1', name: 'Section A', joinCode: 'ABC' },
-          ],
-        }),
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          classes: [{ id: 'class-1', name: 'Intro to CS' }],
-        }),
-      });
-
-    const { className: _, ...propsWithoutClassName } = defaultProps;
-    render(<CreateSessionFromProblemModal {...propsWithoutClassName} />);
-
-    await waitFor(() => {
-      expect(screen.getByText('Intro to CS')).toBeInTheDocument();
+  it('only fetches sections, not classes', async () => {
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        sections: [
+          { id: 'sec-1', classId: 'class-1', name: 'Section A', joinCode: 'ABC' },
+        ],
+      }),
     });
 
-    expect(global.fetch).toHaveBeenCalledWith('/api/classes');
+    render(<CreateSessionFromProblemModal {...defaultProps} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Section A')).toBeInTheDocument();
+    });
+
+    // Should only fetch sections, not classes (className is provided as prop)
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+    expect(global.fetch).toHaveBeenCalledWith('/api/classes/class-1/sections');
   });
 });

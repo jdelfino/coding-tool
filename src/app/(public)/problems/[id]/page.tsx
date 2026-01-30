@@ -11,6 +11,7 @@ import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { codeToHtml } from 'shiki';
 import { getProblemRepository } from '@/server/persistence';
+import { getClassRepository } from '@/server/classes';
 import { SERVICE_ROLE_MARKER } from '@/server/supabase/client';
 import MarkdownContent from '@/components/MarkdownContent';
 import SolutionBlock from './SolutionBlock';
@@ -50,6 +51,10 @@ export default async function PublicProblemPage({ params }: Params) {
     notFound();
   }
 
+  const classRepo = getClassRepository(SERVICE_ROLE_MARKER);
+  const classInfo = await classRepo.getClass(problem.classId);
+  const className = classInfo?.name || '';
+
   let solutionHtml: string | null = null;
   if (problem.solution) {
     const rawHtml = await codeToHtml(problem.solution, {
@@ -70,7 +75,7 @@ export default async function PublicProblemPage({ params }: Params) {
         Link to this problem
       </a>
 
-      <InstructorActions problemId={problem.id} problemTitle={problem.title} classId={problem.classId} />
+      <InstructorActions problemId={problem.id} problemTitle={problem.title} classId={problem.classId} className={className} />
 
       {problem.description && (
         <div className="mb-8">

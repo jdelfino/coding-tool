@@ -371,7 +371,7 @@ export default function ProblemLibrary({ onCreateNew, onEdit }: ProblemLibraryPr
           problemId={selectedProblemForSession.id}
           problemTitle={selectedProblemForSession.title}
           classId={selectedProblemForSession.classId}
-          className={classes.find(c => c.id === selectedProblemForSession.classId)?.name}
+          className={classes.find(c => c.id === selectedProblemForSession.classId)?.name || ''}
           onClose={handleCloseSessionModal}
           onSuccess={handleSessionCreated}
         />
