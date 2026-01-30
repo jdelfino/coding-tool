@@ -7,29 +7,31 @@
  * Uses the ProblemLibrary component for the main UI.
  */
 
-import React, { Suspense, useState } from 'react';
+import React, { Suspense, useCallback, useEffect, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import ProblemLibrary from '../components/ProblemLibrary';
 import ProblemCreator from '../components/ProblemCreator';
 import NamespaceHeader from '@/components/NamespaceHeader';
 
 function ProblemsPage() {
-  const [showCreator, setShowCreator] = useState(false);
-  const [editingProblemId, setEditingProblemId] = useState<string | null>(null);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const editParam = searchParams.get('edit');
+  const showCreator = editParam !== null;
+  const editingProblemId = editParam && editParam !== 'new' ? editParam : null;
 
   const handleCreateNew = () => {
-    setEditingProblemId(null);
-    setShowCreator(true);
+    router.push('/instructor/problems?edit=new');
   };
 
   const handleEdit = (problemId: string) => {
-    setEditingProblemId(problemId);
-    setShowCreator(true);
+    router.push(`/instructor/problems?edit=${problemId}`);
   };
 
-  const handleCloseCreator = () => {
-    setShowCreator(false);
-    setEditingProblemId(null);
-  };
+  const handleCloseCreator = useCallback(() => {
+    router.push('/instructor/problems');
+  }, [router]);
 
   if (showCreator) {
     return (
