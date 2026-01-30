@@ -71,7 +71,6 @@ export async function GET(
       sectionName: session.sectionName,
       featuredStudentId: session.featuredStudentId,
       featuredCode: session.featuredCode,
-      replacedBySessionId: session.replacedBySessionId,
       joinCode,
     };
 

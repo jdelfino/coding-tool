@@ -1153,7 +1153,7 @@ describe('useRealtimeSession', () => {
       expect(result.current.session?.status).toBe('completed');
     });
 
-    it('should set replacementInfo from polling fallback when replacedBySessionId is present', async () => {
+    it('should not set replacementInfo from polling fallback (replacedBySessionId removed)', async () => {
       // Configure broadcast as disconnected to enable polling
       mockBroadcastSubscribeStatus = 'CHANNEL_ERROR';
 
@@ -1184,7 +1184,8 @@ describe('useRealtimeSession', () => {
       expect(result.current.loading).toBe(false);
       expect(result.current.replacementInfo).toBeNull();
 
-      // Setup polling response with replacedBySessionId
+      // Setup polling response — even if server somehow returned replacedBySessionId,
+      // the hook no longer reads it
       mockFetch.mockResolvedValue({
         ok: true,
         json: async () => ({
@@ -1199,7 +1200,8 @@ describe('useRealtimeSession', () => {
         await Promise.resolve();
       });
 
-      expect(result.current.replacementInfo).toEqual({ newSessionId: 'session-3' });
+      // replacementInfo should remain null since polling fallback was removed
+      expect(result.current.replacementInfo).toBeNull();
 
       jest.useRealTimers();
     });

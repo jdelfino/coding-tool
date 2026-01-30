@@ -210,11 +210,6 @@ export function useRealtimeSession({
       // Set featured student
       setFeaturedStudent(data.featuredStudent || {});
 
-      // Check for session replacement via polling fallback
-      if (data.session?.replacedBySessionId) {
-        setReplacementInfo({ newSessionId: data.session.replacedBySessionId });
-      }
-
       setError(null);
     } catch (e: any) {
       console.error('[useRealtimeSession] Failed to fetch state:', e);
