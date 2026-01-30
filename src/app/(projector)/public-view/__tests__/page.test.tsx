@@ -250,6 +250,40 @@ describe('PublicInstructorView', () => {
     });
   });
 
+  test('shows starter code in editor when no featured submission but problem has starterCode', async () => {
+    lastCodeEditorProps = null;
+
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        sessionId: 'test-session-id',
+        joinCode: 'ABC-123',
+        problem: {
+          title: 'Test Problem',
+          description: 'A test problem',
+          starterCode: 'def solve():\n    pass',
+        },
+        featuredStudentId: null,
+        featuredCode: null,
+        hasFeaturedSubmission: false,
+      }),
+    });
+
+    const PublicInstructorView = require('../page').default;
+    await act(async () => {
+      render(<PublicInstructorView />);
+    });
+
+    // Should show starter code in the editor
+    await waitFor(() => {
+      expect(screen.getByTestId('code-content')).toHaveTextContent('def solve():');
+    });
+    expect(screen.getByTestId('code-title')).toHaveTextContent('Starter Code');
+
+    // Should be editable (not read-only)
+    expect(lastCodeEditorProps.readOnly).toBeFalsy();
+  });
+
   test('shows error state when API fails', async () => {
     mockFetch.mockResolvedValueOnce({
       ok: false,

@@ -147,9 +147,9 @@ function PublicViewContent() {
     if (studentChanged || codeChanged) {
       lastFeaturedStudentId.current = state?.featuredStudentId || null;
       lastFeaturedCode.current = state?.featuredCode || null;
-      setLocalCode(state?.featuredCode || '');
+      setLocalCode(state?.featuredCode || state?.problem?.starterCode || '');
     }
-  }, [state?.featuredStudentId, state?.featuredCode]);
+  }, [state?.featuredStudentId, state?.featuredCode, state?.problem?.starterCode]);
 
   // Fallback: Poll for updates every 2 seconds ONLY when disconnected
   // This compensates for Realtime connection issues
@@ -240,6 +240,20 @@ function PublicViewContent() {
             onChange={solutionOverride?.show ? () => {} : setLocalCode}
             problem={state?.problem || null}
             title={solutionOverride?.show ? 'Solution' : 'Featured Code'}
+            useApiExecution={true}
+            debugger={debuggerHook}
+            forceDesktop={true}
+            outputPosition="right"
+            fontSize={20}
+          />
+        </div>
+      ) : state?.problem?.starterCode ? (
+        <div className="flex-1 min-h-0 flex flex-col">
+          <CodeEditor
+            code={localCode || state.problem.starterCode}
+            onChange={setLocalCode}
+            problem={state.problem}
+            title="Starter Code"
             useApiExecution={true}
             debugger={debuggerHook}
             forceDesktop={true}
