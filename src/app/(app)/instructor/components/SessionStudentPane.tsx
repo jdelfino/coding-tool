@@ -155,7 +155,7 @@ export function SessionStudentPane({
   return (
     <div className="flex flex-col lg:flex-row gap-4" data-testid="session-student-pane">
       {/* Student List - Left Panel */}
-      <div className="lg:w-1/3 flex-shrink-0">
+      <div className="lg:w-2/5 flex-shrink-0">
         {/* Analyze button */}
         <div className="mb-3">
           {analysisState === 'error' ? (
@@ -220,7 +220,7 @@ export function SessionStudentPane({
       </div>
 
       {/* Code Editor - Right Panel */}
-      <div className="lg:w-2/3 flex-1">
+      <div className="lg:w-3/5 flex-1">
         {selectedStudentId ? (
           <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
             <div className="px-4 py-3 border-b border-gray-200 bg-gray-50 rounded-t-lg">
