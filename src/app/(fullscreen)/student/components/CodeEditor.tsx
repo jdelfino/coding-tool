@@ -41,6 +41,7 @@ interface CodeEditorProps {
   onProblemEdit?: (updates: { title?: string; description?: string }) => void;
   editableProblem?: boolean;
   forceDesktop?: boolean;
+  outputPosition?: 'bottom' | 'right';
 }
 
 export default function CodeEditor({
@@ -66,6 +67,7 @@ export default function CodeEditor({
   onProblemEdit,
   editableProblem = false,
   forceDesktop = false,
+  outputPosition = 'bottom',
 }: CodeEditorProps) {
   const editorRef = useRef<any>(null);
   const [stdin, setStdin] = useState('');
@@ -100,6 +102,7 @@ export default function CodeEditor({
 
   // Output section resize state
   const [outputHeight, setOutputHeight] = useState(150); // Start at 150px
+  const [outputWidth, setOutputWidth] = useState(400); // Start at 400px for side-by-side
   const [isResizingOutput, setIsResizingOutput] = useState(false);
   const outputResizeRef = useRef<HTMLDivElement>(null);
 
@@ -123,11 +126,20 @@ export default function CodeEditor({
         if (!container) return;
 
         const containerRect = container.getBoundingClientRect();
-        const newHeight = containerRect.bottom - e.clientY;
-        const maxHeight = containerRect.height * 0.8; // Max 80% of container
-        // Constrain height between 100px and 80% of container
-        const constrainedHeight = Math.min(Math.max(newHeight, 100), maxHeight);
-        setOutputHeight(constrainedHeight);
+
+        if (outputPosition === 'right') {
+          // Horizontal resize: compute width from right edge
+          const newWidth = containerRect.right - e.clientX;
+          const maxWidth = containerRect.width * 0.6; // Max 60% of container
+          const constrainedWidth = Math.min(Math.max(newWidth, 200), maxWidth);
+          setOutputWidth(constrainedWidth);
+        } else {
+          const newHeight = containerRect.bottom - e.clientY;
+          const maxHeight = containerRect.height * 0.8; // Max 80% of container
+          // Constrain height between 100px and 80% of container
+          const constrainedHeight = Math.min(Math.max(newHeight, 100), maxHeight);
+          setOutputHeight(constrainedHeight);
+        }
       }
     };
 
@@ -141,7 +153,7 @@ export default function CodeEditor({
       document.addEventListener('mouseup', handleMouseUp);
       // Prevent text selection while resizing
       document.body.style.userSelect = 'none';
-      document.body.style.cursor = isResizingOutput ? 'row-resize' : 'col-resize';
+      document.body.style.cursor = isResizingOutput ? (outputPosition === 'right' ? 'col-resize' : 'row-resize') : 'col-resize';
     }
 
     return () => {
@@ -150,7 +162,7 @@ export default function CodeEditor({
       document.body.style.userSelect = '';
       document.body.style.cursor = '';
     };
-  }, [isResizing, isResizingOutput]);
+  }, [isResizing, isResizingOutput, outputPosition]);
 
   // Ensure only one sidebar is open at a time on mount
   const hasMountedRef = useRef(false);
@@ -226,7 +238,10 @@ export default function CodeEditor({
   const effectiveResult = useApiExecution ? localExecutionResult : executionResult;
 
   // Auto-grow output section when results appear (up to 40%)
+  // Skip auto-grow for right-positioned output to avoid jarring width changes
   useEffect(() => {
+    if (outputPosition === 'right') return;
+
     if (effectiveResult && outputResizeRef.current) {
       const container = outputResizeRef.current.parentElement;
       if (!container) return;
@@ -250,7 +265,7 @@ export default function CodeEditor({
       // Reset to initial size when no results
       setOutputHeight(150);
     }
-  }, [effectiveResult]);
+  }, [effectiveResult, outputPosition]);
 
   // Initialize stdin with example input if provided
   useEffect(() => {
@@ -915,7 +930,7 @@ export default function CodeEditor({
         )}
 
         {/* Main Editor Area */}
-        <div className={`flex-1 flex flex-col min-w-0 ${isDesktop ? 'min-h-0' : ''}`} style={!isDesktop ? { minHeight: '400px' } : {}}>
+        <div className={`flex-1 flex ${outputPosition === 'right' && isDesktop ? 'flex-row' : 'flex-col'} min-w-0 ${isDesktop ? 'min-h-0' : ''}`} style={!isDesktop ? { minHeight: '400px' } : {}} data-testid="editor-output-container">
           {/* Code Editor - grows to fill remaining space */}
           {/* On mobile, show based on mobileView toggle; on desktop, always show */}
           <div
@@ -981,20 +996,35 @@ export default function CodeEditor({
           {/* On mobile, show based on mobileView toggle; on desktop, always show */}
           <div
             ref={outputResizeRef}
-            className="border-t border-gray-700 overflow-y-auto flex-shrink-0 relative"
+            data-testid="output-area"
+            className={`${outputPosition === 'right' && isDesktop ? 'border-l' : 'border-t'} border-gray-700 overflow-y-auto flex-shrink-0 relative`}
             style={
               !isDesktop
                 ? (mobileView === 'code'
                     ? { display: 'none' } // Hide output when showing code on mobile
                     : { flex: 1, minHeight: '200px' } // Fill space when showing output on mobile
                   )
-                : { height: `${outputHeight}px` }
+                : outputPosition === 'right'
+                  ? { width: `${outputWidth}px` }
+                  : { height: `${outputHeight}px` }
             }
           >
             {/* Resize handle (desktop only - remove on mobile for touch-friendly experience) */}
-            {isDesktop && (
+            {isDesktop && outputPosition === 'right' ? (
               <div
                 onMouseDown={handleOutputMouseDown}
+                data-testid="output-resize-handle"
+                className="absolute top-0 bottom-0 left-0 w-1 cursor-col-resize hover:bg-blue-500 transition-colors z-10"
+                style={{
+                  background: isResizingOutput ? '#3b82f6' : 'transparent',
+                  marginLeft: '-2px'
+                }}
+                title="Drag to resize output"
+              />
+            ) : isDesktop ? (
+              <div
+                onMouseDown={handleOutputMouseDown}
+                data-testid="output-resize-handle"
                 className="absolute top-0 left-0 right-0 h-1 cursor-row-resize hover:bg-blue-500 transition-colors z-10"
                 style={{
                   background: isResizingOutput ? '#3b82f6' : 'transparent',
@@ -1002,7 +1032,7 @@ export default function CodeEditor({
                 }}
                 title="Drag to resize output"
               />
-            )}
+            ) : null}
 
             {debuggerHook?.hasTrace ? (
               /* Show debugger output when debugging */

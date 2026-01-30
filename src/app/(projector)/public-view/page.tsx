@@ -225,6 +225,7 @@ function PublicViewContent() {
             useApiExecution={true}
             debugger={debuggerHook}
             forceDesktop={true}
+            outputPosition="right"
           />
         </div>
       ) : (
