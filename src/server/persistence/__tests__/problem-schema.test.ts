@@ -2,7 +2,7 @@
  * Tests for problem schema validation
  */
 
-import { validateProblemSchema, PROBLEM_VALIDATION_RULES } from '../problem-schema';
+import { validateProblemSchema, PROBLEM_VALIDATION_RULES, serializeProblem, deserializeProblem } from '../problem-schema';
 import { Problem } from '../../types/problem';
 
 describe('validateProblemSchema', () => {
@@ -74,6 +74,30 @@ describe('validateProblemSchema', () => {
     });
   });
 
+  describe('solution validation', () => {
+    it('should accept a valid solution string', () => {
+      const errors = validateProblemSchema({ ...validProblem, solution: 'print("hello")' });
+      const solutionErrors = errors.filter((e) => e.field === 'solution');
+      expect(solutionErrors).toHaveLength(0);
+    });
+
+    it('should accept omitted solution', () => {
+      const errors = validateProblemSchema(validProblem);
+      const solutionErrors = errors.filter((e) => e.field === 'solution');
+      expect(solutionErrors).toHaveLength(0);
+    });
+
+    it('should reject solution exceeding max length', () => {
+      const errors = validateProblemSchema({
+        ...validProblem,
+        solution: 'x'.repeat(PROBLEM_VALIDATION_RULES.solution.maxLength + 1),
+      });
+      expect(errors).toContainEqual(
+        expect.objectContaining({ field: 'solution', code: 'MAX_LENGTH' })
+      );
+    });
+  });
+
   describe('classId validation', () => {
     it('should require classId', () => {
       const errors = validateProblemSchema({ title: 'Test', authorId: 'a', tags: [] });
@@ -87,5 +111,37 @@ describe('validateProblemSchema', () => {
       const classErrors = errors.filter((e) => e.field === 'classId');
       expect(classErrors).toHaveLength(0);
     });
+  });
+});
+
+describe('serializeProblem / deserializeProblem', () => {
+  const baseProblem: Problem = {
+    id: 'p-1',
+    namespaceId: 'ns-1',
+    title: 'Test Problem',
+    description: 'A description',
+    starterCode: 'print("hi")',
+    testCases: [],
+    executionSettings: undefined,
+    authorId: 'author-1',
+    classId: 'class-1',
+    tags: ['basics'],
+    createdAt: new Date('2025-01-01T00:00:00Z'),
+    updatedAt: new Date('2025-01-02T00:00:00Z'),
+  };
+
+  it('should round-trip solution through serialize/deserialize', () => {
+    const withSolution: Problem = { ...baseProblem, solution: 'def solve(): return 42' };
+    const serialized = serializeProblem(withSolution);
+    expect(serialized.solution).toBe('def solve(): return 42');
+    const deserialized = deserializeProblem(serialized);
+    expect(deserialized.solution).toBe('def solve(): return 42');
+  });
+
+  it('should handle undefined solution in round-trip', () => {
+    const serialized = serializeProblem(baseProblem);
+    expect(serialized.solution).toBeUndefined();
+    const deserialized = deserializeProblem(serialized);
+    expect(deserialized.solution).toBeUndefined();
   });
 });

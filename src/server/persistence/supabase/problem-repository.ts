@@ -26,6 +26,7 @@ function mapRowToProblem(row: any): Problem {
     authorId: row.author_id,
     classId: row.class_id,
     tags: row.tags || [],
+    solution: row.solution || undefined,
     createdAt: new Date(row.created_at),
     updatedAt: new Date(row.updated_at),
   };
@@ -104,6 +105,7 @@ export class SupabaseProblemRepository implements IProblemRepository {
       author_id: problem.authorId,
       class_id: problem.classId,
       tags: problem.tags,
+      solution: problem.solution || null,
       created_at: now.toISOString(),
       updated_at: now.toISOString(),
     };
@@ -207,6 +209,7 @@ export class SupabaseProblemRepository implements IProblemRepository {
     if (updates.tags !== undefined) dbUpdates.tags = updates.tags;
     if (updates.namespaceId !== undefined) dbUpdates.namespace_id = updates.namespaceId;
     if (updates.authorId !== undefined) dbUpdates.author_id = updates.authorId;
+    if (updates.solution !== undefined) dbUpdates.solution = updates.solution;
 
     const { data, error } = await supabase
       .from('problems')
@@ -394,6 +397,7 @@ export class SupabaseProblemRepository implements IProblemRepository {
       authorId: original.authorId,
       classId: original.classId,
       tags: original.tags,
+      solution: original.solution,
     };
 
     return this.create(problemInput);

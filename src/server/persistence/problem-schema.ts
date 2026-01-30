@@ -65,6 +65,9 @@ export interface ProblemSchema {
   /** Tags for categorization */
   tags: string[];
 
+  /** Instructor solution code (optional) */
+  solution?: string;
+
   /** ISO 8601 timestamp */
   createdAt: string;
 
@@ -98,6 +101,10 @@ export const PROBLEM_VALIDATION_RULES = {
     maxCount: 10,
     maxTagLength: 30,
     pattern: /^[a-zA-Z0-9-]+$/,
+    required: false,
+  },
+  solution: {
+    maxLength: 50000,
     required: false,
   },
 } as const;
@@ -197,6 +204,15 @@ export function validateProblemSchema(problem: Partial<Problem>): ProblemValidat
     });
   }
 
+  // Validate solution (if provided)
+  if (problem.solution && problem.solution.length > PROBLEM_VALIDATION_RULES.solution.maxLength) {
+    errors.push({
+      field: 'solution',
+      message: `Solution must be at most ${PROBLEM_VALIDATION_RULES.solution.maxLength} characters`,
+      code: 'MAX_LENGTH',
+    });
+  }
+
   // Validate tags
   if (problem.tags) {
     errors.push(...validateTags(problem.tags));
@@ -245,6 +261,7 @@ export function serializeProblem(problem: Problem): ProblemSchema {
     authorId: problem.authorId,
     classId: problem.classId,
     tags: problem.tags,
+    solution: problem.solution,
     createdAt: problem.createdAt.toISOString(),
     updatedAt: problem.updatedAt.toISOString(),
   };
@@ -271,6 +288,7 @@ export function deserializeProblem(schema: ProblemSchema): Problem {
     authorId: schema.authorId,
     classId: schema.classId,
     tags: schema.tags,
+    solution: schema.solution,
     createdAt: new Date(schema.createdAt),
     updatedAt: new Date(schema.updatedAt),
   };
