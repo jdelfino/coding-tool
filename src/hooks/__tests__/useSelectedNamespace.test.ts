@@ -7,7 +7,7 @@ import { renderHook } from '@testing-library/react';
 import { useSelectedNamespace, useNamespaceQueryParam } from '../useSelectedNamespace';
 
 // Mock useAuth
-const mockUser: any = { role: 'system-admin', namespaceId: 'default' };
+let mockUser: any = { role: 'system-admin', namespaceId: 'default' };
 jest.mock('@/contexts/AuthContext', () => ({
   useAuth: () => ({ user: mockUser }),
 }));
@@ -42,6 +42,21 @@ describe('useSelectedNamespace', () => {
     localStorage.setItem('selectedNamespaceId', 'all');
     const { result } = renderHook(() => useSelectedNamespace());
     expect(result.current).toBeNull();
+  });
+
+  it('updates namespace when user loads asynchronously (null -> real user)', () => {
+    // Simulate async auth: user starts as null
+    mockUser = null;
+    const { result, rerender } = renderHook(() => useSelectedNamespace());
+    expect(result.current).toBeNull();
+
+    // Auth finishes loading, user is now available
+    mockUser = {
+      role: 'instructor',
+      namespaceId: 'ns-async',
+    };
+    rerender();
+    expect(result.current).toBe('ns-async');
   });
 });
 
