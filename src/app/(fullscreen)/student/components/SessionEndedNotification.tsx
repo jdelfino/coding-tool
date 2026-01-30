@@ -6,12 +6,16 @@ interface SessionEndedNotificationProps {
   onLeaveToDashboard: () => void;
   code?: string;
   codeSaved?: boolean;
+  replacementSessionId?: string;
+  onJoinNewSession?: () => void;
 }
 
 const SessionEndedNotification: React.FC<SessionEndedNotificationProps> = ({
   onLeaveToDashboard,
   code = '',
   codeSaved = true,
+  replacementSessionId,
+  onJoinNewSession,
 }) => {
   const [copySuccess, setCopySuccess] = useState(false);
 
@@ -53,13 +57,25 @@ const SessionEndedNotification: React.FC<SessionEndedNotificationProps> = ({
             <path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 6a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 6zm0 9a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
           </svg>
           <span className="text-sm font-medium text-amber-800">
-            Session ended — code execution is disabled.
-            {codeSaved && ' Your code has been saved.'}
+            {replacementSessionId
+              ? 'The instructor started a new problem.'
+              : <>Session ended — code execution is disabled.{codeSaved && ' Your code has been saved.'}</>
+            }
           </span>
         </div>
 
         {/* Right: action buttons */}
         <div className="flex items-center gap-2">
+          {replacementSessionId && onJoinNewSession && (
+            <button
+              type="button"
+              onClick={onJoinNewSession}
+              className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors"
+              data-testid="join-new-session-button"
+            >
+              Join New Session
+            </button>
+          )}
           {code && (
             <button
               type="button"

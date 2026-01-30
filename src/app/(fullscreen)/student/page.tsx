@@ -55,6 +55,7 @@ function StudentPage() {
     updateCode: realtimeUpdateCode,
     executeCode: realtimeExecuteCode,
     joinSession,
+    replacementInfo,
   } = useRealtimeSession({
     sessionId: sessionIdFromUrl || '',
     userId: user?.id,
@@ -186,6 +187,21 @@ function StudentPage() {
     refetchSessions();
     router.push('/sections');
   }, [sessionIdFromUrl, refetchSessions, router]);
+
+  const handleJoinNewSession = useCallback(() => {
+    if (!replacementInfo) return;
+    const oldSessionId = sessionIdFromUrl;
+    joinAttemptedRef.current = null;
+    setJoined(false);
+    setSessionEnded(false);
+    setCode('');
+    setExecutionResult(null);
+    setStudentExecutionSettings(null);
+    if (oldSessionId) {
+      sessionStorage.removeItem(`left-session:${oldSessionId}`);
+    }
+    router.push(`/student?sessionId=${replacementInfo.newSessionId}`);
+  }, [replacementInfo, sessionIdFromUrl, router]);
 
   const editorRef = useRef<any>(null);
 
@@ -328,6 +344,8 @@ function StudentPage() {
           onLeaveToDashboard={handleLeaveSession}
           code={code}
           codeSaved={true}
+          replacementSessionId={replacementInfo?.newSessionId}
+          onJoinNewSession={replacementInfo ? handleJoinNewSession : undefined}
         />
       )}
 
