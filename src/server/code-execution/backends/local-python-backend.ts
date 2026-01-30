@@ -126,7 +126,6 @@ export class LocalPythonBackend implements ICodeExecutionBackend {
       // This prevents exposure of secrets to user-submitted code
       const spawnOptions: SpawnOptionsWithoutStdio = {
         env: MINIMAL_PYTHON_ENV,
-        timeout,
       };
 
       if (tempDir) {
