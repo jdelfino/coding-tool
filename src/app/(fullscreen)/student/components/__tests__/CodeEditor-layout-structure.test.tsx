@@ -233,9 +233,9 @@ describe('CodeEditor Layout Structure', () => {
       const editor = container.querySelector('[data-testid="monaco-editor"]');
       expect(editor).toBeInTheDocument();
 
-      // Verify activity bar has correct height
+      // In read-only mode, activity bar and sidebar are hidden
       const activityBar = container.querySelector('.w-12.bg-gray-800');
-      expect(activityBar).toHaveStyle({ height: '100%' });
+      expect(activityBar).toBeNull();
 
       // Verify the layout chain is intact
       const rootDiv = container.querySelector('.border.border-gray-300.rounded.flex.flex-col');

@@ -454,7 +454,7 @@ describe('CodeEditor Responsive Layout', () => {
   });
 
   describe('Read-only Mode', () => {
-    it('should support responsive layout in read-only mode', () => {
+    it('should hide sidebar in read-only mode', () => {
       const { useResponsiveLayout, useSidebarSection, useMobileViewport } = require('@/hooks/useResponsiveLayout');
       useResponsiveLayout.mockReturnValue(true);
       useMobileViewport.mockReturnValue({
@@ -478,9 +478,9 @@ describe('CodeEditor Responsive Layout', () => {
         />
       );
 
-      // Should still render sidebar button in read-only mode
-      const sidebarButton = screen.getByRole('button', { name: /execution settings/i });
-      expect(sidebarButton).toBeInTheDocument();
+      // In read-only mode, sidebar and activity bar are hidden
+      const sidebarButton = screen.queryByRole('button', { name: /execution settings/i });
+      expect(sidebarButton).not.toBeInTheDocument();
     });
   });
 
