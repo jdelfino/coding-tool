@@ -5,99 +5,104 @@ description: Complete individual tasks with test-first development, quality gate
 
 # Task Completer
 
-Complete tasks with rigorous test-first development and quality gates.
+Complete tasks by following these phases **in strict order**. Do not skip phases. Do not proceed to the next phase until the current phase's gate is satisfied.
 
-## 1. Claim the Task
+## Phase 1: Claim
 
 ```bash
 bd update <task-id> --status in_progress --json
 ```
 
-## 2. Test-First Development
+**Gate:** Command succeeds and shows `"status": "in_progress"`.
 
-**The One Rule: CHANGED CODE = NEW TESTS**
+## Phase 2: Write Failing Tests
 
-No commits without new tests for changed code.
+Write tests for the behavior you are about to change or add. Do this **before** touching any production code.
 
-### Pre-Commit Questions
-
-1. **Did I change production code?** -> Must add tests
-2. **Do existing tests pass?** -> NOT ENOUGH. Did you add NEW tests?
-3. **Did I add NEW tests for EVERY file I changed?** -> If NO, STOP
-4. **Do ALL tests pass (including new ones)?** -> Run `npm test`
-5. **Any TypeScript errors?** -> Run `npx tsc --noEmit`
-
-### Workflow
-
-1. Write test FIRST (it should fail)
-2. Implement the fix/feature
-3. Run tests (they should pass)
-4. Commit BOTH production + test files together
-
-### Common Violations
-
-- "Tests already pass" - Did you ADD tests for YOUR changes?
-- "It's a small change" - Still needs tests
-- "Bug fix only" - Needs regression test
-- "I updated existing tests" - Did you ADD new tests too?
-- "Frontend change" - Needs component tests
-- "Changed 3 files, added tests for 1" - Need tests for ALL 3
-
-## 3. Fail Fast, Fail Loud
-
-**Never silently work around problems. Fix them or let them fail visibly.**
-
-### Principles
-
-- **Missing env vars**: Throw an error, don't silently skip functionality
-- **Invalid state**: Crash early with a clear message, don't limp along
-- **Missing dependencies**: Fail at startup, not at runtime
-- **Tests need mocking**: Mock properly in tests, don't add fallbacks to production code
-
-### Anti-Patterns to Avoid
-
-```typescript
-// BAD: Silent failure hides production bugs
-if (!process.env.API_KEY) {
-  return; // Silently does nothing
-}
-
-// GOOD: Fail loudly so the problem is fixed
-if (!process.env.API_KEY) {
-  throw new Error('API_KEY environment variable is required');
-}
-```
-
-**The app should work correctly or not at all. Silent misbehavior is worse than a crash.**
-
-## 4. Quality Gates
-
-Run these before committing:
+1. Read the relevant production code to understand current behavior
+2. Write new test cases that describe the desired behavior after your change
+3. Run the tests:
 
 ```bash
-# Run all tests
 npm test
+```
 
-# Type check
+**Gate:** Your new tests **fail** (or, for pure deletions/removals, you can write tests asserting the old behavior is gone — these will pass after implementation). If your new tests already pass, they are not testing anything new. Rewrite them.
+
+## Phase 3: Implement
+
+Make the production code changes. Keep changes minimal and focused on the task.
+
+**Principles:**
+- Never silently work around problems. Throw errors for missing env vars, invalid state, missing dependencies.
+- Mock properly in tests. Do not add production fallbacks to make tests pass.
+- No `as any` or `as unknown` in production code.
+- No optional chaining on required properties.
+
+## Phase 4: Verify
+
+Run quality gates:
+
+```bash
+npm test
 npx tsc --noEmit
 ```
 
-Both must pass with zero errors.
+**Gate:** Both commands pass with zero errors. If either fails, fix the issues before proceeding.
 
-## 5. Commit Checklist
+## Phase 5: Test Coverage Review
 
-Before EVERY commit, verify ALL of these:
+This is an audit, not a formality. Evaluate whether your tests actually cover the changes you made.
 
-- [ ] **TESTS WRITTEN** - Unit tests exist for ALL new/modified code
-- [ ] **TESTS COVER ALL CHANGES** - If you modified N files, you have tests for N files
-- [ ] All tests passing (`npm test`)
-- [ ] No TypeScript errors (`npx tsc --noEmit`)
-- [ ] No `as any` or `as unknown` in production code
-- [ ] No optional chaining on required properties
+### Step 1: List what changed
 
-**If you cannot check ALL boxes, DO NOT COMMIT.**
+```bash
+git diff --name-only
+```
 
-## 6. Make the Commit
+Separate the output into production files and test files.
+
+### Step 2: For each changed production file, evaluate
+
+- **What behavior changed?** (new feature, bug fix, removed feature, refactored logic)
+- **What existing tests cover this file?** Read the corresponding test file if one exists.
+- **Are there gaps?** Specifically:
+  - Happy path for new/changed behavior
+  - Error paths and edge cases
+  - Regression test if this is a bug fix (a test that would have caught the original bug)
+  - Boundary conditions
+
+### Step 3: Evaluate integration test needs
+
+Integration tests are needed when changes affect:
+- Repository/persistence layer (database queries, data mapping)
+- API routes that combine multiple services
+- Auth flows or permission checks
+- Data flowing across multiple layers (API → service → repository)
+
+If integration tests are needed, write them as `*.integration.test.ts` files.
+
+### Step 4: Evaluate E2E test needs
+
+E2E tests are kept small and focused on critical workflows to minimize runtime. Check:
+
+1. Do any existing E2E tests cover workflows affected by your changes?
+2. If yes, do those E2E tests need updating to reflect your changes?
+
+Do **not** add new E2E tests unless explicitly requested. Only update existing ones when the workflows they test have been modified.
+
+### Step 5: Fill gaps
+
+Write any missing tests identified above. Then re-run quality gates:
+
+```bash
+npm test
+npx tsc --noEmit
+```
+
+**Gate:** All tests pass, including your new coverage additions. If you identified no gaps in Steps 2-4, document your reasoning (e.g., "Changes were purely deletions; added regression tests in Phase 2 confirming removed elements no longer render").
+
+## Phase 6: Commit and Push
 
 ```bash
 git add -A
@@ -109,58 +114,25 @@ git commit -m "$(cat <<'EOF'
 Co-Authored-By: Claude <noreply@anthropic.com>
 EOF
 )"
+git pull --rebase
+bd sync
+git push
 ```
 
 Types: `feat`, `fix`, `refactor`, `test`, `docs`, `chore`
 
-## 7. Close the Task
+**Gate:** `git push` succeeds. If push fails, resolve and retry. Work is not complete until pushed.
+
+## Phase 7: Close
 
 ```bash
-bd close <task-id> --reason "Completed"
+bd close <task-id> --reason "Completed" --json
 ```
 
-## 8. Landing the Plane (Session Completion)
+File issues for any remaining or discovered work:
 
-When ending a work session, complete ALL steps:
+```bash
+bd create "Remaining work description" -t task -p 2 --json
+```
 
-### Mandatory Workflow
-
-1. **File issues for remaining work**
-   ```bash
-   bd create "Remaining work description" -t task -p 2 --json
-   ```
-
-2. **Run quality gates** (if code changed)
-   Run your project's test and lint commands.
-
-3. **Update issue status**
-   ```bash
-   bd close <completed-task-id> --reason "Done"
-   ```
-
-4. **PUSH TO REMOTE** (MANDATORY)
-   ```bash
-   git pull --rebase
-   bd sync
-   git push
-   git status  # MUST show "up to date with origin"
-   ```
-
-5. **Clean up**
-   - Clear stashes: `git stash list` then `git stash drop` if needed
-   - Prune remote branches: `git remote prune origin`
-
-6. **Verify**
-   - All changes committed AND pushed
-   - `git status` shows clean working tree
-
-7. **Hand off**
-   - Summarize what was done
-   - Note any follow-up tasks created
-
-### Critical Rules
-
-- Work is NOT complete until `git push` succeeds
-- NEVER stop before pushing - that leaves work stranded locally
-- NEVER say "ready to push when you are" - YOU must push
-- If push fails, resolve and retry until it succeeds
+Summarize what was done and note any follow-up tasks created.
