@@ -63,6 +63,12 @@ test_data/
 test-data/
 history/
 
+# Beads export state (auto-generated cache)
+.beads/export-state/
+
+# Claude Code local settings
+.claude/settings.local.json
+
 # Devcontainer instances
 .devcontainer-instances/
 .devcontainer/.devpod-internal/
