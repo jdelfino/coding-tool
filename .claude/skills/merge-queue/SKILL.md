@@ -78,13 +78,24 @@ cd <existing-worktree>  # or: git worktree add ../coding-tool-rebase-<number> <b
 git rebase origin/main
 ```
 
-- **Clean rebase:** force-push and report "Rebased PR #X, CI re-running."
+- **Clean rebase:** force-push, then **wait for CI to finish and merge** (see below).
   ```bash
   git push --force-with-lease
   ```
 - **Conflict:** do not attempt to resolve. File a beads issue describing the conflict and which files are affected. Report to user.
 
 After rebase, clean up any temporary worktree created for the rebase.
+
+**After a clean rebase, poll CI and merge when it passes.** Don't just report "rebased, CI re-running" and stop — unmerged PRs accumulate conflicts. Poll every 60 seconds until CI completes:
+
+```bash
+# Poll until all checks finish
+gh pr checks <number> --watch
+# Then merge
+gh pr merge <number> --squash
+```
+
+If CI fails after the rebase, follow Step 6 (file an issue). But if it passes, merge immediately — don't wait for the user to re-run `/merge`.
 
 ## Step 6: Handle CI Failures
 
