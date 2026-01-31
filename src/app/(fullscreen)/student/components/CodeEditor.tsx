@@ -169,6 +169,23 @@ export default function CodeEditor({
     };
   }, [isResizing, isResizingOutput, outputPosition]);
 
+  // Clamp output width on window resize (e.g., browser zoom changes)
+  useEffect(() => {
+    if (outputPosition !== 'right') return;
+
+    const handleResize = () => {
+      if (outputResizeRef.current) {
+        const container = outputResizeRef.current.parentElement;
+        if (!container) return;
+        const maxWidth = container.getBoundingClientRect().width * 0.6;
+        setOutputWidth((prev) => Math.min(prev, Math.max(maxWidth, 200)));
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [outputPosition]);
+
   // Ensure only one sidebar is open at a time on mount
   const hasMountedRef = useRef(false);
   useEffect(() => {
@@ -1002,7 +1019,7 @@ export default function CodeEditor({
           <div
             ref={outputResizeRef}
             data-testid="output-area"
-            className={`${outputPosition === 'right' && isDesktop ? 'border-l' : 'border-t'} border-gray-700 overflow-y-auto flex-shrink-0 relative`}
+            className={`${outputPosition === 'right' && isDesktop ? 'border-l' : 'border-t'} border-gray-700 overflow-y-auto ${outputPosition === 'right' && isDesktop ? '' : 'flex-shrink-0'} relative`}
             style={
               !isDesktop
                 ? (mobileView === 'code'
@@ -1010,7 +1027,7 @@ export default function CodeEditor({
                     : { flex: 1, minHeight: '200px' } // Fill space when showing output on mobile
                   )
                 : outputPosition === 'right'
-                  ? { width: `${outputWidth}px` }
+                  ? { width: `${outputWidth}px`, maxWidth: '60%' }
                   : { height: `${outputHeight}px` }
             }
           >
