@@ -979,6 +979,9 @@ export default function CodeEditor({
                   : undefined,
                 // Only show glyph margin when debugging (used for debugger line indicator)
                 glyphMargin: !!debuggerHook?.hasTrace && !mobileViewport.isVerySmall,
+                // Disable folding gutter and line decoration width to remove extra gutter space when not debugging
+                folding: false,
+                lineDecorationsWidth: debuggerHook?.hasTrace ? 10 : 0,
                 // Enable word wrap on mobile for better readability
                 wordWrap: mobileViewport.isMobile || mobileViewport.isTablet ? 'on' : 'off',
                 // Improve touch scrolling
