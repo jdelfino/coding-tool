@@ -43,7 +43,6 @@ interface CodeEditorProps {
   forceDesktop?: boolean;
   outputPosition?: 'bottom' | 'right';
   fontSize?: number;
-  outputFontSize?: 'base' | 'lg';
 }
 
 export default function CodeEditor({
@@ -71,10 +70,10 @@ export default function CodeEditor({
   forceDesktop = false,
   outputPosition = 'bottom',
   fontSize,
-  outputFontSize,
 }: CodeEditorProps) {
-  const outputTextSm = outputFontSize === 'lg' ? 'text-base' : 'text-sm';
-  const outputTextXs = outputFontSize === 'lg' ? 'text-sm' : 'text-xs';
+  const largeOutput = fontSize && fontSize >= 20;
+  const outputTextSm = largeOutput ? 'text-base' : 'text-sm';
+  const outputTextXs = largeOutput ? 'text-sm' : 'text-xs';
   const editorRef = useRef<any>(null);
   const [stdin, setStdin] = useState('');
   const [localIsRunning, setLocalIsRunning] = useState(false);

@@ -679,7 +679,6 @@ describe('PublicInstructorView collapsible header', () => {
 
     expect(lastCodeEditorProps).toBeTruthy();
     expect(lastCodeEditorProps.fontSize).toBe(24);
-    expect(lastCodeEditorProps.outputFontSize).toBe('lg');
   });
 
   test('re-expands when toggle is clicked again', async () => {

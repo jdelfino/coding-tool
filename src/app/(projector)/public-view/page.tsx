@@ -245,7 +245,6 @@ function PublicViewContent() {
             forceDesktop={true}
             outputPosition="right"
             fontSize={24}
-            outputFontSize="lg"
           />
         </div>
       ) : (
@@ -260,7 +259,6 @@ function PublicViewContent() {
             forceDesktop={true}
             outputPosition="right"
             fontSize={24}
-            outputFontSize="lg"
           />
         </div>
       )}
