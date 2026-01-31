@@ -14,7 +14,6 @@ import type { ProblemSummary } from '../types';
 interface ProblemCardProps {
   problem: ProblemSummary;
   viewMode: 'list' | 'grid';
-  onView: (problemId: string) => void;
   onEdit: (problemId: string) => void;
   onDelete: (problemId: string, title: string) => void;
   onCreateSession: (problemId: string) => void;
@@ -24,7 +23,6 @@ interface ProblemCardProps {
 export default function ProblemCard({
   problem,
   viewMode,
-  onView,
   onEdit,
   onDelete,
   onCreateSession,
@@ -111,15 +109,8 @@ export default function ProblemCard({
 
           <div className="flex items-center gap-2">
             <button
-              onClick={() => onView(problem.id)}
-              className="px-3 py-1.5 text-sm text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-              title="View problem"
-            >
-              View
-            </button>
-            <button
               onClick={() => onEdit(problem.id)}
-              className="px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+              className="px-3 py-1.5 text-sm text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
               title="Edit problem"
             >
               Edit
@@ -182,14 +173,8 @@ export default function ProblemCard({
 
       <div className="grid grid-cols-2 gap-2">
         <button
-          onClick={() => onView(problem.id)}
-          className="px-3 py-2 text-sm text-blue-600 border border-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-        >
-          View
-        </button>
-        <button
           onClick={() => onEdit(problem.id)}
-          className="px-3 py-2 text-sm text-gray-700 border border-gray-300 hover:bg-gray-100 rounded-lg transition-colors"
+          className="col-span-2 px-3 py-2 text-sm text-blue-600 border border-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
         >
           Edit
         </button>

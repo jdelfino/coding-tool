@@ -21,7 +21,6 @@ describe('ProblemCard', () => {
   const defaultProps = {
     problem: mockProblem,
     viewMode: 'list' as const,
-    onView: jest.fn(),
     onEdit: jest.fn(),
     onDelete: jest.fn(),
     onCreateSession: jest.fn(),
@@ -55,12 +54,6 @@ describe('ProblemCard', () => {
     it('does not display updated date', () => {
       render(<ProblemCard {...defaultProps} />);
       expect(screen.queryByText(/Updated/)).not.toBeInTheDocument();
-    });
-
-    it('calls onView when View button is clicked', () => {
-      render(<ProblemCard {...defaultProps} />);
-      fireEvent.click(screen.getByText('View'));
-      expect(defaultProps.onView).toHaveBeenCalledWith('problem-123');
     });
 
     it('calls onEdit when Edit button is clicked', () => {
@@ -159,7 +152,6 @@ describe('ProblemCard', () => {
 
     it('renders all action buttons in grid view', () => {
       render(<ProblemCard {...gridProps} />);
-      expect(screen.getByText('View')).toBeInTheDocument();
       expect(screen.getByText('Edit')).toBeInTheDocument();
       expect(screen.getByText('Create Session')).toBeInTheDocument();
       expect(screen.getByText('Delete')).toBeInTheDocument();
@@ -167,10 +159,7 @@ describe('ProblemCard', () => {
 
     it('handles actions in grid view', () => {
       render(<ProblemCard {...gridProps} />);
-      
-      fireEvent.click(screen.getByText('View'));
-      expect(defaultProps.onView).toHaveBeenCalledWith('problem-123');
-      
+
       fireEvent.click(screen.getByText('Edit'));
       expect(defaultProps.onEdit).toHaveBeenCalledWith('problem-123');
     });

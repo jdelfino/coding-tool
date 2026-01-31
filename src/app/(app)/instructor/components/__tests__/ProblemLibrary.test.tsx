@@ -38,7 +38,6 @@ jest.mock('../ProblemCard', () => {
     return (
       <div data-testid={`problem-card-${props.problem.id}`}>
         {props.problem.title}
-        <button data-testid={`view-${props.problem.id}`} onClick={() => props.onView(props.problem.id)}>View</button>
         <button data-testid={`edit-${props.problem.id}`} onClick={() => props.onEdit(props.problem.id)}>Edit</button>
         <button data-testid={`create-session-${props.problem.id}`} onClick={() => props.onCreateSession(props.problem.id)}>Create Session</button>
       </div>
@@ -294,19 +293,7 @@ describe('ProblemLibrary', () => {
     });
   });
 
-  describe('View and Edit handlers', () => {
-    it('calls onEdit when View is clicked and onEdit is provided', async () => {
-      const onEdit = jest.fn();
-      render(<ProblemLibrary onEdit={onEdit} />);
-
-      await waitFor(() => {
-        expect(screen.getByTestId('problem-card-problem-1')).toBeInTheDocument();
-      });
-
-      fireEvent.click(screen.getByTestId('view-problem-1'));
-      expect(onEdit).toHaveBeenCalledWith('problem-1');
-    });
-
+  describe('Edit handler', () => {
     it('calls onEdit when Edit is clicked', async () => {
       const onEdit = jest.fn();
       render(<ProblemLibrary onEdit={onEdit} />);
@@ -317,17 +304,6 @@ describe('ProblemLibrary', () => {
 
       fireEvent.click(screen.getByTestId('edit-problem-1'));
       expect(onEdit).toHaveBeenCalledWith('problem-1');
-    });
-
-    it('falls back to router.push for View when onEdit is not provided', async () => {
-      render(<ProblemLibrary />);
-
-      await waitFor(() => {
-        expect(screen.getByTestId('problem-card-problem-1')).toBeInTheDocument();
-      });
-
-      fireEvent.click(screen.getByTestId('view-problem-1'));
-      expect(mockRouterPush).toHaveBeenCalledWith('/instructor/problems');
     });
 
     it('falls back to router.push for Edit when onEdit is not provided', async () => {

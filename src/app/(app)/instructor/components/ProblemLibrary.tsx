@@ -174,14 +174,6 @@ export default function ProblemLibrary({ onCreateNew, onEdit }: ProblemLibraryPr
     return filtered;
   }, [problems, searchQuery, sortBy, sortOrder, selectedTags]);
 
-  const handleView = (problemId: string) => {
-    if (onEdit) {
-      onEdit(problemId);
-    } else {
-      router.push(`/instructor/problems`);
-    }
-  };
-
   const handleEdit = (problemId: string) => {
     if (onEdit) {
       onEdit(problemId);
@@ -355,7 +347,6 @@ export default function ProblemLibrary({ onCreateNew, onEdit }: ProblemLibraryPr
               key={problem.id}
               problem={problem}
               viewMode={viewMode}
-              onView={handleView}
               onEdit={handleEdit}
               onDelete={handleDelete}
               onCreateSession={handleCreateSession}
