@@ -19,6 +19,7 @@ describe('CreateSessionFromProblemModal', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     global.fetch = jest.fn();
+    localStorage.clear();
   });
 
   afterEach(() => {
@@ -43,8 +44,8 @@ describe('CreateSessionFromProblemModal', () => {
       ok: true,
       json: async () => ({
         sections: [
-          { id: 'sec-1', classId: 'class-1', name: 'Section A', joinCode: 'ABC' },
-          { id: 'sec-2', classId: 'class-1', name: 'Section B', joinCode: 'DEF' },
+          { id: 'sec-1', name: 'Section A', joinCode: 'ABC' },
+          { id: 'sec-2', name: 'Section B', joinCode: 'DEF' },
         ],
       }),
     });
@@ -65,7 +66,7 @@ describe('CreateSessionFromProblemModal', () => {
         ok: true,
         json: async () => ({
           sections: [
-            { id: 'sec-1', classId: 'class-1', name: 'Section A', joinCode: 'ABC' },
+            { id: 'sec-1', name: 'Section A', joinCode: 'ABC' },
           ],
         }),
       })
@@ -101,7 +102,7 @@ describe('CreateSessionFromProblemModal', () => {
       ok: true,
       json: async () => ({
         sections: [
-          { id: 'sec-1', classId: 'class-1', name: 'Section A', joinCode: 'ABC' },
+          { id: 'sec-1', name: 'Section A', joinCode: 'ABC' },
         ],
       }),
     });
@@ -115,5 +116,81 @@ describe('CreateSessionFromProblemModal', () => {
     // Should only fetch sections, not classes (className is provided as prop)
     expect(global.fetch).toHaveBeenCalledTimes(1);
     expect(global.fetch).toHaveBeenCalledWith('/api/classes/class-1/sections');
+  });
+
+  it('pre-selects last-used section when classId matches', async () => {
+    localStorage.setItem('lastUsedSection', JSON.stringify({ sectionId: 'sec-2', classId: 'class-1' }));
+
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        sections: [
+          { id: 'sec-1', name: 'Section A', joinCode: 'ABC' },
+          { id: 'sec-2', name: 'Section B', joinCode: 'DEF' },
+        ],
+      }),
+    });
+
+    render(<CreateSessionFromProblemModal {...defaultProps} />);
+
+    await waitFor(() => {
+      expect(screen.getByRole('combobox')).toHaveValue('sec-2');
+    });
+  });
+
+  it('does not pre-select when last-used section is for a different class', async () => {
+    localStorage.setItem('lastUsedSection', JSON.stringify({ sectionId: 'sec-1', classId: 'other-class' }));
+
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        sections: [
+          { id: 'sec-1', name: 'Section A', joinCode: 'ABC' },
+          { id: 'sec-2', name: 'Section B', joinCode: 'DEF' },
+        ],
+      }),
+    });
+
+    render(<CreateSessionFromProblemModal {...defaultProps} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Section A')).toBeInTheDocument();
+    });
+
+    expect(screen.getByRole('combobox')).toHaveValue('');
+  });
+
+  it('saves last-used section on successful session creation', async () => {
+    (global.fetch as jest.Mock)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          sections: [
+            { id: 'sec-1', name: 'Section A', joinCode: 'ABC' },
+          ],
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          session: { id: 'session-1', joinCode: 'JOIN123' },
+        }),
+      });
+
+    render(<CreateSessionFromProblemModal {...defaultProps} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Section A')).toBeInTheDocument();
+    });
+
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'sec-1' } });
+    fireEvent.click(screen.getByRole('button', { name: /create session/i }));
+
+    await waitFor(() => {
+      expect(defaultProps.onSuccess).toHaveBeenCalled();
+    });
+
+    const stored = JSON.parse(localStorage.getItem('lastUsedSection')!);
+    expect(stored).toEqual({ sectionId: 'sec-1', classId: 'class-1' });
   });
 });
