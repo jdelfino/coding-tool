@@ -211,12 +211,12 @@ function PublicViewContent() {
             ) : (
               <ChevronUp className="h-4 w-4 text-gray-400 flex-shrink-0" />
             )}
-            <h2 className="mt-0 mb-0 text-xl font-semibold truncate">
+            <h2 className="mt-0 mb-0 text-2xl font-semibold truncate">
               {state?.problem?.title || 'Problem'}
             </h2>
           </div>
           <div className="flex-shrink-0 text-right">
-            <span className="text-2xl font-bold text-blue-500 font-mono">
+            <span className="text-4xl font-bold text-blue-500 font-mono">
               {state?.joinCode || '------'}
             </span>
           </div>
@@ -224,9 +224,9 @@ function PublicViewContent() {
         {!headerCollapsed && (
           <div className="pl-6 pb-2 pt-1">
             {problemText ? (
-              <MarkdownContent content={problemText} className="text-base" />
+              <MarkdownContent content={problemText} className="text-lg" />
             ) : (
-              <p className="text-gray-400 italic m-0 text-base">No problem set yet</p>
+              <p className="text-gray-400 italic m-0 text-lg">No problem set yet</p>
             )}
           </div>
         )}
@@ -244,7 +244,8 @@ function PublicViewContent() {
             debugger={debuggerHook}
             forceDesktop={true}
             outputPosition="right"
-            fontSize={20}
+            fontSize={24}
+            outputFontSize="lg"
           />
         </div>
       ) : (
@@ -258,7 +259,8 @@ function PublicViewContent() {
             debugger={debuggerHook}
             forceDesktop={true}
             outputPosition="right"
-            fontSize={20}
+            fontSize={24}
+            outputFontSize="lg"
           />
         </div>
       )}

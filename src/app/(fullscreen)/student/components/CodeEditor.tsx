@@ -43,6 +43,7 @@ interface CodeEditorProps {
   forceDesktop?: boolean;
   outputPosition?: 'bottom' | 'right';
   fontSize?: number;
+  outputFontSize?: 'base' | 'lg';
 }
 
 export default function CodeEditor({
@@ -70,7 +71,10 @@ export default function CodeEditor({
   forceDesktop = false,
   outputPosition = 'bottom',
   fontSize,
+  outputFontSize,
 }: CodeEditorProps) {
+  const outputTextSm = outputFontSize === 'lg' ? 'text-base' : 'text-sm';
+  const outputTextXs = outputFontSize === 'lg' ? 'text-sm' : 'text-xs';
   const editorRef = useRef<any>(null);
   const [stdin, setStdin] = useState('');
   const [localIsRunning, setLocalIsRunning] = useState(false);
@@ -1105,7 +1109,7 @@ export default function CodeEditor({
                   }`}>
                     {effectiveResult.success ? '✓ Success' : '✗ Error'}
                   </span>
-                  <span className={`text-sm ${
+                  <span className={`${outputTextSm} ${
                     effectiveResult.success ? 'text-green-300' : 'text-red-300'
                   }`}>
                     Execution time: {effectiveResult.executionTime}ms
@@ -1114,12 +1118,12 @@ export default function CodeEditor({
 
                 {effectiveResult.output && (
                   <div className="mt-2">
-                    <div className={`font-bold text-sm ${
+                    <div className={`font-bold ${outputTextSm} ${
                       effectiveResult.success ? 'text-green-300' : 'text-red-300'
                     }`}>
                       Output:
                     </div>
-                    <pre className="bg-gray-800 text-gray-200 p-2 rounded border border-gray-700 overflow-x-auto text-sm font-mono mt-1 whitespace-pre-wrap break-words">
+                    <pre className={`bg-gray-800 text-gray-200 p-2 rounded border border-gray-700 overflow-x-auto ${outputTextSm} font-mono mt-1 whitespace-pre-wrap break-words`}>
                       {effectiveResult.output}
                     </pre>
                   </div>
@@ -1127,10 +1131,10 @@ export default function CodeEditor({
 
                 {effectiveResult.error && (
                   <div className="mt-2">
-                    <div className="font-bold text-sm text-red-400">
+                    <div className={`font-bold ${outputTextSm} text-red-400`}>
                       Error:
                     </div>
-                    <pre className="bg-gray-800 p-2 rounded border border-red-900 overflow-x-auto text-sm font-mono mt-1 whitespace-pre-wrap break-words text-red-300">
+                    <pre className={`bg-gray-800 p-2 rounded border border-red-900 overflow-x-auto ${outputTextSm} font-mono mt-1 whitespace-pre-wrap break-words text-red-300`}>
                       {effectiveResult.error}
                     </pre>
                   </div>
@@ -1140,19 +1144,19 @@ export default function CodeEditor({
               <div className="p-4 bg-gray-900 h-full flex flex-col items-center justify-center">
                 {!problem ? (
                   <>
-                    <p className="text-gray-400 text-sm italic mb-2">
+                    <p className={`text-gray-400 ${outputTextSm} italic mb-2`}>
                       Waiting for instructor to load a problem...
                     </p>
-                    <p className="text-gray-500 text-xs">
+                    <p className={`text-gray-500 ${outputTextXs}`}>
                       You can start writing code while you wait.
                     </p>
                   </>
                 ) : (
                   <>
-                    <p className="text-gray-400 text-sm italic mb-2">
+                    <p className={`text-gray-400 ${outputTextSm} italic mb-2`}>
                       No output yet.
                     </p>
-                    <p className="text-gray-500 text-xs">
+                    <p className={`text-gray-500 ${outputTextXs}`}>
                       Click "Run Code" to execute your program and see the results here.
                     </p>
                   </>

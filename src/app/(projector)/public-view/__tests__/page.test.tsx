@@ -654,13 +654,13 @@ describe('PublicInstructorView collapsible header', () => {
     expect(screen.getByText('ABC-123')).toBeInTheDocument();
   });
 
-  test('renders join code with text-2xl class for projector visibility', async () => {
+  test('renders join code with text-4xl class for projector visibility', async () => {
     await renderWithState();
 
     await waitFor(() => {
       const joinCodeElement = screen.getByText('ABC-123');
       expect(joinCodeElement).toBeInTheDocument();
-      expect(joinCodeElement.className).toContain('text-2xl');
+      expect(joinCodeElement.className).toContain('text-4xl');
     });
   });
 
@@ -678,7 +678,8 @@ describe('PublicInstructorView collapsible header', () => {
     });
 
     expect(lastCodeEditorProps).toBeTruthy();
-    expect(lastCodeEditorProps.fontSize).toBe(20);
+    expect(lastCodeEditorProps.fontSize).toBe(24);
+    expect(lastCodeEditorProps.outputFontSize).toBe('lg');
   });
 
   test('re-expands when toggle is clicked again', async () => {
