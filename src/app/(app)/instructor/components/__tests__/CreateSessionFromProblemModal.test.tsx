@@ -44,8 +44,8 @@ describe('CreateSessionFromProblemModal', () => {
       ok: true,
       json: async () => ({
         sections: [
-          { id: 'sec-1', classId: 'class-1', name: 'Section A', joinCode: 'ABC' },
-          { id: 'sec-2', classId: 'class-1', name: 'Section B', joinCode: 'DEF' },
+          { id: 'sec-1', name: 'Section A', joinCode: 'ABC' },
+          { id: 'sec-2', name: 'Section B', joinCode: 'DEF' },
         ],
       }),
     });
@@ -66,7 +66,7 @@ describe('CreateSessionFromProblemModal', () => {
         ok: true,
         json: async () => ({
           sections: [
-            { id: 'sec-1', classId: 'class-1', name: 'Section A', joinCode: 'ABC' },
+            { id: 'sec-1', name: 'Section A', joinCode: 'ABC' },
           ],
         }),
       })
@@ -102,7 +102,7 @@ describe('CreateSessionFromProblemModal', () => {
       ok: true,
       json: async () => ({
         sections: [
-          { id: 'sec-1', classId: 'class-1', name: 'Section A', joinCode: 'ABC' },
+          { id: 'sec-1', name: 'Section A', joinCode: 'ABC' },
         ],
       }),
     });
@@ -125,8 +125,8 @@ describe('CreateSessionFromProblemModal', () => {
       ok: true,
       json: async () => ({
         sections: [
-          { id: 'sec-1', classId: 'class-1', name: 'Section A', joinCode: 'ABC' },
-          { id: 'sec-2', classId: 'class-1', name: 'Section B', joinCode: 'DEF' },
+          { id: 'sec-1', name: 'Section A', joinCode: 'ABC' },
+          { id: 'sec-2', name: 'Section B', joinCode: 'DEF' },
         ],
       }),
     });
@@ -145,8 +145,8 @@ describe('CreateSessionFromProblemModal', () => {
       ok: true,
       json: async () => ({
         sections: [
-          { id: 'sec-1', classId: 'class-1', name: 'Section A', joinCode: 'ABC' },
-          { id: 'sec-2', classId: 'class-1', name: 'Section B', joinCode: 'DEF' },
+          { id: 'sec-1', name: 'Section A', joinCode: 'ABC' },
+          { id: 'sec-2', name: 'Section B', joinCode: 'DEF' },
         ],
       }),
     });
@@ -166,7 +166,7 @@ describe('CreateSessionFromProblemModal', () => {
         ok: true,
         json: async () => ({
           sections: [
-            { id: 'sec-1', classId: 'class-1', name: 'Section A', joinCode: 'ABC' },
+            { id: 'sec-1', name: 'Section A', joinCode: 'ABC' },
           ],
         }),
       })

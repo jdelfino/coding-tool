@@ -87,7 +87,7 @@ export default function InstructorActions({ problemId, problemTitle, classId, cl
         throw new Error('Failed to load sections');
       }
       const data = await response.json();
-      const sections: { id: string; classId: string; name: string; joinCode: string }[] = data.sections || [];
+      const sections: { id: string; name: string; joinCode: string }[] = data.sections || [];
 
       // Auto-start if only one section
       if (sections.length === 1) {

@@ -12,7 +12,6 @@ import { getLastUsedSection, setLastUsedSection } from '@/lib/last-used-section'
 
 interface SectionInfo {
   id: string;
-  classId: string;
   name: string;
   semester?: string;
   joinCode: string;

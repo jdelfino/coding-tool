@@ -18,22 +18,34 @@ export function CopyLinkDropdown({ problemId, classId }: CopyLinkDropdownProps) 
   const [copied, setCopied] = useState(false);
   const [sections, setSections] = useState<Section[] | null>(null);
   const [loading, setLoading] = useState(false);
+  const [fetchError, setFetchError] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
-  const copyGenericLink = useCallback(async () => {
-    const url = `${window.location.origin}/problems/${problemId}`;
-    await navigator.clipboard.writeText(url);
+  const showCopiedFeedback = useCallback(() => {
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
-  }, [problemId]);
+  }, []);
+
+  const copyGenericLink = useCallback(async () => {
+    try {
+      const url = `${window.location.origin}/problems/${problemId}`;
+      await navigator.clipboard.writeText(url);
+      showCopiedFeedback();
+    } catch {
+      // Clipboard API not available — ignore silently
+    }
+  }, [problemId, showCopiedFeedback]);
 
   const copySectionLink = useCallback(async (sectionId: string) => {
-    const url = `${window.location.origin}/problems/${problemId}?start=true&sectionId=${sectionId}`;
-    await navigator.clipboard.writeText(url);
-    setCopied(true);
+    try {
+      const url = `${window.location.origin}/problems/${problemId}?start=true&sectionId=${sectionId}`;
+      await navigator.clipboard.writeText(url);
+      showCopiedFeedback();
+    } catch {
+      // Clipboard API not available — ignore silently
+    }
     setIsOpen(false);
-    setTimeout(() => setCopied(false), 2000);
-  }, [problemId]);
+  }, [problemId, showCopiedFeedback]);
 
   const openDropdown = useCallback(async () => {
     if (isOpen) {
@@ -43,12 +55,17 @@ export function CopyLinkDropdown({ problemId, classId }: CopyLinkDropdownProps) 
     setIsOpen(true);
     if (sections === null) {
       setLoading(true);
+      setFetchError(false);
       try {
         const res = await fetch(`/api/classes/${classId}/sections`);
         if (res.ok) {
           const data = await res.json();
           setSections(data.sections ?? []);
+        } else {
+          setFetchError(true);
         }
+      } catch {
+        setFetchError(true);
       } finally {
         setLoading(false);
       }
@@ -119,7 +136,10 @@ export function CopyLinkDropdown({ problemId, classId }: CopyLinkDropdownProps) 
           {loading && (
             <div className="px-4 py-2 text-sm text-gray-500">Loading...</div>
           )}
-          {!loading && sortedSections.length === 0 && (
+          {!loading && fetchError && (
+            <div className="px-4 py-2 text-sm text-red-600">Failed to load sections</div>
+          )}
+          {!loading && !fetchError && sortedSections.length === 0 && (
             <div className="px-4 py-2 text-sm text-gray-500">No sections</div>
           )}
           {!loading &&
