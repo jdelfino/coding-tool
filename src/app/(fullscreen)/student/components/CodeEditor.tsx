@@ -107,7 +107,7 @@ export default function CodeEditor({
 
   // Output section resize state
   const [outputHeight, setOutputHeight] = useState(150); // Start at 150px
-  const [outputWidth, setOutputWidth] = useState(400); // Start at 400px for side-by-side
+  const [outputWidthFraction, setOutputWidthFraction] = useState(0.35); // 35% of container for side-by-side
   const [isResizingOutput, setIsResizingOutput] = useState(false);
   const outputResizeRef = useRef<HTMLDivElement>(null);
 
@@ -133,11 +133,11 @@ export default function CodeEditor({
         const containerRect = container.getBoundingClientRect();
 
         if (outputPosition === 'right') {
-          // Horizontal resize: compute width from right edge
+          // Horizontal resize: compute fraction of container width
           const newWidth = containerRect.right - e.clientX;
-          const maxWidth = containerRect.width * 0.6; // Max 60% of container
-          const constrainedWidth = Math.min(Math.max(newWidth, 200), maxWidth);
-          setOutputWidth(constrainedWidth);
+          const fraction = newWidth / containerRect.width;
+          const constrainedFraction = Math.min(Math.max(fraction, 0.15), 0.6);
+          setOutputWidthFraction(constrainedFraction);
         } else {
           const newHeight = containerRect.bottom - e.clientY;
           const maxHeight = containerRect.height * 0.8; // Max 80% of container
@@ -1010,7 +1010,7 @@ export default function CodeEditor({
                     : { flex: 1, minHeight: '200px' } // Fill space when showing output on mobile
                   )
                 : outputPosition === 'right'
-                  ? { width: `${outputWidth}px`, maxWidth: '60%' }
+                  ? { width: `${outputWidthFraction * 100}%` }
                   : { height: `${outputHeight}px` }
             }
           >
