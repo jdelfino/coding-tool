@@ -6,7 +6,7 @@
  * Server-rendered with OG meta tags for link previews.
  */
 
-import { cache } from 'react';
+import { cache, Suspense } from 'react';
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { codeToHtml } from 'shiki';
@@ -75,7 +75,9 @@ export default async function PublicProblemPage({ params }: Params) {
         Link to this problem
       </a>
 
-      <InstructorActions problemId={problem.id} problemTitle={problem.title} classId={problem.classId} className={className} />
+      <Suspense fallback={null}>
+        <InstructorActions problemId={problem.id} problemTitle={problem.title} classId={problem.classId} className={className} />
+      </Suspense>
 
       {problem.description && (
         <div className="mb-8">

@@ -12,6 +12,7 @@ import InstructorActions from '../InstructorActions';
 const mockPush = jest.fn();
 jest.mock('next/navigation', () => ({
   useRouter: () => ({ push: mockPush }),
+  useSearchParams: () => new URLSearchParams(),
 }));
 
 jest.mock('@/contexts/AuthContext', () => ({

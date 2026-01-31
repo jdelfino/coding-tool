@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import CreateSessionFromProblemModal from '@/app/(app)/instructor/components/CreateSessionFromProblemModal';
 import { getLastUsedSection, setLastUsedSection } from '@/lib/last-used-section';
 
@@ -17,11 +17,46 @@ export default function InstructorActions({ problemId, problemTitle, classId, cl
   const { user, isLoading } = useAuth();
   const [showModal, setShowModal] = useState(false);
   const [starting, setStarting] = useState(false);
+  const [autoStartError, setAutoStartError] = useState<string | null>(null);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const autoStartAttempted = useRef(false);
+
+  const isInstructor = !isLoading && user && ['instructor', 'namespace-admin', 'system-admin'].includes(user.role);
+
+  useEffect(() => {
+    if (isLoading || autoStartAttempted.current) return;
+    if (!isInstructor) return;
+
+    const shouldStart = searchParams.get('start') === 'true';
+    const sectionId = searchParams.get('sectionId');
+    if (!shouldStart || !sectionId) return;
+
+    autoStartAttempted.current = true;
+
+    (async () => {
+      try {
+        const response = await fetch('/api/sessions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sectionId, problemId }),
+        });
+        if (!response.ok) {
+          throw new Error('Failed to create session');
+        }
+        const { session } = await response.json();
+        setLastUsedSection(sectionId, classId);
+        const channel = new BroadcastChannel('instructor-session-created');
+        channel.postMessage({ sessionId: session.id, problemTitle });
+        channel.close();
+        router.push(`/public-view?sessionId=${session.id}`);
+      } catch (err) {
+        setAutoStartError(err instanceof Error ? err.message : 'Failed to create session');
+      }
+    })();
+  }, [isLoading, isInstructor, searchParams, problemId, classId, problemTitle, router]);
 
   if (isLoading) return null;
-
-  const isInstructor = user && ['instructor', 'namespace-admin', 'system-admin'].includes(user.role);
   if (!isInstructor) return null;
 
   const handleSessionCreated = (sessionId: string) => {
@@ -106,6 +141,9 @@ export default function InstructorActions({ problemId, problemTitle, classId, cl
           )}
         </button>
       </div>
+      {autoStartError && (
+        <p className="text-sm text-red-600 mb-4">{autoStartError}</p>
+      )}
       {showModal && (
         <CreateSessionFromProblemModal
           problemId={problemId}
