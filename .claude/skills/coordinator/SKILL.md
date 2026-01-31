@@ -33,8 +33,11 @@ bd create "<description>" -t <task|bug|feature> -p 2 --json
 
 | Condition | Mode |
 |-----------|------|
-| Single task (not epic, no subtasks) | **Direct** |
+| Small, focused change (1-3 files, single concern) | **Direct** |
+| Multiple related issues being worked together | **Branch** |
+| Cross-cutting change (5+ files, multiple concerns) | **Branch** |
 | Epic or has subtasks | **Branch** |
+| Removal/refactor of a feature | **Branch** |
 | User explicitly requests PR | **Branch** |
 
 ---
