@@ -12,7 +12,17 @@ Run this in a dedicated terminal window. Invoke periodically with `/merge` while
 ## Step 1: Scan
 
 ```bash
+# Check CI status on main — failing main blocks the entire queue
+gh run list --branch main --limit 1 --json status,conclusion
+
+# List open PRs
 gh pr list --json number,title,headRefName,statusCheckRollup,mergeable,body,reviewRequests,reviews
+```
+
+**If main CI is failing:** file a P0 beads issue (if one doesn't already exist), report prominently, and stop. Nothing can merge until main is green.
+
+```bash
+bd create "CI failing on main: <summary>" -t bug -p 0 --json
 ```
 
 ## Step 2: Categorize
@@ -116,13 +126,6 @@ When CI fails on a PR:
    bd create "CI failure on PR #<number>: <summary>" -t bug -p 1 --json
    ```
 3. Report to user with the beads issue ID
-
-**If main itself has failing tests:** this blocks the entire merge queue. File a P0 beads issue and report prominently.
-
-```bash
-# Check main CI status
-gh run list --branch main --limit 1 --json status,conclusion
-```
 
 ## Step 7: Report Summary
 
