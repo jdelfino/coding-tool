@@ -7,13 +7,11 @@
  * - Problem Setup: Configure the session problem (full width for editor)
  */
 
-import React, { useState, useCallback, useRef } from 'react';
-import { getSupabaseBrowserClient } from '@/lib/supabase/client';
+import React, { useState, useCallback } from 'react';
 import SessionControls from './SessionControls';
 import { SessionStudentPane } from './SessionStudentPane';
 import { ProblemSetupPanel } from './ProblemSetupPanel';
 import RevisionViewer from './RevisionViewer';
-import ProblemLoader from './ProblemLoader';
 import { Tabs } from '@/components/ui/Tabs';
 import { Problem, ExecutionSettings } from '@/server/types/problem';
 import { Student, RealtimeStudent, ExecutionResult } from '../types';
@@ -63,8 +61,6 @@ interface SessionViewProps {
     code: string,
     executionSettings: ExecutionSettings
   ) => Promise<ExecutionResult>;
-  /** Callback when problem is loaded from library */
-  onProblemLoaded?: (problemId: string) => void;
   /** ID of the currently featured student */
   featuredStudentId?: string | null;
 }
@@ -92,7 +88,6 @@ export function SessionView({
   onFeatureStudent,
   onClearPublicView,
   executeCode,
-  onProblemLoaded,
   featuredStudentId,
 }: SessionViewProps) {
   // Tab state
@@ -103,49 +98,23 @@ export function SessionView({
     studentId: string;
     studentName: string;
   } | null>(null);
-  const [showProblemLoader, setShowProblemLoader] = useState(false);
-  const [isSolutionShowing, setIsSolutionShowing] = useState(false);
-  const projectorChannelRef = useRef<ReturnType<ReturnType<typeof getSupabaseBrowserClient>['channel']> | null>(null);
-
-  const handleToggleSolution = useCallback((show: boolean) => {
-    setIsSolutionShowing(show);
+  const handleShowSolution = useCallback(async () => {
+    if (!sessionProblem?.solution || !onClearPublicView) return;
 
     try {
-      const supabase = getSupabaseBrowserClient();
-      const channelName = `session:${sessionId}:projector`;
-
-      // Clean up previous channel if any
-      if (projectorChannelRef.current) {
-        supabase.removeChannel(projectorChannelRef.current);
-      }
-
-      const channel = supabase.channel(channelName);
-      projectorChannelRef.current = channel;
-
-      channel.subscribe(async (status) => {
-        try {
-          if (status === 'SUBSCRIBED') {
-            await channel.send({
-              type: 'broadcast',
-              event: 'solution_displayed',
-              payload: {
-                show,
-                solution: show ? (sessionProblem?.solution || '') : '',
-              },
-            });
-            supabase.removeChannel(channel);
-            projectorChannelRef.current = null;
-          }
-        } catch (error) {
-          console.error('Failed to broadcast solution toggle:', error);
-          setIsSolutionShowing(!show);
-        }
+      const res = await fetch(`/api/sessions/${sessionId}/feature`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: sessionProblem.solution }),
       });
+
+      if (!res.ok) {
+        console.error('Failed to show solution:', await res.text());
+      }
     } catch (error) {
-      console.error('Failed to set up solution broadcast channel:', error);
-      setIsSolutionShowing(!show);
+      console.error('Failed to show solution:', error);
     }
-  }, [sessionId, sessionProblem?.solution]);
+  }, [sessionId, sessionProblem?.solution, onClearPublicView]);
 
   // Handlers for student pane
   const handleViewRevisions = useCallback((studentId: string, studentName: string) => {
@@ -155,19 +124,6 @@ export function SessionView({
   const handleCloseRevisionViewer = useCallback(() => {
     setRevisionViewerState(null);
   }, []);
-
-  const handleOpenProblemLoader = useCallback(() => {
-    setShowProblemLoader(true);
-  }, []);
-
-  const handleCloseProblemLoader = useCallback(() => {
-    setShowProblemLoader(false);
-  }, []);
-
-  const handleProblemLoaded = useCallback((problemId: string) => {
-    setShowProblemLoader(false);
-    onProblemLoaded?.(problemId);
-  }, [onProblemLoaded]);
 
   const handleExecuteCode = useCallback(async (
     studentId: string,
@@ -191,12 +147,10 @@ export function SessionView({
         joinCode={joinCode || undefined}
         connectedStudentCount={students.length}
         onEndSession={onEndSession}
-        onLoadProblem={handleOpenProblemLoader}
         onClearPublicView={onClearPublicView}
         featuredStudentId={featuredStudentId}
         problemSolution={sessionProblem?.solution}
-        isSolutionShowing={isSolutionShowing}
-        onToggleSolution={handleToggleSolution}
+        onShowSolution={handleShowSolution}
       />
 
       {/* Tabbed Content Area */}
@@ -249,13 +203,6 @@ export function SessionView({
         />
       )}
 
-      {showProblemLoader && (
-        <ProblemLoader
-          sessionId={sessionId}
-          onProblemLoaded={handleProblemLoaded}
-          onClose={handleCloseProblemLoader}
-        />
-      )}
     </div>
   );
 }

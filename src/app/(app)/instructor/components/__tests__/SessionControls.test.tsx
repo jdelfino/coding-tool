@@ -162,11 +162,21 @@ describe('SessionControls', () => {
       expect(mockOnClearPublicView).toHaveBeenCalledTimes(1);
     });
 
-    it('should not show Clear Public View button when no student is featured', () => {
+    it('should show Clear Public View button when onClearPublicView is provided', () => {
       render(
         <SessionControls
           {...defaultProps}
           onClearPublicView={jest.fn()}
+        />
+      );
+
+      expect(screen.getByTestId('clear-public-view-button')).toBeInTheDocument();
+    });
+
+    it('should not show Clear Public View button when onClearPublicView is not provided', () => {
+      render(
+        <SessionControls
+          {...defaultProps}
         />
       );
 
@@ -195,11 +205,13 @@ describe('SessionControls', () => {
       expect(screen.queryByTestId('show-solution-button')).not.toBeInTheDocument();
     });
 
-    it('should show Show Solution button when problem has a solution', () => {
+    it('should show Show Solution button when problem has a solution and onShowSolution is provided', () => {
+      const mockOnShowSolution = jest.fn();
       render(
         <SessionControls
           {...defaultProps}
           problemSolution="print('answer')"
+          onShowSolution={mockOnShowSolution}
         />
       );
 
@@ -208,58 +220,19 @@ describe('SessionControls', () => {
       expect(btn).toHaveTextContent('Show Solution');
     });
 
-    it('should toggle Show Solution button text on click', () => {
-      const mockOnToggleSolution = jest.fn();
+    it('should call onShowSolution on click', () => {
+      const mockOnShowSolution = jest.fn();
       render(
         <SessionControls
           {...defaultProps}
           problemSolution="print('answer')"
-          onToggleSolution={mockOnToggleSolution}
+          onShowSolution={mockOnShowSolution}
         />
       );
 
       const btn = screen.getByTestId('show-solution-button');
       fireEvent.click(btn);
-      expect(mockOnToggleSolution).toHaveBeenCalledWith(true);
-    });
-
-    it('should show Hide Solution text when solution is currently showing', () => {
-      render(
-        <SessionControls
-          {...defaultProps}
-          problemSolution="print('answer')"
-          isSolutionShowing={true}
-        />
-      );
-
-      const btn = screen.getByTestId('show-solution-button');
-      expect(btn).toHaveTextContent('Hide Solution');
-    });
-
-    it('should highlight Show Solution button when solution is showing', () => {
-      render(
-        <SessionControls
-          {...defaultProps}
-          problemSolution="print('answer')"
-          isSolutionShowing={true}
-        />
-      );
-
-      const btn = screen.getByTestId('show-solution-button');
-      expect(btn.className).toContain('bg-purple-600');
-    });
-
-    it('should use default styling when solution is not showing', () => {
-      render(
-        <SessionControls
-          {...defaultProps}
-          problemSolution="print('answer')"
-          isSolutionShowing={false}
-        />
-      );
-
-      const btn = screen.getByTestId('show-solution-button');
-      expect(btn.className).toContain('bg-purple-50');
+      expect(mockOnShowSolution).toHaveBeenCalled();
     });
 
     it('should use danger variant for the confirm button', () => {

@@ -280,6 +280,21 @@ export async function setFeaturedSubmission(
 }
 
 /**
+ * Set arbitrary code as the featured display (e.g. a solution)
+ */
+export async function setFeaturedCode(
+  storage: IStorageRepository,
+  sessionId: string,
+  code: string
+): Promise<void> {
+  await storage.sessions.updateSession(sessionId, {
+    featuredStudentId: undefined,
+    featuredCode: code,
+    lastActivity: new Date(),
+  });
+}
+
+/**
  * Clear the featured submission
  */
 export async function clearFeaturedSubmission(

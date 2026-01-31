@@ -977,8 +977,8 @@ export default function CodeEditor({
                 readOnlyMessage: debuggerHook?.hasTrace
                   ? { value: 'Exit debug mode to edit code' }
                   : undefined,
-                // Disable glyph margin on very small screens
-                glyphMargin: !mobileViewport.isVerySmall,
+                // Only show glyph margin when debugging (used for debugger line indicator)
+                glyphMargin: !!debuggerHook?.hasTrace && !mobileViewport.isVerySmall,
                 // Enable word wrap on mobile for better readability
                 wordWrap: mobileViewport.isMobile || mobileViewport.isTablet ? 'on' : 'off',
                 // Improve touch scrolling

@@ -9,12 +9,10 @@ interface SessionControlsProps {
   joinCode?: string;
   connectedStudentCount?: number;
   onEndSession: () => void;
-  onLoadProblem?: () => void;
   onClearPublicView?: () => void;
   featuredStudentId?: string | null;
   problemSolution?: string;
-  isSolutionShowing?: boolean;
-  onToggleSolution?: (show: boolean) => void;
+  onShowSolution?: () => void;
 }
 
 export default function SessionControls({
@@ -23,12 +21,10 @@ export default function SessionControls({
   joinCode,
   connectedStudentCount = 0,
   onEndSession,
-  onLoadProblem,
   onClearPublicView,
   featuredStudentId,
   problemSolution,
-  isSolutionShowing = false,
-  onToggleSolution,
+  onShowSolution,
 }: SessionControlsProps) {
   const [showEndSessionConfirm, setShowEndSessionConfirm] = useState(false);
 
@@ -55,29 +51,6 @@ export default function SessionControls({
           )}
         </div>
         <div className="flex gap-2">
-          {onLoadProblem && (
-            <button
-              onClick={onLoadProblem}
-              className="px-4 py-2 text-sm font-medium text-green-700 bg-green-50 border border-green-300 rounded-lg hover:bg-green-100 transition-colors"
-              title="Load a pre-created problem from your library into this session"
-            >
-              📚 Load Problem
-            </button>
-          )}
-          {problemSolution && (
-            <button
-              onClick={() => onToggleSolution?.(!isSolutionShowing)}
-              className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-                isSolutionShowing
-                  ? 'text-white bg-purple-600 border border-purple-600 hover:bg-purple-700'
-                  : 'text-purple-700 bg-purple-50 border border-purple-300 hover:bg-purple-100'
-              }`}
-              data-testid="show-solution-button"
-              title={isSolutionShowing ? 'Hide the solution from the public view' : 'Show the solution on the public view'}
-            >
-              {isSolutionShowing ? 'Hide Solution' : 'Show Solution'}
-            </button>
-          )}
           <button
             onClick={handleOpenPublicView}
             className="px-4 py-2 text-sm font-medium text-blue-700 bg-blue-50 border border-blue-300 rounded-lg hover:bg-blue-100 transition-colors"
@@ -85,7 +58,17 @@ export default function SessionControls({
           >
             Open Public View
           </button>
-          {featuredStudentId && onClearPublicView && (
+          {problemSolution && onShowSolution && (
+            <button
+              onClick={onShowSolution}
+              className="px-4 py-2 text-sm font-medium text-purple-700 bg-purple-50 border border-purple-300 rounded-lg hover:bg-purple-100 transition-colors"
+              data-testid="show-solution-button"
+              title="Show the solution on the public view"
+            >
+              Show Solution
+            </button>
+          )}
+          {onClearPublicView && (
             <button
               onClick={onClearPublicView}
               className="px-4 py-2 text-sm font-medium text-red-700 bg-red-50 border border-red-300 rounded-lg hover:bg-red-100 transition-colors"

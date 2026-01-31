@@ -143,48 +143,6 @@ describe('useSessionOperations', () => {
     });
   });
 
-  describe('loadProblem', () => {
-    it('loads a problem successfully', async () => {
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ success: true, message: 'Problem loaded' }),
-      });
-
-      const { result } = renderHook(() => useSessionOperations());
-
-      await act(async () => {
-        await result.current.loadProblem('session-1', 'problem-1');
-      });
-
-      expect(global.fetch).toHaveBeenCalledWith('/api/sessions/session-1/load-problem', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ problemId: 'problem-1' }),
-      });
-    });
-
-    it('sets error when load fails', async () => {
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: false,
-        json: async () => ({ error: 'Failed to load problem' }),
-      });
-
-      const { result } = renderHook(() => useSessionOperations());
-
-      await act(async () => {
-        try {
-          await result.current.loadProblem('session-1', 'problem-1');
-        } catch (error: any) {
-          expect(error.message).toBe('Failed to load problem');
-        }
-      });
-
-      expect(result.current.error).toBe('Failed to load problem');
-    });
-  });
-
   describe('updateProblem', () => {
     const mockProblem = {
       title: 'Test Problem',

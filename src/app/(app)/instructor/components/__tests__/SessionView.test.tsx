@@ -15,7 +15,6 @@ jest.mock('../SessionControls', () => {
     joinCode,
     connectedStudentCount,
     onEndSession,
-    onLoadProblem,
   }: any) {
     return (
       <div data-testid="session-controls">
@@ -24,7 +23,6 @@ jest.mock('../SessionControls', () => {
         <span data-testid="join-code">{joinCode}</span>
         <span data-testid="student-count">{connectedStudentCount}</span>
         <button onClick={onEndSession} data-testid="end-session-btn">End Session</button>
-        <button onClick={onLoadProblem} data-testid="load-problem-btn">Load Problem</button>
       </div>
     );
   };
@@ -100,23 +98,6 @@ jest.mock('../RevisionViewer', () => {
   };
 });
 
-jest.mock('../ProblemLoader', () => {
-  return function MockProblemLoader({ sessionId, onProblemLoaded, onClose }: any) {
-    return (
-      <div data-testid="problem-loader">
-        <span data-testid="loader-session-id">{sessionId}</span>
-        <button
-          onClick={() => onProblemLoaded?.('problem-1')}
-          data-testid="load-problem-confirm-btn"
-        >
-          Load
-        </button>
-        <button onClick={onClose} data-testid="close-loader-btn">Close</button>
-      </div>
-    );
-  };
-});
-
 
 describe('SessionView', () => {
   const mockStudents = [
@@ -154,7 +135,6 @@ describe('SessionView', () => {
     onUpdateProblem: jest.fn().mockResolvedValue(undefined),
     onFeatureStudent: jest.fn().mockResolvedValue(undefined),
     executeCode: jest.fn().mockResolvedValue({ success: true, output: '', error: '', executionTime: 100 }),
-    onProblemLoaded: jest.fn(),
   };
 
   beforeEach(() => {
@@ -225,49 +205,6 @@ describe('SessionView', () => {
       expect(defaultProps.onEndSession).toHaveBeenCalled();
     });
 
-  });
-
-  describe('problem loader modal', () => {
-    it('does not show problem loader initially', () => {
-      render(<SessionView {...defaultProps} />);
-
-      expect(screen.queryByTestId('problem-loader')).not.toBeInTheDocument();
-    });
-
-    it('shows problem loader when load problem button is clicked', () => {
-      render(<SessionView {...defaultProps} />);
-
-      fireEvent.click(screen.getByTestId('load-problem-btn'));
-
-      expect(screen.getByTestId('problem-loader')).toBeInTheDocument();
-      expect(screen.getByTestId('loader-session-id')).toHaveTextContent('session-123');
-    });
-
-    it('closes problem loader and calls onProblemLoaded when problem is loaded', () => {
-      render(<SessionView {...defaultProps} />);
-
-      // Open the loader
-      fireEvent.click(screen.getByTestId('load-problem-btn'));
-      expect(screen.getByTestId('problem-loader')).toBeInTheDocument();
-
-      // Load a problem
-      fireEvent.click(screen.getByTestId('load-problem-confirm-btn'));
-
-      // Should close and call callback
-      expect(screen.queryByTestId('problem-loader')).not.toBeInTheDocument();
-      expect(defaultProps.onProblemLoaded).toHaveBeenCalledWith('problem-1');
-    });
-
-    it('closes problem loader when close button is clicked', () => {
-      render(<SessionView {...defaultProps} />);
-
-      fireEvent.click(screen.getByTestId('load-problem-btn'));
-      expect(screen.getByTestId('problem-loader')).toBeInTheDocument();
-
-      fireEvent.click(screen.getByTestId('close-loader-btn'));
-
-      expect(screen.queryByTestId('problem-loader')).not.toBeInTheDocument();
-    });
   });
 
   describe('revision viewer modal', () => {

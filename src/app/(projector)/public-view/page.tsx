@@ -33,9 +33,6 @@ function PublicViewContent() {
   // Header collapse state - starts collapsed to maximize code space
   const [headerCollapsed, setHeaderCollapsed] = useState(false);
 
-  // Solution display state (from projector channel)
-  const [solutionOverride, setSolutionOverride] = useState<{ show: boolean; solution: string } | null>(null);
-
   // Local code state for editing (changes don't propagate back to student)
   const [localCode, setLocalCode] = useState<string>('');
   const lastFeaturedStudentId = useRef<string | null>(null);
@@ -94,7 +91,7 @@ function PublicViewContent() {
             ...prev,
             featuredStudentId,
             featuredCode,
-            hasFeaturedSubmission: !!featuredStudentId,
+            hasFeaturedSubmission: !!featuredCode,
           } : prev);
         }
       })
@@ -111,23 +108,8 @@ function PublicViewContent() {
         setIsConnected(status === 'SUBSCRIBED');
       });
 
-    // Projector-only channel for solution display events
-    const projectorChannelName = `session:${sessionId}:projector`;
-    const projectorChannel = supabase
-      .channel(projectorChannelName)
-      .on('broadcast', { event: 'solution_displayed' }, (payload) => {
-        if (payload.payload) {
-          const { show, solution } = payload.payload;
-          setSolutionOverride(show ? { show: true, solution } : null);
-        }
-      })
-      .subscribe(() => {
-        // Projector channel connected
-      });
-
     return () => {
       supabase.removeChannel(channel);
-      supabase.removeChannel(projectorChannel);
     };
   }, [sessionId]);
 
@@ -233,13 +215,13 @@ function PublicViewContent() {
       </div>
 
       {/* Featured Submission or Solution */}
-      {(solutionOverride?.show || state?.hasFeaturedSubmission) ? (
+      {state?.hasFeaturedSubmission ? (
         <div className="flex-1 min-h-0 flex flex-col">
           <CodeEditor
-            code={solutionOverride?.show ? solutionOverride.solution : localCode}
-            onChange={solutionOverride?.show ? () => {} : setLocalCode}
+            code={localCode}
+            onChange={setLocalCode}
             problem={state?.problem || null}
-            title={solutionOverride?.show ? 'Solution' : 'Featured Code'}
+            title="Featured Code"
             useApiExecution={true}
             debugger={debuggerHook}
             forceDesktop={true}

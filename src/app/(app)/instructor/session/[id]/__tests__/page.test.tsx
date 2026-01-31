@@ -139,7 +139,6 @@ describe('InstructorSessionPage', () => {
     endSession: mockEndSession,
     updateProblem: mockUpdateProblem,
     createSession: jest.fn(),
-    loadProblem: jest.fn(),
     loading: false,
     error: null,
   };

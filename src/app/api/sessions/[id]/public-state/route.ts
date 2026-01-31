@@ -55,7 +55,7 @@ export async function GET(
       problem: session.problem,
       featuredStudentId: session.featuredStudentId || null,
       featuredCode: session.featuredCode || null,
-      hasFeaturedSubmission: Boolean(session.featuredStudentId && session.featuredCode),
+      hasFeaturedSubmission: Boolean(session.featuredCode),
     });
   } catch (error: unknown) {
     if (error instanceof Error && error.message === 'Not authenticated') {

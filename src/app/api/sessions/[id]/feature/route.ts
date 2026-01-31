@@ -34,6 +34,7 @@ export async function broadcastFeaturedStudentChange(
 
 interface FeatureStudentBody {
   studentId?: string;
+  code?: string;
 }
 
 export async function POST(
@@ -61,7 +62,7 @@ export async function POST(
 
     // Parse request body
     const body: FeatureStudentBody = await request.json();
-    const { studentId } = body;
+    const { studentId, code } = body;
 
     // Get session
     const storage = await createStorage(accessToken);
@@ -95,6 +96,16 @@ export async function POST(
         success: true,
         featuredStudentId: studentId,
         featuredCode: student.code,
+      });
+    } else if (code) {
+      // Display arbitrary code (e.g. solution) on the public view
+      await SessionService.setFeaturedCode(storage, sessionId, code);
+
+      await broadcastFeaturedStudentChange(sessionId, null, code);
+
+      return NextResponse.json({
+        success: true,
+        featuredCode: code,
       });
     } else {
       // Clear featured submission via service

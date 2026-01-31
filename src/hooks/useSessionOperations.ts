@@ -101,40 +101,6 @@ export function useSessionOperations() {
   }, []);
 
   /**
-   * Load a pre-defined problem into a session
-   */
-  const loadProblem = useCallback(
-    async (sessionId: string, problemId: string): Promise<void> => {
-      setLoading(true);
-      setError(null);
-
-      try {
-        const response = await fetch(`/api/sessions/${sessionId}/load-problem`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ problemId }),
-        });
-
-        if (!response.ok) {
-          const errorData = await response
-            .json()
-            .catch(() => ({ error: 'Failed to load problem' }));
-          throw new Error(errorData.error || 'Failed to load problem');
-        }
-      } catch (err: any) {
-        const errorMessage = err.message || 'Failed to load problem';
-        setError(errorMessage);
-        throw err;
-      } finally {
-        setLoading(false);
-      }
-    },
-    []
-  );
-
-  /**
    * Update a session's problem inline
    */
   const updateProblem = useCallback(
@@ -178,7 +144,6 @@ export function useSessionOperations() {
   return {
     createSession,
     endSession,
-    loadProblem,
     updateProblem,
     loading,
     error,
