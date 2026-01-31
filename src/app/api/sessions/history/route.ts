@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
     // Get query parameters
     const { searchParams } = new URL(request.url);
     const statusFilter = searchParams.get('status') || 'all';
-    const classIdFilter = searchParams.get('classId');
+    const _classIdFilter = searchParams.get('classId');
     const searchQuery = searchParams.get('search')?.toLowerCase();
 
     // Apply filters

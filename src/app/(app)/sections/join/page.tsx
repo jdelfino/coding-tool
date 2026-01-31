@@ -7,7 +7,7 @@ import JoinSectionForm from '../components/JoinSectionForm';
 
 export default function JoinSectionPage() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user: _user } = useAuth();
   const { joinSection } = useSections();
 
   const handleJoinSection = async (joinCode: string) => {

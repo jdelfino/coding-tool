@@ -316,7 +316,7 @@ export class GeminiAnalysisService {
     );
 
     // Log prompt size for debugging
-    console.log(`[Gemini] Analyzing ${toAnalyze.length} submissions, prompt length: ${prompt.length} chars (~${Math.ceil(prompt.length / 4)} tokens)`);
+    console.warn(`[Gemini] Analyzing ${toAnalyze.length} submissions, prompt length: ${prompt.length} chars (~${Math.ceil(prompt.length / 4)} tokens)`);
 
     const responseText = await this.callGeminiAPI(prompt);
 

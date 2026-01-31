@@ -13,16 +13,13 @@
  * - Accept Partial<T> for updates to allow selective updates
  */
 
-import { Session, Student } from '../types';
+import { Session } from '../types';
 import { IUserRepository } from '../auth/interfaces';
 import { IClassRepository, ISectionRepository, IMembershipRepository } from '../classes/interfaces';
 import {
-  ProblemSpec,
   CodeRevision,
-  StorageConfig,
   SessionQueryOptions,
   StoredSession,
-  StoredProblem,
   StoredRevision,
 } from './types';
 import { Problem, ProblemMetadata, ProblemFilter, ProblemInput } from '../types/problem';

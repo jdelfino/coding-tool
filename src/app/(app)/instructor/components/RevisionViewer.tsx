@@ -1,6 +1,6 @@
 'use client';
 
-import { useRevisionHistory, CodeRevision } from '@/hooks/useRevisionHistory';
+import { useRevisionHistory } from '@/hooks/useRevisionHistory';
 import { useState, useEffect, useMemo } from 'react';
 
 interface RevisionViewerProps {

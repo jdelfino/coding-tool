@@ -7,7 +7,7 @@
  * Uses the ProblemLibrary component for the main UI.
  */
 
-import React, { Suspense, useCallback, useEffect, useState } from 'react';
+import React, { Suspense, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import ProblemLibrary from '../components/ProblemLibrary';
 import ProblemCreator from '../components/ProblemCreator';

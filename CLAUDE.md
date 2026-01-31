@@ -30,7 +30,7 @@ npm run test:watch       # Watch mode for TDD
 npm run test:e2e         # Playwright E2E tests (requires Supabase running)
 
 # Quality
-npm run lint             # ESLint
+npm run lint             # ESLint (errors fail, warnings allowed)
 npx tsc --noEmit         # Type check
 ```
 

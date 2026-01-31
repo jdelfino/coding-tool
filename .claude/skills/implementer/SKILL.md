@@ -41,9 +41,10 @@ Run quality gates:
 ```bash
 npm test
 npx tsc --noEmit
+npm run lint
 ```
 
-**Gate:** Both commands pass with zero errors. If either fails, fix the issues before proceeding.
+**Gate:** All three commands pass with zero errors. If any fails, fix the issues before proceeding.
 
 ## Phase 4: Test Coverage Review
 
@@ -93,6 +94,7 @@ Write any missing tests identified above. Then re-run quality gates:
 ```bash
 npm test
 npx tsc --noEmit
+npm run lint
 ```
 
 **Gate:** All tests pass, including your new coverage additions. If you identified no gaps in Steps 2-4, document your reasoning (e.g., "Changes were purely deletions; added regression tests in Phase 1 confirming removed elements no longer render").

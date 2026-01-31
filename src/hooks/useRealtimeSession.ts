@@ -85,7 +85,7 @@ export interface FeaturedStudent {
 export function useRealtimeSession({
   sessionId,
   userId,
-  userName,
+  userName: _userName,
 }: UseRealtimeSessionOptions) {
   // Local state
   const [session, setSession] = useState<Partial<Session> | null>(null);

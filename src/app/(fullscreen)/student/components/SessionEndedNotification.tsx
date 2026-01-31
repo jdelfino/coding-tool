@@ -26,7 +26,7 @@ const SessionEndedNotification: React.FC<SessionEndedNotificationProps> = ({
       await navigator.clipboard.writeText(code);
       setCopySuccess(true);
       setTimeout(() => setCopySuccess(false), 2000);
-    } catch (err) {
+    } catch (_err) {
       // Fallback for browsers that don't support clipboard API
       const textArea = document.createElement('textarea');
       textArea.value = code;

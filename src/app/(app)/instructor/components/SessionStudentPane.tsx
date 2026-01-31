@@ -61,7 +61,7 @@ export function SessionStudentPane({
   joinCode,
   onSelectStudent,
   onShowOnPublicView,
-  onClearPublicView,
+  onClearPublicView: _onClearPublicView,
   onViewHistory,
   onExecuteCode,
   featuredStudentId,
@@ -76,7 +76,7 @@ export function SessionStudentPane({
   const {
     analysisState,
     error: analysisError,
-    script,
+    script: _script,
     groups,
     activeGroupIndex,
     overallNote,

@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
       return auth; // Return 401 error response
     }
 
-    const { user, accessToken } = auth;
+    const { user, accessToken: _accessToken } = auth;
 
     const body = await request.json();
     const { joinCode } = body;

@@ -38,7 +38,7 @@ interface SectionViewProps {
 export default function SectionView({
   classId,
   className,
-  onBack,
+  onBack: _onBack,
   onCreateSession,
   onJoinSession
 }: SectionViewProps) {

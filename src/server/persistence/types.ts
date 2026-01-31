@@ -5,7 +5,7 @@
  * error handling, and metadata management.
  */
 
-import { Session, Student } from '../types';
+import { Session } from '../types';
 
 /**
  * Configuration options for storage backends

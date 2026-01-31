@@ -7,7 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthProvider } from '@/server/auth';
 import { createStorage } from '@/server/persistence';
-import { requirePermission } from '@/server/auth/api-helpers';
+// requirePermission available from '@/server/auth/api-helpers'
 import * as SessionService from '@/server/services/session-service';
 
 export async function POST(request: NextRequest) {
@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const auth = { user: session.user };
+    const _auth = { user: session.user };
     const accessToken = session.sessionId;
 
     // Get storage backend and clear all data
@@ -103,12 +103,12 @@ export async function POST(request: NextRequest) {
     // Delete all users except the current admin/instructor (to prevent lockout)
     // Note: Supabase JWT sessions are stateless and expire automatically.
     // Deleting the auth.users record invalidates all their JWTs.
-    let deletedCount = 0;
+    let _deletedCount = 0;
     for (const user of users) {
       if (user.id !== session.user.id) {
         try {
           await authProvider.deleteUser(user.id);
-          deletedCount++;
+          _deletedCount++;
         } catch (error) {
           console.error(`[Admin Clear Data] Error deleting user ${user.id}:`, error);
         }

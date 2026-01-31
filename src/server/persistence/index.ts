@@ -26,7 +26,7 @@ import {
 import type { IClassRepository, ISectionRepository, IMembershipRepository } from '../classes/interfaces';
 import type { INamespaceRepository } from '../auth/interfaces';
 import type { IInvitationRepository } from '../invitations/interfaces';
-import { StorageConfig } from './types';
+// StorageConfig type available from './types'
 
 /**
  * Supabase storage backend implementation

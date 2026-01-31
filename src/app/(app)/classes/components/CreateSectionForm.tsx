@@ -10,7 +10,7 @@ interface CreateSectionFormProps {
   onCancel: () => void;
 }
 
-export default function CreateSectionForm({ classId, className, onSubmit, onCancel }: CreateSectionFormProps) {
+export default function CreateSectionForm({ classId: _classId, className, onSubmit, onCancel }: CreateSectionFormProps) {
   const [name, setName] = useState('');
   const [semester, setSemester] = useState('');
   const [submitting, setSubmitting] = useState(false);

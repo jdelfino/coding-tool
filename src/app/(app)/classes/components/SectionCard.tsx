@@ -26,7 +26,7 @@ export default function SectionCard({
   onRegenerateCode,
   onAddInstructor,
   onRemoveInstructor,
-  instructorNames = {}
+  instructorNames: _instructorNames = {}
 }: SectionCardProps) {
   const [showJoinCode, setShowJoinCode] = useState(true);
   const [joinCode, setJoinCode] = useState(section.joinCode);

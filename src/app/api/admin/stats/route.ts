@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
 
     // Get repositories
     const sectionRepo = getSectionRepository(accessToken);
-    const membershipRepo = getMembershipRepository(accessToken);
+    const _membershipRepo = getMembershipRepository(accessToken);
     const storage = await createStorage(accessToken);
 
     // Get users, optionally filtered by namespace
