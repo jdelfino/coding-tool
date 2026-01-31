@@ -1,6 +1,6 @@
 # Changes here will be overwritten by Copier; NEVER EDIT MANUALLY
 _src_path: gh:jdelfino/devcontainer-template
-_commit: ea9c35ab09c3d5c39de34387cae34ce479dfd828
+_commit: 730756d7a85c4948cb2f3017daa24107320685a9
 project_name: coding-tool
 project_description: "Real-time coding classroom tool"
 base_container: node
