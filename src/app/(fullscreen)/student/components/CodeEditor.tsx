@@ -939,7 +939,7 @@ export default function CodeEditor({
           {/* Code Editor - grows to fill remaining space */}
           {/* On mobile, show based on mobileView toggle; on desktop, always show */}
           <div
-            className="flex-1"
+            className="flex-1 min-w-0"
             style={
               !isDesktop
                 ? (mobileView === 'output'
