@@ -8,6 +8,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import { getLastUsedSection, setLastUsedSection } from '@/lib/last-used-section';
 
 interface SectionInfo {
   id: string;
@@ -52,7 +53,18 @@ export default function CreateSessionFromProblemModal({
         throw new Error('Failed to load sections');
       }
       const data = await response.json();
-      setSections(data.sections || []);
+      const loadedSections: SectionInfo[] = data.sections || [];
+      setSections(loadedSections);
+
+      // Pre-select last-used section if it matches this class
+      const lastUsed = getLastUsedSection();
+      if (lastUsed && lastUsed.classId === targetClassId) {
+        const match = loadedSections.find(s => s.id === lastUsed.sectionId);
+        if (match) {
+          setSelectedSectionId(match.id);
+          return;
+        }
+      }
       setSelectedSectionId('');
     } catch (err) {
       console.error('Error loading sections:', err);
@@ -89,6 +101,7 @@ export default function CreateSessionFromProblemModal({
       }
 
       const { session } = await createResponse.json();
+      setLastUsedSection(selectedSectionId, classId);
       onSuccess(session.id, session.joinCode);
     } catch (err) {
       console.error('Error creating session:', err);
