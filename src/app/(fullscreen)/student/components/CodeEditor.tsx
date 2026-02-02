@@ -983,7 +983,7 @@ export default function CodeEditor({
                 lineNumbersMinChars: 2,
                 // Disable folding gutter and line decoration width to remove extra gutter space when not debugging
                 folding: false,
-                lineDecorationsWidth: debuggerHook?.hasTrace ? 10 : 2,
+                lineDecorationsWidth: debuggerHook?.hasTrace ? 10 : 8,
                 // Enable word wrap on mobile for better readability
                 wordWrap: mobileViewport.isMobile || mobileViewport.isTablet ? 'on' : 'off',
                 // Improve touch scrolling
