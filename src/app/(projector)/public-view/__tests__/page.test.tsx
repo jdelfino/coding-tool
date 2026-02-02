@@ -37,6 +37,12 @@ jest.mock('@/components/ProtectedRoute', () => ({
   ProtectedRoute: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
 
+// Mock useHeaderSlot
+const mockSetHeaderSlot = jest.fn();
+jest.mock('@/contexts/HeaderSlotContext', () => ({
+  useHeaderSlot: () => ({ setHeaderSlot: mockSetHeaderSlot }),
+}));
+
 // Mock fetch
 const mockFetch = jest.fn();
 global.fetch = mockFetch;
@@ -144,53 +150,18 @@ describe('PublicInstructorView', () => {
       expect(mockFetch).toHaveBeenCalledWith('/api/sessions/test-session-id/public-state');
     });
 
-    // Verify content is displayed
-    await waitFor(() => {
-      expect(screen.getByText('ABC-123')).toBeInTheDocument();
-    });
-
-    // Verify problem description is displayed
-    await waitFor(() => {
-      expect(screen.getByText('A test problem description')).toBeInTheDocument();
-    });
-
-    // Verify featured code is shown
+    // Wait for content to fully render
     await waitFor(() => {
       expect(screen.getByTestId('code-content')).toHaveTextContent('print("Hello, World!")');
     });
-  });
 
-  test('renders problem description with markdown support', async () => {
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({
-        sessionId: 'test-session-id',
-        joinCode: 'ABC-123',
-        problem: {
-          title: 'Test Problem',
-          description: '## Markdown Header\n\nThis has **bold** text.',
-        },
-        featuredStudentId: null,
-        featuredCode: null,
-        hasFeaturedSubmission: false,
-      }),
-    });
-
-    const PublicInstructorView = require('../page').default;
-    render(<PublicInstructorView />);
-
-    // Wait for content to load
+    // Verify join code is sent to header slot (not rendered inline)
+    // After state loads, the header slot should contain the join code
     await waitFor(() => {
-      expect(mockFetch).toHaveBeenCalled();
-    });
-
-    // Verify markdown is rendered (h2 for ## header, strong for **bold**)
-    await waitFor(() => {
-      expect(screen.getByRole('heading', { level: 2, name: 'Markdown Header' })).toBeInTheDocument();
-    });
-
-    await waitFor(() => {
-      expect(screen.getByText('bold')).toBeInTheDocument();
+      const calls = mockSetHeaderSlot.mock.calls;
+      const lastCall = calls[calls.length - 1][0];
+      const { container: headerContainer } = render(lastCall);
+      expect(headerContainer.textContent).toContain('ABC-123');
     });
   });
 
@@ -399,6 +370,7 @@ describe('PublicInstructorView', () => {
   });
 
   test('updates problem state when problem_updated broadcast message is received', async () => {
+    lastCodeEditorProps = null;
     // Track the broadcast callbacks
     let problemUpdatedCallback: ((payload: any) => void) | null = null;
 
@@ -441,11 +413,14 @@ describe('PublicInstructorView', () => {
 
     // Wait for loading to complete and content to render
     await waitFor(() => {
-      expect(screen.getByText('Original description')).toBeInTheDocument();
+      expect(screen.getByTestId('code-editor')).toBeInTheDocument();
     });
 
     // Verify initial fetch happened
     expect(mockFetch).toHaveBeenCalledTimes(1);
+
+    // Verify initial problem is passed to CodeEditor
+    expect(lastCodeEditorProps.problem.title).toBe('Original Problem');
 
     // Simulate problem_updated broadcast message
     await act(async () => {
@@ -465,7 +440,7 @@ describe('PublicInstructorView', () => {
 
     // Verify state was updated from broadcast (not from re-fetch)
     await waitFor(() => {
-      expect(screen.getByText('Updated description from broadcast')).toBeInTheDocument();
+      expect(lastCodeEditorProps.problem.title).toBe('Updated Problem');
     });
 
     // Should NOT have re-fetched - broadcast updates state directly
@@ -557,7 +532,7 @@ describe('PublicInstructorView', () => {
   // The polling logic is covered by the connected/disconnected tests above.
 });
 
-describe('PublicInstructorView collapsible header', () => {
+describe('PublicInstructorView header slot', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     jest.useFakeTimers();
@@ -571,7 +546,62 @@ describe('PublicInstructorView collapsible header', () => {
     jest.useRealTimers();
   });
 
-  const renderWithState = async (overrides = {}) => {
+  test('passes fontSize prop to CodeEditor for projector scaling', async () => {
+    lastCodeEditorProps = null;
+
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        sessionId: 'test-session-id',
+        joinCode: 'ABC-123',
+        problem: {
+          title: 'Test Problem',
+          description: 'A test problem description',
+        },
+        featuredStudentId: 'student-1',
+        featuredCode: 'print("hello")',
+        hasFeaturedSubmission: true,
+      }),
+    });
+
+    const PublicInstructorView = require('../page').default;
+    render(<PublicInstructorView />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('code-editor')).toBeInTheDocument();
+    });
+
+    expect(lastCodeEditorProps).toBeTruthy();
+    expect(lastCodeEditorProps.fontSize).toBe(24);
+  });
+
+  test('passes outputCollapsible to CodeEditor', async () => {
+    lastCodeEditorProps = null;
+
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        sessionId: 'test-session-id',
+        joinCode: 'ABC-123',
+        problem: null,
+        featuredStudentId: null,
+        featuredCode: null,
+        hasFeaturedSubmission: false,
+      }),
+    });
+
+    const PublicInstructorView = require('../page').default;
+    render(<PublicInstructorView />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('code-editor')).toBeInTheDocument();
+    });
+
+    expect(lastCodeEditorProps).toBeTruthy();
+    expect(lastCodeEditorProps.outputCollapsible).toBe(true);
+  });
+
+  test('does not render collapsible header or problem description inline', async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({
@@ -584,7 +614,6 @@ describe('PublicInstructorView collapsible header', () => {
         featuredStudentId: null,
         featuredCode: null,
         hasFeaturedSubmission: false,
-        ...overrides,
       }),
     });
 
@@ -594,119 +623,15 @@ describe('PublicInstructorView collapsible header', () => {
     await waitFor(() => {
       expect(mockFetch).toHaveBeenCalled();
     });
-  };
-
-  test('renders a toggle button for the header', async () => {
-    await renderWithState();
-
-    await waitFor(() => {
-      const toggleButton = screen.getByRole('button', { name: /collapse problem header/i });
-      expect(toggleButton).toBeInTheDocument();
-    });
-  });
-
-  test('shows problem description by default (expanded)', async () => {
-    await renderWithState();
-
-    await waitFor(() => {
-      expect(screen.getByText('A test problem description')).toBeInTheDocument();
-    });
-
-    // Join code visible in header bar
-    expect(screen.getByText('ABC-123')).toBeInTheDocument();
-  });
-
-  test('hides problem description when collapsed', async () => {
-    const { fireEvent } = require('@testing-library/react');
-    await renderWithState();
-
-    await waitFor(() => {
-      expect(screen.getByText('A test problem description')).toBeInTheDocument();
-    });
-
-    // Click to collapse
-    const toggleButton = screen.getByRole('button', { name: /collapse problem header/i });
-    await act(async () => {
-      fireEvent.click(toggleButton);
-    });
-
-    // Description should be hidden
-    expect(screen.queryByText('A test problem description')).not.toBeInTheDocument();
-  });
-
-  test('shows problem title and join code in collapsed state', async () => {
-    const { fireEvent } = require('@testing-library/react');
-    await renderWithState();
-
-    await waitFor(() => {
-      expect(screen.getByText('A test problem description')).toBeInTheDocument();
-    });
-
-    // Click to collapse
-    const toggleButton = screen.getByRole('button', { name: /collapse problem header/i });
-    await act(async () => {
-      fireEvent.click(toggleButton);
-    });
-
-    // Problem title still visible in collapsed bar
-    expect(screen.getByText('Test Problem')).toBeInTheDocument();
-    // Join code still visible in compact form
-    expect(screen.getByText('ABC-123')).toBeInTheDocument();
-  });
-
-  test('renders join code with text-4xl class for projector visibility', async () => {
-    await renderWithState();
-
-    await waitFor(() => {
-      const joinCodeElement = screen.getByText('ABC-123');
-      expect(joinCodeElement).toBeInTheDocument();
-      expect(joinCodeElement.className).toContain('text-4xl');
-    });
-  });
-
-  test('passes fontSize prop to CodeEditor for projector scaling', async () => {
-    lastCodeEditorProps = null;
-
-    await renderWithState({
-      featuredStudentId: 'student-1',
-      featuredCode: 'print("hello")',
-      hasFeaturedSubmission: true,
-    });
 
     await waitFor(() => {
       expect(screen.getByTestId('code-editor')).toBeInTheDocument();
     });
 
-    expect(lastCodeEditorProps).toBeTruthy();
-    expect(lastCodeEditorProps.fontSize).toBe(24);
-  });
-
-  test('re-expands when toggle is clicked again', async () => {
-    const { fireEvent } = require('@testing-library/react');
-    await renderWithState();
-
-    await waitFor(() => {
-      expect(screen.getByText('A test problem description')).toBeInTheDocument();
-    });
-
-    // Collapse
-    const toggleButton = screen.getByRole('button', { name: /collapse problem header/i });
-    await act(async () => {
-      fireEvent.click(toggleButton);
-    });
-
+    // No collapsible header toggle button
+    expect(screen.queryByRole('button', { name: /collapse problem header/i })).not.toBeInTheDocument();
+    // No inline problem description
     expect(screen.queryByText('A test problem description')).not.toBeInTheDocument();
-
-    // Expand
-    const expandButton = screen.getByRole('button', { name: /expand problem header/i });
-    await act(async () => {
-      fireEvent.click(expandButton);
-    });
-
-    // Description visible again
-    await waitFor(() => {
-      expect(screen.getByText('A test problem description')).toBeInTheDocument();
-    });
   });
 });
 

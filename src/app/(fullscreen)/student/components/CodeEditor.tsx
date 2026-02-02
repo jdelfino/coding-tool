@@ -9,7 +9,7 @@ import type { ExecutionSettings } from '@/server/types/problem';
 import { useResponsiveLayout, useSidebarSection, useMobileViewport } from '@/hooks/useResponsiveLayout';
 import type { Problem } from '@/server/types/problem';
 import type * as Monaco from 'monaco-editor';
-import { Undo2, Redo2 } from 'lucide-react';
+import { Undo2, Redo2, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface ExecutionResult {
   success: boolean;
@@ -42,6 +42,7 @@ interface CodeEditorProps {
   editableProblem?: boolean;
   forceDesktop?: boolean;
   outputPosition?: 'bottom' | 'right';
+  outputCollapsible?: boolean;
   fontSize?: number;
 }
 
@@ -69,6 +70,7 @@ export default function CodeEditor({
   editableProblem = false,
   forceDesktop = false,
   outputPosition = 'bottom',
+  outputCollapsible = false,
   fontSize,
 }: CodeEditorProps) {
   const largeOutput = fontSize && fontSize >= 20;
@@ -104,6 +106,10 @@ export default function CodeEditor({
   const [sidebarWidth, setSidebarWidth] = useState(320); // 320px = w-80
   const [isResizing, setIsResizing] = useState(false);
   const resizeRef = useRef<HTMLDivElement>(null);
+
+  // Output collapse state (for outputCollapsible mode)
+  const [outputCollapsed, setOutputCollapsed] = useState(false);
+  const showOutputCollapseToggle = outputCollapsible && outputPosition === 'right' && isDesktop;
 
   // Output section resize state
   const [outputHeight, setOutputHeight] = useState(150); // Start at 150px
@@ -1002,6 +1008,20 @@ export default function CodeEditor({
             />
           </div>
 
+          {/* Output collapse toggle (when outputCollapsible + right + desktop) */}
+          {showOutputCollapseToggle && (
+            <button
+              type="button"
+              data-testid="output-collapse-toggle"
+              onClick={() => setOutputCollapsed(prev => !prev)}
+              className="flex-shrink-0 w-5 bg-gray-800 border-l border-gray-700 flex items-center justify-center hover:bg-gray-700 transition-colors cursor-pointer"
+              aria-label={outputCollapsed ? 'Expand output panel' : 'Collapse output panel'}
+              title={outputCollapsed ? 'Expand output' : 'Collapse output'}
+            >
+              {outputCollapsed ? <ChevronLeft size={14} className="text-gray-400" /> : <ChevronRight size={14} className="text-gray-400" />}
+            </button>
+          )}
+
           {/* Execution Results or Debugger - Always Visible - Resizable (on desktop) */}
           {/* On mobile, show based on mobileView toggle; on desktop, always show */}
           <div
@@ -1015,7 +1035,9 @@ export default function CodeEditor({
                     : { flex: 1, minHeight: '200px' } // Fill space when showing output on mobile
                   )
                 : outputPosition === 'right'
-                  ? { width: `${outputWidthFraction * 100}%` }
+                  ? (outputCollapsed && outputCollapsible)
+                    ? { width: 0, overflow: 'hidden' }
+                    : { width: `${outputWidthFraction * 100}%` }
                   : { height: `${outputHeight}px` }
             }
           >
