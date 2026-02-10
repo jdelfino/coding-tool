@@ -157,6 +157,73 @@ describe('useRealtimeSession', () => {
 
       expect(mockFetch).toHaveBeenCalledTimes(1);
     });
+
+    it('should load new session state when sessionId changes', async () => {
+      // Setup initial session fetch
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          session: { id: 'session-1', problem: { title: 'Problem 1' } },
+          students: [
+            { id: 'student-1', name: 'Alice', code: 'session1code', lastUpdate: new Date().toISOString() },
+          ],
+          featuredStudent: {},
+        }),
+      });
+
+      const { result, rerender } = renderHook(
+        ({ sessionId }: { sessionId: string }) =>
+          useRealtimeSession({
+            sessionId,
+            userId: 'user-1',
+          }),
+        { initialProps: { sessionId: 'session-1' } }
+      );
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      // Verify initial session loaded
+      expect(result.current.session?.id).toBe('session-1');
+      expect(result.current.students).toHaveLength(1);
+      expect(result.current.students[0].code).toBe('session1code');
+      expect(mockFetch).toHaveBeenCalledWith(
+        '/api/sessions/session-1/state',
+        expect.any(Object)
+      );
+
+      // Setup new session fetch
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          session: { id: 'session-2', problem: { title: 'Problem 2' } },
+          students: [
+            { id: 'student-2', name: 'Bob', code: 'session2code', lastUpdate: new Date().toISOString() },
+          ],
+          featuredStudent: {},
+        }),
+      });
+
+      // Change to a new session (simulating navigation from session-1 to session-2)
+      rerender({ sessionId: 'session-2' });
+
+      await waitFor(() => {
+        // The new session should be loaded
+        expect(result.current.session?.id).toBe('session-2');
+      });
+
+      // Verify new session was fetched
+      expect(mockFetch).toHaveBeenCalledWith(
+        '/api/sessions/session-2/state',
+        expect.any(Object)
+      );
+
+      // Verify new session data is displayed
+      expect(result.current.students).toHaveLength(1);
+      expect(result.current.students[0].name).toBe('Bob');
+      expect(result.current.students[0].code).toBe('session2code');
+    });
   });
 
   describe('updateCode action', () => {

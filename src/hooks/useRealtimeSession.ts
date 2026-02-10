@@ -101,8 +101,9 @@ export function useRealtimeSession({
   const [connectionError, setConnectionError] = useState<string | null>(null);
   const broadcastChannelRef = useRef<RealtimeChannel | null>(null);
 
-  // Track if initial state has been loaded
+  // Track if initial state has been loaded for the current sessionId
   const initialLoadRef = useRef(false);
+  const lastSessionIdRef = useRef<string | null>(null);
 
   // Store pending code updates that arrive before student_joined events
   // This handles race conditions where student_code_updated arrives before student_joined
@@ -116,6 +117,14 @@ export function useRealtimeSession({
    * Load initial session state from API
    */
   useEffect(() => {
+    // Reset initial load flag when sessionId changes to allow loading new session
+    if (sessionId !== lastSessionIdRef.current) {
+      initialLoadRef.current = false;
+      lastSessionIdRef.current = sessionId;
+      // Clear pending updates from previous session
+      pendingCodeUpdatesRef.current.clear();
+    }
+
     if (!sessionId || !userId || initialLoadRef.current) {
       return;
     }
