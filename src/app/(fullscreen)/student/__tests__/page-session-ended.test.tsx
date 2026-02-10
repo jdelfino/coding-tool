@@ -7,14 +7,14 @@
  *
  * Covers:
  * - Session ended detection (active -> completed transition)
- * - Read-only mode with banner (not overlay)
+ * - Practice mode with banner (not overlay)
  * - Navigation via handleLeaveSession
  * - Graceful handling of navigating to a completed session
- * - Code save skipped when session is ended
+ * - Practice mode: code editing, running, and saving in completed sessions
  */
 
 import React from 'react';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent, act } from '@testing-library/react';
 import '@testing-library/jest-dom';
 
 const mockPush = jest.fn();
@@ -159,7 +159,7 @@ describe('Student Page - Session Ended Detection', () => {
     });
   });
 
-  it('should make editor read-only when session is completed', async () => {
+  it('should allow editing code when session is completed (practice mode)', async () => {
     mockUseRealtimeSession.mockReturnValue({
       ...baseSessionState,
       session: {
@@ -174,11 +174,11 @@ describe('Student Page - Session Ended Detection', () => {
     await waitFor(() => {
       expect(mockCodeEditorProps).toHaveBeenCalled();
       const lastCall = mockCodeEditorProps.mock.calls[mockCodeEditorProps.mock.calls.length - 1][0];
-      expect(lastCall.readOnly).toBe(true);
+      expect(lastCall.readOnly).toBe(false);
     });
   });
 
-  it('should hide run button when session is completed', async () => {
+  it('should show run button when session is completed (practice mode)', async () => {
     mockUseRealtimeSession.mockReturnValue({
       ...baseSessionState,
       session: {
@@ -193,11 +193,11 @@ describe('Student Page - Session Ended Detection', () => {
     await waitFor(() => {
       expect(mockCodeEditorProps).toHaveBeenCalled();
       const lastCall = mockCodeEditorProps.mock.calls[mockCodeEditorProps.mock.calls.length - 1][0];
-      expect(lastCall.showRunButton).toBe(false);
+      expect(lastCall.showRunButton).toBe(true);
     });
   });
 
-  it('should not allow running code when session is completed', async () => {
+  it('should provide onRun handler when session is completed (practice mode)', async () => {
     mockUseRealtimeSession.mockReturnValue({
       ...baseSessionState,
       session: {
@@ -212,7 +212,26 @@ describe('Student Page - Session Ended Detection', () => {
     await waitFor(() => {
       expect(mockCodeEditorProps).toHaveBeenCalled();
       const lastCall = mockCodeEditorProps.mock.calls[mockCodeEditorProps.mock.calls.length - 1][0];
-      expect(lastCall.onRun).toBeUndefined();
+      expect(lastCall.onRun).toBeDefined();
+    });
+  });
+
+  it('should provide onLoadStarterCode handler when session is completed (practice mode)', async () => {
+    mockUseRealtimeSession.mockReturnValue({
+      ...baseSessionState,
+      session: {
+        ...baseSessionState.session,
+        status: 'completed',
+        endedAt: '2026-01-09T12:00:00Z',
+      },
+    });
+
+    render(<StudentPage />);
+
+    await waitFor(() => {
+      expect(mockCodeEditorProps).toHaveBeenCalled();
+      const lastCall = mockCodeEditorProps.mock.calls[mockCodeEditorProps.mock.calls.length - 1][0];
+      expect(lastCall.onLoadStarterCode).toBeDefined();
     });
   });
 
@@ -326,6 +345,189 @@ describe('Student Page - Session Ended Detection', () => {
       // Both the banner and the editor should be visible
       expect(screen.getByTestId('session-ended-notification')).toBeInTheDocument();
       expect(screen.getByTestId('code-editor')).toBeInTheDocument();
+    });
+  });
+
+  it('should save code via debounced update when session is completed (practice mode)', async () => {
+    jest.useFakeTimers();
+    const mockUpdateCode = jest.fn();
+
+    mockUseRealtimeSession.mockReturnValue({
+      ...baseSessionState,
+      updateCode: mockUpdateCode,
+      session: {
+        ...baseSessionState.session,
+        status: 'completed',
+        endedAt: '2026-01-09T12:00:00Z',
+      },
+    });
+
+    render(<StudentPage />);
+
+    await waitFor(() => {
+      expect(mockCodeEditorProps).toHaveBeenCalled();
+    });
+
+    // Get the onChange handler and simulate code change
+    const lastCall = mockCodeEditorProps.mock.calls[mockCodeEditorProps.mock.calls.length - 1][0];
+    const onChange = lastCall.onChange;
+
+    // Trigger code change
+    act(() => {
+      onChange('print("hello world")');
+    });
+
+    // Wait for debounce
+    jest.advanceTimersByTime(500);
+
+    // Should have called updateCode (code saving should work in practice mode)
+    await waitFor(() => {
+      expect(mockUpdateCode).toHaveBeenCalled();
+    });
+
+    jest.useRealTimers();
+  });
+
+  describe('Practice mode execution', () => {
+    const originalFetch = global.fetch;
+
+    beforeEach(() => {
+      global.fetch = jest.fn();
+    });
+
+    afterEach(() => {
+      global.fetch = originalFetch;
+    });
+
+    it('should call practice endpoint when running code in completed session', async () => {
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ success: true, output: 'Hello, World!' }),
+      });
+
+      mockUseRealtimeSession.mockReturnValue({
+        ...baseSessionState,
+        session: {
+          ...baseSessionState.session,
+          status: 'completed',
+          endedAt: '2026-01-09T12:00:00Z',
+        },
+      });
+
+      render(<StudentPage />);
+
+      await waitFor(() => {
+        expect(mockCodeEditorProps).toHaveBeenCalled();
+      });
+
+      // Get the onChange handler and set code first
+      let propsBeforeCodeChange = mockCodeEditorProps.mock.calls[mockCodeEditorProps.mock.calls.length - 1][0];
+      act(() => {
+        propsBeforeCodeChange.onChange('print("Hello, World!")');
+      });
+
+      // Wait for the component to re-render with the new code
+      await waitFor(() => {
+        const latestProps = mockCodeEditorProps.mock.calls[mockCodeEditorProps.mock.calls.length - 1][0];
+        expect(latestProps.code).toBe('print("Hello, World!")');
+      });
+
+      // Get the onRun handler from the updated props
+      const latestProps = mockCodeEditorProps.mock.calls[mockCodeEditorProps.mock.calls.length - 1][0];
+
+      // Call onRun
+      await act(async () => {
+        await latestProps.onRun({ stdin: '' });
+      });
+
+      // Should have called the practice endpoint, NOT realtimeExecuteCode
+      expect(global.fetch).toHaveBeenCalledWith(
+        '/api/sessions/session-123/practice',
+        expect.objectContaining({
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+        })
+      );
+      expect(baseSessionState.executeCode).not.toHaveBeenCalled();
+    });
+
+    it('should handle practice endpoint error gracefully', async () => {
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: false,
+        json: () => Promise.resolve({ error: 'Practice mode execution failed' }),
+      });
+
+      mockUseRealtimeSession.mockReturnValue({
+        ...baseSessionState,
+        session: {
+          ...baseSessionState.session,
+          status: 'completed',
+          endedAt: '2026-01-09T12:00:00Z',
+        },
+      });
+
+      render(<StudentPage />);
+
+      await waitFor(() => {
+        expect(mockCodeEditorProps).toHaveBeenCalled();
+      });
+
+      // Get the onChange handler and set code first
+      let propsBeforeCodeChange = mockCodeEditorProps.mock.calls[mockCodeEditorProps.mock.calls.length - 1][0];
+      act(() => {
+        propsBeforeCodeChange.onChange('print("test")');
+      });
+
+      // Wait for the component to re-render with the new code
+      await waitFor(() => {
+        const latestProps = mockCodeEditorProps.mock.calls[mockCodeEditorProps.mock.calls.length - 1][0];
+        expect(latestProps.code).toBe('print("test")');
+      });
+
+      // Get the onRun handler from the updated props
+      const latestProps = mockCodeEditorProps.mock.calls[mockCodeEditorProps.mock.calls.length - 1][0];
+
+      // Call onRun - should handle error without crashing
+      await act(async () => {
+        await latestProps.onRun({ stdin: '' });
+      });
+
+      // Should have called fetch (the error handling happens after)
+      expect(global.fetch).toHaveBeenCalled();
+
+      // Should show an error alert (the ErrorAlert component renders role="alert")
+      await waitFor(() => {
+        expect(screen.getByRole('alert')).toBeInTheDocument();
+      });
+    });
+
+    it('should not call practice endpoint when code is empty', async () => {
+      mockUseRealtimeSession.mockReturnValue({
+        ...baseSessionState,
+        session: {
+          ...baseSessionState.session,
+          status: 'completed',
+          endedAt: '2026-01-09T12:00:00Z',
+        },
+      });
+
+      render(<StudentPage />);
+
+      await waitFor(() => {
+        expect(mockCodeEditorProps).toHaveBeenCalled();
+      });
+
+      const lastCall = mockCodeEditorProps.mock.calls[mockCodeEditorProps.mock.calls.length - 1][0];
+
+      // Don't set any code - leave it empty
+
+      // Call onRun with empty code
+      await act(async () => {
+        await lastCall.onRun({ stdin: '' });
+      });
+
+      // Should NOT have called fetch - validation happens before API call
+      expect(global.fetch).not.toHaveBeenCalled();
     });
   });
 });

@@ -59,7 +59,7 @@ const SessionEndedNotification: React.FC<SessionEndedNotificationProps> = ({
           <span className="text-sm font-medium text-amber-800">
             {replacementSessionId
               ? 'The instructor started a new problem.'
-              : <>Session ended — code execution is disabled.{codeSaved && ' Your code has been saved.'}</>
+              : <>Session ended.{codeSaved && ' Your code has been saved.'}</>
             }
           </span>
         </div>

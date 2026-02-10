@@ -235,25 +235,62 @@ describe('POST /api/sessions/[id]/code', () => {
     expect(data.error).toBe('Session not found');
   });
 
-  it('returns 400 when session is closed', async () => {
-    mockGetAuthenticatedUserWithToken.mockResolvedValue({ user: mockUser, accessToken: 'test-token' });
-    mockStorage.sessions.getSession.mockResolvedValue({
-      ...createMockSession(),
-      status: 'completed',
+  describe('Practice mode: completed session code saving', () => {
+    it('allows participant student to save code in a completed session', async () => {
+      mockGetAuthenticatedUserWithToken.mockResolvedValue({ user: mockUser, accessToken: 'test-token' });
+      // Session is completed but user-1 is a participant
+      mockStorage.sessions.getSession.mockResolvedValue({
+        ...createMockSession(),
+        status: 'completed',
+      });
+
+      const request = new NextRequest('http://localhost:3000/api/sessions/session-1/code', {
+        method: 'POST',
+        body: JSON.stringify({ studentId: 'user-1', code: 'print("practice code")' }),
+      });
+      const params = Promise.resolve({ id: 'session-1' });
+
+      const response = await POST(request, { params });
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.success).toBe(true);
+      expect(SessionService.updateStudentCode).toHaveBeenCalledWith(
+        mockStorage,
+        expect.objectContaining({ id: 'session-1', status: 'completed' }),
+        'user-1',
+        'print("practice code")',
+        undefined
+      );
     });
 
-    const request = new NextRequest('http://localhost:3000/api/sessions/session-1/code', {
-      method: 'POST',
-      body: JSON.stringify({ studentId: 'user-1', code: 'print("code")' }),
+    it('returns 404 when non-participant tries to save in completed session', async () => {
+      const nonParticipant = {
+        ...mockUser,
+        id: 'other-student',
+        role: 'student' as const,
+      };
+      mockGetAuthenticatedUserWithToken.mockResolvedValue({ user: nonParticipant, accessToken: 'test-token' });
+      // Session is completed and the students map doesn't include 'other-student'
+      mockStorage.sessions.getSession.mockResolvedValue({
+        ...createMockSession(),
+        status: 'completed',
+        // students map only has 'user-1', not 'other-student'
+      });
+
+      const request = new NextRequest('http://localhost:3000/api/sessions/session-1/code', {
+        method: 'POST',
+        body: JSON.stringify({ studentId: 'other-student', code: 'print("hack attempt")' }),
+      });
+      const params = Promise.resolve({ id: 'session-1' });
+
+      const response = await POST(request, { params });
+      const data = await response.json();
+
+      expect(response.status).toBe(404);
+      expect(data.error).toBe('Student not found in session');
+      expect(SessionService.updateStudentCode).not.toHaveBeenCalled();
     });
-    const params = Promise.resolve({ id: 'session-1' });
-
-    const response = await POST(request, { params });
-    const data = await response.json();
-
-    expect(response.status).toBe(400);
-    expect(data.error).toBe('Session is closed. Code execution is no longer available.');
-    expect(SessionService.updateStudentCode).not.toHaveBeenCalled();
   });
 
   it('returns 404 when student not found in session', async () => {
