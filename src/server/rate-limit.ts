@@ -60,6 +60,13 @@ export const RateLimiters = {
     prefix: 'rl:execute',
   }) : null,
 
+  // Practice routes - User-based, ephemeral execution for completed sessions
+  practice: redis ? new Ratelimit({
+    redis,
+    limiter: Ratelimit.slidingWindow(15, '1 m'),
+    prefix: 'rl:practice',
+  }) : null,
+
   // Trace route - User-based, very resource intensive
   trace: redis ? new Ratelimit({
     redis,

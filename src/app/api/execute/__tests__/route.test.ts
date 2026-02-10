@@ -13,12 +13,10 @@ jest.mock('@/server/auth/api-auth', () => ({
   getAuthenticatedUserWithToken: (...args: unknown[]) => mockGetAuthenticatedUserWithToken(...args),
 }));
 
-// Mock executor service for local dev
-const mockExecuteCode = jest.fn();
-jest.mock('@/server/code-execution', () => ({
-  getExecutorService: jest.fn(() => ({
-    executeCode: mockExecuteCode,
-  })),
+// Mock executeEphemeral for local dev
+const mockExecuteEphemeral = jest.fn();
+jest.mock('@/server/code-execution/ephemeral-execute', () => ({
+  executeEphemeral: (...args: unknown[]) => mockExecuteEphemeral(...args),
 }));
 
 // Mock rate limiter
@@ -75,7 +73,7 @@ describe('POST /api/execute', () => {
         user: { id: 'instructor-1', role: 'instructor' },
         accessToken: 'token',
       });
-      mockExecuteCode.mockResolvedValue({
+      mockExecuteEphemeral.mockResolvedValue({
         success: true,
         output: 'hello\n',
         error: '',
@@ -93,7 +91,7 @@ describe('POST /api/execute', () => {
         user: { id: 'admin-1', role: 'namespace-admin' },
         accessToken: 'token',
       });
-      mockExecuteCode.mockResolvedValue({
+      mockExecuteEphemeral.mockResolvedValue({
         success: true,
         output: 'hello\n',
         error: '',
@@ -111,7 +109,7 @@ describe('POST /api/execute', () => {
         user: { id: 'sysadmin-1', role: 'system-admin' },
         accessToken: 'token',
       });
-      mockExecuteCode.mockResolvedValue({
+      mockExecuteEphemeral.mockResolvedValue({
         success: true,
         output: 'hello\n',
         error: '',
@@ -160,8 +158,8 @@ describe('POST /api/execute', () => {
       });
     });
 
-    it('should execute code via executor service', async () => {
-      mockExecuteCode.mockResolvedValue({
+    it('should execute code via executeEphemeral', async () => {
+      mockExecuteEphemeral.mockResolvedValue({
         success: true,
         output: 'Hello, World!\n',
         error: '',
@@ -180,7 +178,7 @@ describe('POST /api/execute', () => {
       expect(data.success).toBe(true);
       expect(data.output).toBe('Hello, World!\n');
 
-      expect(mockExecuteCode).toHaveBeenCalledWith(
+      expect(mockExecuteEphemeral).toHaveBeenCalledWith(
         {
           code: 'print("Hello, World!")',
           executionSettings: {
@@ -193,8 +191,8 @@ describe('POST /api/execute', () => {
       );
     });
 
-    it('should pass timeout to executor service', async () => {
-      mockExecuteCode.mockResolvedValue({
+    it('should pass timeout to executeEphemeral', async () => {
+      mockExecuteEphemeral.mockResolvedValue({
         success: true,
         output: '',
         error: '',
@@ -207,14 +205,14 @@ describe('POST /api/execute', () => {
       });
       await POST(request);
 
-      expect(mockExecuteCode).toHaveBeenCalledWith(
+      expect(mockExecuteEphemeral).toHaveBeenCalledWith(
         expect.any(Object),
         5000
       );
     });
 
     it('should execute code with attached files', async () => {
-      mockExecuteCode.mockResolvedValue({
+      mockExecuteEphemeral.mockResolvedValue({
         success: true,
         output: 'file content\n',
         error: '',
@@ -233,7 +231,7 @@ describe('POST /api/execute', () => {
 
       expect(response.status).toBe(200);
       expect(data.success).toBe(true);
-      expect(mockExecuteCode).toHaveBeenCalledWith(
+      expect(mockExecuteEphemeral).toHaveBeenCalledWith(
         {
           code: 'with open("data.txt") as f:\n    print(f.read())',
           executionSettings: {
@@ -247,7 +245,7 @@ describe('POST /api/execute', () => {
     });
 
     it('should handle execution errors', async () => {
-      mockExecuteCode.mockResolvedValue({
+      mockExecuteEphemeral.mockResolvedValue({
         success: false,
         output: '',
         error: 'NameError: name "x" is not defined',
@@ -265,7 +263,7 @@ describe('POST /api/execute', () => {
     });
 
     it('should handle unexpected errors', async () => {
-      mockExecuteCode.mockRejectedValue(new Error('Unexpected error'));
+      mockExecuteEphemeral.mockRejectedValue(new Error('Unexpected error'));
 
       const request = createRequest({ code: 'print("test")' });
 
