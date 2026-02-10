@@ -313,6 +313,46 @@ export async function createTestInvitation(
   return { id, email: options.email, targetRole: options.targetRole };
 }
 
+export interface TestProblem {
+  id: string;
+  title: string;
+  classId: string;
+  namespaceId: string;
+}
+
+/**
+ * Creates a test problem in a class
+ */
+export async function createTestProblem(
+  supabase: SupabaseClient,
+  options: {
+    classId: string;
+    namespaceId: string;
+    authorId: string;
+    title: string;
+    starterCode?: string;
+    description?: string;
+  }
+): Promise<TestProblem> {
+  const id = uuidv4();
+  const { error } = await supabase.from('problems').insert({
+    id,
+    namespace_id: options.namespaceId,
+    title: options.title,
+    description: options.description || `Description for ${options.title}`,
+    starter_code: options.starterCode || '# Write your solution here\n',
+    test_cases: [],
+    execution_settings: {},
+    author_id: options.authorId,
+    class_id: options.classId,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  });
+  if (error) throw new Error(`Failed to create test problem: ${error.message}`);
+  console.log(`Created test problem: ${options.title} (${id})`);
+  return { id, title: options.title, classId: options.classId, namespaceId: options.namespaceId };
+}
+
 /**
  * Cleans up invitation-related test data
  */

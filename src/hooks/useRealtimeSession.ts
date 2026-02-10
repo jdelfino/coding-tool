@@ -117,12 +117,19 @@ export function useRealtimeSession({
    * Load initial session state from API
    */
   useEffect(() => {
-    // Reset initial load flag when sessionId changes to allow loading new session
+    // Reset all state when sessionId changes to allow loading new session
     if (sessionId !== lastSessionIdRef.current) {
       initialLoadRef.current = false;
       lastSessionIdRef.current = sessionId;
       // Clear pending updates from previous session
       pendingCodeUpdatesRef.current.clear();
+      // Reset session state to prevent stale data from affecting the new session
+      setSession(null);
+      setStudents(new Map());
+      setFeaturedStudent({});
+      setReplacementInfo(null);
+      setLoading(true);
+      setError(null);
     }
 
     if (!sessionId || !userId || initialLoadRef.current) {

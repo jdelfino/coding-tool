@@ -159,6 +159,18 @@ function StudentPage() {
     }
   }, [session]);
 
+  // Reset session-related state when navigating to a different session
+  // This handles the case where user clicks "Join New Session" after a replacement
+  const prevSessionIdRef = useRef<string | undefined>(sessionIdFromUrl);
+  useEffect(() => {
+    if (sessionIdFromUrl !== prevSessionIdRef.current) {
+      setSessionEnded(false);
+      setJoined(false);
+      joinAttemptedRef.current = null;
+      prevSessionIdRef.current = sessionIdFromUrl;
+    }
+  }, [sessionIdFromUrl]);
+
   // Detect when session ends (status changes to 'completed')
   useEffect(() => {
     if (session?.status === 'completed') {
