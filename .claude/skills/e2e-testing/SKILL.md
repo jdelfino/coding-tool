@@ -7,24 +7,47 @@ description: Writing and debugging E2E tests with Playwright.
 
 ## Core Principles
 
-1. **Failing tests indicate real bugs.** E2E tests that fail for "unknown reasons" almost always reveal an app bug or test deficiency. Never increase timeouts as a fix, skip verifications, or ignore "flaky" assertions.
+### 1. Failing Tests Indicate Real Bugs
 
-2. **Debug locally, one test at a time.** Never debug by pushing to CI.
-   ```bash
-   npx playwright test e2e/your-test.spec.ts --reporter=line
-   npx playwright test e2e/your-test.spec.ts --headed  # Watch the browser
-   npx playwright test e2e/your-test.spec.ts --debug   # Step through
-   ```
+E2E tests that fail for "unknown reasons" almost always indicate:
+- **An app bug** - The test exposed a real issue in the application
+- **A test deficiency** - The test isn't checking the right thing, or is missing setup
 
-3. **Fix the app, not the test.** When you find unexpected state, trace it back through the code until you find the root cause in application logic.
+The answer is **never** to:
+- Increase timeouts as a fix (if something takes 30 seconds, there's a bug)
+- Skip verifying something that should be happening
+- Ignore assertions that seem "flaky"
+
+### 2. Debug Locally, One Test at a Time
+
+**NEVER debug E2E tests by pushing to CI.** Always:
+
+```bash
+npx playwright test e2e/your-test.spec.ts --reporter=line
+npx playwright test e2e/your-test.spec.ts --headed  # Watch the browser
+npx playwright test e2e/your-test.spec.ts --debug   # Step through
+```
+
+Only push when tests pass locally. CI should validate, not debug.
+
+### 3. Fix the App, Not the Test
+
+When you find unexpected state, trace it back through the code until you find the root cause in application logic. Fix the application code, not the test.
 
 ## Debugging Approach
 
-### 1. Read the Error Message
+### Step 1: Read the Error Message
 
-The assertion failure tells you the exact locator and expected vs. actual state. Start there.
+```
+Error: expect(locator).toBeVisible() failed
+Locator: locator('[data-testid="session-ended-notification"]')
+Expected: not visible
+Received: visible
+```
 
-### 2. Check Page Structure Output
+This tells you exactly what's wrong. Don't guess—investigate why that state occurred.
+
+### Step 2: Check Page Structure Output
 
 Failed tests generate `test-results/<test-name>/error-context.md` with a YAML representation of the page structure:
 
@@ -35,19 +58,20 @@ Failed tests generate `test-results/<test-name>/error-context.md` with a YAML re
 - button "Join Section" [disabled] [ref=e16]
 ```
 
-This shows the actual DOM state at failure time—often more useful than screenshots for understanding what's rendered.
+This shows the actual DOM state at failure time—often more useful than screenshots for understanding what elements are rendered and their states.
 
-### 3. Check Screenshots and Video
+### Step 3: Check Screenshots and Video
 
 - `test-results/.../test-failed-1.png` - Visual state at failure
 - `test-results/.../video.webm` - Full test recording
 
-### 4. Trace Back the Bug
+### Step 4: Trace Back the Bug
 
-When UI shows unexpected state:
-1. What state is visible?
-2. What code sets that state?
-3. Why would that condition be true?
+When the UI shows unexpected state:
+1. **What state is visible?** (e.g., "Session ended" banner)
+2. **What sets that state?** (e.g., `setSessionEnded(true)`)
+3. **Why would that be set?** (e.g., session.status === 'completed')
+4. **Why is that condition true?** (e.g., stale data from previous session)
 
 Follow the chain until you find the root cause.
 
