@@ -25,6 +25,7 @@ import {
 } from '../interfaces';
 import {
   DEFAULT_TIMEOUT,
+  INPUT_ECHO_PREAMBLE,
   validateAttachedFiles,
   sanitizeFilename,
   truncateOutput,
@@ -109,12 +110,14 @@ export class LocalPythonBackend implements ICodeExecutionBackend {
       }
     }
 
-    // Inject random seed if provided
+    // Build execution code with preamble injections
     let executionCode = code;
     if (randomSeed !== undefined) {
       const seedInjection = `import random\nrandom.seed(${randomSeed})\n`;
-      executionCode = seedInjection + code;
+      executionCode = seedInjection + executionCode;
     }
+    // Inject input echo wrapper so stdin values appear in output
+    executionCode = INPUT_ECHO_PREAMBLE + executionCode;
 
     return new Promise((resolve) => {
       let stdout = '';

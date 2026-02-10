@@ -3,6 +3,27 @@
  */
 
 export const DEFAULT_TIMEOUT = 10000; // 10 seconds
+
+/**
+ * Python preamble that wraps input() to echo the input value.
+ *
+ * When stdin is provided non-interactively (as it always is in this app),
+ * Python's input() prints the prompt but doesn't echo the actual value
+ * the user typed. This makes output hard to read:
+ *   "Enter name: Enter age: Hello Alice, you are 25"
+ *
+ * This wrapper echoes each input value after reading it:
+ *   "Enter name: Alice
+ *    Enter age: 25
+ *    Hello Alice, you are 25"
+ */
+export const INPUT_ECHO_PREAMBLE = `\
+_original_input = input
+def input(prompt=''):
+    value = _original_input(prompt)
+    print(value)
+    return value
+`;
 export const MAX_FILE_SIZE = 10 * 1024; // 10KB per file
 export const MAX_FILES = 5;
 

@@ -29,7 +29,7 @@ import {
   ExecutionResult,
   ExecutionTrace,
 } from '../interfaces';
-import { sanitizeFilename, truncateOutput } from '../utils';
+import { INPUT_ECHO_PREAMBLE, sanitizeFilename, truncateOutput } from '../utils';
 import { logSandboxEvent } from '../logger';
 import { TRACER_SCRIPT, TRACER_PATH } from './tracer-script';
 
@@ -228,12 +228,14 @@ export class VercelSandboxBackend implements ISessionScopedBackend {
     try {
       const sandbox = await this.getSandbox(sessionId);
 
-      // Prepare code with random seed injection if needed
+      // Build execution code with preamble injections
       let executionCode = code;
       if (randomSeed !== undefined) {
         const seedInjection = `import random\nrandom.seed(${randomSeed})\n`;
-        executionCode = seedInjection + code;
+        executionCode = seedInjection + executionCode;
       }
+      // Inject input echo wrapper so stdin values appear in output
+      executionCode = INPUT_ECHO_PREAMBLE + executionCode;
 
       // Build files to write
       const filesToWrite: Array<{ path: string; content: Buffer }> = [

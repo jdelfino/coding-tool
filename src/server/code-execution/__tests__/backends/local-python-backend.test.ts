@@ -81,6 +81,25 @@ describe('LocalPythonBackend', () => {
       expect(result.stdin).toBe('Alice\n');
     });
 
+    it('should echo input values in output for readable multi-prompt output', async () => {
+      // This tests the input echo wrapper that makes output readable when
+      // multiple input() calls would otherwise concatenate prompts on one line
+      const submission: CodeSubmission = {
+        code: 'name = input("Enter name: ")\nage = input("Enter age: ")\nprint(f"{name} is {age}")',
+        executionSettings: {
+          stdin: 'Alice\n25\n',
+        },
+      };
+
+      const result = await backend.execute(submission);
+
+      expect(result.success).toBe(true);
+      // Verify that input values are echoed after prompts
+      expect(result.output).toContain('Enter name: Alice');
+      expect(result.output).toContain('Enter age: 25');
+      expect(result.output).toContain('Alice is 25');
+    });
+
     it('should include stdin in result when provided', async () => {
       const submission: CodeSubmission = {
         code: 'print("test")',
