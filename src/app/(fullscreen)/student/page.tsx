@@ -167,16 +167,16 @@ function StudentPage() {
   }, [session?.status]);
 
   // Debounced code update (keeping 500ms to match original behavior)
-  // Skip saving when session has ended (API would reject it anyway)
+  // Allows saving in completed sessions (practice mode)
   useEffect(() => {
-    if (!joined || !studentId || !sessionIdFromUrl || sessionEnded) return;
+    if (!joined || !studentId || !sessionIdFromUrl) return;
 
     const timeout = setTimeout(() => {
       realtimeUpdateCode(studentId, code, studentExecutionSettings || undefined);
     }, 500);
 
     return () => clearTimeout(timeout);
-  }, [code, joined, studentId, sessionIdFromUrl, sessionEnded, studentExecutionSettings, realtimeUpdateCode]);
+  }, [code, joined, studentId, sessionIdFromUrl, studentExecutionSettings, realtimeUpdateCode]);
 
   const handleLeaveSession = useCallback(() => {
     // Persist the "left" flag so auto-join doesn't re-join this session
@@ -241,7 +241,49 @@ function StudentPage() {
     }
   }, [pendingStarterCode, applyStarterCode]);
 
+  // Practice mode execution for completed sessions
+  // Calls the practice endpoint directly (bypasses realtime which requires broadcast connection)
+  const handlePracticeRun = async (executionSettings: ExecutionSettings) => {
+    if (!code || code.trim().length === 0) {
+      setError('Please write some code before running');
+      return;
+    }
+    if (!sessionIdFromUrl) {
+      setError('Session ID not available');
+      return;
+    }
+
+    setError(null);
+    setIsRunning(true);
+    setExecutionResult(null);
+
+    try {
+      const response = await fetch(`/api/sessions/${sessionIdFromUrl}/practice`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code, executionSettings }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Practice mode execution failed');
+      }
+
+      const result = await response.json();
+      setExecutionResult(result);
+      setIsRunning(false);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Code execution failed');
+      setIsRunning(false);
+    }
+  };
+
   const handleRunCode = async (executionSettings: ExecutionSettings) => {
+    // Delegate to practice mode for completed sessions
+    if (sessionEnded) {
+      return handlePracticeRun(executionSettings);
+    }
+
     if (!isConnected) {
       setError('Not connected to server. Cannot run code.');
       return;
@@ -263,8 +305,8 @@ function StudentPage() {
       const result = await realtimeExecuteCode(studentId, code, executionSettings);
       setExecutionResult(result);
       setIsRunning(false);
-    } catch (err: any) {
-      setError(err.message || 'Code execution failed');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Code execution failed');
       setIsRunning(false);
     }
   };
@@ -354,7 +396,7 @@ function StudentPage() {
         <CodeEditor
           code={code}
           onChange={setCode}
-          onRun={sessionEnded ? undefined : handleRunCode}
+          onRun={handleRunCode}
           isRunning={isRunning}
           exampleInput={sessionExecutionSettings.stdin}
           randomSeed={studentExecutionSettings?.randomSeed !== undefined ? studentExecutionSettings.randomSeed : sessionExecutionSettings.randomSeed}
@@ -363,11 +405,11 @@ function StudentPage() {
           onAttachedFilesChange={(files) => setStudentExecutionSettings(prev => ({ ...prev, attachedFiles: files }))}
           executionResult={executionResult}
           problem={problem}
-          onLoadStarterCode={sessionEnded ? undefined : handleLoadStarterCode}
+          onLoadStarterCode={handleLoadStarterCode}
           externalEditorRef={editorRef}
           debugger={debuggerHook}
-          readOnly={sessionEnded}
-          showRunButton={!sessionEnded}
+          readOnly={false}
+          showRunButton={true}
         />
       </EditorContainer>
 

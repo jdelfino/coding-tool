@@ -35,7 +35,7 @@ describe('SessionEndedNotification', () => {
       expect(screen.getByTestId('session-ended-notification')).toBeInTheDocument();
     });
 
-    it('displays inline message about session being ended', () => {
+    it('displays inline message about session being ended (without execution disabled text)', () => {
       render(
         <SessionEndedNotification
           onLeaveToDashboard={mockOnLeaveToDashboard}
@@ -43,7 +43,8 @@ describe('SessionEndedNotification', () => {
       );
 
       expect(screen.getByText(/Session ended/)).toBeInTheDocument();
-      expect(screen.getByText(/code execution is disabled/)).toBeInTheDocument();
+      // Should NOT mention code execution being disabled (practice mode allows execution)
+      expect(screen.queryByText(/code execution is disabled/)).not.toBeInTheDocument();
     });
 
     it('includes code saved message when codeSaved is true', () => {
