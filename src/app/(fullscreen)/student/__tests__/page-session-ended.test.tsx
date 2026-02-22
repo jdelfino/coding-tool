@@ -279,7 +279,7 @@ describe('Student Page - Session Ended Detection', () => {
 
   it('should handle navigating to a completed session without errors', async () => {
     // Simulate navigating directly to a completed session
-    // The join API would reject this, but the page should handle it gracefully
+    // joinSession is called to add the student to participants (for practice mode access)
     mockUseRealtimeSession.mockReturnValue({
       ...baseSessionState,
       session: {
@@ -292,14 +292,14 @@ describe('Student Page - Session Ended Detection', () => {
     render(<StudentPage />);
 
     await waitFor(() => {
-      // Should show the editor in read-only mode
+      // Should show the editor (now enabled for practice mode)
       expect(screen.getByTestId('code-editor')).toBeInTheDocument();
       // Should show the session ended banner
       expect(screen.getByTestId('session-ended-notification')).toBeInTheDocument();
     });
 
-    // Should NOT have called joinSession (session is already completed)
-    expect(baseSessionState.joinSession).not.toHaveBeenCalled();
+    // Should call joinSession even for completed sessions (adds student to participants for practice mode)
+    expect(baseSessionState.joinSession).toHaveBeenCalledWith('user-1', 'Student');
   });
 
   it('should not get stuck loading when viewing a completed session without broadcast connection', async () => {
