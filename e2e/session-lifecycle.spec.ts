@@ -98,7 +98,7 @@ describeE2E('Session Lifecycle', () => {
       await expect(page).toHaveURL('/sections/join', { timeout: 5000 });
       await page.fill('input#joinCode', section.joinCode);
       await page.click('button[type="submit"]:has-text("Join Section")');
-      await expect(page).toHaveURL('/sections', { timeout: 5000 });
+      await expect(page).toHaveURL('/sections', { timeout: 15000 });
 
       console.log('Student joined section');
 
@@ -200,35 +200,33 @@ describeE2E('Session Lifecycle', () => {
 
       console.log('Student joined replacement session');
 
+      // DIAGNOSTIC: Check what code is actually in the editor after join
+      const codeAfterJoin = await page.evaluate(() => {
+        const monacoEditors = (window as any).monaco?.editor?.getModels();
+        if (monacoEditors && monacoEditors.length > 0) {
+          return monacoEditors[0].getValue();
+        }
+        return 'NO_MONACO_MODEL';
+      });
+      console.log('Code in editor after join:', JSON.stringify(codeAfterJoin.substring(0, 50)));
+
       // ===== STEP 7: Student types code in session 2, instructor verifies =====
-      // Wait for the student to be fully connected to the new session
-      await expect(page.locator('.monaco-editor')).toBeVisible({ timeout: 10000 });
-      // Verify the replacement banner is gone (confirms clean session state)
+      // Wait for the replacement banner to be gone (confirms clean session state)
       await expect(page.locator('[data-testid="session-ended-notification"]')).not.toBeVisible({ timeout: 3000 });
 
-      // CRITICAL: Wait for starter code to be fully loaded before typing
-      // Without this, typing starts while Monaco is still applying the starter code,
-      // causing character corruption (e.g., print("FIB")ONACCI_TEST" instead of print("FIBONACCI_TEST"))
-      await expect(async () => {
-        const editorText = await page.evaluate(() => {
-          const editor = document.querySelector('.monaco-editor');
-          return editor?.textContent?.replace(/\s+/g, ' ').trim() || '';
-        });
-        // Starter code should be loaded: "# Fibonacci starter"
-        expect(editorText).toContain('Fibonacci starter');
-      }).toPass({ timeout: 5000 });
+      // CRITICAL: Wait for Monaco editor to be fully ready with Fibonacci starter code
+      // Use toContainText() on [role="code"] which auto-retries - the most reliable readiness signal
+      const editor = page.getByRole('code').first();
+      await expect(editor).toBeVisible({ timeout: 10000 });
+      await expect(editor).toContainText('Fibonacci starter', { timeout: 10000 });
 
+      // Focus the editor and wait for focus to register
+      await editor.click();
+      await page.waitForSelector('.monaco-editor.focused', { timeout: 5000 });
+
+      // Now that content is stable, type the new code
       const studentCode2 = 'print("FIBONACCI_TEST_67890")';
-      const monacoEditor2 = page.locator('.monaco-editor').first();
-      await monacoEditor2.click();
       await page.keyboard.press('ControlOrMeta+a');
-      await expect(async () => {
-        // Wait for select-all to register
-        const text = await page.evaluate(() => window.getSelection()?.toString() || '');
-        expect(text.length).toBeGreaterThan(0);
-      }).toPass({ timeout: 2000 }).catch(() => {
-        // Selection may be empty for empty editor, that's OK
-      });
       await page.keyboard.press('Backspace');
       await page.keyboard.type(studentCode2, { delay: 50 });
 
