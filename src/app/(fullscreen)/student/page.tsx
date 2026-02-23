@@ -120,6 +120,12 @@ function StudentPage() {
 
       joinSession(user.id, user.displayName || user.email || 'Student')
         .then((result) => {
+          console.log('[StudentPage] Join completed:', {
+            sessionIdFromUrl,
+            sessionId: session?.id,
+            studentCode: result?.student?.code?.substring(0, 50),
+            codeLength: result?.student?.code?.length,
+          });
           setJoined(true);
           setStudentId(user.id);
           setIsJoining(false);
@@ -131,6 +137,7 @@ function StudentPage() {
           }
           // Restore saved code and execution settings from server
           if (result?.student?.code) {
+            console.log('[StudentPage] Setting code from join result');
             setCode(result.student.code);
           }
           if (result?.student?.executionSettings) {

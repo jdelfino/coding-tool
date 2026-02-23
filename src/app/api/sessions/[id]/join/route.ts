@@ -89,7 +89,18 @@ export async function POST(
     }
 
     // Add student via service (handles starter code, participants, persistence)
+    console.log('[JOIN API] Before addStudent:', {
+      sessionId: session.id,
+      userId: user.id,
+      existingStudents: Array.from(session.students.keys()),
+      hasExistingStudent: session.students.has(user.id),
+      existingStudentCode: session.students.get(user.id)?.code?.substring(0, 50),
+    });
     const student = await SessionService.addStudent(storage, session, user.id, name);
+    console.log('[JOIN API] After addStudent:', {
+      studentCode: student.code?.substring(0, 50),
+      codeLength: student.code?.length,
+    });
 
     // Get merged execution settings via service
     const studentData = SessionService.getStudentData(session, user.id);
