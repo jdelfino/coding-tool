@@ -75,16 +75,28 @@ export async function POST(
       );
     }
 
-    // CRITICAL FIX: Delete any stale student data from database BEFORE loading session
-    // This prevents stale rows from previous sessions being loaded into session.students map
-    // which would cause addStudent to preserve old code instead of using fresh starter code
+    // CRITICAL FIX: Delete student data from ALL active sessions in namespace
+    // When joining a replacement session, the student may have data in the OLD session
+    // We must delete ALL their session_students rows to prevent stale code preservation
     const { getSupabaseClientWithAuth, SERVICE_ROLE_MARKER } = await import('@/server/supabase/client');
     const supabase = getSupabaseClientWithAuth(SERVICE_ROLE_MARKER);
-    await supabase
-      .from('session_students')
-      .delete()
-      .eq('session_id', sessionId)
-      .eq('user_id', user.id);
+
+    // First, get all active session IDs in this namespace/section to clean up
+    const { data: activeSessions } = await supabase
+      .from('sessions')
+      .select('id')
+      .eq('namespace_id', user.namespaceId)
+      .eq('status', 'active');
+
+    if (activeSessions && activeSessions.length > 0) {
+      const sessionIds = activeSessions.map(s => s.id);
+      // Delete student data from all active sessions, not just the target session
+      await supabase
+        .from('session_students')
+        .delete()
+        .in('session_id', sessionIds)
+        .eq('user_id', user.id);
+    }
 
     // Use service role for session operations
     // RLS policies for session_students require complex permission checks
