@@ -88,6 +88,14 @@ export async function POST(
       );
     }
 
+    // Diagnostic logging to debug wrong starter code issue
+    console.log('[JOIN API] Session loaded:', {
+      requestedSessionId: sessionId,
+      loadedSessionId: session.id,
+      problemTitle: session.problem?.title,
+      starterCode: session.problem?.starterCode?.substring(0, 30),
+    });
+
     // Clear any stale in-memory student data to ensure fresh join
     // This prevents carrying over code from a different session
     if (session.students.has(user.id)) {
