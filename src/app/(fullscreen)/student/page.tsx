@@ -118,7 +118,8 @@ function StudentPage() {
 
       setIsJoining(true);
 
-      joinSession(user.id, user.displayName || user.email || 'Student')
+      // Pass sessionIdFromUrl explicitly to avoid stale closure issues
+      joinSession(sessionIdFromUrl, user.id, user.displayName || user.email || 'Student')
         .then((result) => {
           setJoined(true);
           setStudentId(user.id);
