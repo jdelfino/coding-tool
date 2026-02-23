@@ -83,15 +83,26 @@ export async function POST(
     // Load the session
     const session = await storage.sessions.getSession(sessionId);
 
-    // ASSERTION: Student should NOT be in the session yet on first join
-    // If they are, it indicates a bug (test isolation, race condition, or data corruption)
+    // CRITICAL DIAGNOSTIC: Log session state before addStudent
+    // This helps diagnose the session replacement bug in CI
     const existingStudent = session?.students.get(user.id);
-    if (existingStudent && process.env.NODE_ENV !== 'production') {
-      console.warn('[JOIN] Unexpected: Student already exists in session before joining:', {
+    console.log('[JOIN] Session state before addStudent:', {
+      sessionId,
+      userId: user.id,
+      sessionProblem: session?.problem?.title,
+      studentCount: session?.students.size || 0,
+      studentExists: !!existingStudent,
+      existingCode: existingStudent?.code?.substring(0, 80) || null,
+    });
+
+    // If student already exists in session before joining, this is unexpected
+    if (existingStudent) {
+      console.error('[JOIN] ERROR: Student already exists in session before joining!', {
         sessionId,
         userId: user.id,
-        existingCode: existingStudent.code?.substring(0, 50),
+        sessionStatus: session?.status,
         sessionProblem: session?.problem?.title,
+        existingCode: existingStudent.code,
       });
     }
 
