@@ -82,8 +82,6 @@ function StudentPage() {
 
   // Track if we've already initiated a join for this sessionId to prevent loops
   const joinAttemptedRef = useRef<string | null>(null);
-  // Track the sessionId for any in-flight join operation to cancel stale joins
-  const activeJoinSessionIdRef = useRef<string | null>(null);
 
   // Handle joining the session
   useEffect(() => {
@@ -115,44 +113,27 @@ function StudentPage() {
     // Join the session from the URL
     // For completed sessions, don't require broadcast connection - data is already loaded
     // CRITICAL: Only join when session data matches the URL to prevent using stale session data
-
-    // Debug logging for session replacement bug
-    if (sessionIdFromUrl) {
-      console.log('[Student] Join check:', {
-        sessionIdFromUrl,
-        sessionId: session?.id,
-        sessionProblem: session?.problem?.title,
-        sessionStatus: session?.status,
-        matches: session?.id === sessionIdFromUrl,
-        isConnected,
-        willJoin: !!(session && session.id === sessionIdFromUrl && (isConnected || session.status === 'completed'))
-      });
-    }
-
     if (session && session.id === sessionIdFromUrl && (isConnected || session.status === 'completed')) {
+      const targetSessionId = sessionIdFromUrl; // Capture before async call
       joinAttemptedRef.current = sessionIdFromUrl;
-      activeJoinSessionIdRef.current = sessionIdFromUrl; // Track active join
 
       setIsJoining(true);
 
-      console.log('[Student] Calling joinSession with:', { sessionId: sessionIdFromUrl });
-
       // Pass sessionIdFromUrl explicitly to avoid stale closure issues
-      joinSession(sessionIdFromUrl, user.id, user.displayName || user.email || 'Student')
+      joinSession(targetSessionId, user.id, user.displayName || user.email || 'Student')
         .then((result) => {
-          // Only update state if we're still trying to join THIS session
-          if (activeJoinSessionIdRef.current !== sessionIdFromUrl) {
-            console.log('[Student] Ignoring stale join result for:', sessionIdFromUrl);
+          // Discard if session changed during async join (e.g. "Join New Session")
+          if (joinAttemptedRef.current !== targetSessionId) {
+            setIsJoining(false);
             return;
           }
           setJoined(true);
           setStudentId(user.id);
           setIsJoining(false);
           setError(null);
-          activeJoinSessionIdRef.current = null;
           // For completed sessions, set sessionEnded flag
           // Only if this is actually the session we joined (not stale data from previous session)
-          if (session.status === 'completed' && session.id === sessionIdFromUrl) {
+          if (session.status === 'completed' && session.id === targetSessionId) {
             setSessionEnded(true);
           }
           // Restore saved code and execution settings from server
@@ -164,14 +145,13 @@ function StudentPage() {
           }
         })
         .catch((err) => {
-          // Only update state if we're still trying to join THIS session
-          if (activeJoinSessionIdRef.current !== sessionIdFromUrl) {
-            console.log('[Student] Ignoring stale join error for:', sessionIdFromUrl);
+          // Discard if session changed during async join
+          if (joinAttemptedRef.current !== targetSessionId) {
+            setIsJoining(false);
             return;
           }
           setError(err.message || 'Failed to join session');
           setIsJoining(false);
-          activeJoinSessionIdRef.current = null;
         });
     }
   }, [sessionIdFromUrl, user?.id, user?.email, user?.displayName, joined, isJoining, isConnected, session, joinSession]);
@@ -243,8 +223,7 @@ function StudentPage() {
   const handleJoinNewSession = useCallback(() => {
     if (!replacementInfo) return;
     const oldSessionId = sessionIdFromUrl;
-    joinAttemptedRef.current = null;
-    activeJoinSessionIdRef.current = null; // Cancel any in-flight join operations
+    joinAttemptedRef.current = null; // Cancel any in-flight join
     setJoined(false);
     setSessionEnded(false);
     setCode('');
