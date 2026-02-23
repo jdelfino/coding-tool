@@ -187,6 +187,18 @@ describeE2E('Session Lifecycle', () => {
       console.log('Student sees replacement notification');
 
       // ===== STEP 6: Student joins replacement session =====
+      // DIAGNOSTIC: Fetch session state before joining to see what problem it has
+      const sessionStateBefore = await page.evaluate(async (sessionId) => {
+        const response = await fetch(`/api/sessions/${sessionId}/state`);
+        const data = await response.json();
+        return {
+          sessionId: data.session?.id,
+          problemTitle: data.session?.problem?.title,
+          problemStarterCode: data.session?.problem?.starterCode,
+        };
+      }, secondSessionId);
+      console.log('[TEST] Session state BEFORE joining:', JSON.stringify(sessionStateBefore));
+
       await page.locator('[data-testid="join-new-session-button"]').click();
 
       // Wait for navigation to new session URL
