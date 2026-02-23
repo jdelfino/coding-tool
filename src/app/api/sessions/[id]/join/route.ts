@@ -75,36 +75,25 @@ export async function POST(
       );
     }
 
-    // CRITICAL FIX: Delete student data from ALL active sessions in namespace
-    // When joining a replacement session, the student may have data in the OLD session
-    // We must delete ALL their session_students rows to prevent stale code preservation
-    const { getSupabaseClientWithAuth, SERVICE_ROLE_MARKER } = await import('@/server/supabase/client');
-    const supabase = getSupabaseClientWithAuth(SERVICE_ROLE_MARKER);
-
-    // First, get all active session IDs in this namespace/section to clean up
-    const { data: activeSessions } = await supabase
-      .from('sessions')
-      .select('id')
-      .eq('namespace_id', user.namespaceId)
-      .eq('status', 'active');
-
-    if (activeSessions && activeSessions.length > 0) {
-      const sessionIds = activeSessions.map(s => s.id);
-      // Delete student data from all active sessions, not just the target session
-      await supabase
-        .from('session_students')
-        .delete()
-        .in('session_id', sessionIds)
-        .eq('user_id', user.id);
-    }
-
     // Use service role for session operations
     // RLS policies for session_students require complex permission checks
     // We've already verified user is authenticated, so use service role for the update
     const storage = await createStorage(SERVICE_ROLE_MARKER);
 
-    // Now load the session - it will NOT have this student in the students map
+    // Load the session
     const session = await storage.sessions.getSession(sessionId);
+
+    // ASSERTION: Student should NOT be in the session yet on first join
+    // If they are, it indicates a bug (test isolation, race condition, or data corruption)
+    const existingStudent = session?.students.get(user.id);
+    if (existingStudent && process.env.NODE_ENV !== 'production') {
+      console.warn('[JOIN] Unexpected: Student already exists in session before joining:', {
+        sessionId,
+        userId: user.id,
+        existingCode: existingStudent.code?.substring(0, 50),
+        sessionProblem: session?.problem?.title,
+      });
+    }
 
     if (!session) {
       return NextResponse.json(
