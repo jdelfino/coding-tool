@@ -88,14 +88,6 @@ export async function POST(
       );
     }
 
-    // Check if session is completed
-    if (session.status === 'completed') {
-      return NextResponse.json(
-        { error: 'This session has ended and cannot be joined' },
-        { status: 400 }
-      );
-    }
-
     // Add student via service (handles starter code, participants, persistence)
     const student = await SessionService.addStudent(storage, session, user.id, name);
 

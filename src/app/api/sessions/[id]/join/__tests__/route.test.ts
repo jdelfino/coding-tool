@@ -210,7 +210,7 @@ describe('POST /api/sessions/[id]/join', () => {
     expect(data.error).toBe('Session not found');
   });
 
-  it('returns 400 when session is completed', async () => {
+  it('allows joining completed sessions for practice mode', async () => {
     mockGetAuthenticatedUserWithToken.mockResolvedValue({ user: mockUser, accessToken: 'test-token' });
     mockStorage.sessions.getSession.mockResolvedValue({
       ...mockSession,
@@ -226,8 +226,16 @@ describe('POST /api/sessions/[id]/join', () => {
     const response = await POST(request, { params });
     const data = await response.json();
 
-    expect(response.status).toBe(400);
-    expect(data.error).toBe('This session has ended and cannot be joined');
+    expect(response.status).toBe(200);
+    expect(data.success).toBe(true);
+    expect(data.student.id).toBe('user-1');
+    expect(data.student.name).toBe('Alice');
+    expect(SessionService.addStudent).toHaveBeenCalledWith(
+      mockStorage,
+      expect.objectContaining({ status: 'completed' }),
+      'user-1',
+      'Alice'
+    );
   });
 
   it('returns 500 when service fails', async () => {

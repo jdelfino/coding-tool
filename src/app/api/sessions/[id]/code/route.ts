@@ -98,6 +98,9 @@ export async function POST(
       );
     }
 
+    // Note: Code saving is allowed in completed sessions to support practice mode
+    // where students can save and run code without affecting the original session state.
+
     // Verify student exists in session
     if (!session.students.has(studentId)) {
       return NextResponse.json(

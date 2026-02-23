@@ -124,7 +124,8 @@ function StudentPage() {
           setIsJoining(false);
           setError(null);
           // For completed sessions, set sessionEnded flag
-          if (session.status === 'completed') {
+          // Only if this is actually the session we joined (not stale data from previous session)
+          if (session.status === 'completed' && session.id === sessionIdFromUrl) {
             setSessionEnded(true);
           }
           // Restore saved code and execution settings from server
@@ -167,11 +168,15 @@ function StudentPage() {
   }, [sessionIdFromUrl]);
 
   // Detect when session ends (status changes to 'completed')
+  // Only if this is the current session (not stale data from a previous session)
   useEffect(() => {
-    if (session?.status === 'completed') {
+    if (session?.status === 'completed' && session?.id === sessionIdFromUrl) {
       setSessionEnded(true);
+    } else if (session?.id && session?.id !== sessionIdFromUrl) {
+      // If session data loaded but it's for a different session, reset the ended flag
+      setSessionEnded(false);
     }
-  }, [session?.status]);
+  }, [session?.status, session?.id, sessionIdFromUrl]);
 
   // Debounced code update (keeping 500ms to match original behavior)
   // Allows saving in completed sessions (practice mode)
@@ -389,7 +394,8 @@ function StudentPage() {
       )}
 
       {/* Session Ended Banner */}
-      {sessionEnded && (
+      {/* Only show if session is actually ended AND matches current URL */}
+      {sessionEnded && session?.id === sessionIdFromUrl && session?.status === 'completed' && (
         <SessionEndedNotification
           onLeaveToDashboard={handleLeaveSession}
           code={code}
