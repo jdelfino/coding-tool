@@ -244,6 +244,7 @@ function StudentPage() {
     if (!replacementInfo) return;
     const oldSessionId = sessionIdFromUrl;
     joinAttemptedRef.current = null;
+    activeJoinSessionIdRef.current = null; // Cancel any in-flight join operations
     setJoined(false);
     setSessionEnded(false);
     setCode('');
