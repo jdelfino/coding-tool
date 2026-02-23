@@ -208,7 +208,11 @@ describeE2E('Session Lifecycle', () => {
         }
         return 'NO_MONACO_MODEL';
       });
-      console.log('Code in editor after join:', JSON.stringify(codeAfterJoin.substring(0, 50)));
+      console.log('[TEST] Code in editor after join (Monaco API):', JSON.stringify(codeAfterJoin.substring(0, 50)));
+
+      // Also check DOM content
+      const domContent = await page.getByRole('code').first().textContent();
+      console.log('[TEST] Code in editor after join (DOM):', JSON.stringify(domContent?.substring(0, 80)));
 
       // ===== STEP 7: Student types code in session 2, instructor verifies =====
       // Wait for the replacement banner to be gone (confirms clean session state)
