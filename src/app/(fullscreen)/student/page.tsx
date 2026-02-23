@@ -145,8 +145,9 @@ function StudentPage() {
   }, [sessionIdFromUrl, user?.id, user?.email, user?.displayName, joined, isJoining, isConnected, session, joinSession]);
 
   // Update problem when session loads
+  // CRITICAL: Only update problem when session data matches URL to prevent stale data
   useEffect(() => {
-    if (session?.problem) {
+    if (session?.problem && session.id === sessionIdFromUrl) {
       setProblem(session.problem as Problem);
       setSessionExecutionSettings({
         stdin: session.problem.executionSettings?.stdin,
@@ -154,7 +155,7 @@ function StudentPage() {
         attachedFiles: session.problem.executionSettings?.attachedFiles,
       });
     }
-  }, [session]);
+  }, [session, sessionIdFromUrl]);
 
   // Reset session-related state when navigating to a different session
   // This handles the case where user clicks "Join New Session" after a replacement
