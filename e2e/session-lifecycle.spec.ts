@@ -32,8 +32,6 @@ import {
 const describeE2E = hasSupabaseCredentials() ? test.describe : test.describe.skip;
 
 describeE2E('Session Lifecycle', () => {
-  test.describe.configure({ mode: 'serial' });
-
   test('Complete workflow: problem-based session start, replacement, and practice mode', async ({ page, browser }) => {
     // Extend timeout for this complex multi-page test
     test.setTimeout(90000);
