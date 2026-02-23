@@ -85,6 +85,8 @@ function StudentPage() {
 
   // Handle joining the session
   useEffect(() => {
+    let cancelled = false; // Track if this effect has been cleaned up
+
     if (!sessionIdFromUrl || !user?.id) {
       return;
     }
@@ -137,6 +139,7 @@ function StudentPage() {
       // Pass sessionIdFromUrl explicitly to avoid stale closure issues
       joinSession(sessionIdFromUrl, user.id, user.displayName || user.email || 'Student')
         .then((result) => {
+          if (cancelled) return; // Don't update state if effect was cleaned up
           setJoined(true);
           setStudentId(user.id);
           setIsJoining(false);
@@ -155,10 +158,16 @@ function StudentPage() {
           }
         })
         .catch((err) => {
+          if (cancelled) return; // Don't update state if effect was cleaned up
           setError(err.message || 'Failed to join session');
           setIsJoining(false);
         });
     }
+
+    // Cleanup function: cancel any pending async operations
+    return () => {
+      cancelled = true;
+    };
   }, [sessionIdFromUrl, user?.id, user?.email, user?.displayName, joined, isJoining, isConnected, session, joinSession]);
 
   // Update problem when session loads
