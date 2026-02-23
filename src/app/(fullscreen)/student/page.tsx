@@ -172,6 +172,9 @@ function StudentPage() {
   useEffect(() => {
     if (session?.status === 'completed' && session?.id === sessionIdFromUrl) {
       setSessionEnded(true);
+    } else if (session?.id && session?.id !== sessionIdFromUrl) {
+      // If session data loaded but it's for a different session, reset the ended flag
+      setSessionEnded(false);
     }
   }, [session?.status, session?.id, sessionIdFromUrl]);
 
