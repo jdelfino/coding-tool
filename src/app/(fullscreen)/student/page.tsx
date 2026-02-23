@@ -394,7 +394,8 @@ function StudentPage() {
       )}
 
       {/* Session Ended Banner */}
-      {sessionEnded && (
+      {/* Only show if session is actually ended AND matches current URL */}
+      {sessionEnded && session?.id === sessionIdFromUrl && session?.status === 'completed' && (
         <SessionEndedNotification
           onLeaveToDashboard={handleLeaveSession}
           code={code}
