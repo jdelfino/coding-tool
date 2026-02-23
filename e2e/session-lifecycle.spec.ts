@@ -206,6 +206,18 @@ describeE2E('Session Lifecycle', () => {
       // Verify the replacement banner is gone (confirms clean session state)
       await expect(page.locator('[data-testid="session-ended-notification"]')).not.toBeVisible({ timeout: 3000 });
 
+      // CRITICAL: Wait for starter code to be fully loaded before typing
+      // Without this, typing starts while Monaco is still applying the starter code,
+      // causing character corruption (e.g., print("FIB")ONACCI_TEST" instead of print("FIBONACCI_TEST"))
+      await expect(async () => {
+        const editorText = await page.evaluate(() => {
+          const editor = document.querySelector('.monaco-editor');
+          return editor?.textContent?.replace(/\s+/g, ' ').trim() || '';
+        });
+        // Starter code should be loaded: "# Fibonacci starter"
+        expect(editorText).toContain('Fibonacci starter');
+      }).toPass({ timeout: 5000 });
+
       const studentCode2 = 'print("FIBONACCI_TEST_67890")';
       const monacoEditor2 = page.locator('.monaco-editor').first();
       await monacoEditor2.click();
