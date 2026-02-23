@@ -130,7 +130,7 @@ export async function POST(
   } catch (error: any) {
     console.error('[API] Practice mode error:', error);
     return NextResponse.json(
-      { error: 'Failed to create practice session' },
+      { error: error.message || 'Failed to create practice session' },
       { status: 500 }
     );
   }
