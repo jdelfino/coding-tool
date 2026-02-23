@@ -113,25 +113,8 @@ export async function POST(
       );
     }
 
-    // DIAGNOSTIC: Log what we're about to do
-    console.log('[JOIN] Session loaded:', {
-      requestedSessionId: sessionId,
-      loadedSessionId: session.id,
-      problemTitle: session.problem?.title,
-      starterCodePreview: session.problem?.starterCode?.substring(0, 40),
-      hasExistingStudent: session.students.has(user.id),
-      existingStudentCode: session.students.get(user.id)?.code?.substring(0, 40),
-    });
-
     // Add student via service (handles starter code, participants, persistence)
-    // Since we deleted the DB row above, this will be treated as a fresh join with starter code
     const student = await SessionService.addStudent(storage, session, user.id, name);
-
-    // DIAGNOSTIC: Log what was returned
-    console.log('[JOIN] Student added:', {
-      userId: student.userId,
-      codeReturned: student.code?.substring(0, 40),
-    });
 
     // Get merged execution settings via service
     const studentData = SessionService.getStudentData(session, user.id);

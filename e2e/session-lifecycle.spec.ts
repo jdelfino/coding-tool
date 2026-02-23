@@ -187,18 +187,6 @@ describeE2E('Session Lifecycle', () => {
       console.log('Student sees replacement notification');
 
       // ===== STEP 6: Student joins replacement session =====
-      // DIAGNOSTIC: Fetch session state before joining to see what problem it has
-      const sessionStateBefore = await page.evaluate(async (sessionId) => {
-        const response = await fetch(`/api/sessions/${sessionId}/state`);
-        const data = await response.json();
-        return {
-          sessionId: data.session?.id,
-          problemTitle: data.session?.problem?.title,
-          problemStarterCode: data.session?.problem?.starterCode,
-        };
-      }, secondSessionId);
-      console.log('[TEST] Session state BEFORE joining:', JSON.stringify(sessionStateBefore));
-
       await page.locator('[data-testid="join-new-session-button"]').click();
 
       // Wait for navigation to new session URL
@@ -211,20 +199,6 @@ describeE2E('Session Lifecycle', () => {
       await expect(page.locator('[data-testid="join-new-session-button"]')).not.toBeVisible({ timeout: 5000 });
 
       console.log('Student joined replacement session');
-
-      // DIAGNOSTIC: Check what code is actually in the editor after join
-      const codeAfterJoin = await page.evaluate(() => {
-        const monacoEditors = (window as any).monaco?.editor?.getModels();
-        if (monacoEditors && monacoEditors.length > 0) {
-          return monacoEditors[0].getValue();
-        }
-        return 'NO_MONACO_MODEL';
-      });
-      console.log('[TEST] Code in editor after join (Monaco API):', JSON.stringify(codeAfterJoin.substring(0, 50)));
-
-      // Also check DOM content
-      const domContent = await page.getByRole('code').first().textContent();
-      console.log('[TEST] Code in editor after join (DOM):', JSON.stringify(domContent?.substring(0, 80)));
 
       // ===== STEP 7: Student types code in session 2, instructor verifies =====
       // Wait for the replacement banner to be gone (confirms clean session state)
