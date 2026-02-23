@@ -165,8 +165,10 @@ function StudentPage() {
       setSessionEnded(false);
       setJoined(false);
       setCode(''); // Clear editor when switching sessions
+      setProblem(null); // CRITICAL: Clear problem to prevent stale starter code in editor
       setExecutionResult(null); // Clear previous execution results
       setStudentExecutionSettings(null); // Reset execution settings
+      setSessionExecutionSettings({}); // Clear session execution settings
       joinAttemptedRef.current = null;
       prevSessionIdRef.current = sessionIdFromUrl;
     }
