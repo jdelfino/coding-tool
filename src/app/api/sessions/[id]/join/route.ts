@@ -79,6 +79,19 @@ export async function POST(
     // RLS policies for session_students require complex permission checks
     // We've already verified user is authenticated, so use service role for the update
     const storage = await createStorage(SERVICE_ROLE_MARKER);
+
+    // CRITICAL FIX: Delete any stale student data from database BEFORE loading session
+    // This prevents stale rows from previous sessions being loaded into session.students map
+    // which would cause addStudent to preserve old code instead of using fresh starter code
+    const { getSupabaseClientWithAuth, SERVICE_ROLE_MARKER } = await import('@/server/supabase/client');
+    const supabase = getSupabaseClientWithAuth(SERVICE_ROLE_MARKER);
+    await supabase
+      .from('session_students')
+      .delete()
+      .eq('session_id', sessionId)
+      .eq('user_id', user.id);
+
+    // Now load the session - it will NOT have this student in the students map
     const session = await storage.sessions.getSession(sessionId);
 
     if (!session) {
@@ -88,13 +101,8 @@ export async function POST(
       );
     }
 
-    // Clear any stale in-memory student data to ensure fresh join
-    // This prevents carrying over code from a different session
-    if (session.students.has(user.id)) {
-      session.students.delete(user.id);
-    }
-
     // Add student via service (handles starter code, participants, persistence)
+    // Since we deleted the DB row above, this will be treated as a fresh join with starter code
     const student = await SessionService.addStudent(storage, session, user.id, name);
 
     // Get merged execution settings via service
