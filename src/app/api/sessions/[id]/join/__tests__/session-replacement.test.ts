@@ -35,6 +35,7 @@ describe('POST /api/sessions/[id]/join - Session Replacement', () => {
     email: 'student@test.com',
     role: 'student' as const,
     namespaceId: 'test-namespace',
+    createdAt: new Date(),
   };
 
   let mockStorage: jest.Mocked<IStorageRepository>;
@@ -109,7 +110,7 @@ describe('POST /api/sessions/[id]/join - Session Replacement', () => {
     };
 
     // Mock getSession to return the new session (without the student)
-    mockStorage.sessions.getSession.mockResolvedValue(newSession);
+    (mockStorage.sessions.getSession as jest.Mock).mockResolvedValue(newSession);
 
     // Mock addStudent to return student with starter code
     const newStudent = {
@@ -119,12 +120,7 @@ describe('POST /api/sessions/[id]/join - Session Replacement', () => {
       lastUpdate: new Date(),
     };
     mockSessionService.addStudent.mockResolvedValue(newStudent);
-    mockSessionService.getStudentData.mockReturnValue({
-      userId: 'student-1',
-      name: 'Test Student',
-      code: '# Fibonacci starter\n',
-      lastUpdate: new Date(),
-    });
+    mockSessionService.getStudentData.mockReturnValue(newStudent);
 
     // Create request
     const request = new NextRequest('http://localhost/api/sessions/session-2/join', {
@@ -174,7 +170,7 @@ describe('POST /api/sessions/[id]/join - Session Replacement', () => {
       creatorId: 'instructor-1',
     };
 
-    mockStorage.sessions.getSession.mockResolvedValue(newSession);
+    (mockStorage.sessions.getSession as jest.Mock).mockResolvedValue(newSession);
 
     const newStudent = {
       userId: 'student-1',
@@ -236,7 +232,7 @@ describe('POST /api/sessions/[id]/join - Session Replacement', () => {
       creatorId: 'instructor-1',
     };
 
-    mockStorage.sessions.getSession.mockResolvedValue(session);
+    (mockStorage.sessions.getSession as jest.Mock).mockResolvedValue(session);
 
     // addStudent should preserve existing code
     const returnedStudent = {
