@@ -75,11 +75,6 @@ export async function POST(
       );
     }
 
-    // Use service role for session operations
-    // RLS policies for session_students require complex permission checks
-    // We've already verified user is authenticated, so use service role for the update
-    const storage = await createStorage(SERVICE_ROLE_MARKER);
-
     // CRITICAL FIX: Delete any stale student data from database BEFORE loading session
     // This prevents stale rows from previous sessions being loaded into session.students map
     // which would cause addStudent to preserve old code instead of using fresh starter code
@@ -90,6 +85,11 @@ export async function POST(
       .delete()
       .eq('session_id', sessionId)
       .eq('user_id', user.id);
+
+    // Use service role for session operations
+    // RLS policies for session_students require complex permission checks
+    // We've already verified user is authenticated, so use service role for the update
+    const storage = await createStorage(SERVICE_ROLE_MARKER);
 
     // Now load the session - it will NOT have this student in the students map
     const session = await storage.sessions.getSession(sessionId);
