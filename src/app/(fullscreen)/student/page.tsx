@@ -162,6 +162,9 @@ function StudentPage() {
     if (sessionIdFromUrl !== prevSessionIdRef.current) {
       setSessionEnded(false);
       setJoined(false);
+      setCode(''); // Clear editor when switching sessions
+      setExecutionResult(null); // Clear previous execution results
+      setStudentExecutionSettings(null); // Reset execution settings
       joinAttemptedRef.current = null;
       prevSessionIdRef.current = sessionIdFromUrl;
     }
