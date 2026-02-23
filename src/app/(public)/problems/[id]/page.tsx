@@ -16,6 +16,7 @@ import { SERVICE_ROLE_MARKER } from '@/server/supabase/client';
 import MarkdownContent from '@/components/MarkdownContent';
 import SolutionBlock from './SolutionBlock';
 import InstructorActions from './InstructorActions';
+import StudentActions from './StudentActions';
 
 type Params = {
   params: Promise<{ id: string }>;
@@ -77,6 +78,9 @@ export default async function PublicProblemPage({ params }: Params) {
 
       <Suspense fallback={null}>
         <InstructorActions problemId={problem.id} problemTitle={problem.title} classId={problem.classId} className={className} />
+      </Suspense>
+      <Suspense fallback={null}>
+        <StudentActions problemId={problem.id} classId={problem.classId} />
       </Suspense>
 
       {problem.description && (
