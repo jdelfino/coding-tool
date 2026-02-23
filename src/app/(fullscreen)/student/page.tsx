@@ -112,8 +112,7 @@ function StudentPage() {
 
     // Join the session from the URL
     // For completed sessions, don't require broadcast connection - data is already loaded
-    // CRITICAL: Verify session.id matches sessionIdFromUrl to prevent joining with stale session data
-    if (session && session.id === sessionIdFromUrl && (isConnected || session.status === 'completed')) {
+    if (session && (isConnected || session.status === 'completed')) {
       joinAttemptedRef.current = sessionIdFromUrl;
 
       setIsJoining(true);
