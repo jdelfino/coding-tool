@@ -113,10 +113,26 @@ function StudentPage() {
     // Join the session from the URL
     // For completed sessions, don't require broadcast connection - data is already loaded
     // CRITICAL: Only join when session data matches the URL to prevent using stale session data
+
+    // Debug logging for session replacement bug
+    if (sessionIdFromUrl) {
+      console.log('[Student] Join check:', {
+        sessionIdFromUrl,
+        sessionId: session?.id,
+        sessionProblem: session?.problem?.title,
+        sessionStatus: session?.status,
+        matches: session?.id === sessionIdFromUrl,
+        isConnected,
+        willJoin: !!(session && session.id === sessionIdFromUrl && (isConnected || session.status === 'completed'))
+      });
+    }
+
     if (session && session.id === sessionIdFromUrl && (isConnected || session.status === 'completed')) {
       joinAttemptedRef.current = sessionIdFromUrl;
 
       setIsJoining(true);
+
+      console.log('[Student] Calling joinSession with:', { sessionId: sessionIdFromUrl });
 
       // Pass sessionIdFromUrl explicitly to avoid stale closure issues
       joinSession(sessionIdFromUrl, user.id, user.displayName || user.email || 'Student')
