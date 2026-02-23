@@ -210,8 +210,15 @@ describeE2E('Session Lifecycle', () => {
       const monacoEditor2 = page.locator('.monaco-editor').first();
       await monacoEditor2.click();
       await page.keyboard.press('ControlOrMeta+a');
+      await expect(async () => {
+        // Wait for select-all to register
+        const text = await page.evaluate(() => window.getSelection()?.toString() || '');
+        expect(text.length).toBeGreaterThan(0);
+      }).toPass({ timeout: 2000 }).catch(() => {
+        // Selection may be empty for empty editor, that's OK
+      });
       await page.keyboard.press('Backspace');
-      await page.keyboard.type(studentCode2, { delay: 30 });
+      await page.keyboard.type(studentCode2, { delay: 50 });
 
       console.log('Student typed code in second session');
 
@@ -255,8 +262,8 @@ describeE2E('Session Lifecycle', () => {
       await page.locator('button:has-text("Run Code")').click();
 
       // Verify output panel shows execution result
-      // The output should appear in a panel/area showing the print statement result
-      await expect(page.locator('text=FIBONACCI_TEST_67890')).toBeVisible({ timeout: 15000 });
+      // Practice mode execution should complete within 10 seconds
+      await expect(page.locator('text=FIBONACCI_TEST_67890')).toBeVisible({ timeout: 10000 });
 
       console.log('Practice mode execution successful!');
       console.log('Session lifecycle test completed successfully!');
