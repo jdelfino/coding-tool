@@ -88,21 +88,9 @@ export async function POST(
       );
     }
 
-    // Check database directly to see if student already exists in THIS session
-    // This ensures we don't use stale in-memory state
-    const existingStudentInDb = await storage.supabase
-      .from('session_students')
-      .select('code')
-      .eq('session_id', sessionId)
-      .eq('user_id', user.id)
-      .maybeSingle();
-
-    // If student exists in DB for this session, preserve their code
-    // Otherwise, use starter code (first join to this session)
-    const shouldUseStarterCode = !existingStudentInDb.data;
-
-    if (shouldUseStarterCode && session.students.has(user.id)) {
-      // Clear stale in-memory student data before adding
+    // Clear any stale in-memory student data to ensure fresh join
+    // This prevents carrying over code from a different session
+    if (session.students.has(user.id)) {
       session.students.delete(user.id);
     }
 
