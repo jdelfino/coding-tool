@@ -452,7 +452,7 @@ describe('POST /api/problems/[id]/practice', () => {
     const data = await response.json();
 
     expect(response.status).toBe(500);
-    expect(data.error).toBe('Failed to create session');
+    expect(data.error).toBe('Failed to create practice session');
   });
 
   it('should handle errors when adding student fails', async () => {
@@ -474,7 +474,7 @@ describe('POST /api/problems/[id]/practice', () => {
     const data = await response.json();
 
     expect(response.status).toBe(500);
-    expect(data.error).toBe('Failed to add student');
+    expect(data.error).toBe('Failed to create practice session');
   });
 
   it('should respect rate limiting', async () => {

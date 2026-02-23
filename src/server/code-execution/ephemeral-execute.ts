@@ -13,7 +13,7 @@
 import { Sandbox } from '@vercel/sandbox';
 import { CodeSubmission, ExecutionResult } from './interfaces';
 import { getExecutorService } from './executor-service';
-import { sanitizeFilename, truncateOutput, sanitizeError } from './utils';
+import { sanitizeFilename, truncateOutput, sanitizeError, INPUT_ECHO_PREAMBLE } from './utils';
 
 // Sandbox timeout: 60 seconds (short-lived for ephemeral execution)
 const SANDBOX_TIMEOUT_MS = 60_000;
@@ -45,6 +45,7 @@ export async function executeEphemeral(
 
   // Vercel production: use ephemeral sandbox
   let sandbox: Sandbox | null = null;
+  const startTime = Date.now();
 
   try {
     // Clamp timeout
@@ -52,8 +53,6 @@ export async function executeEphemeral(
       timeout ?? DEFAULT_EXECUTION_TIMEOUT_MS,
       MAX_EXECUTION_TIMEOUT_MS
     );
-
-    const startTime = Date.now();
 
     // Create ephemeral sandbox
     sandbox = await Sandbox.create({
@@ -70,6 +69,8 @@ export async function executeEphemeral(
       const seedInjection = `import random\nrandom.seed(${randomSeed})\n`;
       executionCode = seedInjection + code;
     }
+    // Inject input echo wrapper so stdin values appear in output
+    executionCode = INPUT_ECHO_PREAMBLE + executionCode;
 
     // Build files to write
     const filesToWrite: Array<{ path: string; content: Buffer }> = [
@@ -133,7 +134,7 @@ export async function executeEphemeral(
         success: false,
         output: '',
         error: 'Execution timed out',
-        executionTime: 0,
+        executionTime: Date.now() - startTime,
       };
     }
 
