@@ -82,11 +82,11 @@ function StudentPage() {
 
   // Track if we've already initiated a join for this sessionId to prevent loops
   const joinAttemptedRef = useRef<string | null>(null);
+  // Track the sessionId for any in-flight join operation to cancel stale joins
+  const activeJoinSessionIdRef = useRef<string | null>(null);
 
   // Handle joining the session
   useEffect(() => {
-    let cancelled = false; // Track if this effect has been cleaned up
-
     if (!sessionIdFromUrl || !user?.id) {
       return;
     }
@@ -131,6 +131,7 @@ function StudentPage() {
 
     if (session && session.id === sessionIdFromUrl && (isConnected || session.status === 'completed')) {
       joinAttemptedRef.current = sessionIdFromUrl;
+      activeJoinSessionIdRef.current = sessionIdFromUrl; // Track active join
 
       setIsJoining(true);
 
@@ -139,11 +140,16 @@ function StudentPage() {
       // Pass sessionIdFromUrl explicitly to avoid stale closure issues
       joinSession(sessionIdFromUrl, user.id, user.displayName || user.email || 'Student')
         .then((result) => {
-          if (cancelled) return; // Don't update state if effect was cleaned up
+          // Only update state if we're still trying to join THIS session
+          if (activeJoinSessionIdRef.current !== sessionIdFromUrl) {
+            console.log('[Student] Ignoring stale join result for:', sessionIdFromUrl);
+            return;
+          }
           setJoined(true);
           setStudentId(user.id);
           setIsJoining(false);
           setError(null);
+          activeJoinSessionIdRef.current = null;
           // For completed sessions, set sessionEnded flag
           // Only if this is actually the session we joined (not stale data from previous session)
           if (session.status === 'completed' && session.id === sessionIdFromUrl) {
@@ -158,16 +164,16 @@ function StudentPage() {
           }
         })
         .catch((err) => {
-          if (cancelled) return; // Don't update state if effect was cleaned up
+          // Only update state if we're still trying to join THIS session
+          if (activeJoinSessionIdRef.current !== sessionIdFromUrl) {
+            console.log('[Student] Ignoring stale join error for:', sessionIdFromUrl);
+            return;
+          }
           setError(err.message || 'Failed to join session');
           setIsJoining(false);
+          activeJoinSessionIdRef.current = null;
         });
     }
-
-    // Cleanup function: cancel any pending async operations
-    return () => {
-      cancelled = true;
-    };
   }, [sessionIdFromUrl, user?.id, user?.email, user?.displayName, joined, isJoining, isConnected, session, joinSession]);
 
   // Update problem when session loads
