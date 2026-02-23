@@ -299,7 +299,7 @@ describe('Student Page - Session Ended Detection', () => {
     });
 
     // Should call joinSession even for completed sessions (adds student to participants for practice mode)
-    expect(baseSessionState.joinSession).toHaveBeenCalledWith('user-1', 'Student');
+    expect(baseSessionState.joinSession).toHaveBeenCalledWith('session-123', 'user-1', 'Student');
   });
 
   it('should not get stuck loading when viewing a completed session without broadcast connection', async () => {
