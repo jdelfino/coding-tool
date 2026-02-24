@@ -522,7 +522,7 @@ describe('useRealtimeSession', () => {
 
       let joinResult;
       await act(async () => {
-        joinResult = await result.current.joinSession('student-1', 'Alice');
+        joinResult = await result.current.joinSession('session-1', 'student-1', 'Alice');
       });
 
       expect(mockFetch).toHaveBeenCalledWith(

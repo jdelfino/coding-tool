@@ -543,10 +543,11 @@ export function useRealtimeSession({
 
   /**
    * Join session
+   * Takes sessionId as parameter to avoid stale closure issues
    */
-  const joinSession = useCallback(async (studentId: string, name: string) => {
+  const joinSession = useCallback(async (targetSessionId: string, studentId: string, name: string) => {
     try {
-      const res = await fetchWithRetry(`/api/sessions/${sessionId}/join`, {
+      const res = await fetchWithRetry(`/api/sessions/${targetSessionId}/join`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -568,7 +569,7 @@ export function useRealtimeSession({
       console.error('[useRealtimeSession] Failed to join session:', e);
       throw e;
     }
-  }, [sessionId]);
+  }, []); // No dependencies - uses parameter instead of closure
 
   return {
     // State

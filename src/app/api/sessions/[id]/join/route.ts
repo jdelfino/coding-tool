@@ -79,7 +79,32 @@ export async function POST(
     // RLS policies for session_students require complex permission checks
     // We've already verified user is authenticated, so use service role for the update
     const storage = await createStorage(SERVICE_ROLE_MARKER);
+
+    // Load the session
     const session = await storage.sessions.getSession(sessionId);
+
+    // CRITICAL DIAGNOSTIC: Log session state before addStudent
+    // This helps diagnose the session replacement bug in CI
+    const existingStudent = session?.students.get(user.id);
+    console.log('[JOIN] Session state before addStudent:', {
+      sessionId,
+      userId: user.id,
+      sessionProblem: session?.problem?.title,
+      studentCount: session?.students.size || 0,
+      studentExists: !!existingStudent,
+      existingCode: existingStudent?.code?.substring(0, 80) || null,
+    });
+
+    // If student already exists in session before joining, this is unexpected
+    if (existingStudent) {
+      console.error('[JOIN] ERROR: Student already exists in session before joining!', {
+        sessionId,
+        userId: user.id,
+        sessionStatus: session?.status,
+        sessionProblem: session?.problem?.title,
+        existingCode: existingStudent.code,
+      });
+    }
 
     if (!session) {
       return NextResponse.json(

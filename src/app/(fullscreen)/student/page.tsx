@@ -112,20 +112,28 @@ function StudentPage() {
 
     // Join the session from the URL
     // For completed sessions, don't require broadcast connection - data is already loaded
-    if (session && (isConnected || session.status === 'completed')) {
+    // CRITICAL: Only join when session data matches the URL to prevent using stale session data
+    if (session && session.id === sessionIdFromUrl && (isConnected || session.status === 'completed')) {
+      const targetSessionId = sessionIdFromUrl; // Capture before async call
       joinAttemptedRef.current = sessionIdFromUrl;
 
       setIsJoining(true);
 
-      joinSession(user.id, user.displayName || user.email || 'Student')
+      // Pass sessionIdFromUrl explicitly to avoid stale closure issues
+      joinSession(targetSessionId, user.id, user.displayName || user.email || 'Student')
         .then((result) => {
+          // Discard if session changed during async join (e.g. "Join New Session")
+          if (joinAttemptedRef.current !== targetSessionId) {
+            setIsJoining(false);
+            return;
+          }
           setJoined(true);
           setStudentId(user.id);
           setIsJoining(false);
           setError(null);
           // For completed sessions, set sessionEnded flag
           // Only if this is actually the session we joined (not stale data from previous session)
-          if (session.status === 'completed' && session.id === sessionIdFromUrl) {
+          if (session.status === 'completed' && session.id === targetSessionId) {
             setSessionEnded(true);
           }
           // Restore saved code and execution settings from server
@@ -137,6 +145,11 @@ function StudentPage() {
           }
         })
         .catch((err) => {
+          // Discard if session changed during async join
+          if (joinAttemptedRef.current !== targetSessionId) {
+            setIsJoining(false);
+            return;
+          }
           setError(err.message || 'Failed to join session');
           setIsJoining(false);
         });
@@ -144,8 +157,9 @@ function StudentPage() {
   }, [sessionIdFromUrl, user?.id, user?.email, user?.displayName, joined, isJoining, isConnected, session, joinSession]);
 
   // Update problem when session loads
+  // CRITICAL: Only update problem when session data matches URL to prevent stale data
   useEffect(() => {
-    if (session?.problem) {
+    if (session?.problem && session.id === sessionIdFromUrl) {
       setProblem(session.problem as Problem);
       setSessionExecutionSettings({
         stdin: session.problem.executionSettings?.stdin,
@@ -153,7 +167,7 @@ function StudentPage() {
         attachedFiles: session.problem.executionSettings?.attachedFiles,
       });
     }
-  }, [session]);
+  }, [session, sessionIdFromUrl]);
 
   // Reset session-related state when navigating to a different session
   // This handles the case where user clicks "Join New Session" after a replacement
@@ -162,6 +176,11 @@ function StudentPage() {
     if (sessionIdFromUrl !== prevSessionIdRef.current) {
       setSessionEnded(false);
       setJoined(false);
+      setCode(''); // Clear editor when switching sessions
+      setProblem(null); // CRITICAL: Clear problem to prevent stale starter code in editor
+      setExecutionResult(null); // Clear previous execution results
+      setStudentExecutionSettings(null); // Reset execution settings
+      setSessionExecutionSettings({}); // Clear session execution settings
       joinAttemptedRef.current = null;
       prevSessionIdRef.current = sessionIdFromUrl;
     }
@@ -204,7 +223,7 @@ function StudentPage() {
   const handleJoinNewSession = useCallback(() => {
     if (!replacementInfo) return;
     const oldSessionId = sessionIdFromUrl;
-    joinAttemptedRef.current = null;
+    joinAttemptedRef.current = null; // Cancel any in-flight join
     setJoined(false);
     setSessionEnded(false);
     setCode('');
