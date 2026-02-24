@@ -15,7 +15,7 @@ for resolving larger issues in follow-on work.
 
 `/plan` explores the codebase, discusses tradeoffs with you, files beads issues, and runs an architectural plan review. Use it before `/work` for new epics.
 
-`/work` is the single entry point for all implementation. It triages the work, decides whether to commit directly to main or create a branch/PR, manages beads issues, and runs specialized reviews for branch work.
+`/work` is the single entry point for all implementation. It triages the work, creates a branch/PR, manages beads issues, and runs specialized reviews.
 
 `/merge` processes open PRs: merges when CI passes, handles rebases, files issues for failures. Run in a dedicated window while other windows do `/work`.
 
@@ -80,13 +80,12 @@ bd close bd-42 --reason "Completed" --json
 
 ### Workflow for AI Agents
 
-1. **Check ready work**: `bd ready` shows unblocked issues
+1. **Check ready work**: `bd ready` shows unblocked issues (open + no blocking deps)
 2. **Claim your task**: `bd update <id> --status in_progress`
 3. **Work on it**: Implement, test, document
 4. **Discover new work?** Create linked issue:
    - `bd create "Found bug" -p 1 --deps discovered-from:<parent-id>`
 5. **Complete**: `bd close <id> --reason "Done"`
-6. **Commit together**: Always commit the `.beads/issues.jsonl` file together with the code changes so issue state stays in sync with code state
 
 ### Writing Self-Contained Issues
 
