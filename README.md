@@ -22,6 +22,22 @@ A real-time web-based coding tool for classroom instruction. Instructors create 
 
 ## Quick Start
 
+### Devcontainer (recommended for the classroom)
+
+Open the repo in a Dev Container (VS Code "Reopen in Container", or `devpod up`).
+First boot installs all tooling, starts local Supabase, and writes `.env.local`
+automatically — **no external accounts or secrets required**. The app is served
+with `npm run dev`. The only manual step (and only if you'll open a pull request)
+is authenticating GitHub with your own account:
+
+```bash
+gh auth login   # use your own GitHub account; fork or "Use this template" first
+```
+
+See [docs/DEVCONTAINER.md](docs/DEVCONTAINER.md) for details.
+
+### Manual (run directly on your machine)
+
 ```bash
 # 1. Clone and install
 git clone https://github.com/jdelfino/coding-tool.git

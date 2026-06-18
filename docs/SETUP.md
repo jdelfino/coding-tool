@@ -2,13 +2,10 @@
 
 ## Devcontainer (Recommended)
 
-The easiest way to get started is with the devcontainer:
-
-```bash
-./setup_env.sh
-```
-
-This builds the container, starts Supabase, configures secrets, and copies your credentials. See [DEVCONTAINER.md](./DEVCONTAINER.md) for full details and 1Password integration.
+The easiest way to get started is the devcontainer: open the repo in VS Code and
+"Reopen in Container" (or `devpod up`). First boot installs the toolchain, starts
+local Supabase, and writes `.env.local` automatically — no external accounts or
+secrets required. See [DEVCONTAINER.md](./DEVCONTAINER.md) for full details.
 
 ## Manual Setup
 

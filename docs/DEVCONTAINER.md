@@ -1,85 +1,78 @@
 # Devcontainer Setup
 
+The devcontainer is **local-only**: it needs no external accounts and no shared
+secrets. On boot it installs the toolchain, starts a local Supabase stack, and
+writes `.env.local` from the keys that local Supabase generates. This makes it
+suitable for a classroom where every attendee runs the same exercise with zero
+shared credentials.
+
 ## Quick Start
 
-```bash
-brew install loft-sh/tap/devpod
+Open the repository in a Dev Container:
 
-devpod up https://github.com/jdelfino/coding-tool \
-  --workspace-env OP_SERVICE_ACCOUNT_TOKEN="$OP_SERVICE_ACCOUNT_TOKEN" \
-  --workspace-env OP_VAULT="my-vault"
-```
+- **VS Code:** open the folder → `Cmd/Ctrl+Shift+P` → "Dev Containers: Reopen in Container".
+- **DevPod / devcontainer CLI:**
+
+  ```bash
+  devpod up https://github.com/jdelfino/coding-tool
+  ```
+
+No `--workspace-env` flags or tokens are required.
 
 ## Prerequisites
 
 - Docker
-- DevPod (or devcontainer CLI)
-- 1Password service account with vault access
+- VS Code with the Dev Containers extension, or DevPod / the devcontainer CLI
 
-## Required Environment Variables
+## What happens on first boot
 
-| Variable | Description |
-|----------|-------------|
-| `OP_SERVICE_ACCOUNT_TOKEN` | 1Password service account token |
-| `OP_VAULT` | 1Password vault name |
+- **`post-create.sh`** installs the toolchain: beads, Claude Code, npm
+  dependencies, Playwright (Chromium), and nsjail (the local Python execution
+  sandbox).
+- **`setup-secrets.sh`** (runs on every start) runs `supabase start` and writes
+  `.env.local` directly from `supabase status` — the local Supabase URL and the
+  generated publishable/secret keys, plus `SYSTEM_ADMIN_EMAIL=admin@test.local`.
+  `GEMINI_API_KEY` and the `UPSTASH_*` vars are written empty on purpose, so the
+  AI walkthrough and rate limiting stay disabled locally.
 
-## Required 1Password Items
+`.env.local` is regenerated on every container start and is gitignored — don't
+edit it by hand.
 
-| Item | Type | Fields | Tag |
-|------|------|--------|-----|
-| SSH key | SSH Key | (auto) | `devcontainer` |
-| `git-config` | Secure Note | `name`, `email` | |
-| `github-pat` | API Credential | `credential` | |
-| `secrets` | Secure Note | `system-admin-email`, `gemini-api-key` | |
-| `supabase-prod` | Secure Note | `project-ref`, `access-token`, `database-url` | |
+> First boot downloads the Supabase Docker images (~1GB), which can take a few
+> minutes. A pre-baked image to skip this is tracked as a follow-up.
 
-### Getting Supabase Production Credentials
+## The only manual step: GitHub auth
 
-For `supabase-prod`, get values from your Supabase Dashboard:
-- `project-ref`: From URL `https://supabase.com/dashboard/project/<project-ref>`
-- `access-token`: Account → Access Tokens → Generate new token
-- `database-url`: Settings → Database → Connection string (URI)
-
-Claude Code: Run `claude` and authenticate interactively on first use.
-
-## Creating a GitHub Personal Access Token
-
-1. Go to [github.com/settings/tokens](https://github.com/settings/tokens)
-2. Click "Generate new token" → "Generate new token (classic)"
-3. Set expiration and select scopes: `repo`, `read:org`, `gist`, `workflow`
-4. Copy the token (starts with `ghp_`)
-5. In 1Password, create an API Credential named `github-pat` with the token in the `credential` field
-
-## Creating Service Account
-
-1. [my.1password.com](https://my.1password.com) → Developer Tools → Service Accounts
-2. Create account with read-only access to your vault
-3. Set token: `export OP_SERVICE_ACCOUNT_TOKEN="..."`
-
-## Multiple Workspaces
+Everything above is automatic. The single manual step — and only if the exercise
+has you open a pull request — is authenticating GitHub with **your own** account:
 
 ```bash
-# Create isolated workspaces with --id
-devpod up https://github.com/jdelfino/coding-tool \
-  --workspace-env OP_SERVICE_ACCOUNT_TOKEN="..." \
-  --workspace-env OP_VAULT="..." \
-  --id agent1 \
-  --ide none && devpod ssh agent1
+gh auth login
 ```
 
-## IDE Options
+Fork the repo (or use "Use this template") so your branch and PR live under your
+own account. There is no shared bot, token, or credential to configure.
+
+## Claude Code
+
+Each container gets a clean, isolated Claude config (a named volume, not your
+host's `~/.claude`). Run `claude` and authenticate interactively on first use.
+
+## Verify it works
+
+```bash
+npm run dev            # serves the app at http://localhost:3000
+npm test               # Jest unit tests
+```
+
+Test login after `npx supabase db reset`: `admin@test.local` / `password123`.
+
+## IDE / workspace options (DevPod)
 
 ```bash
 # SSH only (no IDE)
-devpod up ... --ide none && devpod ssh <workspace-id>
+devpod up https://github.com/jdelfino/coding-tool --ide none && devpod ssh <workspace-id>
 
-# VS Code (default)
-devpod up ...
-
-# Set default IDE for a workspace
-devpod ide use none --workspace <workspace-id>
+# Isolated parallel workspaces with --id
+devpod up https://github.com/jdelfino/coding-tool --id agent1 --ide none && devpod ssh agent1
 ```
-
-## VS Code
-
-After setup: `code .` → `Cmd+Shift+P` → "Reopen in Container"
