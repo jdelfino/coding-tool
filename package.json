@@ -25,8 +25,7 @@
     "supabase:reset": "supabase db reset",
     "supabase:studio": "echo 'Supabase Studio available at http://localhost:54323'",
     "supabase:migrate": "supabase db reset",
-    "db:reset": "supabase db reset",
-    "ops:db-reset": "tsx ops/db-reset.ts"
+    "db:reset": "supabase db reset"
   },
   "repository": {
     "type": "git",

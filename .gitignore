@@ -17,9 +17,6 @@ out/
 .env.*.local
 .env.test.remote
 .env.prod
-.op-token
-.op-vault
-.gh-token
 
 # IDE
 .idea/
@@ -72,3 +69,8 @@ history/
 # Devcontainer instances
 .devcontainer-instances/
 .devcontainer/.devpod-internal/
+
+# Beads / Dolt files (added by bd init)
+.dolt/
+*.db
+.beads-credential-key

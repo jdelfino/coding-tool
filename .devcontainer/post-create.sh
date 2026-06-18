@@ -5,9 +5,6 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
-# Install 1Password CLI
-"$SCRIPT_DIR/install-1password-cli.sh"
-
 # Install beads and git hooks
 curl -fsSL https://raw.githubusercontent.com/steveyegge/beads/main/scripts/install.sh | bash
 bd hooks install 2>/dev/null || true
@@ -23,6 +20,3 @@ npm install
 npx playwright install-deps chromium
 npx playwright install chromium
 "$SCRIPT_DIR/install-nsjail.sh"
-
-# Configure 1Password vault access
-"$SCRIPT_DIR/setup.sh"
