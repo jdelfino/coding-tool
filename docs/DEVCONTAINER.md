@@ -38,8 +38,28 @@ No `--workspace-env` flags or tokens are required.
 `.env.local` is regenerated on every container start and is gitignored — don't
 edit it by hand.
 
-> First boot downloads the Supabase Docker images (~1GB), which can take a few
-> minutes. A pre-baked image to skip this is tracked as a follow-up.
+> First boot pulls the Supabase Docker images — roughly **13 GB on disk** once
+> extracted (the Postgres image alone is ~5.5 GB), so the download is several GB
+> and can take a few minutes on classroom Wi-Fi. This is the dominant first-boot
+> cost. A pre-baked image to skip it is tracked as a follow-up.
+
+## First-boot vs. warm-boot timing
+
+Measured in a clean container (4 cores; cold figures are network-bound, so treat
+them as ballpark for planning a session):
+
+| Step | Cold (first boot) | Warm (images + deps cached) |
+|------|-------------------|-----------------------------|
+| `npm install` (deps) | ~30 s + download | ~25 s (`npm ci`, cache warm) |
+| Supabase image pull | several min (~13 GB on disk) | — (cached) |
+| `supabase start` | adds ~30–40 s on top of the pull | ~35 s |
+| `npm run dev` → "Ready" | ~6 s | ~6 s |
+| `npm test` (Jest) | ~35 s | ~20 s |
+| Playwright + nsjail (post-create) | a few min | — (cached) |
+
+**Teaching takeaway:** the only slow part is the cold Docker image pull. A second
+`supabase start` is ~35 s, and the app is serving ~6 s after that. Pre-baking the
+devcontainer image (follow-up) collapses the cold path to the warm numbers.
 
 ## The only manual step: GitHub auth
 
