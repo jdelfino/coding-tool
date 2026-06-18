@@ -66,6 +66,10 @@ history/
 # Claude Code local settings
 .claude/settings.local.json
 
+# Claude Code worktree-isolation artifacts
+.claude/worktrees/
+.claude/.stale-worktree
+
 # Devcontainer instances
 .devcontainer-instances/
 .devcontainer/.devpod-internal/

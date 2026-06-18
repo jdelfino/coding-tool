@@ -1,122 +1,60 @@
 ---
 name: coordinator
-description: Single entry point for all implementation work. Triages tasks, manages beads issues, decides direct vs. branch execution, delegates to implementer skill, runs reviewers, creates PRs.
+description: Single entry point for all implementation work. Triages tasks, manages beads issues, delegates to implementer skill, runs reviewers, creates PRs.
 ---
 
 # Coordinator
 
-You are the single entry point for all implementation work. You triage incoming work, manage the beads lifecycle, and either execute directly or orchestrate subagents.
+You are the single entry point for all implementation work. You triage incoming work, manage the beads lifecycle, and orchestrate subagents via branch/PR workflow.
 
 **Model guidance:** The coordinator should run on Opus 4.6. Implementer subagents should run on Sonnet 4.6 (`model: "sonnet"`).
+
+**IMPORTANT:** The `main` branch is protected. All changes MUST go through a feature branch and PR. Direct commits to main are not allowed.
 
 ## Phase 1: Triage
 
 ### 1. Parse Input
 
-The input is either a beads ID or an ad-hoc description.
+The input is a beads ID, a GitHub issue reference (`#<number>`), or an ad-hoc description. When the input could plausibly be a beads ID, try `bd show <input> --json` first; if it returns an issue, treat it as one. Otherwise fall through.
 
-**If beads ID:**
+**Beads ID:**
+
 ```bash
 bd show <id> --json
 ```
 
 If it's an epic, also fetch subtasks:
+
 ```bash
 bd list --parent <id> --json
 ```
 
-**If ad-hoc description (no beads ID):**
-Create a beads issue first:
+**GitHub issue (`#<number>`):** Fetch and convert to a beads issue:
+
+```bash
+gh issue view <number> --json title,body,labels,number
+bd create "<title>" -d "GitHub: #<number> — <description>" -t <type> -p <priority> --json
+```
+
+Map GitHub labels to beads types. Priority 1 for bugs, 2 for features/tasks.
+
+**Ad-hoc description:** Create a beads issue:
+
 ```bash
 bd create "<description>" -t <task|bug|feature> -p 2 --json
 ```
 
-### 2. Choose Execution Mode
+### 2. Check for Existing Branch
 
-| Condition | Mode |
-|-----------|------|
-| Small, focused change (1-3 files, single concern) | **Direct** |
-| Multiple related issues being worked together | **Branch** |
-| Cross-cutting change (5+ files, multiple concerns) | **Branch** |
-| Epic or has subtasks | **Branch** |
-| Removal/refactor of a feature | **Branch** |
-| User explicitly requests PR | **Branch** |
-
----
-
-## Direct Mode
-
-For single tasks. Work in the main checkout, commit to main, no PR.
-
-### 1. Claim
-
-```bash
-bd update <id> --status in_progress --json
-```
-
-### 2. Develop
-
-Follow the implementer skill phases 1-4:
-
-@.claude/skills/implementer/SKILL.md
-
-### 3. Commit and Push
-
-```bash
-git add -A
-git commit -m "$(cat <<'EOF'
-<type>: <description>
-
-<optional body>
-
-Co-Authored-By: Claude <noreply@anthropic.com>
-EOF
-)"
-git pull --rebase
-bd sync
-git push
-```
-
-Types: `feat`, `fix`, `refactor`, `test`, `docs`, `chore`
-
-**Gate:** `git push` succeeds. If push fails, resolve and retry. Work is not complete until pushed.
-
-### 4. Close
-
-```bash
-bd close <id> --reason "Completed" --json
-```
-
-File issues for any remaining or discovered work:
-```bash
-bd create "Remaining work description" -t task -p 2 --json
-```
-
-Summarize what was done and note any follow-up tasks created.
+If the issue is a fix for code on an existing feature branch (e.g., CI failure on an open PR, `discovered-from` dependency on an issue labeled `in-pr`, or the code to fix doesn't exist on `main`), use that branch as the base instead of `origin/main`. Commit directly to it — do not create a new branch or PR.
 
 ---
 
 ## Branch Mode
 
-For epics, multi-task work, or when a PR is needed. Uses worktrees and subagents.
+You're in your worktree from `/work` — `pwd` is its path. Implementer subagents spawn with `isolation: "worktree"` (the `WorktreeCreate` hook handles branch + per-worktree project setup). Rebase, reviewer, and test-runner subagents enter your existing worktree via a `WORKTREE` field — do NOT use `isolation: "worktree"` for those.
 
-### 1. Setup
-
-```bash
-# Create feature branch from main
-git fetch origin main
-git branch feature/<work-name> origin/main
-
-# Create worktree
-git worktree add ../<project>-<work-name> feature/<work-name>
-
-# CRITICAL: Install dependencies BEFORE spawning subagents
-cd ../<project>-<work-name>
-# Run your project's dependency install command here
-cd <back to main checkout>
-```
-
-### 2. Conflict Avoidance
+### 1. Conflict Avoidance
 
 Before parallelizing tasks, analyze file overlap:
 
@@ -129,11 +67,11 @@ Tasks conflict if they likely touch the same files:
 ```
 Task A: Add user profile page (src/app/profile/*)
 Task B: Fix login bug (src/app/login/*)
-→ SAFE to parallelize (different directories)
+-> SAFE to parallelize (different directories)
 
 Task A: Add validation to UserForm
 Task B: Add new field to UserForm
-→ NOT SAFE (same component)
+-> NOT SAFE (same component)
 ```
 
 When in doubt, add a dependency:
@@ -141,83 +79,123 @@ When in doubt, add a dependency:
 bd dep add <later-task-id> <earlier-task-id> --json
 ```
 
-### 3. Implement Tasks
+### 2. Implement Tasks
 
-**Independent tasks CAN run in parallel. Dependent tasks MUST wait.**
+**Follow the dependency graph from beads.** Spawn all currently-unblocked tasks in parallel. When a task completes, check if any blocked tasks are now unblocked and spawn those.
 
 For each task:
 
 #### a. Claim
+
 ```bash
 bd update <task-id> --set-labels wip --json
 ```
 
 #### b. Spawn Implementer Subagent
 
-Use the Task tool with `subagent_type: "general-purpose"` and `model: "sonnet"`:
+Use the Agent tool with `isolation: "worktree"` and `model: "sonnet"`:
 
 ```
 ROLE: Implementer
 SKILL: Read and follow .claude/skills/implementer/SKILL.md
 
-WORKTREE: ../<project>-<work-name>
 TASK: <task-id>
 Read the task description: bd show <task-id> --json
-
-CONSTRAINTS:
-- Work ONLY in the worktree path above
-- Do NOT modify beads issues
-- Commit and push your work when implementer phases are complete
-- Phase 5 of the implementer skill produces a structured summary — that is your final output
 ```
 
 #### c. Handle Result
 
 The implementer's final output is a structured summary (Phase 5). Only read that summary — ignore intermediate tool output from the subagent.
 
-**On SUCCESS:**
+The agent result includes `worktree_path` and `branch` when changes were made.
+
+**On SUCCESS:** integrate into the feature branch (sequential — do NOT run in parallel with other integrations).
+
+Try fast-path rebase first (inline — no subagent):
+
+```bash
+cd <worktree_path>
+git rebase feature/<work-name> && \
+  git branch -f feature/<work-name> HEAD && \
+  echo "REBASE: OK"
+```
+
+After successful rebase, clean up:
+
+```bash
+git worktree remove <worktree_path> --force 2>/dev/null
+git branch -D <branch> 2>/dev/null
+```
+
+If the rebase fails (conflict), abort and spawn the rebase subagent. Do NOT use `isolation: "worktree"` — the rebase agent enters the implementer's existing worktree:
+
+```bash
+git rebase --abort
+```
+
+```
+ROLE: Rebase Agent (Conflict Resolution)
+SKILL: Read and follow .claude/skills/rebase/SKILL.md
+
+SOURCE: <branch>
+TARGET: feature/<work-name>
+WORKTREE: <worktree_path>
+CLEANUP: true
+BEADS_IDS: <task-id>
+```
+
+**After successful integration** (either path):
+
 ```bash
 bd close <task-id> --reason "Implemented" --json
 ```
-Check the "Concerns" section — file follow-up issues if needed.
 
-**On FAILURE:**
-- If recoverable: fix directly or spawn new subagent with clarification
+Triage the "Concerns" section:
+- **Bugs or broken behavior introduced by this task** — must be fixed before the PR ships. File an issue, spawn an implementer, and fix it on the feature branch.
+- **Low-priority, non-behavioral issues** (naming nits, future optimization ideas, minor code smells) — file as follow-up issues.
+- **Anything ambiguous** — ask the user whether to fix now or defer.
+
+**On rebase subagent FAILURE:**
+
+- Spawn a new implementer in a fresh worktree to resolve the conflict
 - If blocked: note the blocker, move to next task
 - Do NOT close the task
 
-### 4. Pre-PR Review
+### 3. Pre-PR Review
 
 Reviews are **optional** for small, isolated changes (single-file fixes, typo corrections, config tweaks). For anything of any complexity — multi-file changes, new features, behavioral changes, refactors — reviews are **required**.
 
-After all tasks are complete, run 3 specialized reviews **in parallel** using the Task tool:
+After all tasks are merged into the feature branch, run 3 specialized reviews **in parallel**. Each reviewer enters the coordinator's worktree (do NOT use `isolation: "worktree"`):
 
 **Correctness Reviewer:**
+
 ```
 ROLE: Correctness Reviewer
 SKILL: Read and follow .claude/skills/reviewer-correctness/SKILL.md
 
-WORKTREE: ../<project>-<work-name>
+WORKTREE: <coordinator's worktree path>
 BASE: origin/main
 SUMMARY: <what this PR implements>
 ```
 
 **Test Quality Reviewer:**
+
 ```
 ROLE: Test Quality Reviewer
 SKILL: Read and follow .claude/skills/reviewer-tests/SKILL.md
 
-WORKTREE: ../<project>-<work-name>
+WORKTREE: <coordinator's worktree path>
 BASE: origin/main
 SUMMARY: <what this PR implements>
 ```
 
 **Architecture Reviewer:**
+
 ```
 ROLE: Architecture Reviewer
 SKILL: Read and follow .claude/skills/reviewer-architecture/SKILL.md
 
-WORKTREE: ../<project>-<work-name>
+WORKTREE: <coordinator's worktree path>
 BASE: origin/main
 SUMMARY: <what this PR implements>
 REFERENCE DIRS: <key directories in the existing codebase to compare against>
@@ -228,24 +206,37 @@ REFERENCE DIRS: <key directories in the existing codebase to compare against>
 - **Trivial issues** (typos, minor naming): fix directly, commit
 - **Non-trivial issues** (bugs, missing tests, duplication): file a beads issue, spawn implementer, close when fixed
 
-After all issues resolved, re-run quality gates per the **Quality Gates** table in CLAUDE.md.
+After all issues resolved, run a test-runner sub-agent for **epic-level acceptance tests** (if the epic defined them) using `model: "haiku"`. Pull the test commands from the **Quality Gates** table in CLAUDE.md:
 
-### 5. Create PR and Hand Off
+```
+ROLE: Test Runner
+SKILL: Read and follow .claude/skills/test-runner/SKILL.md
 
-Run quality gates per the **Quality Gates** table in CLAUDE.md in the worktree before creating the PR.
+WORKTREE: <coordinator's worktree path>
+COMMANDS:
+- <acceptance test commands if the epic defined them>
+```
 
-**Do NOT create PR if any checks fail.** Fix locally first.
+**Skip the test-runner** if the epic has no acceptance tests. **Do NOT create PR if the test-runner reports FAIL.** Fix locally first (spawn implementer if non-trivial).
+
+### 4. Create PR, Monitor CI, and Hand Off
+
+Run quality gates per the **Quality Gates** table in CLAUDE.md before creating the PR. Delegate to a test-runner sub-agent so verbose output doesn't pollute the coordinator's context.
+
+**Do NOT create PR if any gate fails.** Fix locally first.
+
+**PR description guidelines:**
+
+- The summary should explain _why_ the change exists, not restate the diff. Reviewers can read the code.
+- Only call out specific changes if they are notable, unusual, or would surprise a reviewer.
+- Add additional sections (e.g., "Manual steps required") only when relevant.
 
 ```bash
-cd ../<project>-<work-name>
 git push -u origin feature/<work-name>
 
 gh pr create --title "<type>: <title>" --body "$(cat <<'EOF'
 ## Summary
-<1-3 bullet points>
-
-## Changes
-<list of significant changes>
+<1-3 bullet points explaining *why* this change exists>
 
 ## Test plan
 - [ ] Tests pass
@@ -258,19 +249,38 @@ EOF
 )"
 ```
 
-**After creating the PR:**
+**After creating the PR, monitor CI:**
 
-1. If user indicated review needed: request review
+```bash
+gh pr checks <number> --watch
+```
+
+**If CI fails:**
+
+1. Fetch failure logs:
    ```bash
-   gh pr edit <number> --add-reviewer <username>
+   gh run view <run-id> --log-failed
+   ```
+2. **Trivial fix** (single-line, obvious test typo): fix inline, commit, push.
+3. **Non-trivial fix**: spawn an implementer in the coordinator's worktree to fix the failures, then push:
+   ```bash
+   git push
+   ```
+4. Re-run `gh pr checks <number> --watch` and repeat until CI passes.
+
+**After CI passes:**
+
+1. If user indicated review needed (e.g., "review this", "flag for review", or high-risk changes like auth/infra/migrations):
+   ```bash
+   gh pr edit <number> --add-label "needs-human-review"
    ```
 2. Label beads issues as `in-pr`:
    ```bash
    bd update <id> --set-labels in-pr --json
    ```
-3. Report: "PR #X opened. `/merge` will handle CI and merging."
+3. Report: "PR #X opened. CI passing. `/merge` will handle merging."
 
-**Do NOT** watch CI, merge, or wait for approval. The `/merge` agent handles all of that.
+**Do NOT** merge. The `/merge` agent handles all merging.
 
 **Do NOT** clean up worktrees or branches. The `/merge` agent does this after successful merge, since worktrees may be needed for rebases.
 
@@ -278,12 +288,19 @@ EOF
 
 ## Anti-Patterns
 
+- Committing directly to main (branch is protected — all changes require a PR)
+- Creating a new branch/PR for a fix that belongs on an existing feature branch
 - Starting dependent task before blocker is closed
-- Parallelizing tasks that touch same files
+- Parallelizing tasks that touch the same files (use Conflict Avoidance section above)
+- Running task integrations in parallel (must be sequential for linear history)
 - Creating PR before running specialized reviews
 - Creating PR with failing tests
-- Merging PRs (that's `/merge`'s job)
-- Watching CI (that's `/merge`'s job)
-- Cleaning up worktrees before merge (that's `/merge`'s job)
-- Running dependency install concurrently in multiple worktrees
+- Shipping known bugs as follow-up issues — bugs introduced by the current work must be fixed before the PR ships
+- Spawning a rebase subagent when fast-path succeeds
 - Fixing non-trivial review issues inline — file issues and spawn implementers instead
+- Running quality gates directly in coordinator context — always delegate to test-runner sub-agents
+- Merging PRs (that's `/merge`'s job)
+- Handing off to `/merge` before CI passes — coordinator owns CI failures and must fix them
+- Cleaning up worktrees before merge (that's `/merge`'s job)
+- Manually creating worktrees with `git worktree add` for subagents — use `isolation: "worktree"` so the `WorktreeCreate` hook handles setup
+- Using `isolation: "worktree"` for rebase/reviewer/test-runner agents — they enter the coordinator's existing worktree
