@@ -2,22 +2,20 @@
  * Code Execution Module
  *
  * This module provides a pluggable code execution abstraction layer.
- * It supports multiple backends (local Python, Vercel Sandbox, disabled)
- * with automatic selection based on environment and capabilities.
+ * It supports multiple backends (local Python, disabled) with automatic
+ * selection based on environment and capabilities.
  *
  * Usage:
  *   import { getExecutorService } from '@/server/code-execution';
  *   const result = await getExecutorService().executeCode({ code: 'print("hello")' });
  *
  * Backend selection order (first available wins):
- *   1. vercel-sandbox - production on Vercel
- *   2. local-python - local development
- *   3. disabled - fallback when no execution available
+ *   1. local-python - executes via the local sandbox (nsjail)
+ *   2. disabled - fallback when no execution available
  */
 
 import { getBackendRegistry } from './registry';
 import { LocalPythonBackend } from './backends/local-python-backend';
-import { VercelSandboxBackend } from './backends/vercel-sandbox-backend';
 import { DisabledBackend } from './backends/disabled-backend';
 import { SupabaseBackendStateRepository } from './supabase-state-repository';
 
@@ -26,28 +24,12 @@ const registry = getBackendRegistry();
 
 // Only register if not already registered (prevents double-registration on hot reload)
 if (registry.list().length === 0) {
-  // Vercel Sandbox - production backend
-  registry.register({
-    type: 'vercel-sandbox',
-    factory: () => new VercelSandboxBackend(new SupabaseBackendStateRepository()),
-    isAvailable: () =>
-      process.env.VERCEL === '1' && process.env.VERCEL_SANDBOX_ENABLED === '1',
-    capabilities: {
-      execute: true,
-      trace: true,
-      attachedFiles: true,
-      stdin: true,
-      randomSeed: true,
-      stateful: true,
-      requiresWarmup: true,
-    },
-  });
-
-  // Local Python - development backend
+  // Local Python - executes code in the local sandbox (nsjail). The only
+  // real execution backend.
   registry.register({
     type: 'local-python',
     factory: () => new LocalPythonBackend(),
-    isAvailable: () => !process.env.VERCEL,
+    isAvailable: () => true,
     capabilities: {
       execute: true,
       trace: true,
@@ -93,7 +75,7 @@ export type {
   ExecutionResult,
   ExecutionTrace,
 } from './interfaces';
-export { LocalPythonBackend, VercelSandboxBackend, SandboxError, DisabledBackend } from './backends';
+export { LocalPythonBackend, DisabledBackend } from './backends';
 export {
   DEFAULT_TIMEOUT,
   MAX_FILE_SIZE,

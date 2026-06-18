@@ -1,12 +1,11 @@
 /**
  * Embedded Python Tracer Script
  *
- * This file contains the python-tracer.py script as a string constant
- * for deployment to Vercel Sandbox where the filesystem is not available
- * at runtime.
+ * This file contains the python-tracer.py script as a string constant so it
+ * is available at runtime without depending on the on-disk copy.
  *
- * For local development with nsjail, the script is loaded from disk.
- * For Vercel Sandbox, this embedded version is written to /tmp/tracer.py.
+ * The local backend (nsjail) normally loads the script from disk; this
+ * embedded copy is the in-process fallback.
  */
 
 export const TRACER_SCRIPT = `#!/usr/bin/env python3
@@ -192,5 +191,5 @@ if __name__ == '__main__':
     main()
 `;
 
-/** Path where tracer script is written in Vercel Sandbox */
+/** Path where the embedded tracer script is written before execution */
 export const TRACER_PATH = '/tmp/tracer.py';

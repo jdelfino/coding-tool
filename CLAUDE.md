@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 See [README.md](README.md) for full project description, tech stack, architecture, and setup instructions.
 
-**Quick context:** Real-time coding classroom tool. Next.js + Supabase (PostgreSQL, Auth, Realtime). Python execution via Vercel Sandbox (prod) or nsjail (dev).
+**Quick context:** Real-time coding classroom tool. Next.js + Supabase (PostgreSQL, Auth, Realtime). Python execution runs locally in an nsjail sandbox.
 
 ## Key Files for Navigation
 

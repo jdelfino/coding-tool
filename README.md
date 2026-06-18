@@ -17,7 +17,7 @@ A real-time web-based coding tool for classroom instruction. Instructors create 
 - **Frontend**: Next.js 15, React 19, TypeScript, Tailwind CSS
 - **Backend**: Next.js API routes, Supabase (PostgreSQL + Auth + Realtime)
 - **Editor**: Monaco Editor
-- **Code Execution**: Vercel Sandbox (production) / nsjail (local dev) with Python 3.13
+- **Code Execution**: Local nsjail sandbox (Python 3)
 - **Testing**: Jest, Playwright (E2E)
 
 ## Quick Start
@@ -100,67 +100,25 @@ Namespace (organization)
 
 ## Code Execution Architecture
 
-Python code execution uses environment-based sandboxing:
+Python code runs in a local sandbox via a pluggable backend registry
+(`src/server/code-execution/`). The local backend is the only execution
+backend:
 
-| Environment | Sandbox | Description |
-|-------------|---------|-------------|
-| Local (dev) | nsjail | Linux namespace isolation for development |
-| Vercel | Vercel Sandbox | Cloud-based sandbox with Python 3.13 runtime |
-| Testing | None | `DISABLE_SANDBOX=true` for unit tests |
+| Backend | When used | Description |
+|---------|-----------|-------------|
+| `local-python` | default | Runs Python in an **nsjail** sandbox (Linux namespace isolation) |
+| `disabled` | fallback | Used when execution is unavailable; returns a clear error |
 
-### Vercel Sandbox Integration
+Tests run with `DISABLE_SANDBOX=true` so they don't require nsjail.
 
-```mermaid
-sequenceDiagram
-    participant S as Session API
-    participant E as Executor
-    participant V as Vercel Sandbox
-    participant DB as Supabase
-
-    Note over S,DB: Session Creation
-    S->>V: Create sandbox
-    V-->>S: sandbox_id
-    S->>DB: Store sandbox_id
-
-    Note over S,DB: Code Execution
-    S->>DB: Get sandbox_id
-    S->>V: Reconnect to sandbox
-    S->>V: Execute code
-    V-->>S: Result
-```
-
-**Key design decisions:**
-- **Eager sandbox creation**: Sandbox is created when the session starts (not on first execution), eliminating cold-start delays
-- **Sandbox persistence**: Sandbox IDs are stored in Supabase (`session_sandboxes` table) for reconnection across serverless invocations
-- **Automatic recreation**: If a sandbox times out (45 min on Hobby plan), it's recreated transparently on next execution
-- **Graceful degradation**: Sandbox failures return clear error messages; code never runs unsandboxed
-
-**Environment variables for Vercel:**
-- `VERCEL` - Auto-set by Vercel, triggers Vercel Sandbox mode
-- `DISABLE_SANDBOX` - Disable sandboxing entirely (testing only, never in production)
-
-### Observability
-
-Sandbox operations emit structured JSON logs for monitoring:
-
-```json
-{"timestamp":"...","service":"vercel-sandbox","event":"sandbox_create","sessionId":"...","durationMs":523,"success":true}
-{"timestamp":"...","service":"vercel-sandbox","event":"sandbox_execute","sessionId":"...","durationMs":234,"success":true}
-```
-
-Events: `sandbox_create`, `sandbox_reconnect`, `sandbox_recreate`, `sandbox_execute`, `sandbox_trace`, `sandbox_cleanup`
-
-### Rate Limiting (Vercel)
-
-Configure IP-based rate limiting in the Vercel Dashboard:
-
-1. Go to **Project Settings** → **Firewall**
-2. Create a rate limiting rule:
-   - **Match**: Path starts with `/api/sessions/` AND ends with `/execute` or `/trace`
-   - **Rate limit**: 60 requests per minute per IP
-   - **Action**: Challenge or Block
-
-This protects against abuse without requiring application-level rate limiting code.
+**Design notes:**
+- Backends register at module load and are chosen by `BackendRegistry` in an
+  explicit selection order (`local-python` → `disabled`).
+- The registry/executor keep generic session lifecycle hooks (`warmup`/`cleanup`)
+  for any future session-scoped backend (e.g. a container backend); the local
+  backend is stateless, so they are no-ops today.
+- Code never runs unsandboxed: a failure to sandbox returns an error rather than
+  executing.
 
 ## Project Structure
 

@@ -6,7 +6,7 @@
  *
  * Table schema (session_backend_state):
  * - session_id: Session ID (primary key, references sessions)
- * - backend_type: Type of backend assigned ('vercel-sandbox', 'local-python', etc.)
+ * - backend_type: Type of backend assigned ('local-python', etc.)
  * - state_id: Backend-specific identifier (sandbox ID, container ID, etc.)
  * - created_at: Timestamp
  */
@@ -105,7 +105,7 @@ export class SupabaseBackendStateRepository implements IBackendStateRepository {
   /**
    * Get backend-specific state for a session
    *
-   * Returns { sandboxId: state_id } for backward compatibility with VercelSandboxBackend.
+   * Returns { sandboxId: state_id } (the generic per-session state identifier).
    *
    * @param sessionId - Session ID
    * @returns State object or null if not found

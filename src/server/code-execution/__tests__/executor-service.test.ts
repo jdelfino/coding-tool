@@ -327,30 +327,9 @@ describe('ExecutorService', () => {
       process.env = originalEnv;
     });
 
-    it('should assign backend and call warmup for session-scoped backends', async () => {
-      const mockBackend = createMockSessionScopedBackend('vercel-sandbox');
-      registry.register(createMockRegistration(mockBackend));
-
-      // Simulate Vercel environment with sandbox enabled
-      process.env.VERCEL = '1';
-      process.env.VERCEL_SANDBOX_ENABLED = '1';
-
-      await service.prepareForSession('session-123');
-
-      expect(mockStateRepository.assignBackend).toHaveBeenCalledWith(
-        'session-123',
-        'vercel-sandbox'
-      );
-      expect(mockBackend.warmup).toHaveBeenCalledWith('session-123');
-    });
-
-    it('should assign local-python backend in development', async () => {
+    it('should assign the local-python backend for a session', async () => {
       const mockBackend = createMockBackend('local-python');
       registry.register(createMockRegistration(mockBackend));
-
-      // Clear Vercel env vars
-      delete process.env.VERCEL;
-      delete process.env.VERCEL_SANDBOX_ENABLED;
 
       await service.prepareForSession('session-123');
 
@@ -360,19 +339,19 @@ describe('ExecutorService', () => {
       );
     });
 
-    it('should assign disabled backend on Vercel without sandbox', async () => {
-      const mockBackend = createMockBackend('disabled');
+    it('should call warmup when the selected backend is session-scoped', async () => {
+      // The warmup/cleanup lifecycle is retained generically for any future
+      // session-scoped backend; register a session-scoped mock as local-python.
+      const mockBackend = createMockSessionScopedBackend('local-python');
       registry.register(createMockRegistration(mockBackend));
-
-      process.env.VERCEL = '1';
-      delete process.env.VERCEL_SANDBOX_ENABLED;
 
       await service.prepareForSession('session-123');
 
       expect(mockStateRepository.assignBackend).toHaveBeenCalledWith(
         'session-123',
-        'disabled'
+        'local-python'
       );
+      expect(mockBackend.warmup).toHaveBeenCalledWith('session-123');
     });
 
     it('should not call warmup for stateless backends', async () => {
@@ -380,8 +359,6 @@ describe('ExecutorService', () => {
         capabilities: { stateful: false },
       });
       registry.register(createMockRegistration(mockBackend));
-
-      delete process.env.VERCEL;
 
       await service.prepareForSession('session-123');
 
@@ -392,9 +369,9 @@ describe('ExecutorService', () => {
 
   describe('cleanupSession', () => {
     it('should call cleanup on session-scoped backends', async () => {
-      const mockBackend = createMockSessionScopedBackend('vercel-sandbox');
+      const mockBackend = createMockSessionScopedBackend('local-python');
       registry.register(createMockRegistration(mockBackend));
-      mockStateRepository.getAssignedBackend.mockResolvedValue('vercel-sandbox');
+      mockStateRepository.getAssignedBackend.mockResolvedValue('local-python');
 
       await service.cleanupSession('session-123');
 
@@ -425,18 +402,18 @@ describe('ExecutorService', () => {
 
   describe('backend selection fallback', () => {
     it('should use registry.select() when no sessionId provided', async () => {
-      // Register backends - vercel-sandbox comes first in selection order
-      const vercelBackend = createMockBackend('vercel-sandbox');
+      // Register backends - local-python comes first in selection order
       const localBackend = createMockBackend('local-python');
+      const disabledBackend = createMockBackend('disabled');
 
-      registry.register(createMockRegistration(vercelBackend));
       registry.register(createMockRegistration(localBackend));
+      registry.register(createMockRegistration(disabledBackend));
 
       await service.executeCode({ code: 'x = 1' });
 
-      // Should use vercel-sandbox (first in selection order)
-      expect(vercelBackend.execute).toHaveBeenCalled();
-      expect(localBackend.execute).not.toHaveBeenCalled();
+      // Should use local-python (first in selection order)
+      expect(localBackend.execute).toHaveBeenCalled();
+      expect(disabledBackend.execute).not.toHaveBeenCalled();
     });
 
     it('should fall back to registry.select() when assigned backend not found', async () => {

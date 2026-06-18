@@ -146,22 +146,13 @@ export class ExecutorService {
   }
 
   /**
-   * Select backend type based on environment
+   * Select backend type
    *
-   * Selection logic:
-   * - On Vercel with sandbox enabled: vercel-sandbox
-   * - On Vercel without sandbox: disabled
-   * - Otherwise: local-python
+   * The local Python backend (nsjail) is the only execution backend.
    *
    * @returns Backend type identifier
    */
   private selectBackendType(): string {
-    if (process.env.VERCEL && process.env.VERCEL_SANDBOX_ENABLED) {
-      return 'vercel-sandbox';
-    }
-    if (process.env.VERCEL) {
-      return 'disabled';
-    }
     return 'local-python';
   }
 

@@ -3,7 +3,7 @@
  *
  * Provides a centralized registry for code execution backends with:
  * - Factory-based instantiation
- * - Explicit selection order (Vercel > LocalPython > Disabled)
+ * - Explicit selection order (LocalPython > Disabled)
  * - Capability filtering
  * - Singleton access pattern
  */
@@ -40,10 +40,9 @@ export interface BackendSelector {
 
 /**
  * Explicit selection order for backends when no preference specified.
- * Production backend first, then development, then fallback.
+ * Real execution backend first, then fallback.
  */
 const BACKEND_SELECTION_ORDER = [
-  'vercel-sandbox',
   'local-python',
   'disabled',
 ];

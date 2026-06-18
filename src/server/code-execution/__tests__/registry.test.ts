@@ -193,19 +193,7 @@ describe('BackendRegistry', () => {
 
   describe('select', () => {
     describe('explicit selection order', () => {
-      it('selects vercel-sandbox first when available', () => {
-        registry.register(createMockRegistration('local-python'));
-        registry.register(createMockRegistration('vercel-sandbox'));
-        registry.register(createMockRegistration('disabled'));
-
-        const backend = registry.select();
-        expect(backend?.backendType).toBe('vercel-sandbox');
-      });
-
-      it('selects local-python when vercel-sandbox unavailable', () => {
-        registry.register(
-          createMockRegistration('vercel-sandbox', { isAvailable: false })
-        );
+      it('selects local-python first when available', () => {
         registry.register(createMockRegistration('local-python'));
         registry.register(createMockRegistration('disabled'));
 
@@ -213,10 +201,7 @@ describe('BackendRegistry', () => {
         expect(backend?.backendType).toBe('local-python');
       });
 
-      it('selects disabled when others unavailable', () => {
-        registry.register(
-          createMockRegistration('vercel-sandbox', { isAvailable: false })
-        );
+      it('selects disabled when local-python unavailable', () => {
         registry.register(
           createMockRegistration('local-python', { isAvailable: false })
         );
@@ -236,14 +221,13 @@ describe('BackendRegistry', () => {
 
     describe('with preferred backend', () => {
       beforeEach(() => {
-        registry.register(createMockRegistration('vercel-sandbox'));
         registry.register(createMockRegistration('local-python'));
         registry.register(createMockRegistration('disabled'));
       });
 
       it('returns preferred backend if available', () => {
-        const backend = registry.select({ preferred: 'local-python' });
-        expect(backend?.backendType).toBe('local-python');
+        const backend = registry.select({ preferred: 'disabled' });
+        expect(backend?.backendType).toBe('disabled');
       });
 
       it('falls back to selection order if preferred unavailable', () => {
@@ -252,30 +236,25 @@ describe('BackendRegistry', () => {
         );
 
         const backend = registry.select({ preferred: 'unavailable-preferred' });
-        expect(backend?.backendType).toBe('vercel-sandbox');
+        expect(backend?.backendType).toBe('local-python');
       });
 
       it('falls back to selection order if preferred not registered', () => {
         const backend = registry.select({ preferred: 'nonexistent' });
-        expect(backend?.backendType).toBe('vercel-sandbox');
+        expect(backend?.backendType).toBe('local-python');
       });
     });
 
     describe('with required capabilities', () => {
       beforeEach(() => {
         registry.register(
-          createMockRegistration('vercel-sandbox', {
+          createMockRegistration('local-python', {
             capabilities: { trace: true, attachedFiles: true },
           })
         );
         registry.register(
-          createMockRegistration('local-python', {
-            capabilities: { trace: true },
-          })
-        );
-        registry.register(
           createMockRegistration('disabled', {
-            capabilities: { execute: false },
+            capabilities: { trace: false },
           })
         );
       });
@@ -284,14 +263,14 @@ describe('BackendRegistry', () => {
         const backend = registry.select({
           requiredCapabilities: { trace: true, attachedFiles: true },
         });
-        expect(backend?.backendType).toBe('vercel-sandbox');
+        expect(backend?.backendType).toBe('local-python');
       });
 
       it('selects first matching backend in selection order', () => {
         const backend = registry.select({
           requiredCapabilities: { trace: true },
         });
-        expect(backend?.backendType).toBe('vercel-sandbox');
+        expect(backend?.backendType).toBe('local-python');
       });
 
       it('returns null if no backend matches capabilities', () => {
@@ -307,13 +286,13 @@ describe('BackendRegistry', () => {
           requiredCapabilities: { trace: true },
         });
         // disabled doesn't have trace, falls back to selection order
-        expect(backend?.backendType).toBe('vercel-sandbox');
+        expect(backend?.backendType).toBe('local-python');
       });
     });
 
     describe('with environment and sessionId', () => {
       beforeEach(() => {
-        registry.register(createMockRegistration('vercel-sandbox'));
+        registry.register(createMockRegistration('local-python'));
       });
 
       it('accepts environment hint', () => {
@@ -348,9 +327,9 @@ describe('BackendRegistry', () => {
       });
 
       it('handles empty criteria object', () => {
-        registry.register(createMockRegistration('vercel-sandbox'));
+        registry.register(createMockRegistration('local-python'));
         const backend = registry.select({});
-        expect(backend?.backendType).toBe('vercel-sandbox');
+        expect(backend?.backendType).toBe('local-python');
       });
     });
   });
@@ -372,15 +351,13 @@ describe('BackendRegistry', () => {
     it('returns backends in selection order first', () => {
       registry.register(createMockRegistration('custom-backend'));
       registry.register(createMockRegistration('disabled'));
-      registry.register(createMockRegistration('vercel-sandbox'));
       registry.register(createMockRegistration('local-python'));
 
       const backends = registry.list();
-      // Selection order: vercel-sandbox, local-python, disabled, then others
-      expect(backends[0].type).toBe('vercel-sandbox');
-      expect(backends[1].type).toBe('local-python');
-      expect(backends[2].type).toBe('disabled');
-      expect(backends[3].type).toBe('custom-backend');
+      // Selection order: local-python, disabled, then others
+      expect(backends[0].type).toBe('local-python');
+      expect(backends[1].type).toBe('disabled');
+      expect(backends[2].type).toBe('custom-backend');
     });
 
     it('includes unavailable backends', () => {
@@ -433,30 +410,19 @@ describe('BackendRegistry', () => {
   describe('availability filtering', () => {
     it('skips unavailable backends', () => {
       registry.register(
-        createMockRegistration('vercel-sandbox', { isAvailable: false })
+        createMockRegistration('local-python', { isAvailable: false })
       );
-      registry.register(createMockRegistration('local-python'));
+      registry.register(createMockRegistration('disabled'));
 
       const backend = registry.select();
-      expect(backend?.backendType).toBe('local-python');
+      expect(backend?.backendType).toBe('disabled');
     });
   });
 
   describe('capability filtering', () => {
     beforeEach(() => {
-      registry.register(
-        createMockRegistration('vercel-sandbox', {
-          capabilities: {
-            execute: true,
-            trace: false,
-            attachedFiles: false,
-            stdin: false,
-            randomSeed: false,
-            stateful: false,
-            requiresWarmup: false,
-          },
-        })
-      );
+      // local-python (first in selection order) supports everything;
+      // disabled is execute-only.
       registry.register(
         createMockRegistration('local-python', {
           capabilities: {
@@ -467,6 +433,19 @@ describe('BackendRegistry', () => {
             randomSeed: true,
             stateful: true,
             requiresWarmup: true,
+          },
+        })
+      );
+      registry.register(
+        createMockRegistration('disabled', {
+          capabilities: {
+            execute: true,
+            trace: false,
+            attachedFiles: false,
+            stdin: false,
+            randomSeed: false,
+            stateful: false,
+            requiresWarmup: false,
           },
         })
       );
@@ -491,8 +470,8 @@ describe('BackendRegistry', () => {
       const backend = registry.select({
         requiredCapabilities: { trace: false },
       });
-      // Should return first in selection order (vercel-sandbox)
-      expect(backend?.backendType).toBe('vercel-sandbox');
+      // Should return first in selection order (local-python)
+      expect(backend?.backendType).toBe('local-python');
     });
 
     it('returns first in selection order when both match', () => {
@@ -500,7 +479,7 @@ describe('BackendRegistry', () => {
       const backend = registry.select({
         requiredCapabilities: { execute: true },
       });
-      expect(backend?.backendType).toBe('vercel-sandbox');
+      expect(backend?.backendType).toBe('local-python');
     });
   });
 });

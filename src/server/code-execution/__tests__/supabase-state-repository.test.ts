@@ -39,14 +39,14 @@ describe('SupabaseBackendStateRepository', () => {
         upsert: mockUpsert.mockResolvedValue({ data: null, error: null }),
       });
 
-      await repository.assignBackend('session-123', 'vercel-sandbox');
+      await repository.assignBackend('session-123', 'local-python');
 
       expect(mockFrom).toHaveBeenCalledWith('session_backend_state');
       expect(mockUpsert).toHaveBeenCalledWith(
         {
           session_id: 'session-123',
-          backend_type: 'vercel-sandbox',
-          state_id: 'pending-vercel-sandbox',
+          backend_type: 'local-python',
+          state_id: 'pending-local-python',
         },
         { onConflict: 'session_id' }
       );
@@ -61,7 +61,7 @@ describe('SupabaseBackendStateRepository', () => {
       });
 
       await expect(
-        repository.assignBackend('session-123', 'vercel-sandbox')
+        repository.assignBackend('session-123', 'local-python')
       ).rejects.toThrow('Failed to assign backend: Database error');
     });
   });
@@ -69,7 +69,7 @@ describe('SupabaseBackendStateRepository', () => {
   describe('getAssignedBackend', () => {
     it('should return backend_type if row exists', async () => {
       const mockSingleResult = jest.fn().mockResolvedValue({
-        data: { backend_type: 'vercel-sandbox' },
+        data: { backend_type: 'local-python' },
         error: null,
       });
       const mockEqResult = jest.fn().mockReturnValue({ single: mockSingleResult });
@@ -84,7 +84,7 @@ describe('SupabaseBackendStateRepository', () => {
       expect(mockFrom).toHaveBeenCalledWith('session_backend_state');
       expect(mockSelectResult).toHaveBeenCalledWith('backend_type');
       expect(mockEqResult).toHaveBeenCalledWith('session_id', 'session-123');
-      expect(result).toBe('vercel-sandbox');
+      expect(result).toBe('local-python');
     });
 
     it('should return local-python backend type when assigned', async () => {
@@ -188,7 +188,7 @@ describe('SupabaseBackendStateRepository', () => {
   describe('getState', () => {
     it('should return state with sandboxId and stateId if row exists', async () => {
       const mockSingleResult = jest.fn().mockResolvedValue({
-        data: { state_id: 'sandbox-xyz-789', backend_type: 'vercel-sandbox' },
+        data: { state_id: 'sandbox-xyz-789', backend_type: 'local-python' },
         error: null,
       });
       const mockEqResult = jest.fn().mockReturnValue({ single: mockSingleResult });
@@ -206,7 +206,7 @@ describe('SupabaseBackendStateRepository', () => {
       expect(result).toEqual({
         sandboxId: 'sandbox-xyz-789',
         stateId: 'sandbox-xyz-789',
-        backendType: 'vercel-sandbox',
+        backendType: 'local-python',
       });
     });
 

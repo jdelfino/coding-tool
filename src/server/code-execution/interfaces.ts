@@ -2,7 +2,7 @@
  * Code Execution Backend Abstraction Layer - Interface Definitions
  *
  * This module defines the contracts for pluggable code execution backends.
- * Backends can be stateless (LocalPython) or session-scoped (VercelSandbox, Docker).
+ * Backends can be stateless (LocalPython) or session-scoped (e.g. a future container backend).
  *
  * Design principles:
  * - All methods return Promises for async compatibility
@@ -111,7 +111,7 @@ export interface ICodeExecutionBackend {
 /**
  * Extended interface for stateful backends that maintain per-session state
  *
- * Session-scoped backends (like Vercel Sandbox) need lifecycle management:
+ * Session-scoped backends (e.g. a future container/Docker backend) need lifecycle management:
  * - warmup(): Called when session is created to prepare the backend
  * - cleanup(): Called when session ends to release resources
  */
@@ -159,7 +159,7 @@ export interface IBackendStateRepository {
    * Called once when session is created. Records which backend this session uses.
    *
    * @param sessionId - Session ID
-   * @param backendType - Backend type identifier (e.g., 'vercel-sandbox', 'local-python')
+   * @param backendType - Backend type identifier (e.g., 'local-python')
    */
   assignBackend(sessionId: string, backendType: string): Promise<void>;
 

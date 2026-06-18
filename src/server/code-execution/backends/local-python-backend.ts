@@ -4,8 +4,8 @@
  * Executes Python code using a local Python 3 interpreter via child_process.spawn.
  * Supports stdin input, attached files, random seed injection, and execution tracing.
  *
- * This backend is designed for local development environments where Python 3 is available.
- * It is not suitable for production environments on serverless platforms like Vercel.
+ * This backend runs on a host where Python 3 and nsjail are available (the
+ * devcontainer / local machine). It is not suitable for serverless platforms.
  */
 
 import { spawn, SpawnOptionsWithoutStdio } from 'child_process';
@@ -376,18 +376,13 @@ export class LocalPythonBackend implements ICodeExecutionBackend {
   }
 
   async getStatus(): Promise<BackendStatus> {
-    // Local Python is available when not on Vercel
-    const isVercel = !!process.env.VERCEL;
-
     return {
-      available: !isVercel,
-      healthy: !isVercel,
-      message: isVercel
-        ? 'Local Python backend not available on Vercel'
-        : 'Local Python backend available',
+      available: true,
+      healthy: true,
+      message: 'Local Python backend available',
       metadata: {
         backendType: this.backendType,
-        environment: isVercel ? 'vercel' : 'local',
+        environment: 'local',
       },
     };
   }

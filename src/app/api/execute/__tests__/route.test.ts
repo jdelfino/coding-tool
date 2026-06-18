@@ -35,9 +35,6 @@ function createRequest(body: Record<string, unknown>): NextRequest {
 describe('POST /api/execute', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    // Default: not on Vercel (local dev)
-    delete process.env.VERCEL;
-    delete process.env.VERCEL_SANDBOX_ENABLED;
   });
 
   describe('Authentication', () => {

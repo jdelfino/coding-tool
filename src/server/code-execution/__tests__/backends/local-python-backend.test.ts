@@ -497,20 +497,7 @@ describe('LocalPythonBackend', () => {
   });
 
   describe('getStatus()', () => {
-    const originalEnv = process.env;
-
-    beforeEach(() => {
-      jest.resetModules();
-      process.env = { ...originalEnv };
-    });
-
-    afterAll(() => {
-      process.env = originalEnv;
-    });
-
-    it('should return available when not on Vercel', async () => {
-      delete process.env.VERCEL;
-
+    it('should report the local backend as available', async () => {
       const status = await backend.getStatus();
 
       expect(status.available).toBe(true);
@@ -518,17 +505,6 @@ describe('LocalPythonBackend', () => {
       expect(status.message).toContain('available');
       expect(status.metadata?.backendType).toBe('local-python');
       expect(status.metadata?.environment).toBe('local');
-    });
-
-    it('should return unavailable when on Vercel', async () => {
-      process.env.VERCEL = '1';
-
-      const status = await backend.getStatus();
-
-      expect(status.available).toBe(false);
-      expect(status.healthy).toBe(false);
-      expect(status.message).toContain('not available on Vercel');
-      expect(status.metadata?.environment).toBe('vercel');
     });
   });
 });

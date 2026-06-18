@@ -238,8 +238,8 @@ describe('code-execution interfaces', () => {
 
       // Test backend assignment
       expect(await repo.getAssignedBackend('session-1')).toBeNull();
-      await repo.assignBackend('session-1', 'vercel-sandbox');
-      expect(await repo.getAssignedBackend('session-1')).toBe('vercel-sandbox');
+      await repo.assignBackend('session-1', 'local-python');
+      expect(await repo.getAssignedBackend('session-1')).toBe('local-python');
 
       // Test state persistence
       expect(await repo.hasState('session-1')).toBe(false);

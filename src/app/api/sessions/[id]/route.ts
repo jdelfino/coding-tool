@@ -67,7 +67,8 @@ export async function DELETE(
     // Broadcast session ended event to all connected clients (more reliable than postgres_changes)
     await broadcastSessionEnded(sessionId);
 
-    // Clean up backend resources (sandbox cleanup on Vercel, no-op locally)
+    // Clean up backend resources (no-op for the stateless local backend;
+    // hook retained for future session-scoped backends).
     // Do this after endSession to avoid race conditions with in-flight executions
     await getExecutorService().cleanupSession(sessionId);
 

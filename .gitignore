@@ -52,7 +52,6 @@ tsconfig.tsbuildinfo
 *.bak
 *.tmp
 .cache/
-.vercel
 
 # Project-specific
 all_solutions_combined.txt

@@ -226,13 +226,13 @@ CREATE INDEX idx_revisions_timestamp ON revisions(timestamp DESC);
 -- 10. session_backend_state - Backend state per session for code execution
 CREATE TABLE session_backend_state (
   session_id UUID PRIMARY KEY REFERENCES sessions(id) ON DELETE CASCADE,
-  backend_type TEXT NOT NULL DEFAULT 'vercel-sandbox',
+  backend_type TEXT NOT NULL DEFAULT 'local-python',
   state_id TEXT NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 COMMENT ON TABLE session_backend_state IS 'Backend state per session for code execution';
-COMMENT ON COLUMN session_backend_state.backend_type IS 'Backend type: vercel-sandbox, local-python, docker, etc.';
+COMMENT ON COLUMN session_backend_state.backend_type IS 'Backend type: local-python, docker, etc.';
 COMMENT ON COLUMN session_backend_state.state_id IS 'Backend-specific identifier (sandbox ID, container ID, etc.)';
 
 -- 11. invitations - Email invitation metadata
