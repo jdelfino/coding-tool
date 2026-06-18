@@ -86,7 +86,7 @@ After the user approves:
 
 4. **Set dependencies to model execution order.** Tasks with no dependency relationship are implicitly parallel — the coordinator spawns all unblocked tasks concurrently. Use `bd dep add` only for true data/ordering dependencies (shared types, migrations before code, etc.). Don't over-constrain — occasional file overlap between parallel tasks is fine; the coordinator handles conflicts optimistically.
 
-**Each subtask MUST be self-contained** (per AGENTS.md rules):
+**Each subtask MUST be self-contained** (per CLAUDE.md rules):
 
 - **Summary**: What and why in 1-2 sentences
 - **Files to modify**: Exact paths (with line numbers if relevant)
@@ -102,26 +102,26 @@ A future implementer session must understand the task completely from its descri
 
 #### Task-Level Test Cases
 
-Each subtask includes a **Test Cases** section with concrete, named scenarios specifying type (unit/integration/e2e), setup, assertions, and what bug it catches. Be prescriptive — pseudo-code or detailed steps, not vague one-liners. The user reviews and approves test cases as part of plan approval.
+Each subtask includes a **Test Cases** section with concrete, named scenarios specifying type (integration/e2e/unit), setup, assertions, and what bug it catches. Be prescriptive — pseudo-code or detailed steps, not vague one-liners. The user reviews and approves test cases as part of plan approval.
 
-Pull test types from the **Quality Gates** table in CLAUDE.md. Prefer integration tests where the change crosses real boundaries (persistence, API routes, auth, cross-layer data flow); unit tests are appropriate for pure logic.
+**Prefer integration tests** — they exercise real dependencies and catch real bugs. Only specify e2e when frontend behavior is being validated. Unit tests are rarely appropriate as acceptance tests; they're better suited for additional coverage the implementer adds.
 
 **Examples:**
 
 ```markdown
 ## Test Cases
 
-1. (unit) myStore.addItem appends to items list
-   - Setup: store with empty items
-   - Call addItem(mockItem)
-   - Assert: items array contains mockItem
-   - Catches: reducer not updating state correctly
+1. (integration) assignmentsRepo.listByCourse applies enrollment RLS
+   - Seed: student enrolled in course A, assignments in courses A and B
+   - Call listByCourse(courseId) with the student's Supabase auth context
+   - Assert: returns only course A assignments; course B excluded
+   - Catches: RLS policy not filtering by enrollment join
 
-2. (integration) GET /api/items returns user's items only
-   - Seed: two users, each with two items
-   - HTTP GET as user A
-   - Assert: response contains exactly user A's two items
-   - Catches: handler not propagating auth context to query
+2. (integration) GET /api/courses/[id]/assignments returns filtered list
+   - Seed: student enrolled in course, mix of published/unpublished assignments
+   - HTTP GET as student, assert 200 with only published assignments in the response body
+   - Assert response shape matches the AssignmentListResponse contract
+   - Catches: handler not propagating auth context to the repo, or serializing wrong fields
 ```
 
 #### Epic-Level Acceptance Tests
@@ -133,16 +133,16 @@ Define acceptance tests on the **epic issue itself** — the "done" criteria for
 ```markdown
 ## Acceptance Tests
 
-1. (e2e) Logged-in user sees their items list
-   - Log in as a user with items seeded
-   - Navigate to the items page
-   - Assert: each seeded item visible; empty-state hidden
-   - Catches: page not reading from correct store slice or API path
+1. (e2e) Student sees only enrolled course assignments on /assignments
+   - Log in as a student enrolled in "Intro CS" only
+   - Navigate to /assignments, assert only "Intro CS" assignments visible
+   - Catches: frontend rendering unfiltered data, or API not applying RLS
 
-2. (integration) Item ownership boundary enforced server-side
-   - As user A, request /api/items/<user-B-item-id>
-   - Assert: 403 or 404 (not 200)
-   - Catches: missing auth check on item-detail route
+2. (e2e) Instructor sees all assignments including unpublished
+   - Log in as an instructor teaching "Intro CS"
+   - Navigate to /courses/intro-cs/assignments
+   - Assert: published + unpublished visible, "Create Assignment" button present
+   - Catches: instructor role not granted unpublished visibility
 ```
 
 ### Task Sizing
@@ -151,7 +151,7 @@ Each subtask must fit within a single implementer context window without compact
 
 - **≤5 production files modified** per task
 - **≤10 files read for context** (including the files to modify, test files, shared types, referenced modules)
-- Prefer narrow vertical slices (one feature end-to-end) over horizontal layers (all routes at once)
+- Prefer narrow vertical slices (one endpoint end-to-end) over horizontal layers (all endpoints at once)
 - When in doubt, split. Two small tasks are better than one that causes compaction.
 
 If "Files to read for context" exceeds ~10 entries, the task is probably too large — consider splitting it. But if splitting would create awkward boundaries or tightly coupled tasks, it's better to leave a large task whole.

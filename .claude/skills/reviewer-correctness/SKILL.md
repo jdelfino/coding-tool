@@ -36,9 +36,9 @@ git diff <base-branch>...HEAD --stat
 git diff <base-branch>...HEAD
 ```
 
-### 2. Run Quality Gates
+### 2. Quality Gates
 
-Run quality gates per the **Quality Gates** table in CLAUDE.md, unless they're already enforced by your project's git hooks (e.g., lefthook, husky). If you do run them and any fail, note the specific failures.
+The coordinator's test-runner already ran tests, lint, and typecheck before this review — do not re-run them here. Focus your review on the code diff itself.
 
 ### 3. Review Every Changed File
 
@@ -58,7 +58,7 @@ For each file in the diff, check:
 
 #### Security
 - Input validation at system boundaries
-- Injection risks appropriate to your stack (SQL, command, XSS, template, etc.)
+- SQL injection, command injection, XSS
 - Authentication/authorization gaps
 - Secrets in code or logs
 - Unsafe type assertions or casts

@@ -76,7 +76,7 @@ For each conflicted file, collect:
    git diff $(git merge-base <source> <target>) <source> -- <file>   # source's changes
    ```
 3. **Surrounding code** — read enough of the file beyond the conflict markers to understand context
-4. **Related tests** — if the file has tests, read them to understand expected behavior
+4. **Related tests** — if the file has tests (check `__tests__/` and `*.test.ts`/`*.test.tsx`, plus `*.integration.test.ts` and specs under `e2e/`), read them to understand expected behavior
 
 Cross-reference the diffs with the beads issues or PR description gathered in step 1. The intent from the issue descriptions should clarify what each change was trying to accomplish and how they should combine.
 
@@ -85,10 +85,10 @@ Cross-reference the diffs with the beads issues or PR description gathered in st
 **Resolve** (most conflicts, given sufficient context):
 - Adjacent line edits — keep both
 - Import ordering — merge the import lists
-- Lock files — regenerate (e.g., `go mod tidy`, `npm install --package-lock-only`)
+- Lock files — regenerate (`npm install --package-lock-only`)
 - Both sides appended to the same list — keep all additions
 - Whitespace-only — accept one side
-- Additive changes to the same region (new fields, test cases) — combine both
+- Additive changes to the same region (new CSS classes, fields, test cases) — combine both
 - One side refactored, other added functionality — apply the addition to the refactored structure if intent is clear from issues/tests
 
 For each resolved conflict:
@@ -114,7 +114,7 @@ Then output `RESULT: FAIL`.
 
 ### 4. Run quality gates
 
-After a successful rebase, verify the result still passes. Pull the gate command from the **Quality Gates** table in CLAUDE.md (typically the same command the implementer ran in its Phase 3 — e.g., `npx lefthook run pre-push`, `make test`, or your project's pre-push equivalent).
+After a successful rebase, verify the result still passes by running the same gate the implementer ran in Phase 3 — typically `npm test` (plus `npm run lint` and `npx tsc --noEmit`), and `npm run test:integration:sandbox` if the change touches the sandbox/server boundary.
 
 If it fails, the conflict resolution introduced an error. Fix it, amend the relevant commit, and re-run. If the fix is non-trivial, abort and escalate (`RESULT: FAIL`).
 

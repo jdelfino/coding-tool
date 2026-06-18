@@ -23,8 +23,6 @@ You evaluate whether the tests in a PR are meaningful. High coverage with bad te
 
 ## Review Process
 
-### 0. Enter Worktree
-
 ```
 EnterWorktree(path: <WORKTREE>)
 ```
@@ -53,7 +51,7 @@ For every changed production file, find its corresponding test file. Flag produc
 2. **Spot-check assertions.** Verify assertions match the stated intent. You don't need to read every line — only dig deeper if something feels misaligned.
 3. **Go into implementation** only when a docstring is missing on a planned test, or the assertion pattern raises a concern.
 
-Note: Tests with descriptive table-driven names are often self-documenting. Docstrings are required on planned/critical tests (integration, e2e, non-obvious unit tests), not on every test.
+Note: Table-driven tests with descriptive names are often self-documenting. Docstrings are required on planned/critical tests (integration, e2e, non-obvious unit tests), not on every test.
 
 Then check:
 
@@ -65,23 +63,16 @@ Then check:
 - Do tests verify actual behavior, or just that code doesn't crash? Would a regression be caught?
 - Are assertions checking the right things? (e.g., response body, not just status code)
 - Could a completely wrong implementation still pass? (sign of over-mocking or weak assertions)
-- Flag low-value tests: tautologies (`x != null`), `err == nil` without checking the result, no assertions, exhaustive unit tests for constructors/getters/wiring
-
-#### Mock vs Real Behavior
-- Do tests only exercise mocks, never testing real logic?
-- Are mocks verifying what was sent to them? (e.g., checking the SQL query, the HTTP request body)
-- Could a completely wrong implementation still pass these tests?
+- Flag low-value tests: tautologies (`expect(x).toBeDefined()` with no further assertion), asserting a call succeeded without checking the result, no assertions, exhaustive unit tests for constructors/getters/wiring
 
 #### Integration Test Coverage
-- Are there integration tests that exercise real dependencies (database, external services) where the code crosses those boundaries?
-- Do integration tests cover critical paths end-to-end? (e.g., HTTP request → handler → service → store → response)
-- For database-touching code: are queries and migrations tested together against a real database, not just mocked?
-- For auth/permissions code: is the permission boundary verified against real fixtures, not just stubs?
-- Is there an appropriate balance of unit vs integration tests? (Unit tests for logic, integration tests for I/O boundaries)
+- Are database interactions tested against a real local Supabase instance (with migrations applied), not just mocked?
+- Do integration tests cover critical paths end-to-end? (HTTP request → route handler → repository → Postgres → response)
+- Are SQL queries, RLS policies, and migrations tested together?
 
 #### Edge Cases & Skipped Tests
 - Are error paths, boundary conditions, and concurrent scenarios tested where relevant?
-- Flag `it.skip`/`t.Skip()`/equivalents that represent deferred work (not environment-gating) as non-trivial
+- Flag `it.skip`/`describe.skip`/`xit` that represent deferred work (not environment-gating) as non-trivial
 
 ### 4. Behavioral Coverage Gaps
 

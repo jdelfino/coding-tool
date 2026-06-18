@@ -7,37 +7,33 @@ description: Pure development workflow with test-first development and coverage 
 
 Follow these phases **in strict order**. Do not skip phases. Do not proceed until the current phase's gate is satisfied.
 
-This skill covers development only — no issue tracking, no pushes. The coordinator handles those.
+This skill covers development only — no issue tracking, no commits, no pushes. The coordinator handles those.
 
 ## Principles
 
+- **Stay in your assigned worktree.** You can `cd` freely within it, but don't leave its root, and don't write to absolute paths outside it. Every worktree is a full repo — `bd`, `git`, `npm` all work from inside it.
 - Never silently work around problems. Throw errors for missing env vars, invalid state, missing dependencies.
 - Mock properly in tests. Do not add production fallbacks to make tests pass.
 - No type casts that bypass the type system.
 - No optional chaining on required properties.
-- **Every production code change requires tests.** No exceptions for migrations, refactors, copy-paste, or "just wiring things up." If you wrote or modified production code, you must write tests for it. Never defer tests to a follow-up issue.
-- **Test cases from the issue are your spec.** When the planner has defined concrete test cases on the task, implement those first, then add high-value coverage for gaps.
-- **Delegate quality-gate runs to a test-runner sub-agent.** Verbose test output consumes your context window — see Phase 3.
-- **If your project enforces lint/typecheck via git hooks** (e.g., lefthook, husky), do not re-run those gates manually. Focus on tests in Phase 3 and let the hooks do their job at commit/push time.
+- **Test cases from the issue are your spec.** The planner defines concrete test cases on each task. Implement those first, then add high-value coverage for gaps. Focus on tests that catch real bugs — avoid exhaustive, duplicative unit tests that test constructors, wiring, or things the compiler already guarantees.
+- **Delegate quality gates to test-runner sub-agents.** Do NOT run `npm test`, `npm run lint`, or `npx tsc --noEmit` directly — their output consumes your context window. Use the Task tool to spawn a test-runner (see Phase 3). Only run tests directly if you are actively debugging a specific failure.
+- **Lint and typecheck are run as part of the Phase 3 gate, not separately.** This repo has no git hooks — the test-runner runs them; don't run them ad hoc.
 - **If a hook blocks a tool call, stop.** Never work around it with scripts, `sed`, or other indirect tricks. Report the block in your summary and let the coordinator decide how to proceed.
 
 ## Phase 1: Write Failing Tests
 
-Write tests for the behavior you are about to change or add. Do this **before** touching any production code.
+Implement the **test cases defined in the task issue** before touching production code. These are your acceptance criteria — they define what "done" looks like.
 
-If the task issue lists planned test cases, implement those first — they are the acceptance criteria. Then add additional high-value tests for gaps you identify (error paths, edge cases).
+1. Read the task description (`bd show <task-id> --json`) and identify the test cases
+2. Read the relevant production code to understand current behavior
+3. Implement each specified test case
+4. Add additional high-value tests for gaps you identify (error paths, edge cases) — but focus on quality over quantity. A few well-targeted tests beat many shallow ones.
+5. Verify your new tests fail by delegating to a test-runner sub-agent (see Phase 3)
 
-**This phase is NOT optional.** Common excuses that do NOT exempt you from writing tests:
-- "It's just a migration" — migrated code has new integration points that need testing
-- "It's just wiring up an API client" — API client calls, error handling, and auth headers need tests
-- "The old code didn't have tests" — that's a reason to add them, not skip them
-- "I'll add tests later" — no, tests ship with the code, always
+**Test documentation:** Planned and critical tests (integration, e2e, non-obvious unit tests) must include a docstring answering: what contract is verified, why it matters, what breaks if violated. Table-driven tests with descriptive names are often self-documenting — use judgment.
 
-1. Read the relevant production code to understand current behavior
-2. Write new test cases that describe the desired behavior after your change
-3. Verify the new tests fail by delegating to a test-runner sub-agent (see Phase 3)
-
-**Test documentation:** Planned and critical tests (integration, e2e, non-obvious unit tests) should include a docstring answering: what contract is verified, why it matters, what breaks if violated. Tests with descriptive names in table-driven style are often self-documenting — use judgment.
+**Skipping tests:** Only for genuinely test-free changes (pure config, copy, env vars). Migrations, refactors, and wiring still need tests.
 
 **Gate:** Your new tests **fail** (or, for pure deletions/removals, you can write tests asserting the old behavior is gone — these will pass after implementation). If your new tests already pass, they are not testing anything new. Rewrite them.
 
@@ -47,58 +43,26 @@ Make the production code changes. Keep changes minimal and focused on the task.
 
 ## Phase 3: Verify
 
-**Delegate quality-gate runs to a test-runner sub-agent** to preserve your context window. Do NOT run these commands directly with the Bash tool — test output is verbose and wastes context you need for later phases. Use the Task tool with `subagent_type: "Bash"` and `model: "haiku"`:
+**Delegate quality gate runs to a test-runner sub-agent** to preserve your context window. Do NOT run these commands directly with the Bash tool — test output is verbose and wastes context you need for later phases. Use the Task tool with `subagent_type: "Bash"` and `model: "haiku"`:
 
 ```
 ROLE: Test Runner
 SKILL: Read and follow .claude/skills/test-runner/SKILL.md
 
-WORKTREE: <worktree-path>
+WORKING DIRECTORY: <worktree-path>
 COMMANDS:
 - <test commands from the Quality Gates table in CLAUDE.md matching changed code>
 ```
 
-**Only run gates not already enforced by git hooks.** If your project's pre-commit/pre-push hooks already run lint/typecheck/unit-test, do not duplicate them here — your gate runs should focus on what's *not* in the hooks (typically integration and e2e tests).
+**Run the gates for the code you changed:** `npm test` (always), `npm run lint`, `npx tsc --noEmit`, plus `npm run test:integration:sandbox` if the change touches the sandbox/server boundary. This repo has no git hooks, so nothing is enforced automatically — the test-runner is the gate.
 
 **Gate:** Sub-agent reports PASS. If FAIL, read the error summary, fix the issue, and re-delegate. Only run quality gates directly in your own context if you need to debug a failure interactively.
 
-## Phase 4: Test Coverage Review
+## Phase 4: Test Coverage Audit
 
-This is an audit, not a formality. Evaluate whether your tests actually cover the changes you made.
+Verify all planned test cases are implemented. Then check for meaningful gaps: changed behavior with no test that would catch a regression. Focus on real failure modes, not exhaustive coverage. If gaps exist, write targeted tests and re-run via test-runner.
 
-### Step 1: List what changed
-
-```bash
-git diff --name-only
-```
-
-Separate the output into production files and test files.
-
-### Step 2: For each changed production file, evaluate
-
-- **What behavior changed?** (new feature, bug fix, removed feature, refactored logic)
-- **What existing tests cover this file?** Read the corresponding test file if one exists.
-- **Are there gaps?** Specifically:
-  - Happy path for new/changed behavior
-  - Error paths and edge cases
-  - Regression test if this is a bug fix (a test that would have caught the original bug)
-  - Boundary conditions
-
-### Step 3: Evaluate integration test needs
-
-Integration tests are needed when changes affect:
-- Repository/persistence layer (database queries, data mapping)
-- API routes that combine multiple services
-- Auth flows or permission checks
-- Data flowing across multiple layers
-
-If integration tests are needed, write them.
-
-### Step 4: Fill gaps
-
-Write any missing tests identified above. Then re-run quality gates via the test-runner sub-agent.
-
-**Gate:** All tests pass, including your new coverage additions. If you identified no gaps in Steps 2-3, document your reasoning (e.g., "Changes were purely deletions; added regression tests in Phase 1 confirming removed elements no longer render").
+**Gate:** All planned test cases implemented. No meaningful coverage gaps, or gaps documented with reasoning.
 
 ## Phase 5: Summary
 

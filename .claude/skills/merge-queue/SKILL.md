@@ -15,8 +15,11 @@ Run this in a dedicated terminal window. Invoke periodically with `/merge` while
 # Check CI status on main — failing main blocks the entire queue
 gh run list --branch main --limit 1 --json status,conclusion
 
-# List open PRs
-gh pr list --json number,title,headRefName,statusCheckRollup,mergeable,body,reviewRequests,reviews,labels
+# List open PRs. Drafts are excluded — `isDraft: true` is an explicit
+# author signal of "not ready for merge", and some long-lived draft PRs
+# may exist as deploy targets that must never be merged or rebased by this skill.
+gh pr list --json number,title,headRefName,statusCheckRollup,mergeable,body,reviewRequests,reviews,labels,isDraft \
+  --jq 'map(select(.isDraft | not))'
 ```
 
 **If main CI is failing:** file a P0 beads issue (if one doesn't already exist), report prominently, and stop. Nothing can merge until main is green.
@@ -67,7 +70,7 @@ Pick one of three strategies:
 
 1. **Single commit?** Always squash (no difference, but squash keeps PR link in message).
 2. **Multiple commits, single feature?** Squash. Example: "implement login" + "fix lint" + "address review" → squash.
-3. **Multiple commits, distinct concerns, clean messages?** Merge. Example: "add user profile handler" + "add rate limiting middleware" + "enable profile UI in settings" → merge.
+3. **Multiple commits, distinct concerns, clean messages?** Merge. Example: "add practice mode handler" + "add rate limiting middleware" + "enable practice UI in student page" → merge.
 4. **Mixed quality?** If 1-2 WIP commits pollute an otherwise clean history, rebase to clean up, then merge. If it's mostly noise, just squash.
 
 **When in doubt, squash.** A clean single commit is always better than a messy multi-commit history.
@@ -190,7 +193,7 @@ After processing all PRs, output a summary:
 
 ```
 Merge Queue Summary:
-- PR #12: Merged (closed bd-abc, bd-def)
+- PR #12: Merged (closed bd-abc, bd-def, GitHub #45)
 - PR #15: CI passing, awaiting your review
 - PR #18: Rebased, CI re-running
 - PR #20: CI failing — filed bd-xyz

@@ -46,13 +46,13 @@ bd create "<description>" -t <task|bug|feature> -p 2 --json
 
 ### 2. Check for Existing Branch
 
-If the issue is a fix for code on an existing feature branch (e.g., CI failure on an open PR, `discovered-from` dependency on an issue labeled `in-pr`, or the code to fix doesn't exist on `main`), use that branch as the base instead of `origin/main`. Commit directly to it — do not create a new branch or PR.
+If the issue is a fix for code on an existing feature branch (e.g., CI failure on an open PR, `discovered-from` dependency on an issue labeled `in-pr`, or the code to fix doesn't exist on `main`), use that branch as the base in Branch Mode instead of `origin/main`. Commit directly to it — do not create a new branch or PR.
 
 ---
 
 ## Branch Mode
 
-You're in your worktree from `/work` — `pwd` is its path. Implementer subagents spawn with `isolation: "worktree"` (the `WorktreeCreate` hook handles branch + per-worktree project setup). Rebase, reviewer, and test-runner subagents enter your existing worktree via a `WORKTREE` field — do NOT use `isolation: "worktree"` for those.
+You're in your worktree from `/work` — `pwd` is its path. Implementer subagents spawn with `isolation: "worktree"` (the `WorktreeCreate` hook handles branch + node_modules symlink + .env.local copy). Rebase, reviewer, and test-runner subagents enter your existing worktree via a `WORKTREE` field — do NOT use `isolation: "worktree"` for those.
 
 ### 1. Conflict Avoidance
 
@@ -105,29 +105,24 @@ Read the task description: bd show <task-id> --json
 
 #### c. Handle Result
 
-The implementer's final output is a structured summary (Phase 5). Only read that summary — ignore intermediate tool output from the subagent.
+The implementer's final output is a structured summary (Phase 5). Only read that summary — ignore intermediate tool output from the subagent. The Agent tool's result metadata exposes `worktree_path` and `branch` for integration.
 
-The agent result includes `worktree_path` and `branch` when changes were made.
+**On implementer FAILURE or STALL** (timeout, crash, incomplete summary): don't silently drop the work. Choose one — retry with continuation, finish the task inline, or ask the user how to proceed.
 
 **On SUCCESS:** integrate into the feature branch (sequential — do NOT run in parallel with other integrations).
 
-Try fast-path rebase first (inline — no subagent):
+**Try fast-path rebase first** (inline — no subagent):
 
 ```bash
 cd <worktree_path>
 git rebase feature/<work-name> && \
   git branch -f feature/<work-name> HEAD && \
+  git worktree remove <worktree_path> --force 2>/dev/null && \
+  git branch -D <branch> 2>/dev/null && \
   echo "REBASE: OK"
 ```
 
-After successful rebase, clean up:
-
-```bash
-git worktree remove <worktree_path> --force 2>/dev/null
-git branch -D <branch> 2>/dev/null
-```
-
-If the rebase fails (conflict), abort and spawn the rebase subagent. Do NOT use `isolation: "worktree"` — the rebase agent enters the implementer's existing worktree:
+If the rebase command fails (conflict), abort and fall back to a rebase subagent (no `isolation: "worktree"` — it enters the implementer's existing worktree):
 
 ```bash
 git rebase --abort
@@ -141,7 +136,7 @@ SOURCE: <branch>
 TARGET: feature/<work-name>
 WORKTREE: <worktree_path>
 CLEANUP: true
-BEADS_IDS: <task-id>
+BEADS_IDS: <comma-separated task IDs whose changes are on the source branch>
 ```
 
 **After successful integration** (either path):
@@ -150,9 +145,9 @@ BEADS_IDS: <task-id>
 bd close <task-id> --reason "Implemented" --json
 ```
 
-Triage the "Concerns" section:
-- **Bugs or broken behavior introduced by this task** — must be fixed before the PR ships. File an issue, spawn an implementer, and fix it on the feature branch.
-- **Low-priority, non-behavioral issues** (naming nits, future optimization ideas, minor code smells) — file as follow-up issues.
+Triage the "Concerns" section. Filing follow-ups mid-implementation is fine — the gate is before reviewers (or before the PR if reviewers were skipped):
+- **Issues this PR's diff is the proximate cause of** — must be fixed in this PR or have explicit user approval to defer. Surface the list and ask; don't assume.
+- **Pre-existing issues this work surfaced** — file as follow-ups; no approval needed.
 - **Anything ambiguous** — ask the user whether to fix now or defer.
 
 **On rebase subagent FAILURE:**
@@ -163,9 +158,19 @@ Triage the "Concerns" section:
 
 ### 3. Pre-PR Review
 
-Reviews are **optional** for small, isolated changes (single-file fixes, typo corrections, config tweaks). For anything of any complexity — multi-file changes, new features, behavioral changes, refactors — reviews are **required**.
+Reviews are **optional** for small, isolated changes (single-file fixes, typo corrections, config tweaks). For anything of any complexity — multi-file changes, new features, behavioral changes, refactors — reviews are **required**. The same condition gates the /simplify pass in 2a — skip both together for trivial changes.
 
-After all tasks are merged into the feature branch, run 3 specialized reviews **in parallel**. Each reviewer enters the coordinator's worktree (do NOT use `isolation: "worktree"`):
+#### 2a. Cleanup pass (/simplify)
+
+After all tasks are merged into the feature branch, invoke the Claude Code built-in `/simplify` skill via the Skill tool (`skill: "simplify"`). It spawns 3 parallel agents (reuse / quality / efficiency) over the changed files and **auto-commits** cleanup fixes directly to the feature branch.
+
+`/simplify` is bundled with Claude Code — there is no repo-local SKILL.md for it. Do not try to read it from `.claude/skills/`.
+
+Rationale: running the cleanup pass before the specialized reviewers means they assess post-cleanup code instead of wasting cycles on cruft `/simplify` already removed. Auto-fix is safe here — the 3 specialized reviewers in 2b inspect the post-cleanup diff, and the user inspects the final PR diff before merge.
+
+#### 2b. Specialized reviews
+
+After `/simplify` has committed its cleanup, run 3 specialized reviews **in parallel** using the Task tool. Each reviewer enters the coordinator's existing worktree (do NOT create a new worktree):
 
 **Correctness Reviewer:**
 
@@ -206,7 +211,7 @@ REFERENCE DIRS: <key directories in the existing codebase to compare against>
 - **Trivial issues** (typos, minor naming): fix directly, commit
 - **Non-trivial issues** (bugs, missing tests, duplication): file a beads issue, spawn implementer, close when fixed
 
-After all issues resolved, run a test-runner sub-agent for **epic-level acceptance tests** (if the epic defined them) using `model: "haiku"`. Pull the test commands from the **Quality Gates** table in CLAUDE.md:
+After all issues resolved, run quality gates via a test-runner sub-agent. **Run unit/integration tests and any epic-level e2e acceptance tests here** — there are no git hooks in this repo, so the coordinator owns running gates before the PR. Use the Task tool with `subagent_type: "Bash"` and `model: "haiku"`:
 
 ```
 ROLE: Test Runner
@@ -214,16 +219,18 @@ SKILL: Read and follow .claude/skills/test-runner/SKILL.md
 
 WORKTREE: <coordinator's worktree path>
 COMMANDS:
-- <acceptance test commands if the epic defined them>
+- npm test
+- npm run lint
+- npx tsc --noEmit
+- <integration tests if the change touches the sandbox/server boundary — npm run test:integration:sandbox>
+- <e2e acceptance test commands if the epic defined them — e.g., npm run test:e2e -- e2e/specific-test.spec.ts>
 ```
 
-**Skip the test-runner** if the epic has no acceptance tests. **Do NOT create PR if the test-runner reports FAIL.** Fix locally first (spawn implementer if non-trivial).
+If the epic has e2e acceptance tests, run them here targeting the specific spec files under `e2e/` (not the full e2e suite). This is the gate that verifies the feature works end-to-end before creating the PR.
 
-### 4. Create PR, Monitor CI, and Hand Off
+**Skip the test-runner entirely** only for genuinely gate-free changes (pure docs/config). **Do NOT create PR if the test-runner reports FAIL.** Fix locally first (spawn implementer if non-trivial).
 
-Run quality gates per the **Quality Gates** table in CLAUDE.md before creating the PR. Delegate to a test-runner sub-agent so verbose output doesn't pollute the coordinator's context.
-
-**Do NOT create PR if any gate fails.** Fix locally first.
+### 3. Create PR, Monitor CI, and Hand Off
 
 **PR description guidelines:**
 
@@ -236,13 +243,18 @@ git push -u origin feature/<work-name>
 
 gh pr create --title "<type>: <title>" --body "$(cat <<'EOF'
 ## Summary
-<1-3 bullet points explaining *why* this change exists>
+<1-3 bullet points>
+
+## Changes
+<list of significant changes>
 
 ## Test plan
 - [ ] Tests pass
 - [ ] <manual verification steps if any>
 
 Beads: <comma-separated list of all beads issue IDs included in this PR>
+
+<if any beads issue description contains "GitHub: #<number>", add a line: "Closes #<number>" for each>
 
 Generated with Claude Code
 EOF
@@ -274,6 +286,7 @@ gh pr checks <number> --watch
    ```bash
    gh pr edit <number> --add-label "needs-human-review"
    ```
+   This blocks merge until a human approves the PR on GitHub.
 2. Label beads issues as `in-pr`:
    ```bash
    bd update <id> --set-labels in-pr --json
@@ -294,9 +307,12 @@ gh pr checks <number> --watch
 - Parallelizing tasks that touch the same files (use Conflict Avoidance section above)
 - Running task integrations in parallel (must be sequential for linear history)
 - Creating PR before running specialized reviews
+- Skipping `/simplify` before reviewers — they should see post-cleanup code (only skip when the whole review gate is skipped for a trivial change)
 - Creating PR with failing tests
 - Shipping known bugs as follow-up issues — bugs introduced by the current work must be fixed before the PR ships
-- Spawning a rebase subagent when fast-path succeeds
+- Filing introduced bugs (or nits) as follow-ups without explicit user approval to defer
+- Silently dropping a stalled or failed implementer's work and moving on
+- Spawning a rebase subagent when there are no conflicts (use inline fast-path first)
 - Fixing non-trivial review issues inline — file issues and spawn implementers instead
 - Running quality gates directly in coordinator context — always delegate to test-runner sub-agents
 - Merging PRs (that's `/merge`'s job)
