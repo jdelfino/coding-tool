@@ -38,7 +38,7 @@ git diff <base-branch>...HEAD
 
 ### 2. Quality Gates
 
-The coordinator's test-runner already ran tests, lint, and typecheck before this review — do not re-run them here. Focus your review on the code diff itself.
+The coordinator's test-runner — and lefthook's pre-commit/pre-push hooks — already ran tests, lint, and typecheck before this review. Do not re-run them here. Focus your review on the code diff itself.
 
 ### 3. Review Every Changed File
 

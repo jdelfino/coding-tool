@@ -18,7 +18,7 @@ This skill covers development only — no issue tracking, no commits, no pushes.
 - No optional chaining on required properties.
 - **Test cases from the issue are your spec.** The planner defines concrete test cases on each task. Implement those first, then add high-value coverage for gaps. Focus on tests that catch real bugs — avoid exhaustive, duplicative unit tests that test constructors, wiring, or things the compiler already guarantees.
 - **Delegate quality gates to test-runner sub-agents.** Do NOT run `npm test`, `npm run lint`, or `npx tsc --noEmit` directly — their output consumes your context window. Use the Task tool to spawn a test-runner (see Phase 3). Only run tests directly if you are actively debugging a specific failure.
-- **Lint and typecheck are run as part of the Phase 3 gate, not separately.** This repo has no git hooks — the test-runner runs them; don't run them ad hoc.
+- **Lint and typecheck are run as part of the Phase 3 gate, not separately.** lefthook's pre-commit hook also enforces lint + typecheck on every commit, so don't run them ad hoc — the test-runner runs the full gate.
 - **If a hook blocks a tool call, stop.** Never work around it with scripts, `sed`, or other indirect tricks. Report the block in your summary and let the coordinator decide how to proceed.
 
 ## Phase 1: Write Failing Tests
@@ -54,7 +54,7 @@ COMMANDS:
 - <test commands from the Quality Gates table in CLAUDE.md matching changed code>
 ```
 
-**Run the gates for the code you changed:** `npm test` (always), `npm run lint`, `npx tsc --noEmit`, plus `npm run test:integration:sandbox` if the change touches the sandbox/server boundary. This repo has no git hooks, so nothing is enforced automatically — the test-runner is the gate.
+**Run the gates for the code you changed:** `npm test` (always), `npm run lint`, `npx tsc --noEmit`, plus `npm run test:integration:sandbox` if the change touches the sandbox/server boundary. lefthook enforces lint + typecheck on pre-commit and `npm test` on pre-push, so commits/pushes are gated automatically — but run the gate explicitly here (via the test-runner) so failures surface before you hand back, not at commit time.
 
 **Gate:** Sub-agent reports PASS. If FAIL, read the error summary, fix the issue, and re-delegate. Only run quality gates directly in your own context if you need to debug a failure interactively.
 

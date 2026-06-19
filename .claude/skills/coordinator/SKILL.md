@@ -211,7 +211,7 @@ REFERENCE DIRS: <key directories in the existing codebase to compare against>
 - **Trivial issues** (typos, minor naming): fix directly, commit
 - **Non-trivial issues** (bugs, missing tests, duplication): file a beads issue, spawn implementer, close when fixed
 
-After all issues resolved, run quality gates via a test-runner sub-agent. **Run unit/integration tests and any epic-level e2e acceptance tests here** — there are no git hooks in this repo, so the coordinator owns running gates before the PR. Use the Task tool with `subagent_type: "Bash"` and `model: "haiku"`:
+After all issues resolved, run quality gates via a test-runner sub-agent. **Run unit/integration tests and any epic-level e2e acceptance tests here.** lefthook enforces the fast gates locally (lint + typecheck on pre-commit, `npm test` on pre-push), but the coordinator still owns running the full gate — including integration and epic-level e2e acceptance tests, which lefthook deliberately leaves to CI — before the PR. Use the Task tool with `subagent_type: "Bash"` and `model: "haiku"`:
 
 ```
 ROLE: Test Runner

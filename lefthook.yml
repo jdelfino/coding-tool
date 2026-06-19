@@ -1,0 +1,55 @@
+# Git hooks for coding-tool, orchestrated by lefthook.
+#
+# lefthook owns the git hooks and delegates the beads stages to `bd hooks run`,
+# so beads' JSONL sync and commit trailers keep working alongside the quality
+# gates. Install with `npx lefthook install` (done in .devcontainer/post-create.sh).
+#
+# Gates are intentionally fast (lint/typecheck/secret-scan on commit, unit tests
+# on push). Heavy suites (integration, e2e) stay in CI.
+
+pre-commit:
+  parallel: true
+  commands:
+    # Beads: export issue state to .beads/*.jsonl and stage it.
+    bd-pre-commit:
+      run: TERM=dumb bd hooks run pre-commit
+    # Lint only the staged TS/TSX files for fast feedback.
+    lint:
+      glob: "src/{,**/}*.{ts,tsx}"
+      run: npx eslint {staged_files}
+    # Whole-project typecheck when any TS source or tsconfig changes.
+    typecheck:
+      glob: "{src/{,**/}*.{ts,tsx},tsconfig.json}"
+      run: npx tsc --noEmit
+    # Secret scan on staged changes. Skips with a notice when gitleaks isn't
+    # installed, so the hook never blocks a manual (non-devcontainer) setup.
+    gitleaks:
+      run: >
+        if command -v gitleaks >/dev/null 2>&1; then
+          gitleaks git --pre-commit --staged --no-banner;
+        else
+          echo "gitleaks not installed — skipping secret scan (install it to enable)";
+        fi
+
+prepare-commit-msg:
+  commands:
+    bd-trailers:
+      run: TERM=dumb bd hooks run prepare-commit-msg {1}
+
+pre-push:
+  parallel: true
+  commands:
+    bd-push:
+      run: TERM=dumb bd hooks run pre-push {1} {2}
+    test:
+      run: npm test
+
+post-checkout:
+  commands:
+    bd-hooks:
+      run: TERM=dumb bd hooks run post-checkout {1} {2} {3}
+
+post-merge:
+  commands:
+    bd-hooks:
+      run: TERM=dumb bd hooks run post-merge {1}

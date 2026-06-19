@@ -114,7 +114,7 @@ Then output `RESULT: FAIL`.
 
 ### 4. Run quality gates
 
-After a successful rebase, verify the result still passes by running the same gate the implementer ran in Phase 3 — typically `npm test` (plus `npm run lint` and `npx tsc --noEmit`), and `npm run test:integration:sandbox` if the change touches the sandbox/server boundary.
+After a successful rebase, verify the result still passes by running the same gate the implementer ran in Phase 3 — typically `npm test` (plus `npm run lint` and `npx tsc --noEmit`), and `npm run test:integration:sandbox` if the change touches the sandbox/server boundary. lefthook's pre-commit hook re-runs lint + typecheck when you amend a commit, and pre-push runs `npm test`, so don't bypass them — fix failures rather than forcing past the hook.
 
 If it fails, the conflict resolution introduced an error. Fix it, amend the relevant commit, and re-run. If the fix is non-trivial, abort and escalate (`RESULT: FAIL`).
 
