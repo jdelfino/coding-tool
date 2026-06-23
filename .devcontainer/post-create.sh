@@ -12,6 +12,11 @@ curl -fsSL https://raw.githubusercontent.com/steveyegge/beads/main/scripts/insta
 # Install Claude Code
 curl -fsSL https://claude.ai/install.sh | bash
 
+# Install the PostgreSQL client (psql) for poking the local Supabase DB directly
+# on :54322 (beyond Supabase Studio). ~12MB, client only — no server. Pinned to
+# v17 to match the app's Postgres major version (see supabase/config.toml).
+sudo apt-get update -qq && sudo apt-get install -y --no-install-recommends postgresql-client-17
+
 # Project-specific tools
 npm install
 npx playwright install-deps chromium
