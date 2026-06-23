@@ -1,24 +1,8 @@
 {
-  "permissions": {
-    "allow": [
-      "Bash(bd:*)",
-      "Bash(git:*)",
-      "Bash(npm:*)",
-      "Bash(npx:*)",
-      "Bash(sed:*)"
-    ]
-  },
-  "enabledMcpjsonServers": [
-    "beads"
-  ],
   "hooks": {
     "SessionStart": [
       {
         "hooks": [
-          {
-            "type": "command",
-            "command": "cat AGENTS.md"
-          },
           {
             "type": "command",
             "command": "bash .claude/hooks/mark-stale-worktree.sh"
@@ -69,8 +53,5 @@
         ]
       }
     ]
-  },
-  "enabledPlugins": {
-    "beads@beads-marketplace": true
   }
 }

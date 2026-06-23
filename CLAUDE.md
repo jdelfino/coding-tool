@@ -2,18 +2,32 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+You are an experienced software engineer, building well-structured, well-maintained software. Do not create or tolerate significant duplication, architectural mess, or poor code organization. Clean small messes up immediately; file beads issues for larger follow-on work.
+
 ## Project Overview
 
-See [README.md](README.md) for full project description, tech stack, architecture, and setup instructions.
+See [README.md](README.md) for full project description, tech stack, architecture, and setup.
 
 **Quick context:** Real-time coding classroom tool. Next.js + Supabase (PostgreSQL, Auth, Realtime). Python execution runs locally in an nsjail sandbox.
 
 ## Key Files for Navigation
 
-- `src/hooks/useRealtimeSession.ts` - Session-specific realtime logic with Broadcast subscriptions
+- `src/hooks/useRealtimeSession.ts` - Session realtime logic (Broadcast subscriptions)
 - `src/server/persistence/` - Supabase repositories (all data access)
 - `src/server/auth/rbac.ts` - Permission matrix and RBAC logic
 - `src/server/services/` - Business logic layer
+
+## Workflows
+
+| Scenario | Command |
+|----------|---------|
+| New epic or feature design | `/plan <description-or-epic-id>` |
+| All implementation work | `/work <id-or-description>` |
+| Process merge queue | `/merge` |
+
+- `/plan` — explores the codebase, discusses tradeoffs, files beads issues, runs a plan review. Use before `/work` for new epics.
+- `/work` — the single entry point for implementation. Triages work, creates a branch/PR, manages beads issues, runs specialized reviews.
+- `/merge` — merges open PRs when CI passes, handles rebases, files issues for failures. Run in a dedicated window.
 
 ## Commands
 
@@ -26,7 +40,6 @@ npm run seed-data        # Reset DB with seed data (runs supabase db reset)
 npm test                 # Run all Jest tests
 npm test -- path/to/test # Single file
 npm test -- -t "pattern" # Pattern matching
-npm run test:watch       # Watch mode for TDD
 npm run test:e2e         # Playwright E2E tests (requires Supabase running)
 
 # Quality
@@ -37,61 +50,58 @@ npx tsc --noEmit         # Type check
 ### Running E2E Tests Locally
 
 ```bash
-npx supabase start           # 1. Start local Supabase
-source .env.local            # 2. Load environment variables
+npx supabase start               # 1. Start local Supabase
+source .env.local                # 2. Load environment variables
 npx playwright install chromium  # 3. First time only
-npm run test:e2e             # 4. Run tests
+npm run test:e2e                 # 4. Run tests
 ```
 
 E2E tests skip automatically if `SUPABASE_SECRET_KEY` is not set.
 
 ## Testing Rules
 
-**All production code changes MUST include tests.** See AGENTS.md for workflow details.
-
-**NEVER debug E2E tests by pushing to CI.** Always run `npm run test:e2e` locally first. Waiting for remote CI is slow and wasteful.
-
-### Test Organization
+- **All production code changes MUST include tests.** When E2E uncovers a production bug, add a regression test at the narrowest feasible scope (unit > integration > e2e) that fails against the bug and passes against the fix.
+- **NEVER debug E2E tests by pushing to CI.** Always run `npm run test:e2e` locally first — waiting on remote CI is slow and wasteful.
 
 Jest projects (see `jest.config.js`):
 - **server**: `src/server/**/__tests__/**/*.test.ts`, `src/app/api/**/__tests__/**/*.test.ts`
 - **client**: `src/app/**/__tests__/**/*.test.tsx`, `src/hooks/**/__tests__/**/*.test.ts`
 
-### Test Utilities
-
-- `src/server/__tests__/test-utils/` - Server mocks and helpers
-- `src/app/api/__tests__/test-helpers.ts` - `createMockAuth()` and API test utilities
-- Use repository mocks to isolate business logic from persistence
+Test utilities: `src/server/__tests__/test-utils/` (server mocks/helpers), `src/app/api/__tests__/test-helpers.ts` (`createMockAuth()`). Use repository mocks to isolate business logic from persistence.
 
 ## Development Guidelines
 
-**Type Safety:** Strict TypeScript. Path alias `@/*` → `src/*`. Avoid `as any`. Run `npx tsc --noEmit` before commits.
-
-**Dates:** Repositories auto-convert Date ↔ ISO strings. In-memory uses `Date` objects, persistence uses strings.
-
-**Permissions:** Use `getAuthContext()` in API routes for auth + RBAC checks.
-
-**Repository Pattern:** All data access through `src/server/persistence/interfaces.ts`. Repos return `Promise<T>`, throw `PersistenceError` on errors, return `null` for not-found.
-
-**Don't use optional chaining on required fields.** Trust the type system - if `user.role` is required, use `user.role` not `user?.role`.
+- **Type Safety:** Strict TypeScript. Path alias `@/*` → `src/*`. Avoid `as any`. Run `npx tsc --noEmit` before commits.
+- **Dates:** Repositories auto-convert Date ↔ ISO strings. In-memory uses `Date` objects, persistence uses strings.
+- **Permissions:** Use `getAuthContext()` in API routes for auth + RBAC checks.
+- **Repository Pattern:** All data access through `src/server/persistence/interfaces.ts`. Repos return `Promise<T>`, throw `PersistenceError` on errors, return `null` for not-found.
+- **Don't use optional chaining on required fields.** Trust the types — if `user.role` is required, use `user.role` not `user?.role`.
+- **AI planning docs** (PLAN.md, DESIGN.md, etc.): store in `history/` at the repo root. Keep the root clean.
 
 ## Issue Tracking (beads)
 
-This project uses `bd` (beads) for issue tracking. Key commands:
+This project uses **bd (beads)** for ALL issue tracking — not markdown TODOs or external trackers. Always pass `--json` for programmatic use; pipe through `jq` to filter. Run `bd <cmd> --help` for flags.
 
 ```bash
-bd show <id> --json      # View issue details
-bd list --json           # List issues
-bd ready --json          # Show unblocked issues
+bd ready --json                          # Unblocked, ready-to-start issues
+bd show <id> --json                      # Issue details
+bd create "Title" -t task -p 2 --json    # Types: bug|feature|task|epic|chore. Priority 0 (critical) - 4 (backlog)
+bd create "Sub" --parent <epic-id> --json        # Hierarchical subtask (id like epic-id.1)
+bd create "X" --deps discovered-from:<id> --json # Link discovered work
 bd update <id> --status in_progress --json
 bd close <id> --reason "Done" --json
-bd create "Title" -t task -p 2 --json
-bd dep add <blocked> <blocker> --json  # Add dependency
+bd dep add <blocked> <blocker> --json    # "<blocked> needs <blocker>"
 ```
 
-See AGENTS.md for full beads documentation.
+- **Self-contained issues:** every issue must be readable cold from its description alone — 1-2 sentence summary (what + why), exact file paths, numbered steps, before→after example when applicable.
+- **Dependency direction:** `bd dep add X Y` means "X needs Y" (Y blocks X). Temporal words ("Phase 1", "before") invert your thinking — verify with `bd blocked`.
+- **Auto-sync:** bd exports to `.beads/issues.jsonl` and re-imports after `git pull` automatically. No manual sync needed.
+
+## Landing the Plane
+
+Work is **not complete until `git push` succeeds** — never stop before pushing or leave work stranded locally. Before ending a session: file issues for remaining work, run quality gates if code changed, update issue status, then `git pull --rebase` and `git push`. The `/work` and `/merge` skills handle branch/PR/merge mechanics.
 
 ## Additional Resources
 
 - **[README.md](README.md)** - Project overview, setup, architecture
-- **[AGENTS.md](AGENTS.md)** - AI workflows, test-first development, beads issue tracking
+- **[docs/AUTHENTICATION.md](docs/AUTHENTICATION.md)** - Auth system details

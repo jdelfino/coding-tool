@@ -141,8 +141,7 @@ src/
 - **[User Guide](docs/USER_GUIDE.md)** - End-user documentation
 - **[Setup Guide](docs/SETUP.md)** - Detailed setup instructions
 - **[Authentication](docs/AUTHENTICATION.md)** - Auth system details
-- **[CLAUDE.md](CLAUDE.md)** - AI agent instructions
-- **[AGENTS.md](AGENTS.md)** - Development workflows
+- **[CLAUDE.md](CLAUDE.md)** - AI agent instructions and development workflows
 
 ## Contributing
 
