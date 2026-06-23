@@ -201,6 +201,25 @@ export default function ProblemLibrary({ onCreateNew, onEdit }: ProblemLibraryPr
     }
   };
 
+  const handleDuplicate = async (problemId: string) => {
+    try {
+      const response = await fetch(`/api/problems/${problemId}/duplicate`, {
+        method: 'POST',
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to duplicate problem');
+      }
+
+      // Reload problems so the new copy appears
+      await loadProblems();
+    } catch (err) {
+      console.error('Error duplicating problem:', err);
+      alert(`Failed to duplicate problem: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    }
+  };
+
   const handleCreateSession = (problemId: string) => {
     const problem = problems.find(p => p.id === problemId);
     if (!problem) {
@@ -350,6 +369,7 @@ export default function ProblemLibrary({ onCreateNew, onEdit }: ProblemLibraryPr
               onEdit={handleEdit}
               onDelete={handleDelete}
               onCreateSession={handleCreateSession}
+              onDuplicate={handleDuplicate}
               onTagClick={handleTagToggle}
             />
           ))}

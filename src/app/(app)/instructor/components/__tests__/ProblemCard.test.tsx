@@ -24,6 +24,7 @@ describe('ProblemCard', () => {
     onEdit: jest.fn(),
     onDelete: jest.fn(),
     onCreateSession: jest.fn(),
+    onDuplicate: jest.fn(),
   };
 
   beforeEach(() => {
@@ -66,6 +67,17 @@ describe('ProblemCard', () => {
       render(<ProblemCard {...defaultProps} />);
       fireEvent.click(screen.getByText('Create Session'));
       expect(defaultProps.onCreateSession).toHaveBeenCalledWith('problem-123');
+    });
+
+    it('calls onDuplicate with the problem id when Duplicate button is clicked', () => {
+      /**
+       * Verifies that clicking Duplicate calls onDuplicate with the correct problem id.
+       * The button must be present and wired to the prop — omitting onDuplicate or
+       * passing the wrong id would break the feature end-to-end.
+       */
+      render(<ProblemCard {...defaultProps} />);
+      fireEvent.click(screen.getByTitle('Duplicate problem'));
+      expect(defaultProps.onDuplicate).toHaveBeenCalledWith('problem-123');
     });
 
     it('shows confirmation dialog when Delete button is clicked', async () => {
@@ -155,6 +167,13 @@ describe('ProblemCard', () => {
       expect(screen.getByText('Edit')).toBeInTheDocument();
       expect(screen.getByText('Create Session')).toBeInTheDocument();
       expect(screen.getByText('Delete')).toBeInTheDocument();
+      expect(screen.getByText('Duplicate')).toBeInTheDocument();
+    });
+
+    it('calls onDuplicate with the problem id when Duplicate button is clicked in grid view', () => {
+      render(<ProblemCard {...gridProps} />);
+      fireEvent.click(screen.getByText('Duplicate'));
+      expect(defaultProps.onDuplicate).toHaveBeenCalledWith('problem-123');
     });
 
     it('handles actions in grid view', () => {

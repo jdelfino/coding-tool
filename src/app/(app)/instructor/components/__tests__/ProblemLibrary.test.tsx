@@ -40,6 +40,7 @@ jest.mock('../ProblemCard', () => {
         {props.problem.title}
         <button data-testid={`edit-${props.problem.id}`} onClick={() => props.onEdit(props.problem.id)}>Edit</button>
         <button data-testid={`create-session-${props.problem.id}`} onClick={() => props.onCreateSession(props.problem.id)}>Create Session</button>
+        <button data-testid={`duplicate-${props.problem.id}`} onClick={() => props.onDuplicate(props.problem.id)}>Duplicate</button>
       </div>
     );
   };
@@ -315,6 +316,81 @@ describe('ProblemLibrary', () => {
 
       fireEvent.click(screen.getByTestId('edit-problem-1'));
       expect(mockRouterPush).toHaveBeenCalledWith('/instructor/problems');
+    });
+  });
+
+  describe('Duplicate handler', () => {
+    it('POSTs to /api/problems/{id}/duplicate and reloads the list', async () => {
+      /**
+       * Verifies that handleDuplicate sends a POST to the correct endpoint and
+       * then re-fetches the problem list so the new copy appears.
+       * If the endpoint or reload is missing, the UI will appear to do nothing.
+       */
+      let problemFetchCount = 0;
+      global.fetch = jest.fn((url: string, options?: any) => {
+        if (typeof url === 'string' && url.includes('/api/classes')) {
+          return Promise.resolve({ ok: true, json: () => Promise.resolve({ classes: [] }) });
+        }
+        if (typeof url === 'string' && url.includes('/duplicate') && options?.method === 'POST') {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve({ problem: { ...mockProblems[0], id: 'problem-copy', title: 'Problem 1 (copy)' } }),
+          });
+        }
+        problemFetchCount++;
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({ problems: mockProblems }) });
+      }) as jest.Mock;
+
+      render(<ProblemLibrary />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('problem-card-problem-1')).toBeInTheDocument();
+      });
+
+      const fetchCountBeforeDuplicate = problemFetchCount;
+      fireEvent.click(screen.getByTestId('duplicate-problem-1'));
+
+      await waitFor(() => {
+        expect(global.fetch).toHaveBeenCalledWith(
+          '/api/problems/problem-1/duplicate',
+          expect.objectContaining({ method: 'POST' })
+        );
+      });
+
+      await waitFor(() => {
+        expect(problemFetchCount).toBeGreaterThan(fetchCountBeforeDuplicate);
+      });
+    });
+
+    it('shows an alert when duplicate fails', async () => {
+      const alertSpy = jest.spyOn(window, 'alert').mockImplementation(() => {});
+
+      global.fetch = jest.fn((url: string, options?: any) => {
+        if (typeof url === 'string' && url.includes('/api/classes')) {
+          return Promise.resolve({ ok: true, json: () => Promise.resolve({ classes: [] }) });
+        }
+        if (typeof url === 'string' && url.includes('/duplicate') && options?.method === 'POST') {
+          return Promise.resolve({
+            ok: false,
+            json: () => Promise.resolve({ error: 'Duplicate failed' }),
+          });
+        }
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({ problems: mockProblems }) });
+      }) as jest.Mock;
+
+      render(<ProblemLibrary />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('problem-card-problem-1')).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByTestId('duplicate-problem-1'));
+
+      await waitFor(() => {
+        expect(alertSpy).toHaveBeenCalledWith(expect.stringContaining('Duplicate failed'));
+      });
+
+      alertSpy.mockRestore();
     });
   });
 

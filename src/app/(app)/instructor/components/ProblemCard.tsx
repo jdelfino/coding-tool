@@ -18,6 +18,7 @@ interface ProblemCardProps {
   onEdit: (problemId: string) => void;
   onDelete: (problemId: string, title: string) => void;
   onCreateSession: (problemId: string) => void;
+  onDuplicate: (problemId: string) => void;
   onTagClick?: (tag: string) => void;
 }
 
@@ -27,6 +28,7 @@ export default function ProblemCard({
   onEdit,
   onDelete,
   onCreateSession,
+  onDuplicate,
   onTagClick,
 }: ProblemCardProps) {
   const [isDeleting, setIsDeleting] = useState(false);
@@ -107,6 +109,13 @@ export default function ProblemCard({
             >
               Edit
             </button>
+            <button
+              onClick={() => onDuplicate(problem.id)}
+              className="px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
+              title="Duplicate problem"
+            >
+              Duplicate
+            </button>
             <CopyLinkDropdown problemId={problem.id} classId={problem.classId} />
             <button
               onClick={() => onCreateSession(problem.id)}
@@ -163,6 +172,13 @@ export default function ProblemCard({
           className="col-span-2 px-3 py-2 text-sm text-blue-600 border border-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
         >
           Edit
+        </button>
+        <button
+          onClick={() => onDuplicate(problem.id)}
+          className="col-span-2 px-3 py-2 text-sm text-gray-600 border border-gray-300 hover:bg-gray-50 rounded-lg transition-colors"
+          title="Duplicate problem"
+        >
+          Duplicate
         </button>
         <div className="col-span-2">
           <CopyLinkDropdown problemId={problem.id} classId={problem.classId} />
