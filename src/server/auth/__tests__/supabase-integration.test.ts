@@ -16,6 +16,32 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { SupabaseAuthProvider } from '../supabase-provider';
 import { UserRole } from '../types';
 
+// setupTests.ts globally mocks the server Supabase client for unit tests. This
+// is a real-DB integration suite, so use the actual client: the provider's
+// internal user repository (getUser/updateUser) must hit the live database, not
+// the in-memory mock.
+jest.mock('@/server/supabase/client', () =>
+  jest.requireActual('@/server/supabase/client')
+);
+
+// authenticateWithPassword / signOut build a server client via next/headers
+// cookies(), which throws outside a request scope. Provide an in-memory cookie
+// store so the auth session round-trips during the sign-in tests.
+jest.mock('next/headers', () => {
+  const store = new Map<string, string>();
+  return {
+    cookies: async () => ({
+      get: (name: string) => {
+        const value = store.get(name);
+        return value === undefined ? undefined : { name, value };
+      },
+      set: (name: string, value: string) => {
+        store.set(name, value);
+      },
+    }),
+  };
+});
+
 // Skip these tests if Supabase credentials are not available
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const serviceRoleKey = process.env.SUPABASE_SECRET_KEY;
@@ -23,11 +49,15 @@ const hasSupabaseCredentials = Boolean(supabaseUrl && serviceRoleKey);
 
 const describeIfSupabase = hasSupabaseCredentials ? describe : describe.skip;
 
+// Namespace the signUp tests reference. Created in beforeAll so the suite is
+// self-contained and does not depend on seed data (the seed uses 'test-school').
+const TEST_NAMESPACE_ID = 'default';
+
 describeIfSupabase('Supabase Auth Integration', () => {
   let supabase: SupabaseClient;
   let authProvider: SupabaseAuthProvider;
 
-  beforeAll(() => {
+  beforeAll(async () => {
     supabase = createClient(supabaseUrl!, serviceRoleKey!, {
       auth: {
         autoRefreshToken: false,
@@ -36,6 +66,23 @@ describeIfSupabase('Supabase Auth Integration', () => {
     });
 
     authProvider = new SupabaseAuthProvider();
+
+    // Ensure the namespace referenced by signUp exists (user_profiles.namespace_id
+    // has a FK to namespaces). Idempotent so repeated local runs don't fail.
+    const { error } = await supabase
+      .from('namespaces')
+      .upsert(
+        { id: TEST_NAMESPACE_ID, display_name: 'Default (integration test)' },
+        { onConflict: 'id' }
+      );
+    if (error) {
+      throw new Error(`Failed to create test namespace: ${error.message}`);
+    }
+  });
+
+  afterAll(async () => {
+    // Remove the test namespace. ON DELETE CASCADE clears any lingering profiles.
+    await supabase.from('namespaces').delete().eq('id', TEST_NAMESPACE_ID);
   });
 
   afterEach(async () => {
