@@ -38,3 +38,73 @@ jobs:
         with:
           fail_ci_if_error: false
           token: ${{ secrets.CODECOV_TOKEN }}
+
+  integration-tests:
+    name: Integration Tests (real DB)
+    runs-on: ubuntu-latest
+    # No `needs:` — runs in parallel with the `test` and `e2e` jobs.
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      # Start Supabase early so it initialises while npm ci runs.
+      - name: Start Supabase (background)
+        run: |
+          supabase start --exclude studio,storage-api,imgproxy,edge-runtime,logflare,vector,postgres-meta,supavisor &
+          echo "Supabase starting in background..."
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Poll until the REST endpoint is reachable, then capture keys.
+      - name: Wait for Supabase and capture keys
+        run: |
+          echo "Waiting for Supabase to be ready..."
+          for i in {1..60}; do
+            if curl -s http://127.0.0.1:54321/rest/v1/ > /dev/null 2>&1; then
+              echo "Supabase is ready!"
+              break
+            fi
+            echo "Waiting... ($i/60)"
+            sleep 2
+          done
+          supabase status --output env | grep -E '^(ANON_KEY|SERVICE_ROLE_KEY)=' | sed 's/"//g' >> $GITHUB_ENV
+
+      # Run only the real-DB gated integration tests.
+      #
+      # Targeting strategy: two test locations need to run here:
+      #   1. src/server/auth/__tests__/supabase-integration.test.ts — the auth
+      #      integration suite (already matched by the server project testMatch,
+      #      but excluded from the unit `test` job because it requires a live DB).
+      #   2. src/server/persistence/supabase/__tests__/integration/*.integration.test.ts
+      #      — e.g. problem-duplicate.test.ts — excluded from all normal runs by
+      #      the root testPathIgnorePatterns in jest.config.js.
+      #
+      # We use --testPathPattern to target both paths in one invocation and pass
+      # --testPathIgnorePatterns="" to override the config-level exclusion so the
+      # *.integration.test.ts files are actually picked up.  The server Jest
+      # project (node environment) covers both locations; --selectProjects=server
+      # avoids loading the jsdom/client project which has nothing to run here.
+      - name: Run integration tests
+        run: |
+          npx jest \
+            --selectProjects=server \
+            --testPathPattern="supabase-integration\.test\.ts|/__tests__/integration/" \
+            --testPathIgnorePatterns="/node_modules/" \
+            --runInBand \
+            --forceExit
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ env.ANON_KEY }}
+          SUPABASE_SECRET_KEY: ${{ env.SERVICE_ROLE_KEY }}
