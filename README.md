@@ -14,7 +14,7 @@ A real-time web-based coding tool for classroom instruction. Instructors create 
 
 ## Tech Stack
 
-- **Frontend**: Next.js 15, React 19, TypeScript, Tailwind CSS
+- **Frontend**: Next.js 16, React 19, TypeScript, Tailwind CSS
 - **Backend**: Next.js API routes, Supabase (PostgreSQL + Auth + Realtime)
 - **Editor**: Monaco Editor
 - **Code Execution**: Local nsjail sandbox (Python 3)
@@ -83,6 +83,18 @@ npm run lint          # Run ESLint
 npx tsc --noEmit      # Type check
 ```
 
+## AI Agent Workflow
+
+This repo is built to be developed with [Claude Code](https://claude.com/claude-code). Implementation work is driven through slash commands rather than by hand:
+
+| Command | Purpose |
+|---------|---------|
+| `/plan <description-or-epic-id>` | Explore the codebase, weigh tradeoffs, file issues, and run a plan review. Use before `/work` for new epics. |
+| `/work <id-or-description>` | The single entry point for implementation — triages the work, creates a branch/PR, manages issues, and runs specialized reviews. |
+| `/merge` | Process open PRs: merge when CI passes, handle rebases, file issues for failures. Run in a dedicated window. |
+
+Issue tracking uses **bd (beads)**. See [CLAUDE.md](CLAUDE.md) for the conventions Claude follows when working in this repo.
+
 ## Architecture Overview
 
 ```
@@ -141,7 +153,7 @@ src/
 - **[User Guide](docs/USER_GUIDE.md)** - End-user documentation
 - **[Setup Guide](docs/SETUP.md)** - Detailed setup instructions
 - **[Authentication](docs/AUTHENTICATION.md)** - Auth system details
-- **[CLAUDE.md](CLAUDE.md)** - AI agent instructions and development workflows
+- **[CLAUDE.md](CLAUDE.md)** - Guidance Claude Code loads when working in this repo
 
 ## Contributing
 

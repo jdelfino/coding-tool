@@ -17,18 +17,6 @@ See [README.md](README.md) for full project description, tech stack, architectur
 - `src/server/auth/rbac.ts` - Permission matrix and RBAC logic
 - `src/server/services/` - Business logic layer
 
-## Workflows
-
-| Scenario | Command |
-|----------|---------|
-| New epic or feature design | `/plan <description-or-epic-id>` |
-| All implementation work | `/work <id-or-description>` |
-| Process merge queue | `/merge` |
-
-- `/plan` — explores the codebase, discusses tradeoffs, files beads issues, runs a plan review. Use before `/work` for new epics.
-- `/work` — the single entry point for implementation. Triages work, creates a branch/PR, manages beads issues, runs specialized reviews.
-- `/merge` — merges open PRs when CI passes, handles rebases, files issues for failures. Run in a dedicated window.
-
 ## Commands
 
 ```bash
