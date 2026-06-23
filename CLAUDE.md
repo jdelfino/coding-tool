@@ -67,7 +67,13 @@ Jest projects (see `jest.config.js`):
 - **server**: `src/server/**/__tests__/**/*.test.ts`, `src/app/api/**/__tests__/**/*.test.ts`
 - **client**: `src/app/**/__tests__/**/*.test.tsx`, `src/hooks/**/__tests__/**/*.test.ts`
 
-Test utilities: `src/server/__tests__/test-utils/` (server mocks/helpers), `src/app/api/__tests__/test-helpers.ts` (`createMockAuth()`). Use repository mocks to isolate business logic from persistence.
+Test utilities: `src/server/__tests__/test-utils/` (server mocks/helpers) and `src/app/api/__tests__/test-helpers.ts` (`mockRequirePermission` / `setupRequirePermissionMock`).
+
+Three test styles, in order of preference (unit > integration > e2e):
+
+- **Mocked unit/route tests** (the default; run in the `server` / `client` Jest projects). Mock persistence to isolate business logic — e.g. the per-file `createAuthContext` + `jest.mock('@/server/auth/api-helpers')` pattern in `src/app/api/problems/__tests__/route.test.ts`.
+- **Real-DB integration tests** — run against a live local Supabase with a real `createClient`, gated by `describeIfSupabase` (`describe` when `SUPABASE_SECRET_KEY` is set, else `describe.skip`, so they skip cleanly without credentials). These run inside the default `server` project. Use this when behavior depends on real SQL/RLS (e.g. ownership/permission enforcement). Pattern: `src/server/auth/__tests__/supabase-integration.test.ts`. (A separate `*.integration.test.ts` suffix — excluded from default runs via `testPathIgnorePatterns`, run by `npm run test:integration:sandbox` — is reserved for the Python sandbox.)
+- **E2E** — Playwright (`npm run test:e2e`), for frontend/full-stack behavior.
 
 ## Development Guidelines
 
