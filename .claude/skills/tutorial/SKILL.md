@@ -168,8 +168,9 @@ with a solid plan behind it is fine.
    session). Watch it build test-first, the reviewers pass over it, the hooks and CI gates
    fire. Read along as it goes; notice what it fixes on its own.
 4. **Share the PR** — push the branch, open a PR on their fork, drop the link in the
-   meeting chat. Come ready to say: what did the agent get right on its own, and where
-   did you have to step in?
+   meeting chat. (If pushing/PR creation fails, it's usually unauthenticated `gh` —
+   check `gh auth status`, then `gh auth login` as themselves.) Come ready to say: what
+   did the agent get right on its own, and where did you have to step in?
 
 ### Seeded logins (all password `password123`)
 
@@ -186,6 +187,12 @@ Pre-session setup lives in **`docs/DEVCONTAINER.md`**; setup trouble → Joe Del
 
 ## Setup & environment FAQ (common stumbles)
 
+- **Opening a PR / pushing fails, or `gh` isn't set up.** Authenticating the GitHub CLI
+  is an easy step to skip during setup, and it doesn't bite until the very end when they
+  push or open their PR. Whenever GitHub work is coming up — and especially before the
+  "share your PR" step — check with `gh auth status`; if it's not authenticated, have
+  them run **`gh auth login`** and sign in as **themselves** (their own fork) before
+  continuing. Catching it early beats a confusing failure at the finish line.
 - **Admin login asks for a 2FA code.** System-admin sign-in (`admin@test.local`)
   sends a 6-digit **email OTP**. Locally, Supabase catches all mail in **Mailpit at
   `http://localhost:54324`** — open the newest message to `admin@test.local` and copy
