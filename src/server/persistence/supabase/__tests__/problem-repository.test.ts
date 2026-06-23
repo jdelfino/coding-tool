@@ -786,16 +786,19 @@ describe('SupabaseProblemRepository', () => {
   });
 
   describe('duplicate', () => {
-    it('should duplicate a problem with new title', async () => {
+    it('should duplicate a problem with new title and use newAuthorId (not original author)', async () => {
       // First call: getById
       const getByIdSingle = jest.fn().mockResolvedValue({ data: mockProblemRow, error: null });
       const getByIdEq = jest.fn().mockReturnValue({ single: getByIdSingle });
 
-      // Second call: create (insert)
+      const newAuthorId = 'new-author-abc';
+
+      // Second call: create (insert) — duplicated row uses newAuthorId
       const duplicatedRow = {
         ...mockProblemRow,
         id: 'new-uuid-5678',
         title: 'Duplicated Problem',
+        author_id: newAuthorId,
       };
       const insertSingle = jest.fn().mockResolvedValue({ data: duplicatedRow, error: null });
       const insertSelect = jest.fn().mockReturnValue({ single: insertSingle });
@@ -815,12 +818,14 @@ describe('SupabaseProblemRepository', () => {
         }
       });
 
-      const result = await repository.duplicate(mockProblem.id, 'Duplicated Problem');
+      const result = await repository.duplicate(mockProblem.id, 'Duplicated Problem', newAuthorId);
 
       expect(result.title).toBe('Duplicated Problem');
       expect(result.id).toBe('new-uuid-5678');
       expect(result.namespaceId).toBe(mockProblem.namespaceId);
-      expect(result.authorId).toBe(mockProblem.authorId);
+      // Must be the new author, NOT the original problem's author
+      expect(result.authorId).toBe(newAuthorId);
+      expect(result.authorId).not.toBe(mockProblem.authorId);
     });
 
     it('should throw error if original problem not found', async () => {
@@ -834,7 +839,7 @@ describe('SupabaseProblemRepository', () => {
         select: jest.fn().mockReturnValue({ eq: getByIdEq }),
       });
 
-      await expect(repository.duplicate('nonexistent', 'New Title')).rejects.toThrow(
+      await expect(repository.duplicate('nonexistent', 'New Title', 'some-author-id')).rejects.toThrow(
         'Problem not found: nonexistent'
       );
     });

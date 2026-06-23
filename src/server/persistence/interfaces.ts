@@ -296,16 +296,20 @@ export interface IProblemRepository {
   getByClass(classId: string, filter?: ProblemFilter, namespaceId?: string): Promise<ProblemMetadata[]>;
 
   /**
-   * Duplicate a problem with new title
+   * Duplicate a problem with new title and new author
    *
-   * Creates a copy with new ID and specified title.
+   * Creates a copy with new ID, specified title, and specified author.
+   * All content fields (description, starterCode, solution, testCases,
+   * executionSettings, tags, classId) carry over from the original.
+   * namespaceId also carries over. id and timestamps are reset.
    *
    * @param id - Problem to duplicate
    * @param newTitle - Title for the duplicate
+   * @param newAuthorId - User ID of the new author (the duplicator, NOT the original author)
    * @returns The duplicated problem
    * @throws {PersistenceError} with NOT_FOUND if problem doesn't exist
    */
-  duplicate(id: string, newTitle: string): Promise<Problem>;
+  duplicate(id: string, newTitle: string, newAuthorId: string): Promise<Problem>;
 }
 
 /**

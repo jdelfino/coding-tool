@@ -378,7 +378,7 @@ export class SupabaseProblemRepository implements IProblemRepository {
     return data ? data.map((row) => mapRowToProblemMetadata({ ...row, author_name: row.author_id })) : [];
   }
 
-  async duplicate(id: string, newTitle: string): Promise<Problem> {
+  async duplicate(id: string, newTitle: string, newAuthorId: string): Promise<Problem> {
     // First, get the original problem
     const original = await this.getById(id);
 
@@ -386,7 +386,9 @@ export class SupabaseProblemRepository implements IProblemRepository {
       throw new Error(`Problem not found: ${id}`);
     }
 
-    // Create a copy with new title and ID
+    // Create a copy with new title, new author, and same namespace/content
+    // The author is the duplicator (newAuthorId), NOT the original author.
+    // This ensures the copy is editable by the user who duplicated it under RLS.
     const problemInput: ProblemInput = {
       namespaceId: original.namespaceId,
       title: newTitle,
@@ -394,7 +396,7 @@ export class SupabaseProblemRepository implements IProblemRepository {
       starterCode: original.starterCode,
       testCases: original.testCases,
       executionSettings: original.executionSettings,
-      authorId: original.authorId,
+      authorId: newAuthorId,
       classId: original.classId,
       tags: original.tags,
       solution: original.solution,
