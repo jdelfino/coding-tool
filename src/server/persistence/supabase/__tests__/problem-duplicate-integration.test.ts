@@ -20,9 +20,16 @@
  * there; the `integration-tests` CI job sets the key so it actually runs.
  */
 
+// Unmock the Supabase client so this integration test uses the real Supabase instance.
+// setupTests.ts globally mocks @/server/supabase/client for unit tests; we restore
+// the real module here so that SupabaseProblemRepository and SupabaseAuthProvider
+// talk to a live local database rather than the in-memory mock.
+jest.unmock('@/server/supabase/client');
+
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { SupabaseProblemRepository } from '../problem-repository';
 import { SupabaseAuthProvider } from '../../../auth/supabase-provider';
+import { SERVICE_ROLE_MARKER } from '../../../supabase/client';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const serviceRoleKey = process.env.SUPABASE_SECRET_KEY;
@@ -30,16 +37,17 @@ const hasSupabaseCredentials = Boolean(supabaseUrl && serviceRoleKey);
 
 const describeIfSupabase = hasSupabaseCredentials ? describe : describe.skip;
 
+// Dedicated namespace for this test — avoids any dependency on seed data.
+// Using a fixed slug makes cleanup deterministic and idempotent across runs.
+const TEST_NAMESPACE_ID = 'duplicate-int-test';
+const TEST_EMAIL_SUFFIX = '@problem-duplicate-integration.local';
+
 describeIfSupabase('Problem duplicate() — ownership transfer + RLS editability', () => {
   let adminClient: SupabaseClient;
   let authProvider: SupabaseAuthProvider;
 
   // Track created user IDs for cleanup
   const createdUserIds: string[] = [];
-  // Track created problem IDs for cleanup
-  const createdProblemIds: string[] = [];
-
-  const TEST_EMAIL_SUFFIX = '@problem-duplicate-integration.local';
 
   beforeAll(() => {
     adminClient = createClient(supabaseUrl!, serviceRoleKey!, {
@@ -52,13 +60,12 @@ describeIfSupabase('Problem duplicate() — ownership transfer + RLS editability
   });
 
   afterEach(async () => {
-    // Clean up created problems first (FK safety)
-    for (const id of createdProblemIds) {
-      await adminClient.from('problems').delete().eq('id', id);
-    }
-    createdProblemIds.length = 0;
+    // Delete the test namespace first — ON DELETE CASCADE removes the class and
+    // all problems in it, so we do not need to track problem IDs separately.
+    await adminClient.from('namespaces').delete().eq('id', TEST_NAMESPACE_ID);
 
-    // Clean up created users
+    // Delete users after namespace (user_profiles are removed via ON DELETE CASCADE
+    // from auth.users, but auth.users itself must be removed via the Admin API).
     for (const userId of createdUserIds) {
       try {
         await adminClient.auth.admin.deleteUser(userId);
@@ -70,46 +77,61 @@ describeIfSupabase('Problem duplicate() — ownership transfer + RLS editability
   });
 
   it('copy.authorId === A (the duplicator), all content fields match original, A can UPDATE copy under RLS', async () => {
-    // --- Setup ---
-    // Create namespace (use 'default' which is seeded)
-    const namespaceId = 'default';
     const password = 'testpassword123!';
 
-    // Create instructor A (the duplicator)
+    // --- Setup: namespace ---
+    // Idempotent: delete any pre-existing stale namespace (from a prior failed run),
+    // then insert fresh. created_by is nullable so we omit it.
+    await adminClient.from('namespaces').delete().eq('id', TEST_NAMESPACE_ID);
+    const { error: nsError } = await adminClient.from('namespaces').insert({
+      id: TEST_NAMESPACE_ID,
+      display_name: 'Duplicate Integration Test Namespace',
+    });
+    if (nsError) {
+      throw new Error(`Failed to create test namespace: ${nsError.message}`);
+    }
+
+    // --- Setup: users ---
+    // Create instructor A (the duplicator) into our dedicated namespace.
     const userA = await authProvider.signUp(
       `instructor-a${TEST_EMAIL_SUFFIX}`,
       password,
       'instructor',
-      namespaceId
+      TEST_NAMESPACE_ID
     );
     createdUserIds.push(userA.id);
 
-    // Create instructor B (the original problem author)
+    // Create instructor B (the original problem author) into the same namespace.
     const userB = await authProvider.signUp(
       `instructor-b${TEST_EMAIL_SUFFIX}`,
       password,
       'instructor',
-      namespaceId
+      TEST_NAMESPACE_ID
     );
     createdUserIds.push(userB.id);
 
-    // Find a class in the default namespace to satisfy NOT NULL constraint
-    const { data: classes } = await adminClient
+    // --- Setup: class ---
+    // Create a class owned by B (classes.created_by is NOT NULL).
+    const { data: classRow, error: classError } = await adminClient
       .from('classes')
+      .insert({
+        namespace_id: TEST_NAMESPACE_ID,
+        name: 'Test Class',
+        created_by: userB.id,
+      })
       .select('id')
-      .eq('namespace_id', namespaceId)
-      .limit(1)
       .single();
 
-    if (!classes) {
-      throw new Error('No class found in default namespace — run seed-data first');
+    if (classError || !classRow) {
+      throw new Error(`Failed to create test class: ${classError?.message}`);
     }
-    const classId = classes.id;
+    const classId = classRow.id;
 
-    // Create original problem owned by B using the service-role client (bypasses RLS)
-    const serviceRepoB = new SupabaseProblemRepository(serviceRoleKey!);
+    // --- Setup: original problem owned by B ---
+    // Use SERVICE_ROLE_MARKER so the repo bypasses RLS (setup must not be gated by B's token).
+    const serviceRepoB = new SupabaseProblemRepository(SERVICE_ROLE_MARKER);
     const original = await serviceRepoB.create({
-      namespaceId,
+      namespaceId: TEST_NAMESPACE_ID,
       title: 'Original Problem by B',
       description: 'A test description',
       starterCode: 'def solve(): pass',
@@ -120,7 +142,6 @@ describeIfSupabase('Problem duplicate() — ownership transfer + RLS editability
       classId,
       tags: ['integration', 'test'],
     });
-    createdProblemIds.push(original.id);
 
     // --- Act: sign in as A, then duplicate through A's RLS-scoped token ---
     // The real route calls storage.problems.duplicate(id, newTitle, user.id) with the
@@ -128,7 +149,7 @@ describeIfSupabase('Problem duplicate() — ownership transfer + RLS editability
     // in as A, build a SupabaseProblemRepository from A's token, then call duplicate()
     // through it. This exercises the real getById SELECT + INSERT under RLS (the
     // problems_insert policy requires is_instructor_or_higher() AND namespace_id =
-    // get_user_namespace_id() — A is an instructor in 'default', so it must pass).
+    // get_user_namespace_id() — A is an instructor in TEST_NAMESPACE_ID, so it must pass).
     const { data: signInData } = await adminClient.auth.signInWithPassword({
       email: `instructor-a${TEST_EMAIL_SUFFIX}`,
       password,
@@ -140,7 +161,6 @@ describeIfSupabase('Problem duplicate() — ownership transfer + RLS editability
 
     const rlsRepoA = new SupabaseProblemRepository(signInData.session.access_token);
     const copy = await rlsRepoA.duplicate(original.id, `${original.title} (copy)`, userA.id);
-    createdProblemIds.push(copy.id);
 
     // --- Assert: ownership transferred ---
     expect(copy.authorId).toBe(userA.id);
@@ -154,7 +174,7 @@ describeIfSupabase('Problem duplicate() — ownership transfer + RLS editability
     expect(copy.testCases).toEqual(original.testCases);
     expect(copy.tags).toEqual(original.tags);
     expect(copy.classId).toBe(original.classId);
-    expect(copy.namespaceId).toBe(original.namespaceId);
+    expect(copy.namespaceId).toBe(TEST_NAMESPACE_ID);
 
     // id and timestamps are fresh
     expect(copy.id).not.toBe(original.id);
