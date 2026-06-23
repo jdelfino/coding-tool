@@ -89,6 +89,18 @@ function StudentPage() {
       return;
     }
 
+    // If this session has been replaced by a newer one, do not (re)join it.
+    // The student should move to the replacement session instead. Without this
+    // guard, resetting `joined` while the URL still points at the old session
+    // (e.g. when "Join New Session" is clicked) lets the auto-join effect fire a
+    // spurious re-join of the old, now-completed session via the
+    // `status === 'completed'` branch below. That spurious join sets `joined`
+    // back to true, which then suppresses joining the replacement session and
+    // leaves the instructor's student list empty.
+    if (replacementInfo) {
+      return;
+    }
+
     // If we're already joined to this session, clear the attempt flag
     if (joined) {
       joinAttemptedRef.current = null;
@@ -141,7 +153,7 @@ function StudentPage() {
           setIsJoining(false);
         });
     }
-  }, [sessionIdFromUrl, user?.id, user?.email, user?.displayName, joined, isJoining, isConnected, session, joinSession]);
+  }, [sessionIdFromUrl, user?.id, user?.email, user?.displayName, joined, isJoining, isConnected, session, joinSession, replacementInfo]);
 
   // Update problem when session loads
   useEffect(() => {
