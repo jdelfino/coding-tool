@@ -6,9 +6,9 @@ You are an experienced software engineer, building well-structured, well-maintai
 
 ## Project Overview
 
-See [README.md](README.md) for full project description, tech stack, architecture, and setup.
+Real-time web-based coding classroom: instructors create classes and sections, students join via codes, and everyone codes together in live sessions with real-time sync. Multi-tenant with namespace isolation and RBAC.
 
-**Quick context:** Real-time coding classroom tool. Next.js + Supabase (PostgreSQL, Auth, Realtime). Python execution runs locally in an nsjail sandbox.
+**Stack:** Next.js (App Router) + Supabase (PostgreSQL, Auth, Realtime). Python runs locally in an nsjail sandbox. Tests: Jest (unit/integration) + Playwright (E2E).
 
 ## Key Files for Navigation
 
@@ -68,12 +68,8 @@ Test utilities: `src/server/__tests__/test-utils/` (server mocks/helpers), `src/
 
 ## Issue Tracking (beads)
 
-This project uses **bd (beads)** for ALL issue tracking — not markdown TODOs or external trackers. The command reference is injected at session start by `bd prime` (SessionStart hook); run `bd prime` yourself if you need it again, or `bd <cmd> --help` for flags. Only the project-specific judgment that `bd prime` doesn't cover lives here:
+Use **bd (beads)** for ALL issue tracking — not markdown TODOs or external trackers. The `bd prime` SessionStart hook injects the full workflow and command reference; run `bd prime` again anytime to refresh it. Write issues self-contained: readable cold from the description alone.
 
-- **Self-contained issues:** every issue must be readable cold from its description alone — 1-2 sentence summary (what + why), exact file paths, numbered steps, before→after example when applicable.
-- **Dependency direction:** `bd dep add X Y` means "X needs Y" (Y blocks X). Temporal words ("Phase 1", "before") invert your thinking — verify with `bd blocked`.
+## Deep-Dive Docs
 
-## Additional Resources
-
-- **[README.md](README.md)** - Project overview, setup, architecture
-- **[docs/AUTHENTICATION.md](docs/AUTHENTICATION.md)** - Auth system details
+For complex subsystems, deeper reference lives in `docs/` (e.g. `docs/AUTHENTICATION.md` for the auth system).
