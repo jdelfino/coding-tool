@@ -80,26 +80,10 @@ Test utilities: `src/server/__tests__/test-utils/` (server mocks/helpers), `src/
 
 ## Issue Tracking (beads)
 
-This project uses **bd (beads)** for ALL issue tracking — not markdown TODOs or external trackers. Always pass `--json` for programmatic use; pipe through `jq` to filter. Run `bd <cmd> --help` for flags.
-
-```bash
-bd ready --json                          # Unblocked, ready-to-start issues
-bd show <id> --json                      # Issue details
-bd create "Title" -t task -p 2 --json    # Types: bug|feature|task|epic|chore. Priority 0 (critical) - 4 (backlog)
-bd create "Sub" --parent <epic-id> --json        # Hierarchical subtask (id like epic-id.1)
-bd create "X" --deps discovered-from:<id> --json # Link discovered work
-bd update <id> --status in_progress --json
-bd close <id> --reason "Done" --json
-bd dep add <blocked> <blocker> --json    # "<blocked> needs <blocker>"
-```
+This project uses **bd (beads)** for ALL issue tracking — not markdown TODOs or external trackers. The command reference is injected at session start by `bd prime` (SessionStart hook); run `bd prime` yourself if you need it again, or `bd <cmd> --help` for flags. Only the project-specific judgment that `bd prime` doesn't cover lives here:
 
 - **Self-contained issues:** every issue must be readable cold from its description alone — 1-2 sentence summary (what + why), exact file paths, numbered steps, before→after example when applicable.
 - **Dependency direction:** `bd dep add X Y` means "X needs Y" (Y blocks X). Temporal words ("Phase 1", "before") invert your thinking — verify with `bd blocked`.
-- **Auto-sync:** bd exports to `.beads/issues.jsonl` and re-imports after `git pull` automatically. No manual sync needed.
-
-## Landing the Plane
-
-Work is **not complete until `git push` succeeds** — never stop before pushing or leave work stranded locally. Before ending a session: file issues for remaining work, run quality gates if code changed, update issue status, then `git pull --rebase` and `git push`. The `/work` and `/merge` skills handle branch/PR/merge mechanics.
 
 ## Additional Resources
 

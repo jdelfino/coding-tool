@@ -6,6 +6,10 @@
           {
             "type": "command",
             "command": "bash .claude/hooks/mark-stale-worktree.sh"
+          },
+          {
+            "type": "command",
+            "command": "bd prime 2>/dev/null || true"
           }
         ]
       }
