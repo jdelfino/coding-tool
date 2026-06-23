@@ -83,25 +83,23 @@ jobs:
 
       # Run only the real-DB gated integration tests.
       #
-      # Targeting strategy: two test locations need to run here:
-      #   1. src/server/auth/__tests__/supabase-integration.test.ts — the auth
-      #      integration suite (already matched by the server project testMatch,
-      #      but excluded from the unit `test` job because it requires a live DB).
-      #   2. src/server/persistence/supabase/__tests__/integration/*.integration.test.ts
-      #      — e.g. problem-duplicate.test.ts — excluded from all normal runs by
-      #      the root testPathIgnorePatterns in jest.config.js.
+      # These suites use `describeIfSupabase` (describe.skip when SUPABASE_SECRET_KEY
+      # is absent) so they skip cleanly in the default `test` job. This job sets
+      # SUPABASE_SECRET_KEY, so they actually run here.
       #
-      # We use --testPathPattern to target both paths in one invocation and pass
-      # --testPathIgnorePatterns="" to override the config-level exclusion so the
-      # *.integration.test.ts files are actually picked up.  The server Jest
-      # project (node environment) covers both locations; --selectProjects=server
-      # avoids loading the jsdom/client project which has nothing to run here.
+      # Targeting: match files by the '-integration.test.ts' hyphen suffix — the
+      # same convention used by supabase-integration.test.ts. This suffix is NOT
+      # caught by jest.config's '\\.integration\\.test\\.(ts|tsx)$' dot-pattern
+      # ignore rule, so these files are already in the normal server project
+      # testMatch — we just need SUPABASE_SECRET_KEY set for describeIfSupabase
+      # to activate. --testPathPatterns (Jest 30+) filters to those two files;
+      # --selectProjects=server avoids loading the jsdom/client project which has
+      # nothing to run here.
       - name: Run integration tests
         run: |
           npx jest \
             --selectProjects=server \
-            --testPathPattern="supabase-integration\.test\.ts|/__tests__/integration/" \
-            --testPathIgnorePatterns="/node_modules/" \
+            --testPathPatterns="-integration\.test\.ts$" \
             --runInBand \
             --forceExit
         env:

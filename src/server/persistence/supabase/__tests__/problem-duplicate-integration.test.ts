@@ -16,13 +16,13 @@
  *
  * Prerequisites: local Supabase running with SUPABASE_SECRET_KEY set.
  * This test SKIPS automatically when credentials are not present.
- * CAVEAT: This test will not run in default CI (no SUPABASE_SECRET_KEY set).
- * coding-xtz.4 adds the CI job that makes it run and required.
+ * The default CI `test` job has no SUPABASE_SECRET_KEY, so this suite skips
+ * there; the `integration-tests` CI job sets the key so it actually runs.
  */
 
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import { SupabaseProblemRepository } from '../../problem-repository';
-import { SupabaseAuthProvider } from '../../../../auth/supabase-provider';
+import { SupabaseProblemRepository } from '../problem-repository';
+import { SupabaseAuthProvider } from '../../../auth/supabase-provider';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const serviceRoleKey = process.env.SUPABASE_SECRET_KEY;
@@ -122,13 +122,24 @@ describeIfSupabase('Problem duplicate() — ownership transfer + RLS editability
     });
     createdProblemIds.push(original.id);
 
-    // --- Act: sign in as A and duplicate via service-role repo (simulates the route call) ---
-    // The route calls storage.problems.duplicate(id, newTitle, user.id) with user A's token.
-    // We use the service-role repo to call duplicate() directly here to avoid
-    // needing to spin up the full Next.js server — the ownership-transfer behavior
-    // is in the repository layer.
-    const serviceRepo = new SupabaseProblemRepository(serviceRoleKey!);
-    const copy = await serviceRepo.duplicate(original.id, `${original.title} (copy)`, userA.id);
+    // --- Act: sign in as A, then duplicate through A's RLS-scoped token ---
+    // The real route calls storage.problems.duplicate(id, newTitle, user.id) with the
+    // caller's access token (createStorage(accessToken)). We replicate that here: sign
+    // in as A, build a SupabaseProblemRepository from A's token, then call duplicate()
+    // through it. This exercises the real getById SELECT + INSERT under RLS (the
+    // problems_insert policy requires is_instructor_or_higher() AND namespace_id =
+    // get_user_namespace_id() — A is an instructor in 'default', so it must pass).
+    const { data: signInData } = await adminClient.auth.signInWithPassword({
+      email: `instructor-a${TEST_EMAIL_SUFFIX}`,
+      password,
+    });
+
+    if (!signInData.session) {
+      throw new Error('Failed to sign in as instructor A');
+    }
+
+    const rlsRepoA = new SupabaseProblemRepository(signInData.session.access_token);
+    const copy = await rlsRepoA.duplicate(original.id, `${original.title} (copy)`, userA.id);
     createdProblemIds.push(copy.id);
 
     // --- Assert: ownership transferred ---
@@ -150,18 +161,7 @@ describeIfSupabase('Problem duplicate() — ownership transfer + RLS editability
     expect(copy.createdAt.getTime()).toBeGreaterThanOrEqual(original.createdAt.getTime());
 
     // --- Assert: A can update the copy under real RLS ---
-    // Sign in as A to get a real access token (enforces RLS)
-    const { data: signInData } = await adminClient.auth.signInWithPassword({
-      email: `instructor-a${TEST_EMAIL_SUFFIX}`,
-      password,
-    });
-
-    if (!signInData.session) {
-      throw new Error('Failed to sign in as instructor A');
-    }
-
-    const rlsRepoA = new SupabaseProblemRepository(signInData.session.access_token);
-    // This MUST succeed — A is the author of the copy
+    // Reuse the same A-token repo — A is the author of the copy so update() MUST succeed.
     const updated = await rlsRepoA.update(copy.id, { title: 'Updated by A' });
     expect(updated.title).toBe('Updated by A');
   });
