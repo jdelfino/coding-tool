@@ -10,12 +10,24 @@ Real-time web-based coding classroom: instructors create classes and sections, s
 
 **Stack:** Next.js (App Router) + Supabase (PostgreSQL, Auth, Realtime). Python runs locally in an nsjail sandbox. Tests: Jest (unit/integration) + Playwright (E2E).
 
-## Key Files for Navigation
+## Architecture
 
-- `src/hooks/useRealtimeSession.ts` - Session realtime logic (Broadcast subscriptions)
-- `src/server/persistence/` - Supabase repositories (all data access)
-- `src/server/auth/rbac.ts` - Permission matrix and RBAC logic
-- `src/server/services/` - Business logic layer
+Multi-tenant entity hierarchy — most data is scoped by namespace:
+
+```
+Namespace (organization / tenant)
+└── Class (e.g. CS 101)
+    └── Section (e.g. Fall 2025 — Section A)
+        ├── Instructors
+        ├── Students (join via code)
+        └── Sessions (live coding)
+```
+
+**Roles** (descending privilege): `system-admin` → `namespace-admin` → `instructor` → `student`. Permission matrix and checks live in `src/server/auth/rbac.ts`.
+
+**Request layers:** API routes (`src/app/api/`) → services (`src/server/services/`, business logic) → repositories (`src/server/persistence/`, all data access). Routes own auth/RBAC; services own logic; repositories own persistence.
+
+**Realtime:** a student's edits are debounce-saved, then fan out via Supabase Broadcast to the instructor dashboard and public view. Session-specific realtime logic lives in `src/hooks/useRealtimeSession.ts`. Code execution runs Python in a local nsjail sandbox via `src/server/code-execution/`.
 
 ## Commands
 
