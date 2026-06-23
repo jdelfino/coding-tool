@@ -220,6 +220,14 @@ otp_expiry = 3600
 # admin_email = "admin@email.com"
 # sender_name = "Admin"
 
+# Custom magic-link/OTP email template that includes the 6-digit {{ .Token }}.
+# The app's email-MFA step calls signInWithOtp, which sends the magic_link email
+# for existing users; the default local template only contains the link, so the
+# OTP code never reached the email and the e2e MFA helper could not read it.
+[auth.email.template.magic_link]
+subject = "Your verification code"
+content_path = "./supabase/templates/magic_link.html"
+
 # Uncomment to customize email template
 # [auth.email.template.invite]
 # subject = "You have been invited"
