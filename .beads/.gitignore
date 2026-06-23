@@ -15,6 +15,11 @@ daemon.*
 # Interactions log (runtime, not versioned)
 interactions.jsonl
 
+# Passive export of the issue DB (not versioned). The Dolt DB above is the source
+# of truth and syncs via refs/dolt/data; this JSONL is a regenerated snapshot.
+# Committing it let stale/empty exports clobber real issues on fresh containers.
+issues.jsonl
+
 # Push state (runtime, per-machine)
 push-state.json
 
