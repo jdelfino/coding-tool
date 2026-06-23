@@ -320,3 +320,25 @@ gh pr checks <number> --watch
 - Cleaning up worktrees before merge (that's `/merge`'s job)
 - Manually creating worktrees with `git worktree add` for subagents — use `isolation: "worktree"` so the `WorktreeCreate` hook handles setup
 - Using `isolation: "worktree"` for rebase/reviewer/test-runner agents — they enter the coordinator's existing worktree
+
+---
+
+## Hooks — What's Automatic vs Manual
+
+lefthook git hooks run quality gates automatically (see `lefthook.yml`). Do NOT duplicate these in test-runner prompts.
+
+**Pre-commit hooks (automatic at commit time) — never run manually:**
+- `npx eslint` (lint, staged `*.ts`/`*.tsx`)
+- `npx tsc --noEmit` (typecheck)
+- gitleaks secret scan
+- `bd hooks run pre-commit` (beads sync)
+
+**Pre-push hooks (automatic at push time) — do not put in the coordinator test-runner:**
+- `npm test` (full Jest suite)
+- `bd hooks run pre-push` (beads sync)
+
+**Integration / e2e tests (NOT in hooks) — run in the coordinator test-runner when relevant:**
+- `npm run test:integration:sandbox` — changes touching the Python sandbox / server boundary
+- `npm run test:e2e -- e2e/<spec>` — epic-defined acceptance tests, targeting specific spec files (not the full e2e suite)
+
+Note: implementer subagents still run `npm test` in Phase 3 for TDD feedback before committing. The pre-push hook re-running it is an accepted safety net, not wasteful duplication.
