@@ -42,5 +42,31 @@ if ! command -v gitleaks >/dev/null 2>&1; then
     fi
 fi
 
+# Install Supabase CLI. We install it here rather than via the
+# devcontainers-extra/supabase-cli feature because that feature pins to
+# `latest`, which now resolves to a beta release that ships both a versioned
+# (supabase_<ver>_linux_<arch>.tar.gz) and an unversioned
+# (supabase_linux_<arch>.tar.gz) tarball — nanolayer's asset resolver refuses
+# to choose between the two ("Too many matches found") and the build fails.
+# Pulling an explicit versioned URL from the latest *stable* release avoids the
+# ambiguity entirely.
+if ! command -v supabase >/dev/null 2>&1; then
+    case "$(uname -m)" in
+        x86_64|amd64) SB_ARCH=amd64 ;;
+        aarch64|arm64) SB_ARCH=arm64 ;;
+        *) SB_ARCH="" ;;
+    esac
+    SB_VER=$(curl -fsSL https://api.github.com/repos/supabase/cli/releases/latest 2>/dev/null \
+        | grep -oP '"tag_name":\s*"v\K[^"]+' | head -1)
+    if [ -n "$SB_ARCH" ] && [ -n "$SB_VER" ]; then
+        curl -fsSL "https://github.com/supabase/cli/releases/download/v${SB_VER}/supabase_${SB_VER}_linux_${SB_ARCH}.tar.gz" \
+            | sudo tar -xz -C /usr/local/bin supabase \
+            && echo "Installed supabase ${SB_VER}" \
+            || echo "supabase install failed"
+    else
+        echo "Skipping supabase install (unsupported arch or version lookup failed)"
+    fi
+fi
+
 # Install git hooks (lefthook orchestrates beads sync + quality gates).
 npx lefthook install
