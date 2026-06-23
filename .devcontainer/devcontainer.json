@@ -5,11 +5,6 @@
   "workspaceMount": "source=${localWorkspaceFolder},target=/workspaces/coding-tool,type=bind,consistency=cached",
   "workspaceFolder": "/workspaces/coding-tool",
 
-  "mounts": [
-    "source=coding-tool-node-modules,target=/workspaces/coding-tool/node_modules,type=volume",
-    "source=coding-tool-claude-config,target=/home/vscode/.claude,type=volume"
-  ],
-
   "features": {
     "ghcr.io/devcontainers/features/python:1": { "version": "3.12" },
     "ghcr.io/devcontainers/features/node:1": { "version": "22", "installYarnUsingApt": false },
