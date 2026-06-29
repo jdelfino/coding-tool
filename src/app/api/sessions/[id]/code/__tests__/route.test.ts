@@ -9,7 +9,8 @@ import { NextRequest } from 'next/server';
 import { POST } from '../route';
 import { getAuthenticatedUserWithToken } from '@/server/auth/api-auth';
 import { createStorage } from '@/server/persistence';
-import { revisionBufferHolder } from '@/server/revision-buffer';
+import { revisionBufferHolder, RevisionBuffer } from '@/server/revision-buffer';
+import * as RevisionBufferModule from '@/server/revision-buffer';
 import * as SessionService from '@/server/services/session-service';
 import { Session } from '@/server/types';
 import { Problem } from '@/server/types/problem';
@@ -117,6 +118,14 @@ describe('POST /api/sessions/[id]/code', () => {
   });
 
   afterEach(() => {
+    // If a test left a REAL RevisionBuffer in the holder, stop its 30s
+    // auto-flush setInterval. That timer is not unref'd, so an orphaned buffer
+    // keeps the Node event loop (and Jest) alive — which hangs `npm test` when
+    // Jest runs in-band (maxWorkers=1, e.g. on <=2-CPU hosts) instead of in a
+    // worker process that would be killed on completion.
+    if (revisionBufferHolder.instance instanceof RevisionBuffer) {
+      revisionBufferHolder.instance.stopAutoFlush();
+    }
     revisionBufferHolder.instance = null;
   });
 
@@ -315,6 +324,13 @@ describe('POST /api/sessions/[id]/code', () => {
 
   it('works without revision buffer', async () => {
     revisionBufferHolder.instance = null;
+    // Stub the lazy-init path so the route does NOT construct a real
+    // RevisionBuffer (which would arm a leaked 30s setInterval + a 5s
+    // typing-pause setTimeout and hit a real repository). We only need to
+    // verify the route still succeeds when the holder starts empty.
+    const getBufferSpy = jest
+      .spyOn(RevisionBufferModule, 'getRevisionBuffer')
+      .mockResolvedValue({ addRevision: jest.fn().mockResolvedValue(undefined) } as unknown as RevisionBuffer);
     mockGetAuthenticatedUserWithToken.mockResolvedValue({ user: mockUser, accessToken: 'test-token' });
 
     const request = new NextRequest('http://localhost:3000/api/sessions/session-1/code', {
@@ -326,6 +342,8 @@ describe('POST /api/sessions/[id]/code', () => {
     const response = await POST(request, { params });
 
     expect(response.status).toBe(200);
+    expect(getBufferSpy).toHaveBeenCalled();
+    getBufferSpy.mockRestore();
   });
 
   it('returns 500 when service fails', async () => {
