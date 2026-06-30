@@ -786,7 +786,12 @@ describe('SupabaseProblemRepository', () => {
   });
 
   describe('duplicate', () => {
-    it('should duplicate a problem with new title', async () => {
+    it('should duplicate a problem with title override, preserving source classId and authorId', async () => {
+      /**
+       * Verifies that duplicate copies all source fields and applies the title override.
+       * classId and authorId default to the source values when not overridden.
+       * Catches: signature regression; dropped fields; wrong defaults.
+       */
       // First call: getById
       const getByIdSingle = jest.fn().mockResolvedValue({ data: mockProblemRow, error: null });
       const getByIdEq = jest.fn().mockReturnValue({ single: getByIdSingle });
@@ -815,12 +820,73 @@ describe('SupabaseProblemRepository', () => {
         }
       });
 
-      const result = await repository.duplicate(mockProblem.id, 'Duplicated Problem');
+      const result = await repository.duplicate(mockProblem.id, { title: 'Duplicated Problem' });
 
       expect(result.title).toBe('Duplicated Problem');
       expect(result.id).toBe('new-uuid-5678');
       expect(result.namespaceId).toBe(mockProblem.namespaceId);
       expect(result.authorId).toBe(mockProblem.authorId);
+      // Verify source classId is preserved when not overridden
+      const insertedRow = insertFn.mock.calls[0][0];
+      expect(insertedRow.class_id).toBe(mockProblem.classId);
+      expect(insertedRow.author_id).toBe(mockProblem.authorId);
+      expect(insertedRow.test_cases).toEqual(mockProblem.testCases);
+      expect(insertedRow.execution_settings).toEqual(mockProblem.executionSettings);
+      expect(insertedRow.tags).toEqual(mockProblem.tags);
+    });
+
+    it('should apply classId and authorId overrides', async () => {
+      /**
+       * Verifies that classId and authorId overrides take precedence over the source values.
+       * This is the core of the duplicate-for-new-owner use case (authorId = copier,
+       * classId = target class). Catches: overrides not applied; wrong field precedence.
+       */
+      const getByIdSingle = jest.fn().mockResolvedValue({ data: mockProblemRow, error: null });
+      const getByIdEq = jest.fn().mockReturnValue({ single: getByIdSingle });
+
+      const overriddenRow = {
+        ...mockProblemRow,
+        id: 'new-uuid-9999',
+        title: 'X',
+        class_id: 'class-B',
+        author_id: 'user-2',
+      };
+      const insertSingle = jest.fn().mockResolvedValue({ data: overriddenRow, error: null });
+      const insertSelect = jest.fn().mockReturnValue({ single: insertSingle });
+      const insertFn = jest.fn().mockReturnValue({ select: insertSelect });
+
+      let callCount = 0;
+      mockFrom.mockImplementation(() => {
+        callCount++;
+        if (callCount === 1) {
+          return {
+            select: jest.fn().mockReturnValue({ eq: getByIdEq }),
+          };
+        } else {
+          return {
+            insert: insertFn,
+          };
+        }
+      });
+
+      const result = await repository.duplicate(mockProblem.id, {
+        title: 'X',
+        classId: 'class-B',
+        authorId: 'user-2',
+      });
+
+      expect(result.id).toBe('new-uuid-9999');
+      // Verify overrides are applied in the inserted row
+      const insertedRow = insertFn.mock.calls[0][0];
+      expect(insertedRow.title).toBe('X');
+      expect(insertedRow.class_id).toBe('class-B');
+      expect(insertedRow.author_id).toBe('user-2');
+      // Source fields still carried over
+      expect(insertedRow.description).toBe(mockProblem.description);
+      expect(insertedRow.starter_code).toBe(mockProblem.starterCode);
+      expect(insertedRow.test_cases).toEqual(mockProblem.testCases);
+      expect(insertedRow.execution_settings).toEqual(mockProblem.executionSettings);
+      expect(insertedRow.tags).toEqual(mockProblem.tags);
     });
 
     it('should throw error if original problem not found', async () => {
@@ -834,7 +900,7 @@ describe('SupabaseProblemRepository', () => {
         select: jest.fn().mockReturnValue({ eq: getByIdEq }),
       });
 
-      await expect(repository.duplicate('nonexistent', 'New Title')).rejects.toThrow(
+      await expect(repository.duplicate('nonexistent', { title: 'New Title' })).rejects.toThrow(
         'Problem not found: nonexistent'
       );
     });
