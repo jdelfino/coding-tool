@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import ProblemLibrary from '../ProblemLibrary';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -40,6 +40,7 @@ jest.mock('../ProblemCard', () => {
         {props.problem.title}
         <button data-testid={`edit-${props.problem.id}`} onClick={() => props.onEdit(props.problem.id)}>Edit</button>
         <button data-testid={`create-session-${props.problem.id}`} onClick={() => props.onCreateSession(props.problem.id)}>Create Session</button>
+        <button data-testid={`duplicate-${props.problem.id}`} onClick={() => props.onDuplicate && props.onDuplicate(props.problem.id)}>Duplicate</button>
       </div>
     );
   };
@@ -423,6 +424,118 @@ describe('ProblemLibrary', () => {
 
       await waitFor(() => {
         expect(screen.getByTestId('problem-search')).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe('Duplicate handler', () => {
+    /**
+     * These tests cover the handleDuplicate → DuplicateProblemModal wiring in ProblemLibrary:
+     * clicking Duplicate on a card opens the modal prefilled with 'Copy of <title>', and a
+     * successful POST triggers handleDuplicateSuccess → loadProblems. This covers a wiring gap
+     * that was only in e2e tests (which skip in CI without SUPABASE_SECRET_KEY).
+     */
+
+    const mockClasses = [{ id: 'class-1', name: 'CS 101', namespaceId: 'ns-1' }];
+
+    beforeEach(() => {
+      global.fetch = jest.fn((url: string, _opts?: RequestInit) => {
+        if (typeof url === 'string' && url.includes('/api/classes')) {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve({ classes: mockClasses }),
+          });
+        }
+        if (typeof url === 'string' && url.includes('/duplicate')) {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve({ problem: { id: 'problem-copy', title: 'Copy of Problem 1' } }),
+          });
+        }
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ problems: mockProblems }),
+        });
+      }) as jest.Mock;
+    });
+
+    it('opens DuplicateProblemModal prefilled with "Copy of <title>" when Duplicate is clicked', async () => {
+      /**
+       * Verifies the handleDuplicate wiring: the clicked problem is looked up by id from
+       * the loaded problems list, and DuplicateProblemModal is rendered with that problem.
+       * The modal's own logic prefills "Copy of <title>" — asserting that value proves both
+       * the lookup and the prop handoff are correct.
+       * Catches: wrong problem selected; missing classId on prop; modal not rendered at all.
+       */
+      render(<ProblemLibrary />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('duplicate-problem-1')).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByTestId('duplicate-problem-1'));
+
+      await waitFor(() => {
+        const titleInput = screen.getByRole('textbox', { name: /title/i });
+        expect(titleInput).toHaveValue('Copy of Problem 1');
+      });
+    });
+
+    it('reloads the problem list after a successful duplicate', async () => {
+      /**
+       * Verifies that handleDuplicateSuccess calls loadProblems so the new copy
+       * appears without a manual page refresh.
+       * Catches: missing onSuccess→loadProblems wiring; problems state not refreshed.
+       */
+      let problemsFetchCount = 0;
+      global.fetch = jest.fn((url: string, _opts?: RequestInit) => {
+        if (typeof url === 'string' && url.includes('/api/classes')) {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve({ classes: mockClasses }),
+          });
+        }
+        if (typeof url === 'string' && url.includes('/duplicate')) {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve({ problem: { id: 'problem-copy', title: 'Copy of Problem 1' } }),
+          });
+        }
+        // /api/problems
+        problemsFetchCount++;
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ problems: mockProblems }),
+        });
+      }) as jest.Mock;
+
+      render(<ProblemLibrary />);
+
+      // Wait for initial load
+      await waitFor(() => {
+        expect(screen.getByTestId('duplicate-problem-1')).toBeInTheDocument();
+      });
+
+      const countAfterLoad = problemsFetchCount;
+
+      // Open modal
+      fireEvent.click(screen.getByTestId('duplicate-problem-1'));
+
+      await waitFor(() => {
+        expect(screen.getByRole('textbox', { name: /title/i })).toBeInTheDocument();
+      });
+
+      // Submit the duplicate form (default same-class, prefilled title).
+      // Scope to the modal (heading "Duplicate Problem") because the mocked
+      // ProblemCard also renders per-card "Duplicate" buttons.
+      const modal = screen
+        .getByRole('heading', { name: 'Duplicate Problem' })
+        .closest('div.fixed') as HTMLElement;
+      fireEvent.click(within(modal).getByRole('button', { name: /^duplicate$/i }));
+
+      // After success, loadProblems must be called again
+      await waitFor(() => {
+        expect(problemsFetchCount).toBeGreaterThan(countAfterLoad);
       });
     });
   });

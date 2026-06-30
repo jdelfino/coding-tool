@@ -167,14 +167,17 @@ describe('POST /api/problems/[id]/duplicate', () => {
   it('should return 404 when source problem is not found', async () => {
     /**
      * Verifies namespace-scoped source lookup returns 404 on miss.
+     * Also asserts namespaceId is forwarded to getById — if omitted, a problem
+     * from another namespace could be resolved, leaking cross-tenant data.
      * Catches: missing null check; namespace not passed to getById.
      */
     mockRequirePermission.mockResolvedValue(createAuthContext(mockInstructor));
 
+    const mockGetById = jest.fn().mockResolvedValue(null);
     const mockDuplicateFn = jest.fn();
     mockCreateStorage.mockResolvedValue({
       problems: {
-        getById: jest.fn().mockResolvedValue(null),
+        getById: mockGetById,
         duplicate: mockDuplicateFn,
       },
     } as any);
@@ -187,13 +190,17 @@ describe('POST /api/problems/[id]/duplicate', () => {
     expect(response.status).toBe(404);
     expect(data.error).toBe('Problem not found');
     expect(mockDuplicateFn).not.toHaveBeenCalled();
+    // Namespace must be forwarded so cross-tenant problems are never resolved.
+    expect(mockGetById).toHaveBeenCalledWith('problem-source', 'ns-default');
   });
 
   it('should return 201 for same-class duplicate with no targetClassId', async () => {
     /**
      * Verifies the happy path: same-class copy authored by the requesting instructor.
      * duplicate must be called with { title, classId: source.classId, authorId: user.id }.
-     * Catches: authorId not set to current user; classId defaulting wrong.
+     * Also asserts the route calls requirePermission with 'problem.create' — if it were
+     * changed to 'problem.read' (which students have), all other tests would still pass.
+     * Catches: authorId not set to current user; classId defaulting wrong; wrong permission.
      */
     mockRequirePermission.mockResolvedValue(createAuthContext(mockInstructor));
 
@@ -215,6 +222,8 @@ describe('POST /api/problems/[id]/duplicate', () => {
       classId: mockSourceProblem.classId,
       authorId: mockInstructor.id,
     });
+    // Gate on exact permission string: students have problem.read but NOT problem.create.
+    expect(mockRequirePermission).toHaveBeenCalledWith(expect.anything(), 'problem.create');
   });
 
   it('should return 201 for cross-class duplicate when instructor owns the target class', async () => {
@@ -296,6 +305,8 @@ describe('POST /api/problems/[id]/duplicate', () => {
   it('should return 404 when target class is not found', async () => {
     /**
      * Verifies that a non-existent (or out-of-namespace) target class yields 404.
+     * Also asserts namespaceId is forwarded to getClass — without it, a class from
+     * another tenant could be resolved, enabling cross-tenant problem porting.
      * Catches: null not handled; missing namespace filter on getClass.
      */
     mockRequirePermission.mockResolvedValue(createAuthContext(mockInstructor));
@@ -320,6 +331,66 @@ describe('POST /api/problems/[id]/duplicate', () => {
     expect(response.status).toBe(404);
     expect(data.error).toBe('Target class not found');
     expect(mockDuplicateFn).not.toHaveBeenCalled();
+    // Namespace must be forwarded to prevent cross-tenant class resolution.
+    expect(mockClassRepo.getClass).toHaveBeenCalledWith('class-nonexistent', 'ns-default');
+  });
+
+  it('should call duplicate with trimmed title when title has surrounding whitespace', async () => {
+    /**
+     * Verifies that title.trim() is applied before storing: a title of '  Foo  '
+     * must reach the repository as 'Foo'. Without this, stored titles would
+     * carry invisible leading/trailing spaces.
+     */
+    mockRequirePermission.mockResolvedValue(createAuthContext(mockInstructor));
+
+    const mockGetById = jest.fn().mockResolvedValue(mockSourceProblem);
+    const mockDuplicateFn = jest.fn().mockResolvedValue({ ...mockDuplicatedProblem, title: 'Foo' });
+    mockCreateStorage.mockResolvedValue({
+      problems: { getById: mockGetById, duplicate: mockDuplicateFn },
+    } as any);
+
+    const response = await POST(makeRequest({ title: '  Foo  ' }), {
+      params: Promise.resolve({ id: 'problem-source' }),
+    });
+
+    expect(response.status).toBe(201);
+    expect(mockDuplicateFn).toHaveBeenCalledWith('problem-source', {
+      title: 'Foo',
+      classId: mockSourceProblem.classId,
+      authorId: mockInstructor.id,
+    });
+  });
+
+  it('should skip class lookup when targetClassId equals source.classId', async () => {
+    /**
+     * Verifies the same-class short-circuit: when targetClassId === source.classId,
+     * the route skips getClass and ownership checks and duplicates within the same class.
+     * Catches: unnecessary ownership check blocking same-class duplicate with targetClassId set;
+     * or, missing short-circuit causing a wasted DB lookup.
+     */
+    mockRequirePermission.mockResolvedValue(createAuthContext(mockInstructor));
+
+    const mockGetById = jest.fn().mockResolvedValue(mockSourceProblem);
+    const mockDuplicateFn = jest.fn().mockResolvedValue(mockDuplicatedProblem);
+    mockCreateStorage.mockResolvedValue({
+      problems: { getById: mockGetById, duplicate: mockDuplicateFn },
+    } as any);
+
+    // Pass targetClassId equal to source.classId ('class-A')
+    const response = await POST(
+      makeRequest({ title: 'Same Class Copy', targetClassId: mockSourceProblem.classId }),
+      { params: Promise.resolve({ id: 'problem-source' }) }
+    );
+    const data = await response.json();
+
+    expect(response.status).toBe(201);
+    // getClassRepository must NOT be called — no ownership check needed
+    expect(mockGetClassRepository).not.toHaveBeenCalled();
+    expect(mockDuplicateFn).toHaveBeenCalledWith('problem-source', {
+      title: 'Same Class Copy',
+      classId: mockSourceProblem.classId,
+      authorId: mockInstructor.id,
+    });
   });
 
   it('should skip class ownership check for namespace-admin targeting any class', async () => {
