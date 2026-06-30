@@ -296,16 +296,19 @@ export interface IProblemRepository {
   getByClass(classId: string, filter?: ProblemFilter, namespaceId?: string): Promise<ProblemMetadata[]>;
 
   /**
-   * Duplicate a problem with new title
+   * Duplicate a problem with overrides applied to the copy.
    *
-   * Creates a copy with new ID and specified title.
+   * Creates a copy with a new ID. The title is required; classId and authorId
+   * default to the source problem's values when not provided.
+   * All other fields (description, starterCode, testCases, executionSettings,
+   * tags, solution, namespaceId) are copied verbatim from the source.
    *
-   * @param id - Problem to duplicate
-   * @param newTitle - Title for the duplicate
+   * @param id - ID of the problem to duplicate
+   * @param overrides - title is required; classId/authorId are optional overrides
    * @returns The duplicated problem
-   * @throws {PersistenceError} with NOT_FOUND if problem doesn't exist
+   * @throws {Error} with 'Problem not found: <id>' if problem doesn't exist
    */
-  duplicate(id: string, newTitle: string): Promise<Problem>;
+  duplicate(id: string, overrides: { title: string; classId?: string; authorId?: string }): Promise<Problem>;
 }
 
 /**

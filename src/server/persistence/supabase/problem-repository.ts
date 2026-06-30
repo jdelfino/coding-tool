@@ -378,24 +378,29 @@ export class SupabaseProblemRepository implements IProblemRepository {
     return data ? data.map((row) => mapRowToProblemMetadata({ ...row, author_name: row.author_id })) : [];
   }
 
-  async duplicate(id: string, newTitle: string): Promise<Problem> {
-    // First, get the original problem
+  async duplicate(
+    id: string,
+    overrides: { title: string; classId?: string; authorId?: string }
+  ): Promise<Problem> {
+    // First, get the original problem (intentionally un-namespaced; namespace
+    // isolation is enforced at the route via getById(id, namespaceId) before
+    // duplicate is called).
     const original = await this.getById(id);
 
     if (!original) {
       throw new Error(`Problem not found: ${id}`);
     }
 
-    // Create a copy with new title and ID
+    // Build the copy: apply overrides; fall back to source values when not provided.
     const problemInput: ProblemInput = {
       namespaceId: original.namespaceId,
-      title: newTitle,
+      title: overrides.title,
       description: original.description,
       starterCode: original.starterCode,
       testCases: original.testCases,
       executionSettings: original.executionSettings,
-      authorId: original.authorId,
-      classId: original.classId,
+      authorId: overrides.authorId ?? original.authorId,
+      classId: overrides.classId ?? original.classId,
       tags: original.tags,
       solution: original.solution,
     };

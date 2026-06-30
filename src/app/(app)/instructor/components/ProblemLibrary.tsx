@@ -12,6 +12,7 @@ import { useRouter } from 'next/navigation';
 import ProblemSearch from './ProblemSearch';
 import ProblemCard from './ProblemCard';
 import CreateSessionFromProblemModal from './CreateSessionFromProblemModal';
+import DuplicateProblemModal from './DuplicateProblemModal';
 import type { ClassInfo, ProblemSummary } from '../types';
 
 interface ProblemLibraryProps {
@@ -41,6 +42,9 @@ export default function ProblemLibrary({ onCreateNew, onEdit }: ProblemLibraryPr
   // Session creation modal state
   const [showSessionModal, setShowSessionModal] = useState(false);
   const [selectedProblemForSession, setSelectedProblemForSession] = useState<{ id: string; title: string; classId: string } | null>(null);
+
+  // Duplicate modal state
+  const [duplicatingProblem, setDuplicatingProblem] = useState<{ id: string; title: string; classId: string } | null>(null);
 
   // Load classes on mount
   useEffect(() => {
@@ -225,6 +229,20 @@ export default function ProblemLibrary({ onCreateNew, onEdit }: ProblemLibraryPr
     setSelectedProblemForSession(null);
   };
 
+  const handleDuplicate = (problemId: string) => {
+    const problem = problems.find(p => p.id === problemId);
+    if (!problem) return;
+    setDuplicatingProblem({ id: problem.id, title: problem.title, classId: problem.classId });
+  };
+
+  const handleDuplicateSuccess = () => {
+    loadProblems();
+  };
+
+  const handleCloseDuplicateModal = () => {
+    setDuplicatingProblem(null);
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center py-12">
@@ -351,6 +369,7 @@ export default function ProblemLibrary({ onCreateNew, onEdit }: ProblemLibraryPr
               onDelete={handleDelete}
               onCreateSession={handleCreateSession}
               onTagClick={handleTagToggle}
+              onDuplicate={handleDuplicate}
             />
           ))}
         </div>
@@ -365,6 +384,16 @@ export default function ProblemLibrary({ onCreateNew, onEdit }: ProblemLibraryPr
           className={classes.find(c => c.id === selectedProblemForSession.classId)?.name || ''}
           onClose={handleCloseSessionModal}
           onSuccess={handleSessionCreated}
+        />
+      )}
+
+      {/* Duplicate Problem Modal */}
+      {duplicatingProblem && (
+        <DuplicateProblemModal
+          problem={duplicatingProblem}
+          classes={classes}
+          onClose={handleCloseDuplicateModal}
+          onSuccess={handleDuplicateSuccess}
         />
       )}
     </div>

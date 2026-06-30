@@ -5,6 +5,13 @@ import path from 'path';
 // Load environment variables from .env.local
 dotenv.config({ path: path.resolve(__dirname, '.env.local') });
 
+// Support PORT override so worktree dev servers can run on a non-default port
+// without colliding with a main-branch server already listening on 3000.
+// Usage: PORT=3001 npm run test:e2e
+// When PORT is unset, behaviour is unchanged: use 3000 and reuse any running server.
+const serverPort = process.env.PORT || '3000';
+const serverUrl = `http://localhost:${serverPort}`;
+
 /**
  * Playwright configuration for E2E testing
  * See https://playwright.dev/docs/test-configuration
@@ -33,7 +40,7 @@ export default defineConfig({
   /* Shared settings for all the projects below */
   use: {
     /* Base URL to use in actions like `await page.goto('/')` */
-    baseURL: 'http://localhost:3000',
+    baseURL: serverUrl,
 
     /* Collect trace when retrying the failed test */
     trace: 'on-first-retry',
@@ -57,12 +64,13 @@ export default defineConfig({
   webServer: {
     // Use production build in CI for stability, dev mode locally for speed
     command: process.env.CI ? 'npm run build && npm start' : 'npm run dev',
-    url: 'http://localhost:3000',
+    url: serverUrl,
     reuseExistingServer: !process.env.CI,
     timeout: 120 * 1000, // 2 minutes to start
     // Pass environment variables to the dev server subprocess
     env: {
       ...process.env,
+      PORT: serverPort,
       NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL || 'http://127.0.0.1:54321',
       NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || '',
       SUPABASE_SECRET_KEY: process.env.SUPABASE_SECRET_KEY || '',
