@@ -19,6 +19,7 @@ interface ProblemCardProps {
   onDelete: (problemId: string, title: string) => void;
   onCreateSession: (problemId: string) => void;
   onTagClick?: (tag: string) => void;
+  onDuplicate?: (problemId: string) => void;
 }
 
 export default function ProblemCard({
@@ -28,6 +29,7 @@ export default function ProblemCard({
   onDelete,
   onCreateSession,
   onTagClick,
+  onDuplicate,
 }: ProblemCardProps) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -123,6 +125,15 @@ export default function ProblemCard({
             >
               {isDeleting ? '...' : 'Delete'}
             </button>
+            {onDuplicate && (
+              <button
+                onClick={() => onDuplicate(problem.id)}
+                className="px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                title="Duplicate problem"
+              >
+                Duplicate
+              </button>
+            )}
           </div>
         </div>
         <ConfirmDialog
@@ -180,6 +191,14 @@ export default function ProblemCard({
         >
           {isDeleting ? 'Deleting...' : 'Delete'}
         </button>
+        {onDuplicate && (
+          <button
+            onClick={() => onDuplicate(problem.id)}
+            className="col-span-2 px-3 py-2 text-sm text-gray-600 border border-gray-300 hover:bg-gray-100 rounded-lg transition-colors"
+          >
+            Duplicate
+          </button>
+        )}
       </div>
       <ConfirmDialog
         open={showDeleteConfirm}
