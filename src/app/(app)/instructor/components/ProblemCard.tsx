@@ -195,6 +195,7 @@ export default function ProblemCard({
           <button
             onClick={() => onDuplicate(problem.id)}
             className="col-span-2 px-3 py-2 text-sm text-gray-600 border border-gray-300 hover:bg-gray-100 rounded-lg transition-colors"
+            title="Duplicate problem"
           >
             Duplicate
           </button>

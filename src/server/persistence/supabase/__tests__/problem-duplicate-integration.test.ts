@@ -83,7 +83,15 @@ describeIfSupabase('Problem Duplicate: RLS Integration', () => {
       throw new Error(`seedUser: failed to create profile ${email}: ${profileError.message}`);
     }
 
-    const { data: signIn, error: signInError } = await admin.auth.signInWithPassword({
+    // Sign in on a SEPARATE throwaway client so the service-role `admin` client
+    // is never mutated by a user JWT. Calling signInWithPassword on the shared
+    // admin client would overwrite its in-memory session (even with persistSession:
+    // false), causing subsequent service-role inserts to run as the signed-in user
+    // and hit RLS policies that block them.
+    const signInClient = createClient(supabaseUrl!, serviceRoleKey!, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    const { data: signIn, error: signInError } = await signInClient.auth.signInWithPassword({
       email,
       password: TEST_PASSWORD,
     });
